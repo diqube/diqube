@@ -1,0 +1,51 @@
+
+Diqube uses the following third-party libraries. These are available under the terms of their respective licenses. The 
+texts of these licenses are available in the corresponding files in the sub-directory "third-party-licenses" of the 
+diqube source code.
+
+    Apache License 2.0 [apache-20.txt]:
+
+        * Apache Commons Lang (org.apache.commons:commons-lang3:3.3.2 - http://commons.apache.org/proper/commons-lang/)
+        * Apache Thrift (org.apache.thrift:libthrift:0.9.2 - http://thrift.apache.org)
+        * Commons Codec (commons-codec:commons-codec:1.6 - http://commons.apache.org/codec/)
+        * FindBugs-jsr305 (com.google.code.findbugs:jsr305:3.0.0 - http://findbugs.sourceforge.net/)
+        * Guava: Google Core Libraries for Java (com.google.guava:guava:18.0 - http://code.google.com/p/guava-libraries/guava)
+        * HttpClient (org.apache.httpcomponents:httpclient:4.2.5 - http://hc.apache.org/httpcomponents-client)
+        * HttpCore (org.apache.httpcomponents:httpcore:4.2.4 - http://hc.apache.org/httpcomponents-core-ga)
+        * JCommander (com.beust:jcommander:1.48 - http://beust.com/jcommander)
+        * Jackson-core (com.fasterxml.jackson.core:jackson-core:2.5.3 - https://github.com/FasterXML/jackson)
+        * Spring AOP (org.springframework:spring-aop:4.1.6.RELEASE - https://github.com/spring-projects/spring-framework)
+        * Spring Beans (org.springframework:spring-beans:4.1.6.RELEASE - https://github.com/spring-projects/spring-framework)
+        * Spring Context (org.springframework:spring-context:4.1.6.RELEASE - https://github.com/spring-projects/spring-framework)
+        * Spring Core (org.springframework:spring-core:4.1.6.RELEASE - https://github.com/spring-projects/spring-framework)
+        * Spring Expression Language (SpEL) (org.springframework:spring-expression:4.1.6.RELEASE - https://github.com/spring-projects/spring-framework)
+        * TestNG (org.testng:testng:6.9.4 - http://testng.org)
+        * javax.inject (javax.inject:javax.inject:1 - http://code.google.com/p/atinject/)
+        * opencsv (com.opencsv:opencsv:3.3 - http://opencsv.sf.net)
+
+    BSD (ANTLR) [antlr-bsd.txt]:
+
+        * ANTLR 4 Runtime (org.antlr:antlr4-runtime:4.5 - http://www.antlr.org)
+
+    BSD (abego) [abego-bsd.txt]:
+
+        * abego TreeLayout Core (org.abego.treelayout:org.abego.treelayout.core:1.0.1 - http://code.google.com/p/treelayout/)
+
+    GPLv2 with classpath exception [gpl-20-classpath.txt]:
+
+        * Java Servlet API (javax.servlet:javax.servlet-api:3.1.0 - http://servlet-spec.java.net)
+
+    LGPL [lgpl.txt]:
+
+        * BeanShell (org.beanshell:bsh:2.0b4 - no url defined)
+        * Logback Classic Module (ch.qos.logback:logback-classic:1.1.2 - http://logback.qos.ch)
+        * Logback Core Module (ch.qos.logback:logback-core:1.1.2 - http://logback.qos.ch)
+
+    MIT License (slf4j) [slf4j-mit.txt]:
+
+        * JCL 1.1.1 implemented over SLF4J (org.slf4j:jcl-over-slf4j:1.7.12 - http://www.slf4j.org)
+        * SLF4J API Module (org.slf4j:slf4j-api:1.7.12 - http://www.slf4j.org)
+
+    Public Domain:
+
+        * AOP alliance (aopalliance:aopalliance:1.0 - http://aopalliance.sourceforge.net)
