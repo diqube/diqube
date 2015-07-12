@@ -39,6 +39,7 @@ import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 
 import org.diqube.context.AutoInstatiate;
+import org.diqube.context.Profiles;
 import org.diqube.data.TableFactory;
 import org.diqube.execution.TableRegistry;
 import org.diqube.loader.CsvLoader;
@@ -48,14 +49,19 @@ import org.diqube.server.config.Config;
 import org.diqube.server.config.ConfigKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Profile;
 
 /**
  * Watches a directory for new data that should be loaded into the currently running diqube server (checks for .control
  * files).
+ * 
+ * <p>
+ * This bean will only be auto instantiated, if {@link Profiles#NEW_DATA_WATCHER} is enabled.
  *
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
+@Profile(Profiles.NEW_DATA_WATCHER)
 public class NewDataWatcher {
 
   private static final Logger logger = LoggerFactory.getLogger(NewDataWatcher.class);

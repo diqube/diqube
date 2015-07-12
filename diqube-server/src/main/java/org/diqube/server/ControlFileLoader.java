@@ -24,7 +24,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Properties;
 
@@ -36,6 +36,7 @@ import org.diqube.execution.TableRegistry;
 import org.diqube.loader.CsvLoader;
 import org.diqube.loader.JsonLoader;
 import org.diqube.loader.LoadException;
+import org.diqube.loader.Loader;
 import org.diqube.loader.LoaderColumnInfo;
 
 /**
@@ -47,8 +48,9 @@ public class ControlFileLoader {
   public static final String KEY_FILE = "file";
   public static final String KEY_TYPE = "type";
   public static final String KEY_TABLE = "table";
-  public static final String KEY_COLTYPE_PREFIX = "columntype.";
-  public static final String KEY_DEFAULT_COLTYPE = "defaultcolumntype";
+  public static final String KEY_FIRST_ROWID = "firstRowId";
+  public static final String KEY_COLTYPE_PREFIX = "columnType.";
+  public static final String KEY_DEFAULT_COLTYPE = "defaultColumnType";
 
   public static final String TYPE_CSV = "csv";
   public static final String TYPE_JSON = "json";
@@ -89,9 +91,19 @@ public class ControlFileLoader {
       String fileName = controlProperties.getProperty(KEY_FILE);
       String tableName = controlProperties.getProperty(KEY_TABLE);
       String type = controlProperties.getProperty(KEY_TYPE);
+      String firstRowIdString = controlProperties.getProperty(KEY_FIRST_ROWID);
 
-      if (fileName == null || tableName == null || type == null || !(type.equals(TYPE_CSV) || type.equals(TYPE_JSON)))
+      if (fileName == null || tableName == null || firstRowIdString == null || type == null
+          || !(type.equals(TYPE_CSV) || type.equals(TYPE_JSON)))
         throw new LoadException("Invalid control file " + controlFile.getAbsolutePath());
+
+      long firstRowId;
+      try {
+        firstRowId = Long.parseLong(firstRowIdString);
+      } catch (NumberFormatException e) {
+        throw new LoadException(
+            "Invalid control file " + controlFile.getAbsolutePath() + " (FirstRowId is no valid number)");
+      }
 
       ColumnType defaultColumnType;
       String defaultColumnTypeString = controlProperties.getProperty(KEY_DEFAULT_COLTYPE);
@@ -117,20 +129,14 @@ public class ControlFileLoader {
         throw new LoadException("File " + file.getAbsolutePath() + " does not exist or is no file.");
 
       if (tableRegistry.getTable(tableName) != null)
+        // TODO support loading multiple shards of a table from multiple control files (and removing them correctly).
         throw new LoadException("Table '" + tableName + "' already exists.");
 
-      Collection<TableShard> newTableShard = new ArrayList<>();
-      switch (type) {
-      case TYPE_CSV:
-        newTableShard.add(csvLoader.load(file.getAbsolutePath(), tableName, columnInfo));
-        break;
-      case TYPE_JSON:
-        newTableShard.add(jsonLoader.load(file.getAbsolutePath(), tableName, columnInfo));
-        break;
-      }
+      Loader loader = type.equals(TYPE_CSV) ? csvLoader : jsonLoader;
+      TableShard newTableShard = loader.load(firstRowId, file.getAbsolutePath(), tableName, columnInfo);
 
-      // TODO support loading multiple shards of a table from multiple control files (and removing them correctly).
-      Table newTable = tableFactory.createTable(tableName, newTableShard);
+      Collection<TableShard> newTableShardCollection = Arrays.asList(new TableShard[] { newTableShard });
+      Table newTable = tableFactory.createTable(tableName, newTableShardCollection);
 
       tableRegistry.addTable(tableName, newTable);
 

@@ -50,14 +50,15 @@ import org.slf4j.LoggerFactory;
 import com.opencsv.CSVParser;
 
 /**
- * Simple CSV loader.
+ * Simple {@link Loader} that loads CSV files.
  * 
- * TODO unify loaders by pulling out a common interface.
+ * <p>
+ * This loader does not support hierarchical data.
  *
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
-public class CsvLoader {
+public class CsvLoader implements Loader {
 
   private static final Logger logger = LoggerFactory.getLogger(CsvLoader.class);
 
@@ -76,26 +77,9 @@ public class CsvLoader {
   @Inject
   private ExecutorManager executorManager;
 
-  /**
-   * Load a CSV file into a {@link TableShard} with the given table name.
-   * 
-   * <p>
-   * Be aware that the input might be truncated, see {@link #MAX_FILE_SIZE}.
-   * 
-   * <p>
-   * Be aware that the CSV needs a trailing new line, otherwise the last row will be ignored!
-   * 
-   * @param filename
-   *          The filename of the CSV.
-   * @param tableName
-   *          The name the resulting {@link TableShard} should have.
-   * @param columnInfo
-   *          Information about each column that this CSV contains.
-   * @return A {@link TableShard} containing the data of the CSV.
-   * @throws LoadException
-   *           If data cannot be loaded.
-   */
-  public TableShard load(String filename, String tableName, LoaderColumnInfo columnInfo) throws LoadException {
+  @Override
+  public TableShard load(long firstRowId, String filename, String tableName, LoaderColumnInfo columnInfo)
+      throws LoadException {
     ColumnShardBuilderManager columnManager;
 
     logger.info("Reading data for new table '{}' from '{}'.", new Object[] { tableName, filename });
@@ -103,7 +87,7 @@ public class CsvLoader {
     try (RandomAccessFile f = new RandomAccessFile(filename, "r")) {
       BigByteBuffer buf = new BigByteBuffer(f.getChannel(), MapMode.READ_ONLY, b -> b.load());
 
-      columnManager = readColumnData(buf, tableName, columnInfo);
+      columnManager = readColumnData(firstRowId, buf, tableName, columnInfo);
 
       // close file as soon as possible and free the ByteBuffer.
       buf = null;
@@ -114,27 +98,10 @@ public class CsvLoader {
     return createTableShard(columnManager, tableName);
   }
 
-  /**
-   * Load CSV data from a Byte buffer into a {@link TableShard} with the given table name.
-   * 
-   * <p>
-   * Be aware that the input might be truncated, see {@link #MAX_FILE_SIZE}.
-   * 
-   * <p>
-   * Be aware that the CSV needs a trailing new line, otherwise the last row will be ignored!
-   * 
-   * @param csvBuffer
-   *          The {@link BigByteBuffer} containing the CSV data.
-   * @param tableName
-   *          The name the resulting {@link TableShard} should have.
-   * @param columnInfo
-   *          Information about each column that this CSV contains.
-   * @return A {@link TableShard} containing the data of the CSV.
-   * @throws LoadException
-   *           If data cannot be loaded.
-   */
-  public TableShard load(BigByteBuffer csvBuffer, String tableName, LoaderColumnInfo columnInfo) throws LoadException {
-    ColumnShardBuilderManager columnManager = readColumnData(csvBuffer, tableName, columnInfo);
+  @Override
+  public TableShard load(long firstRowId, BigByteBuffer csvBuffer, String tableName, LoaderColumnInfo columnInfo)
+      throws LoadException {
+    ColumnShardBuilderManager columnManager = readColumnData(firstRowId, csvBuffer, tableName, columnInfo);
     return createTableShard(columnManager, tableName);
   }
 
@@ -142,23 +109,25 @@ public class CsvLoader {
    * Reads all data from the CSV that is provided in a {@link ByteBuffer} and returns a
    * {@link ColumnShardBuilderManager} that is ready for building the columns.
    * 
+   * @param firstRowId
+   *          The first rowId to be used.
    * @param buf
    *          The input buffer, containing CSV data.
    * @param tableName
    *          The name of the resulting table.
    * @param columnInfo
    *          Information about each column that this CSV contains.
+   * 
    * @return A {@link ColumnShardBuilderManager} that has all the data of all the columns of the CSV already added to
    *         it. It is ready for building the columns using {@link ColumnShardBuilderManager#build(String)}.
    * @throws LoadException
    *           If something cannot be loaded.
    */
-  private ColumnShardBuilderManager readColumnData(BigByteBuffer buf, String tableName, LoaderColumnInfo columnInfo)
-      throws LoadException {
+  private ColumnShardBuilderManager readColumnData(long firstRowId, BigByteBuffer buf, String tableName,
+      LoaderColumnInfo columnInfo) throws LoadException {
     String[] header;
     ColumnShardBuilderManager columnBuilderManager =
-        columnShardBuilderManagerFactory.createColumnShardBuilderManager(columnInfo, 0L); // TODO support multiple
-                                                                                          // shards
+        columnShardBuilderManagerFactory.createColumnShardBuilderManager(columnInfo, firstRowId);
 
     // Read CSV Header to learn of the columns that we need to import.
     int numChars = 0;
@@ -177,8 +146,8 @@ public class CsvLoader {
 
     // TODO validate column names
 
-    logger
-        .info("New table '{}' contains {} columns, reading columnar data.", new Object[] { tableName, header.length });
+    logger.info("New table '{}' contains {} columns, reading columnar data.",
+        new Object[] { tableName, header.length });
 
     // Initialize the input stream.
     Stream<String> stream = StreamSupport.stream(new LineSpliterator(buf, numChars + 1, buf.size(), numChars, 1), true);
@@ -186,19 +155,20 @@ public class CsvLoader {
     ParallelLoadAndTransposeHelper transposer =
         new ParallelLoadAndTransposeHelper(executorManager, columnInfo, columnBuilderManager, header, tableName);
 
-    transposer.transpose(0L, new Consumer<ConcurrentLinkedDeque<String[][]>>() { // TODO support multiple shards
-          @Override
-          public void accept(ConcurrentLinkedDeque<String[][]> rowWiseTarget) {
-            // Start parsing CSV lines in parallel, bucketing the results into the rowWiseTarget deque from where they
-            // will be fetched by the transposer.
-            // Arrays are non-colliding, so using HashingBatchCollector is fine.
-            stream.parallel().map(CsvLoader::parseCsvLine).collect(new HashingBatchCollector<String[]>( //
+    transposer.transpose(firstRowId, new Consumer<ConcurrentLinkedDeque<String[][]>>() {
+      @Override
+      public void accept(ConcurrentLinkedDeque<String[][]> rowWiseTarget) {
+        // Start parsing CSV lines in parallel, bucketing the results into the rowWiseTarget deque from where they
+        // will be fetched by the transposer.
+        // Arrays are non-colliding, so using HashingBatchCollector is fine.
+        stream.parallel().map(CsvLoader::parseCsvLine)
+            .collect(new HashingBatchCollector<String[]>( //
                 COLUMN_BUFFER_SIZE, // Try to make buckets of this size
                 (len) -> new String[len][], // Factory implementation on how to create a new result object.
                 a -> rowWiseTarget.add(a)) // When there is a new result, put it into csvLines.
-                );
-          }
-        });
+        );
+      }
+    });
 
     return columnBuilderManager;
   }

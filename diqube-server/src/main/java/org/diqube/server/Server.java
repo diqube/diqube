@@ -20,6 +20,7 @@
  */
 package org.diqube.server;
 
+import org.diqube.context.Profiles;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
@@ -47,6 +48,7 @@ public class Server {
     logger.info("Starting diqube context and diqube server...");
 
     try (AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext()) {
+      ctx.getEnvironment().setActiveProfiles(Profiles.ALL);
       ctx.scan("org.diqube");
       ctx.refresh();
 

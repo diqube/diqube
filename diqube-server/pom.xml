@@ -35,7 +35,7 @@
   <url>http://www.diqube.org</url>
 
   <dependencies>
-    <!-- FCS dependencies -->
+    <!-- diqube dependencies -->
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>diqube-remote-cluster</artifactId>
@@ -85,6 +85,12 @@
       <groupId>${project.groupId}</groupId>
       <artifactId>diqube-threads</artifactId>
       <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>diqube-test-util</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
     </dependency>
     
     <dependency>

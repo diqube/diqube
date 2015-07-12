@@ -2,4 +2,4 @@ table=age
 file=age.json
 type=json
 defaultColumnType=long
-firstRowId=0
+firstRowId=5

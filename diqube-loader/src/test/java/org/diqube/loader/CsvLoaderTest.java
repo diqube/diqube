@@ -87,7 +87,7 @@ public class CsvLoaderTest {
 
     // WHEN
     // loading table
-    TableShard table = csvLoader.load(buf, "Test", colInfo);
+    TableShard table = csvLoader.load(0L, buf, "Test", colInfo);
 
     // THEN
     Assert.assertEquals(table.getNumberOfRowsInShard(), 4, "Expected 4 rows");
@@ -129,7 +129,7 @@ public class CsvLoaderTest {
 
     // WHEN
     // parsing this
-    TableShard shard = csvLoader.load(buf, "Test", colInfo);
+    TableShard shard = csvLoader.load(0L, buf, "Test", colInfo);
 
     // THEN
     Assert.assertEquals(shard.getNumberOfRowsInShard(), rows, "Expected " + rows + " rows");
@@ -152,7 +152,7 @@ public class CsvLoaderTest {
 
     // WHEN
     // parsing this
-    TableShard shard = csvLoader.load(buf, "Test", colInfo);
+    TableShard shard = csvLoader.load(0L, buf, "Test", colInfo);
 
     // THEN
     Assert.assertEquals(shard.getNumberOfRowsInShard(), rows, "Expected " + rows + " rows");
@@ -176,7 +176,7 @@ public class CsvLoaderTest {
     colInfo.registerColumnType(CSV_COL_B, ColumnType.LONG);
 
     // WHEN
-    csvLoader.load(new BigByteBuffer(csv.getBytes()), "Test", colInfo);
+    csvLoader.load(0L, new BigByteBuffer(csv.getBytes()), "Test", colInfo);
 
     // THEN: exception
   }
@@ -246,7 +246,7 @@ public class CsvLoaderTest {
       LoaderColumnInfo colInfo = new LoaderColumnInfo(ColumnType.LONG);
       // colInfo.registerColumnType("serialno", ColumnType.LONG);
       colInfo.registerColumnType("RT", ColumnType.STRING);
-      TableShard shard = loader.load("/home/basti/Downloads/PUMS-2005-2009/ss09husa.csv", "husa", colInfo);
+      TableShard shard = loader.load(0L, "/home/basti/Downloads/PUMS-2005-2009/ss09husa.csv", "husa", colInfo);
 
       int rows = 0;
       for (ColumnPage page : shard.getStringColumns().values().iterator().next().getPages().values()) {

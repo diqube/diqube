@@ -40,6 +40,7 @@ import org.diqube.data.colshard.StandardColumnShard;
 import org.diqube.data.dbl.dict.DoubleDictionary;
 import org.diqube.data.lng.dict.LongDictionary;
 import org.diqube.data.str.dict.StringDictionary;
+import org.diqube.loader.Loader;
 import org.diqube.loader.compression.CompressedDoubleDictionaryBuilder;
 import org.diqube.loader.compression.CompressedLongDictionaryBuilder;
 import org.diqube.loader.compression.CompressedStringDictionaryBuilder;
@@ -102,6 +103,9 @@ public class ColumnShardBuilder<T> {
    *          A factory capable of creating {@link ColumnPage} objects.
    * @param name
    *          The name of the column that should be created.
+   * @param firstRowIdInShard
+   *          The rowId of the first row the ColumnShard which is built by this builder should have. See JavaDoc of
+   *          {@link Loader} for more info.
    */
   public ColumnShardBuilder(ColumnShardFactory columnShardFactory, ColumnPageFactory columnPageFactory, String name,
       long firstRowIdInShard) {
@@ -112,7 +116,7 @@ public class ColumnShardBuilder<T> {
   }
 
   /**
-   * Add new adjacent (uncompressed) values to this column.
+   * Add new consecutive (uncompressed) values to this column.
    * 
    * <p>
    * The first value in the provided array will have the row ID provided in the firstValueRowId parameter. The second
@@ -123,7 +127,8 @@ public class ColumnShardBuilder<T> {
    * 
    * <p>
    * This Builder expects that the list of rowIDs of all values added is consecutive after all data has been added using
-   * this method. The rowId of the first value needs to be 0L.
+   * this method. In the resulting ColumnShard/TableShard the lowest row ID (which is also used in this method call)
+   * needs to be equal to the "first row ID" parameter specified in the constructor.
    * 
    * @param values
    *          The uncompressed values to be added to the column.

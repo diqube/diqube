@@ -66,12 +66,23 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 
 /**
- * Loads data from JSON files.
+ * {@link Loader} which loads data from JSON files.
+ * 
+ * <p>
+ * This Loader can load hierarchical data.
+ * 
+ * <p>
+ * The JSON file must consist of an array, which contains a complex object for each logical "row" in the resulting
+ * table. The complex object can in turn contain other complex objects (hierarchy) and can contain arrays itself
+ * (repeated fields). Currently, though, each top-level object needs to recursively be made up of the exactly same
+ * fields ("optional" fields are not supported yet).
+ * 
+ * TODO support optional fields.
  *
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
-public class JsonLoader {
+public class JsonLoader implements Loader {
   public static final int BUCKET_SIZE = 1_000;
 
   private static final Logger logger = LoggerFactory.getLogger(JsonLoader.class);
@@ -85,46 +96,24 @@ public class JsonLoader {
   @Inject
   private ExecutorManager executorManager;
 
-  /**
-   * Load a JSON file into a {@link TableShard} with the given table name.
-   * 
-   * @param filename
-   *          The filename of the json file.
-   * @param tableName
-   *          The name the resulting {@link TableShard} should have.
-   * @param columnInfo
-   *          Information about each column that this json contains.
-   * @return A {@link TableShard} containing the data of the json.
-   * @throws LoadException
-   *           If data cannot be loaded.
-   */
-  public TableShard load(String filename, String tableName, LoaderColumnInfo columnInfo) throws LoadException {
+  @Override
+  public TableShard load(long firstRowId, String filename, String tableName, LoaderColumnInfo columnInfo)
+      throws LoadException {
 
     logger.info("Reading data for new table '{}' from '{}'.", new Object[] { tableName, filename });
 
     try (RandomAccessFile f = new RandomAccessFile(filename, "r")) {
       BigByteBuffer buf = new BigByteBuffer(f.getChannel(), MapMode.READ_ONLY, b -> b.load());
 
-      return load(buf, tableName, columnInfo);
+      return load(firstRowId, buf, tableName, columnInfo);
     } catch (IOException e) {
       throw new LoadException("Could not load " + filename, e);
     }
   }
 
-  /**
-   * Load JSON data from a Byte buffer into a {@link TableShard} with the given table name.
-   * 
-   * @param jsonBuffer
-   *          The {@link BigByteBuffer} containing the JSON data.
-   * @param tableName
-   *          The name the resulting {@link TableShard} should have.
-   * @param columnInfo
-   *          Information about each column that this JSON contains.
-   * @return A {@link TableShard} containing the data of the JSON.
-   * @throws LoadException
-   *           If data cannot be loaded.
-   */
-  public TableShard load(BigByteBuffer jsonBuffer, String tableName, LoaderColumnInfo columnInfo) throws LoadException {
+  @Override
+  public TableShard load(long firstRowId, BigByteBuffer jsonBuffer, String tableName, LoaderColumnInfo columnInfo)
+      throws LoadException {
     JsonFactory factory = new JsonFactory();
 
     // parse the jsonBuffer and identify all columns, their types and repeated columns.
@@ -141,22 +130,23 @@ public class JsonLoader {
       if (columnInfo.isDefaultDataType(colName))
         columnInfo.registerColumnType(colName, columnTypes.get(colName));
       else if (!columnInfo.getFinalColumnType(colName).equals(columnTypes.get(colName)))
-        throw new LoadException("Column '" + colName + "': Automatically identified type to be "
-            + columnTypes.get(colName) + ", but " + columnInfo.getFinalColumnType(colName)
-            + " was specified. This is invalid.");
+        throw new LoadException(
+            "Column '" + colName + "': Automatically identified type to be " + columnTypes.get(colName) + ", but "
+                + columnInfo.getFinalColumnType(colName) + " was specified. This is invalid.");
     }
 
     logger.info("Found {} columns.", columnTypes.size());
 
-    Stream<Parser> stream = StreamSupport.stream(new JsonSpliterator(objectLocations, //
-        factory, //
-        jsonBuffer, //
-        objectLocations.firstKey(), //
-        objectLocations.lastEntry().getValue() + 1), //
+    Stream<Parser> stream = StreamSupport.stream(
+        new JsonSpliterator(objectLocations, //
+            factory, //
+            jsonBuffer, //
+            objectLocations.firstKey(), //
+            objectLocations.lastEntry().getValue() + 1), //
         true);
 
     ColumnShardBuilderManager columnBuilderManager =
-        columnShardBuilderManagerFactory.createColumnShardBuilderManager(columnInfo, 0L); // TODO support other shards
+        columnShardBuilderManagerFactory.createColumnShardBuilderManager(columnInfo, firstRowId);
 
     String[] colNames = columnTypes.keySet().stream().toArray(l -> new String[l]);
     Map<String, Integer> colToColIndex = new HashMap<>();
@@ -169,24 +159,24 @@ public class JsonLoader {
     logger.info("Loading data and transforming to temporary columnar representation...");
 
     try {
-      transposer.transpose(0L, new Consumer<ConcurrentLinkedDeque<String[][]>>() { // TODO support other shards
+      transposer.transpose(firstRowId, new Consumer<ConcurrentLinkedDeque<String[][]>>() {
+        @Override
+        public void accept(ConcurrentLinkedDeque<String[][]> rowWiseTarget) {
+          stream.parallel().map(new Function<Parser, String[]>() {
             @Override
-            public void accept(ConcurrentLinkedDeque<String[][]> rowWiseTarget) {
-              stream.parallel().map(new Function<Parser, String[]>() {
-                @Override
-                public String[] apply(Parser parser) {
-                  try {
-                    return parseOneEntry(parser, colNames, repeatedCols, colToColIndex);
-                  } catch (LoadException e) {
-                    throw new WrappingException(e);
-                  }
-                }
-              }).collect(new HashingBatchCollector<String[]>(BUCKET_SIZE, //
-                  (len) -> new String[len][], //
-                  a -> rowWiseTarget.add(a)) //
-                  );
+            public String[] apply(Parser parser) {
+              try {
+                return parseOneEntry(parser, colNames, repeatedCols, colToColIndex);
+              } catch (LoadException e) {
+                throw new WrappingException(e);
+              }
             }
-          });
+          }).collect(new HashingBatchCollector<String[]>(BUCKET_SIZE, //
+              (len) -> new String[len][], //
+              a -> rowWiseTarget.add(a)) //
+          );
+        }
+      });
     } catch (WrappingException e) {
       LoadException loadEx = (LoadException) e.getWrappedException();
       throw loadEx;
