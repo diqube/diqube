@@ -125,11 +125,13 @@ public class JsonLoader implements Loader {
 
     // TODO validate that we did not identify different things throughout the same input file.
 
-    // but colTypes into columnInfo, throw exception if something different was identified than what was specified.
+    // put colTypes into columnInfo, throw exception if something different was identified than what was specified.
     for (String colName : columnTypes.keySet()) {
+      // TODO introduce import data specificity - when default is "double" but "long" identified, make it "double"
       if (columnInfo.isDefaultDataType(colName))
         columnInfo.registerColumnType(colName, columnTypes.get(colName));
-      else if (!columnInfo.getFinalColumnType(colName).equals(columnTypes.get(colName)))
+      else if (!columnInfo.getFinalColumnType(colName).equals(ColumnType.STRING) // overriding to STRING type is allowed
+          && !columnInfo.getFinalColumnType(colName).equals(columnTypes.get(colName)))
         throw new LoadException(
             "Column '" + colName + "': Automatically identified type to be " + columnTypes.get(colName) + ", but "
                 + columnInfo.getFinalColumnType(colName) + " was specified. This is invalid.");

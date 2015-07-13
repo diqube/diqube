@@ -63,6 +63,16 @@ public class ControlFileLoaderTest {
   private static final String CONTROL_AGE_FIRSTROW0 = "age-firstrow0.control";
   /** A test .control-file with JSON & firstRowId = 5 */
   private static final String CONTROL_AGE_FIRSTROW5 = "age-firstrow5.control";
+  /** Control file where the default column type is "long", but the one for column "age" is "string". */
+  private static final String CONTROL_DEFAULT_LONG_AGE_STRING = "age-default-long-age-string.control";
+  /** Control file where the default column type is "string", but the one for column "age" is "long". */
+  private static final String CONTROL_DEFAULT_STRING_AGE_LONG = "age-default-string-age-long.control";
+  /** Control file where the default column type is "double", but the one for column "age" is "long". */
+  private static final String CONTROL_DEFAULT_DOUBLE_AGE_LONG = "age-default-double-age-long.control";
+  /** Column name of column "age" loaded from "age.json". */
+  private static final String TABLE_AGE_COLUMN_AGE = "age";
+  /** Column name of column "index" loaded from "age.json". */
+  private static final String TABLE_AGE_COLUMN_INDEX = "index";
   private AnnotationConfigApplicationContext dataContext;
 
   /** Factory function for a {@link ControlFileLoader} based on a specific control file. */
@@ -165,5 +175,66 @@ public class ControlFileLoaderTest {
     Assert.assertEquals(tableRegistry.getTable(table).getShards().size(), 1, "Correct number of shards expected.");
     TableShard shard = tableRegistry.getTable(table).getShards().iterator().next();
     Assert.assertEquals(shard.getLowestRowId(), 5L, "Expected correct first row");
+  }
+
+  @Test
+  public void jsonDefaultLongAgeString() throws LoadException {
+    // GIVEN
+    ControlFileLoader cfl = controlFileFactory.apply(new File(testDir, CONTROL_DEFAULT_LONG_AGE_STRING));
+
+    // WHEN
+    String table = cfl.load();
+
+    // THEN
+    Assert.assertNotNull(tableRegistry.getTable(table), "Expected loaded table to be available");
+    Assert.assertEquals(tableRegistry.getTable(table).getShards().size(), 1, "Correct number of shards expected.");
+    TableShard shard = tableRegistry.getTable(table).getShards().iterator().next();
+    Assert.assertTrue(shard.getStringColumns().containsKey(TABLE_AGE_COLUMN_AGE),
+        "Expected column '" + TABLE_AGE_COLUMN_AGE + "' to be of type string.");
+    Assert.assertTrue(shard.getLongColumns().containsKey(TABLE_AGE_COLUMN_INDEX),
+        "Expected column '" + TABLE_AGE_COLUMN_INDEX + "' to be of type long (=default).");
+  }
+
+  @Test
+  public void jsonDefaultStringAgeLong() throws LoadException {
+    // GIVEN
+    ControlFileLoader cfl = controlFileFactory.apply(new File(testDir, CONTROL_DEFAULT_STRING_AGE_LONG));
+
+    // WHEN
+    String table = cfl.load();
+
+    // THEN
+    Assert.assertNotNull(tableRegistry.getTable(table), "Expected loaded table to be available");
+    Assert.assertEquals(tableRegistry.getTable(table).getShards().size(), 1, "Correct number of shards expected.");
+    TableShard shard = tableRegistry.getTable(table).getShards().iterator().next();
+    Assert.assertTrue(shard.getLongColumns().containsKey(TABLE_AGE_COLUMN_AGE),
+        "Expected column '" + TABLE_AGE_COLUMN_AGE + "' to be of type long.");
+    // As the default is "string", but JsonLoader identifies that Index is "long", we have a more exact match found -
+    // use long! If there would be a specific override for column "index" in the control file, that would have to be
+    // used, but there is not (only a "default" is specified).
+    Assert.assertTrue(shard.getLongColumns().containsKey(TABLE_AGE_COLUMN_INDEX),
+        "Expected column '" + TABLE_AGE_COLUMN_INDEX + "' to be of type long.");
+  }
+
+  @Test
+  public void jsonDefaultDoubleAgeLong() throws LoadException {
+    // GIVEN
+    ControlFileLoader cfl = controlFileFactory.apply(new File(testDir, CONTROL_DEFAULT_DOUBLE_AGE_LONG));
+
+    // WHEN
+    String table = cfl.load();
+
+    // THEN
+    Assert.assertNotNull(tableRegistry.getTable(table), "Expected loaded table to be available");
+    Assert.assertEquals(tableRegistry.getTable(table).getShards().size(), 1, "Correct number of shards expected.");
+    TableShard shard = tableRegistry.getTable(table).getShards().iterator().next();
+    Assert.assertTrue(shard.getLongColumns().containsKey(TABLE_AGE_COLUMN_AGE),
+        "Expected column '" + TABLE_AGE_COLUMN_AGE + "' to be of type long.");
+    // As the default is "string", but JsonLoader identifies that Index is "long", we have a more exact match found -
+    // use long! If there would be a specific override for column "index" in the control file, that would have to be
+    // used, but there is not (only a "default" is specified).
+    // TODO introduce import data specificity - when default is "double" but "long" identified, make it "double"
+    Assert.assertTrue(shard.getLongColumns().containsKey(TABLE_AGE_COLUMN_INDEX),
+        "Expected column '" + TABLE_AGE_COLUMN_INDEX + "' to be of type long.");
   }
 }

@@ -144,6 +144,8 @@ public class CsvLoader implements Loader {
       throw new LoadException("Could not parse CSV header.", e);
     }
 
+    // TODO do auto-recognition of data types of columns (or make it explicitly "enable/disable" in .control file).
+
     // TODO validate column names
 
     logger.info("New table '{}' contains {} columns, reading columnar data.",
