@@ -46,7 +46,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Implements logic of a {@link QueryService}.
+ * Implements logic of a {@link QueryService}, which is the service that is called on a "Query master" node to execute
+ * queries.
  *
  * @author Bastian Gloeckle
  */
@@ -67,6 +68,11 @@ public class QueryServiceHandler implements Iface {
   @Inject
   private ConnectionPool connectionPool;
 
+  /**
+   * Executes the given diql query on the diqube cluster, where this node will be the query master.
+   * 
+   * The query is executed synchronously and the result will be provided as return value.
+   */
   @Override
   public RResultTable syncExecuteQuery(String diql) throws RQueryException, TException {
     UUID queryUuid = UUID.randomUUID();
@@ -77,8 +83,8 @@ public class QueryServiceHandler implements Iface {
     Throwable[] resThrowable = new Throwable[1];
     resThrowable[0] = null;
 
-    QueryExecutor queryExecutor =
-        new QueryExecutor(executorManager, executionPlanBuilderFactory, new QueryExecutor.QueryExecutorCallback() {
+    MasterQueryExecutor queryExecutor = new MasterQueryExecutor(executorManager, executionPlanBuilderFactory,
+        new MasterQueryExecutor.QueryExecutorCallback() {
           @Override
           public void intermediaryResultTableAvailable(RResultTable resultTable) {
           }
@@ -134,6 +140,12 @@ public class QueryServiceHandler implements Iface {
     throw new RQueryException(exceptionMessage);
   }
 
+  /**
+   * Executes the given diql query on the diqube cluster, where this node will be the query master.
+   * 
+   * The query is executed asynchronously and the results will be provided by calling the {@link QueryResultService} at
+   * the given {@link RNodeAddress}.
+   */
   @Override
   public void asyncExecuteQuery(RUUID queryRUuid, String diql, boolean sendPartialUpdates, RNodeAddress resultAddress)
       throws TException, RQueryException {
@@ -145,8 +157,8 @@ public class QueryServiceHandler implements Iface {
         connectionPool.reserveConnection(QueryResultService.Client.class, resultAddress);
     QueryResultService.Iface resultService = resultConnection.getService();
 
-    QueryExecutor queryExecutor =
-        new QueryExecutor(executorManager, executionPlanBuilderFactory, new QueryExecutor.QueryExecutorCallback() {
+    MasterQueryExecutor queryExecutor = new MasterQueryExecutor(executorManager, executionPlanBuilderFactory,
+        new MasterQueryExecutor.QueryExecutorCallback() {
           @Override
           public void intermediaryResultTableAvailable(RResultTable resultTable) {
             logger.trace("New intermediary result for {}: {}", queryUuid, resultTable);

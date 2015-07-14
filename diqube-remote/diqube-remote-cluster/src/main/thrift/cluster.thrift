@@ -34,30 +34,14 @@ union RColOrValue {
 }
 
 struct RIntermediateAggregationResult {
-  1: i64 value1,
-  2: optional i64 value2,
-  3: optional i64 value3
+  1: base.RValue value1,
+  2: optional base.RValue value2,
+  3: optional base.RValue value3
 }
 
-// TODO if we transmit some values often when returning the results, we might think about sending a dict once that 
-// contains the values once and then in each row we send only indices in that dict.
-union RIntermediateResultColumn {
-  1: optional base.RValue value,
-  2: optional RIntermediateAggregationResult aggregationResult
-}
-
-struct RIntermediateResultRow {
-  1: list<RIntermediateResultColumn> columns
-}
-
-struct RClusterResultTable {
-  1: list<string> columnNames,
-  2: map<i64, RIntermediateResultRow> rowsByRowId
-}
-
-struct RPartialResultTable {
-  1: double completePercent,
-  2: RClusterResultTable valueTable
+struct ROldNewIntermediateAggregationResult {
+  1: optional RIntermediateAggregationResult oldResult,
+  2: optional RIntermediateAggregationResult newResult
 }
 
 // Each type corresponds to one ExecutablePlanStep.
@@ -154,11 +138,8 @@ struct RExecutionPlanStep {
 }
 
 struct RExecutionPlan {
-  1: base.RUUID executionId,
-  2: string table,
-  3: list<RExecutionPlanStep> steps,
-  4: base.RNodeAddress resultRef,
-  5: bool providePartialValueTables
+  1: string table,
+  2: list<RExecutionPlanStep> steps,
 }
 
 exception RExecutionException {
@@ -166,8 +147,15 @@ exception RExecutionException {
 }
 
 service ClusterNodeService {
-  base.RUUID executeOnAllShards(1:RExecutionPlan executionPlan),
-  oneway void partialResultAvailable(1: base.RUUID nodeExecutionId, 2: RPartialResultTable partialValueTable)
-  oneway void resultTableAvailable(1: base.RUUID nodeExecutionId, 2: RClusterResultTable valueTable) 
-  oneway void executionException(1: base.RUUID nodeExecutionId, 2:RExecutionException executionException)
+  oneway void executeOnAllLocalShards(
+    1:RExecutionPlan executionPlan, 2: base.RUUID queryId, 3: base.RNodeAddress resultAddress),
+  
+  oneway void groupIntermediateAggregationResultAvailable(
+    1: base.RUUID queryId, 2:i64 groupId, 3:string colName, 4: ROldNewIntermediateAggregationResult result),
+    
+  oneway void columnValueAvailable(1: base.RUUID queryId, 2:string colName, 3: map<i64, base.RValue> valuesByRowId),
+  
+  oneway void executionDone(1: base.RUUID queryId),
+  
+  oneway void executionException(1: base.RUUID queryId, 2:RExecutionException executionException)
 }

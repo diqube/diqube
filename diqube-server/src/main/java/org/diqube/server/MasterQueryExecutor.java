@@ -42,6 +42,7 @@ import org.diqube.plan.ExecutionPlanBuilderFactory;
 import org.diqube.plan.exception.ParseException;
 import org.diqube.plan.exception.ValidationException;
 import org.diqube.remote.base.thrift.RValue;
+import org.diqube.remote.base.util.RValueUtil;
 import org.diqube.remote.query.thrift.RResultTable;
 import org.diqube.threads.ExecutorManager;
 import org.slf4j.Logger;
@@ -50,17 +51,17 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Sets;
 
 /**
- * Fully executes a diql query and provides a callback that has a {@link RResultTable}.
+ * Fully executes a diql query and provides a callback that has a {@link RResultTable} on a query master.
  * 
  * <p>
  * One instance of this class can be used only for executing one single query.
  *
  * @author Bastian Gloeckle
  */
-class QueryExecutor {
-  private static final Logger logger = LoggerFactory.getLogger(QueryExecutor.class);
+class MasterQueryExecutor {
+  private static final Logger logger = LoggerFactory.getLogger(MasterQueryExecutor.class);
 
-  private QueryExecutor.QueryExecutorCallback callback;
+  private MasterQueryExecutor.QueryExecutorCallback callback;
   private ExecutionPlanBuilderFactory executionPlanBuildeFactory;
 
   private volatile Map<Long, Map<String, Object>> valuesByRow = new ConcurrentHashMap<>();
@@ -81,8 +82,8 @@ class QueryExecutor {
 
   private ExecutorManager executorManager;
 
-  public QueryExecutor(ExecutorManager executorManager, ExecutionPlanBuilderFactory executionPlanBuildeFactory,
-      QueryExecutor.QueryExecutorCallback callback, boolean createIntermediaryUpdates) {
+  public MasterQueryExecutor(ExecutorManager executorManager, ExecutionPlanBuilderFactory executionPlanBuildeFactory,
+      MasterQueryExecutor.QueryExecutorCallback callback, boolean createIntermediaryUpdates) {
     this.executorManager = executorManager;
     this.executionPlanBuildeFactory = executionPlanBuildeFactory;
     this.callback = callback;
@@ -182,7 +183,7 @@ class QueryExecutor {
       @Override
       public void run() {
         Executor executor = executorManager.newQueryFixedThreadPool(plan.preferredExecutorServiceSize(),
-            "query-worker-" + queryUuid + "-%d", //
+            "query-master-worker-" + queryUuid + "-%d", //
             queryUuid);
 
         Future<Void> planFuture = plan.executeAsynchronously(executor);
@@ -276,7 +277,7 @@ class QueryExecutor {
 
       List<RValue> row = new ArrayList<>();
       for (String colName : selectedColumns)
-        row.add(createRValue(valuesByRow.get(rowId).get(colName)));
+        row.add(RValueUtil.createRValue(valuesByRow.get(rowId).get(colName)));
 
       // store row if we found actual values for each col. This is just some sanity checking so that we do not pass on
       // null values to thrift in the end...
@@ -286,19 +287,6 @@ class QueryExecutor {
     }
     res.setRows(rows);
 
-    return res;
-  }
-
-  private RValue createRValue(Object value) {
-    RValue res = new RValue();
-    if (value instanceof String)
-      res.setStrValue((String) value);
-    else if (value instanceof Long)
-      res.setLongValue((Long) value);
-    else if (value instanceof Double)
-      res.setDoubleValue((Double) value);
-    else
-      return null;
     return res;
   }
 
