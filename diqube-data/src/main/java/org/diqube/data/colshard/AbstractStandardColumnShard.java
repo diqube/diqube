@@ -140,42 +140,35 @@ public abstract class AbstractStandardColumnShard implements StandardColumnShard
             // provided rowId.
             return null;
           return e.getValue();
-        }, DiqubeCollectors.toNavigableSet()));
-    Map<Long, Long> rowIdToColumnValueId =
-        rowIdsByPage
-            .entrySet()
-            .stream()
-            .parallel()
-            .filter(e -> e.getKey() != null)
-            .flatMap(new Function<Entry<ColumnPage, NavigableSet<Long>>, Stream<Pair<Long, Long>>>() {
-              @Override
-              public Stream<Pair<Long, Long>> apply(Entry<ColumnPage, NavigableSet<Long>> entry) {
-                List<Pair<Long, Long>> res = new ArrayList<>();
+        } , DiqubeCollectors.toNavigableSet()));
+    Map<Long, Long> rowIdToColumnValueId = rowIdsByPage.entrySet().stream().parallel().filter(e -> e.getKey() != null)
+        .flatMap(new Function<Entry<ColumnPage, NavigableSet<Long>>, Stream<Pair<Long, Long>>>() {
+          @Override
+          public Stream<Pair<Long, Long>> apply(Entry<ColumnPage, NavigableSet<Long>> entry) {
+            List<Pair<Long, Long>> res = new ArrayList<>();
 
-                ColumnPage page = entry.getKey();
-                // take only those rowIDs that are inside the page - if there were row IDs provided that we do not have
-                // any values of, do not return those entries. This may happen for the last page of a column.
-                NavigableSet<Long> rowIds =
-                    entry.getValue().headSet(page.getFirstRowId() + page.getValues().size(), false);
+            ColumnPage page = entry.getKey();
+            // take only those rowIDs that are inside the page - if there were row IDs provided that we do not have
+            // any values of, do not return those entries. This may happen for the last page of a column.
+            NavigableSet<Long> rowIds = entry.getValue().headSet(page.getFirstRowId() + page.getValues().size(), false);
 
-                Long[] columnPageValueIds = new Long[rowIds.size()];
-                Iterator<Long> rowIdIt = rowIds.iterator();
-                for (int i = 0; i < columnPageValueIds.length; i++)
-                  // TODO if long consecutive list of rowIds, we should fetch more elements here at once. Values could
-                  // be RLE encoded
-                  columnPageValueIds[i] = page.getValues().get((int) (rowIdIt.next() - page.getFirstRowId()));
+            Long[] columnPageValueIds = new Long[rowIds.size()];
+            Iterator<Long> rowIdIt = rowIds.iterator();
+            for (int i = 0; i < columnPageValueIds.length; i++)
+              // TODO #7 if long consecutive list of rowIds, we should fetch more elements here at once. Values could
+              // be RLE encoded
+              columnPageValueIds[i] = page.getValues().get((int) (rowIdIt.next() - page.getFirstRowId()));
 
-                Long[] columnValueIds = page.getColumnPageDict().decompressValues(columnPageValueIds);
+            Long[] columnValueIds = page.getColumnPageDict().decompressValues(columnPageValueIds);
 
-                rowIdIt = rowIds.iterator();
-                for (int i = 0; i < columnPageValueIds.length; i++)
-                  res.add(new Pair<Long, Long>(rowIdIt.next(), columnValueIds[i]));
+            rowIdIt = rowIds.iterator();
+            for (int i = 0; i < columnPageValueIds.length; i++)
+              res.add(new Pair<Long, Long>(rowIdIt.next(), columnValueIds[i]));
 
-                return res.stream();
-              }
-            })
-            .collect(() -> new HashMap<Long, Long>(), (map, pair) -> map.put(pair.getLeft(), pair.getRight()),
-                (map1, map2) -> map1.putAll(map2));
+            return res.stream();
+          }
+        }).collect(() -> new HashMap<Long, Long>(), (map, pair) -> map.put(pair.getLeft(), pair.getRight()),
+            (map1, map2) -> map1.putAll(map2));
     return rowIdToColumnValueId;
   }
 

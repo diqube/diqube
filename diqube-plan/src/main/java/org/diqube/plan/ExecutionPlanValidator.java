@@ -25,12 +25,12 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 import org.diqube.plan.exception.ValidationException;
+import org.diqube.plan.request.ComparisonRequest.Leaf;
 import org.diqube.plan.request.ExecutionRequest;
 import org.diqube.plan.request.FunctionRequest;
-import org.diqube.plan.request.ComparisonRequest.Leaf;
 import org.diqube.util.ColumnOrValue;
-import org.diqube.util.Pair;
 import org.diqube.util.ColumnOrValue.Type;
+import org.diqube.util.Pair;
 
 /**
  * Validates an {@link ExecutionRequest}.
@@ -55,7 +55,7 @@ public class ExecutionPlanValidator {
 
     orderByColumnsOnly(executionRequest, colInfos);
 
-    // TODO validate if functions are used correctly (= correct number of params, correct types)
+    // TODO #23 validate if functions are used correctly (= correct number of params, correct types)
 
   }
 
@@ -68,9 +68,9 @@ public class ExecutionPlanValidator {
       for (Pair<String, Boolean> orderPair : executionRequest.getOrder().getColumns()) {
         String colName = orderPair.getLeft();
         if (colInfos.get(colName) != null && colInfos.get(colName).isTransitivelyDependsOnLiteralsOnly())
-          throw new ValidationException("ORDER clause with function '"
-              + colInfos.get(colName).getProvidedByFunctionRequest().getFunctionName()
-              + "' depending on literals only, please use columnar values.");
+          throw new ValidationException(
+              "ORDER clause with function '" + colInfos.get(colName).getProvidedByFunctionRequest().getFunctionName()
+                  + "' depending on literals only, please use columnar values.");
       }
     }
   }
@@ -103,9 +103,8 @@ public class ExecutionPlanValidator {
    */
   private void aggregationNeedsGroup(ExecutionRequest executionRequest, Map<String, PlannerColumnInfo> colInfos)
       throws ValidationException {
-    long numberOfAggregationFunctions =
-        colInfos.values().stream().filter(colInfo -> colInfo.getType().equals(FunctionRequest.Type.AGGREGATION))
-            .count();
+    long numberOfAggregationFunctions = colInfos.values().stream()
+        .filter(colInfo -> colInfo.getType().equals(FunctionRequest.Type.AGGREGATION)).count();
     if (numberOfAggregationFunctions > 0 && executionRequest.getGroup() == null)
       throw new ValidationException("There are " + numberOfAggregationFunctions
           + " aggregation functions used, but there is no GROUP BY clause.");
@@ -117,25 +116,24 @@ public class ExecutionPlanValidator {
   private void noAggregationOnAggregation(Map<String, PlannerColumnInfo> colInfos) throws ValidationException {
     for (PlannerColumnInfo colInfo : colInfos.values()) {
       if (colInfo.getType().equals(FunctionRequest.Type.AGGREGATION) && colInfo.isTransitivelyDependsOnAggregation())
-        throw new ValidationException("Use of aggregation function '"
-            + colInfo.getProvidedByFunctionRequest().getFunctionName()
-            + "' is based on the result of at least one other aggregation function. This is invalid.");
+        throw new ValidationException(
+            "Use of aggregation function '" + colInfo.getProvidedByFunctionRequest().getFunctionName()
+                + "' is based on the result of at least one other aggregation function. This is invalid.");
     }
   }
 
   private void validateWhere(ExecutionRequest executionRequest, Map<String, PlannerColumnInfo> colInfos) {
     if (executionRequest.getWhere() != null) {
       Collection<Leaf> leafs = executionRequest.getWhere().findRecursivelyAllOfType(Leaf.class);
-      Consumer<ColumnOrValue> validateCol =
-          col -> {
-            if (colInfos.containsKey(col.getColumnName()) // could be that there is no colInfo if it's no generated
-                                                          // column.
-                && colInfos.get(col.getColumnName()).isTransitivelyDependsOnAggregation())
-              throw new ValidationException("Function '"
-                  + colInfos.get(col.getColumnName()).getProvidedByFunctionRequest().getFunctionName()
+      Consumer<ColumnOrValue> validateCol = col -> {
+        if (colInfos.containsKey(col.getColumnName()) // could be that there is no colInfo if it's no generated
+                                                      // column.
+            && colInfos.get(col.getColumnName()).isTransitivelyDependsOnAggregation())
+          throw new ValidationException(
+              "Function '" + colInfos.get(col.getColumnName()).getProvidedByFunctionRequest().getFunctionName()
                   + "' is in WHERE clause and either is an aggregation function or relies on the "
                   + "result of an aggregation function. Aggregation functions can only be used in a HAVING clause.");
-          };
+      };
 
       for (Leaf leaf : leafs) {
         if (leaf.getLeft().getType().equals(Type.COLUMN))

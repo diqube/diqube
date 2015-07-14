@@ -141,7 +141,7 @@ public class BuildColumnFromValuesStep extends AbstractThreadedExecutablePlanSte
 
       if (columnValues == null || columnValues.isEmpty()) {
         if (!intermediateRun)
-          // TODO support queries that do not return any row.
+          // TODO #10 support queries that do not return any row.
           throw new ExecutablePlanExecutionException("Cannot build an empty column.");
         return;
       }

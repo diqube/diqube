@@ -106,8 +106,8 @@ public class TrieStringDictionary implements StringDictionary {
 
     TrieNode curNode = root;
     if (root.getMinId() > id || root.getMaxId() < id)
-      throw new IllegalArgumentException("Id " + id + "out of range; available range " + root.getMinId() + "-"
-          + root.getMaxId());
+      throw new IllegalArgumentException(
+          "Id " + id + "out of range; available range " + root.getMinId() + "-" + root.getMaxId());
 
     Function<TrieNode, Integer> nodeCheckFn = (node) -> {
       if (node instanceof TerminalNode) {
@@ -153,8 +153,8 @@ public class TrieStringDictionary implements StringDictionary {
                 break;
             }
             if (proceedIntoIdx == -1)
-              throw new IllegalArgumentException("ID " + id + " not found in dictionary with id range "
-                  + root.getMinId() + "-" + root.getMaxId());
+              throw new IllegalArgumentException(
+                  "ID " + id + " not found in dictionary with id range " + root.getMinId() + "-" + root.getMaxId());
           }
         }
 
@@ -192,7 +192,7 @@ public class TrieStringDictionary implements StringDictionary {
 
   @Override
   public Long[] findIdsOfValues(String[] sortedValues) {
-    // TODO speed this up
+    // TODO #6 speed this up
     Long[] res = new Long[sortedValues.length];
 
     for (int i = 0; i < sortedValues.length; i++) {
@@ -237,7 +237,7 @@ public class TrieStringDictionary implements StringDictionary {
 
   @Override
   public boolean containsAnyValue(String[] sortedValues) {
-    // TODO speed this up
+    // TODO #6 speed this up
     for (int i = 0; i < sortedValues.length; i++)
       if (TrieUtil.findIdOfValue(sortedValues[i].toCharArray(), 0, root) >= 0)
         return true;
@@ -323,7 +323,7 @@ public class TrieStringDictionary implements StringDictionary {
 
   @Override
   public NavigableMap<Long, Long> findEqualIds(Dictionary<String> otherDict) {
-    // TODO cache the results of the comparison calls.
+    // TODO #4 cache the results of the comparison calls.
     NavigableMap<Long, Long> res = new TreeMap<>();
 
     if (otherDict instanceof TrieStringDictionary) {

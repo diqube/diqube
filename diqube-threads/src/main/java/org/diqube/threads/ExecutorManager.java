@@ -92,13 +92,13 @@ public class ExecutorManager {
    * called with the specific query ID:
    * 
    * <ul>
-   * <li> {@link #findQueryUuidOfExecutorService(ExecutorService)}
-   * <li> {@link #findAllExecutorServicesOfQuery(UUID)}
-   * <li> {@link #shutdownEverythingOfQuery(UUID)}
-   * <li> {@link #shutdownEverythingOfAllQueries()}
+   * <li>{@link #findQueryUuidOfExecutorService(ExecutorService)}
+   * <li>{@link #findAllExecutorServicesOfQuery(UUID)}
+   * <li>{@link #shutdownEverythingOfQuery(UUID)}
+   * <li>{@link #shutdownEverythingOfAllQueries()}
    * </ul>
    * 
-   * TODO implement a timeout on the returned Executor, so there are no executors that will run forever.
+   * TODO #30 implement a timeout on the returned Executor, so there are no executors that will run forever.
    * 
    * @param numberOfThreads
    *          Number of threads the thread pool should have

@@ -138,7 +138,7 @@ public class NewDataWatcher {
 
   private void unloadControlFile(File controlFile) {
     String tableName = tableNamesByControlFilePath.get(controlFile.getAbsolutePath());
-    // TODO support loading multiple shards.
+    // TODO #33 support loading multiple shards.
     if (tableName == null) {
       logger.warn("Identified deletion of control file {}, but could not resolve the table that was loaded from "
           + "that file. Will not remove any in-memory data.", controlFile.getAbsolutePath());

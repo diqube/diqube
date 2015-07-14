@@ -174,7 +174,7 @@ public class TrieValueAnalyzer {
               // we matched all of ourChildChars, but otherChildChars contains more elements -> we need to set a
               // ourPrefix for the following recursive call.
               char[] newOurPrefix = new char[otherChildChars.length - ourChildChars.length];
-              // TODO remove double-arraycopy, as the recursive call will copy right away again.
+              // TODO #6 remove double-arraycopy, as the recursive call will copy right away again.
               System.arraycopy(otherChildChars, ourChildChars.length, newOurPrefix, 0, newOurPrefix.length);
               analyzeTriesInternal((ParentNode) ourChild, newOurPrefix, (ParentNode) otherChild, null, callback);
 
@@ -268,8 +268,8 @@ public class TrieValueAnalyzer {
       // child already and do not need to inspect it further.
       ourIdx++;
     while (ourIdx < ourNode.getChildNodes().length) {
-      findAllTerminalNodes(ourNode.getChildNodes()[ourIdx]).forEach(
-          term -> callback.foundSmallerId(term.getTerminalId(), maxOtherId));
+      findAllTerminalNodes(ourNode.getChildNodes()[ourIdx])
+          .forEach(term -> callback.foundSmallerId(term.getTerminalId(), maxOtherId));
       ourIdx++;
     }
   }

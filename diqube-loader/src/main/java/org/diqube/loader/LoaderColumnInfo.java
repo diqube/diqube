@@ -38,12 +38,12 @@ import org.diqube.data.ColumnType;
  * @author Bastian Gloeckle
  */
 public class LoaderColumnInfo {
-  // TODO support optional columns
+  // TODO #14 support optional columns
   private static final Function<String[], Object[]> STRING_COL_FN = s -> s;
   private static final Function<String[], Object[]> LONG_COL_FN = sa -> Arrays.asList(sa).stream().sequential()
       .map(s -> LoaderColumnInfo.parseLong(s)).toArray(len -> new Long[len]);
-  private static final Function<String[], Object[]> DOUBLE_COL_FN = sa -> Arrays.asList(sa).stream().sequential()
-      .map(s -> Double.parseDouble(s)).toArray(len -> new Double[len]);
+  private static final Function<String[], Object[]> DOUBLE_COL_FN =
+      sa -> Arrays.asList(sa).stream().sequential().map(s -> Double.parseDouble(s)).toArray(len -> new Double[len]);
 
   private Map<String, ColumnType> columnType = new HashMap<>();
   private Map<String, Function<String[], Object[]>> customTransformationFunction = new HashMap<>();
@@ -144,7 +144,7 @@ public class LoaderColumnInfo {
 
   public static Long parseLong(String s) {
     if ("".equals(s))
-      // TODO optional columns
+      // TODO #14 optional columns
       return -1L;
     return Long.parseLong(s);
   }

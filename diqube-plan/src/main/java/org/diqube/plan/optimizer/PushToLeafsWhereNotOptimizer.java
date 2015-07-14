@@ -71,7 +71,7 @@ public class PushToLeafsWhereNotOptimizer implements WhereNotOptimizer {
   private ComparisonRequest optimizeRecursive(ComparisonRequest request) {
     if (request.getOptimizerComparisonInfo().isTransitivelyContainsOnlyEquals())
       // do not "optimize" sub-trees which only contain "=" comparisons, as we cannot optimize those anyway.
-      // TODO STAT base this optimization on statistics about the amount of data to be expected
+      // TODO #2 STAT base this optimization on statistics about the amount of data to be expected
       return request;
 
     if (request instanceof Not) {
@@ -87,7 +87,7 @@ public class PushToLeafsWhereNotOptimizer implements WhereNotOptimizer {
           return not;
 
         // It's a <, <=, >, >= comparison. Optimize by removing the NOT and switching the operator of the comparison.
-        // TODO this might actually lead to having more rowIds and more work to be done by the inequality steps.
+        // TODO #29 this might actually lead to having more rowIds and more work to be done by the inequality steps.
         leaf.setOp(notOperator.get(leaf.getOp()));
         return leaf;
       }

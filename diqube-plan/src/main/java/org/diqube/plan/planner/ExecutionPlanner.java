@@ -97,10 +97,9 @@ public class ExecutionPlanner {
       ExecutionEnvironment masterDefaultExecutionEnv) throws PlanBuildException {
     // ==== Initialize all helper objects
 
-    // TODO support selecting constants
-    Set<String> resultColNamesRequested =
-        executionRequest.getResolveValues().stream().map(resolveReq -> resolveReq.getResolve().getColumnName())
-            .collect(Collectors.toSet());
+    // TODO #19 support selecting constants
+    Set<String> resultColNamesRequested = executionRequest.getResolveValues().stream()
+        .map(resolveReq -> resolveReq.getResolve().getColumnName()).collect(Collectors.toSet());
 
     MasterWireManager masterWireManager = new MasterWireManager();
     RemoteWireManager remoteWireManager = new RemoteWireManager();
@@ -116,12 +115,10 @@ public class ExecutionPlanner {
     RemoteResolveManager remoteResolveManager =
         new RemoteResolveManager(nextRemoteIdSupplier, remoteColManager, remoteExecutionPlanFactory, remoteWireManager);
 
-    MasterColumnManager masterColManager =
-        new MasterColumnManager(masterDefaultExecutionEnv, nextMasterIdSupplier, executablePlanFactory,
-            columnVersionManagerFactory, columnInfo, remoteResolveManager, masterWireManager);
-    MasterResolveManager masterResolveManager =
-        new MasterResolveManager(nextMasterIdSupplier, masterDefaultExecutionEnv, executablePlanFactory, masterColManager,
-            masterWireManager, resultColNamesRequested);
+    MasterColumnManager masterColManager = new MasterColumnManager(masterDefaultExecutionEnv, nextMasterIdSupplier,
+        executablePlanFactory, columnVersionManagerFactory, columnInfo, remoteResolveManager, masterWireManager);
+    MasterResolveManager masterResolveManager = new MasterResolveManager(nextMasterIdSupplier,
+        masterDefaultExecutionEnv, executablePlanFactory, masterColManager, masterWireManager, resultColNamesRequested);
 
     // ==== Take care of columns that need to be created (e.g. by projection and aggregation) and feed this info into
     // column managers
@@ -187,10 +184,10 @@ public class ExecutionPlanner {
       // the group step has to provide its data to all Group Intermediary aggregation steps.
       remoteColManager.wireGroupInput(groupStep);
 
-      // TODO we should make sure that results form GroupIntermediateAggregate steps are piped through an order step in
-      // order to do a row-id cut-off.
+      // TODO #24 we should make sure that results form GroupIntermediateAggregate steps are piped through an order step
+      // in order to do a row-id cut-off.
 
-      // TODO add HAVING
+      // TODO #18 add HAVING
     }
 
     ExecutablePlanStep masterRowIdSourceStep = null;
@@ -210,8 +207,8 @@ public class ExecutionPlanner {
         allRemoteSteps.add(remoteOrderStep);
       }
 
-      MasterOrderHandler masterOrderHandler =
-          new MasterOrderHandler(executablePlanFactory, nextMasterIdSupplier, masterDefaultExecutionEnv, masterColManager);
+      MasterOrderHandler masterOrderHandler = new MasterOrderHandler(executablePlanFactory, nextMasterIdSupplier,
+          masterDefaultExecutionEnv, masterColManager);
       ExecutablePlanStep masterOrderStep = masterOrderHandler.build(executionRequest.getOrder());
       masterRowIdSourceStep = masterOrderStep;
       masterRowIdStartStep = masterOrderStep;
@@ -220,7 +217,7 @@ public class ExecutionPlanner {
 
     // ==== Make sure the values of the requested columns are resolved so they can be provided to the user.
     for (ResolveValueRequest resolveValue : executionRequest.getResolveValues()) {
-      // TODO support resolving constants
+      // TODO #19 support resolving constants
       String colName = resolveValue.getResolve().getColumnName();
 
       if (masterColManager.isColumnProduced(colName))
@@ -246,17 +243,16 @@ public class ExecutionPlanner {
     for (RExecutionPlanStep remoteStep : allRemoteSteps)
       idToRemoteSteps.put(remoteStep.getStepId(), remoteStep);
     Map<Integer, Integer> remoteIdChangeMap = new HashMap<>();
-    TopologicalSort<RExecutionPlanStep> remoteTopSort =
-        new TopologicalSort<RExecutionPlanStep>( //
-            step -> {
-              if (step.getProvideDataForSteps() != null) {
-                return step.getProvideDataForSteps().keySet().stream().map(idx -> idToRemoteSteps.get(idx))
-                    .collect(Collectors.toList());
-              }
-              return new ArrayList<>();
-            },//
-            step -> (long) step.getStepId(),//
-            (step, newIdx) -> remoteIdChangeMap.put(step.getStepId(), newIdx));
+    TopologicalSort<RExecutionPlanStep> remoteTopSort = new TopologicalSort<RExecutionPlanStep>( //
+        step -> {
+          if (step.getProvideDataForSteps() != null) {
+            return step.getProvideDataForSteps().keySet().stream().map(idx -> idToRemoteSteps.get(idx))
+                .collect(Collectors.toList());
+          }
+          return new ArrayList<>();
+        } , //
+        step -> (long) step.getStepId(), //
+        (step, newIdx) -> remoteIdChangeMap.put(step.getStepId(), newIdx));
     allRemoteSteps = remoteTopSort.sort(allRemoteSteps);
     // Adjust Ids of steps according to top sort.
     for (RExecutionPlanStep remoteStep : allRemoteSteps) {
@@ -277,9 +273,8 @@ public class ExecutionPlanner {
 
     // ==== Build execution plan for master node.
     // Make query master execute remote execution plan on remotes.
-    ExecutablePlanStep executeRemoteStep =
-        executablePlanFactory.createExecuteRemotePlanStep(nextMasterIdSupplier.get(), masterDefaultExecutionEnv,
-            remoteExecutionPlan);
+    ExecutablePlanStep executeRemoteStep = executablePlanFactory.createExecuteRemotePlanStep(nextMasterIdSupplier.get(),
+        masterDefaultExecutionEnv, remoteExecutionPlan);
     allMasterSteps.add(executeRemoteStep);
 
     // ==== Handle a GROUP and aggregation functions on master
@@ -293,9 +288,8 @@ public class ExecutionPlanner {
       // will end up having different groupIds on each cluster node. We add this groupid adjusting step on the query
       // master to merge the groupIds.
 
-      ExecutablePlanStep groupIdAdjustStep =
-          executablePlanFactory.createGroupIdAdjustingStep(nextMasterIdSupplier.get(), new HashSet<>(executionRequest
-              .getGroup().getGroupColumns()));
+      ExecutablePlanStep groupIdAdjustStep = executablePlanFactory.createGroupIdAdjustingStep(
+          nextMasterIdSupplier.get(), new HashSet<>(executionRequest.getGroup().getGroupColumns()));
       // wire twice because the adjust step needs both, group Id intermediate information and column values from the
       // executeRemoteStep.
       masterWireManager.wire(ColumnValueConsumer.class, executeRemoteStep, groupIdAdjustStep);
@@ -335,20 +329,19 @@ public class ExecutionPlanner {
     Map<Integer, ExecutablePlanStep> idToMasterSteps = new HashMap<>();
     for (ExecutablePlanStep masterStep : allMasterSteps)
       idToMasterSteps.put(masterStep.getStepId(), masterStep);
-    TopologicalSort<ExecutablePlanStep> masterTopSort =
-        new TopologicalSort<ExecutablePlanStep>( //
-            step -> {
-              if (masterWires.containsKey(step.getStepId()))
-                return masterWires.get(step.getStepId()).stream().map(idx -> idToMasterSteps.get(idx))
-                    .collect(Collectors.toList());
-              return new ArrayList<>();
-            },//
-            step -> (long) step.getStepId(),//
-            (step, newIdx) -> step.setStepId(newIdx));
+    TopologicalSort<ExecutablePlanStep> masterTopSort = new TopologicalSort<ExecutablePlanStep>( //
+        step -> {
+          if (masterWires.containsKey(step.getStepId()))
+            return masterWires.get(step.getStepId()).stream().map(idx -> idToMasterSteps.get(idx))
+                .collect(Collectors.toList());
+          return new ArrayList<>();
+        } , //
+        step -> (long) step.getStepId(), //
+        (step, newIdx) -> step.setStepId(newIdx));
     allMasterSteps = masterTopSort.sort(allMasterSteps);
     // masterWires is invalid now!
 
-    // TODO support selecting non-cols
+    // TODO #19 support selecting non-cols
     ExecutablePlanInfo info = createInfo(executionRequest);
     ExecutablePlan plan = executablePlanFactory.createExecutablePlan(masterDefaultExecutionEnv, allMasterSteps, info);
 
@@ -356,9 +349,8 @@ public class ExecutionPlanner {
   }
 
   private ExecutablePlanInfo createInfo(ExecutionRequest executionRequest) {
-    List<String> selectedCols =
-        executionRequest.getResolveValues().stream().map(res -> res.getResolve().getColumnName())
-            .collect(Collectors.toList());
+    List<String> selectedCols = executionRequest.getResolveValues().stream()
+        .map(res -> res.getResolve().getColumnName()).collect(Collectors.toList());
 
     boolean isOrdered = executionRequest.getOrder() != null;
     boolean isGrouped = executionRequest.getGroup() != null;

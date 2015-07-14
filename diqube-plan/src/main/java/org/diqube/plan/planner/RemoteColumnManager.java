@@ -70,7 +70,7 @@ public class RemoteColumnManager implements ColumnManager<RExecutionPlanStep> {
       functionRemoteSteps.put(fnReq.getOutputColumn(),
           new ArrayList<>(Arrays.asList(new RExecutionPlanStep[] { intermediaryStep })));
 
-      // TODO sendresults step?
+      // TODO #11 sendresults step?
     } else {
       RExecutionPlanStep projectStep =
           remoteExecutionPlanFactory.createProjectStep(fnReq, nextRemoteStepIdSupplier.get());

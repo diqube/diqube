@@ -63,24 +63,20 @@ import org.slf4j.LoggerFactory;
  * <p>
  * This includes the inequality operators >, >=, <, <=.
  * 
- * <p>
- * This step can optionally be executed on a column that still needs to be constructed. In that case, a
- * {@link ColumnBuiltConsumer} input needs to be specified which keeps this step up to date with the construction of
- * that column. If no {@link ColumnBuiltConsumer} is specified, then simply the full column is searched in defaulEnv.
+ * <p> This step can optionally be executed on a column that still needs to be constructed. In that case, a
+ * {@link ColumnBuiltConsumer} input needs to be specified which keeps this step up to date with the construction of that
+ * column. If no {@link ColumnBuiltConsumer} is specified, then simply the full column is searched in defaulEnv.
  * 
- * <p>
- * Additionally, this step can be wired to the output of another {@link RowIdConsumer} which will force this instance to
- * only take those RowIds into account that are provided by the input {@link RowIdConsumer} - effectively building a AND
- * concatenation. In contrast to a {@link RowIdAndStep} though, the two {@link RowIdInequalStep}s that are connected
- * that way would be executed after each other, not parallel to each other. Therefore, usually a {@link RowIdAndStep} is
- * used.
+ * <p> Additionally, this step can be wired to the output of another {@link RowIdConsumer} which will force this
+ * instance to only take those RowIds into account that are provided by the input {@link RowIdConsumer} - effectively
+ * building a AND concatenation. In contrast to a {@link RowIdAndStep} though, the two {@link RowIdInequalStep}s that
+ * are connected that way would be executed after each other, not parallel to each other. Therefore, usually a
+ * {@link RowIdAndStep} is used.
  * 
- * <p>
- * Only {@link StandardColumnShard}s supported.
+ * <p> Only {@link StandardColumnShard}s supported.
  * 
- * <p>
- * Input: 1 optional {@link ColumnPageConsumer}, 1 optional {@link RowIdConsumer} <br>
- * Output: {@link RowIdConsumer}s.
+ * <p> Input: 1 optional {@link ColumnPageConsumer}, 1 optional {@link RowIdConsumer} <br> Output: {@link RowIdConsumer}
+ * s.
  *
  * @author Bastian Gloeckle
  */
@@ -281,54 +277,54 @@ public class RowIdInequalStep extends AbstractThreadedExecutablePlanStep {
 
     return column.getPages().values().stream().parallel(). // stream all Pages in parallel
         filter(new Predicate<ColumnPage>() { // filter out inactive Pages
-              @Override
-              public boolean test(ColumnPage page) {
-                if (activeRowIds != null) {
-                  // If we're restricting the row IDs, we check if the page contains any row that we are interested in.
-                  Long interestedRowId = activeRowIds.ceiling(page.getFirstRowId());
-                  if (interestedRowId == null || interestedRowId > page.getFirstRowId() + page.size())
-                    return false;
-                }
+          @Override
+          public boolean test(ColumnPage page) {
+            if (activeRowIds != null) {
+              // If we're restricting the row IDs, we check if the page contains any row that we are interested in.
+              Long interestedRowId = activeRowIds.ceiling(page.getFirstRowId());
+              if (interestedRowId == null || interestedRowId > page.getFirstRowId() + page.size())
+                return false;
+            }
 
-                return comparator.pageContainsAnyRelevantValue(page, referenceColumnValueId);
-              }
-            }).map(new Function<ColumnPage, Pair<ColumnPage, Set<Long>>>() { // find ColumnPageValue IDs that match the
-                                                                             // comparison
-              @Override
-              public Pair<ColumnPage, Set<Long>> apply(ColumnPage page) {
-                Set<Long> pageValueIds = comparator.findActivePageValueIds(page, referenceColumnValueId);
-                return new Pair<>(page, pageValueIds);
-              }
-            }).flatMap(new Function<Pair<ColumnPage, Set<Long>>, Stream<Long>>() { // resolve RowIDs and map them flat
-              // into a single stream
-              @Override
-              public Stream<Long> apply(Pair<ColumnPage, Set<Long>> pagePair) {
-                ColumnPage page = pagePair.getLeft();
-                Set<Long> searchedPageValueIds = pagePair.getRight();
-                List<Long> res = new LinkedList<>();
-                if (activeRowIds != null) {
-                  // If we're restricted to a specific set of row IDs, we decompress only the corresponding values and
-                  // check those.
-                  SortedSet<Long> activeRowIdsInThisPage = activeRowIds.subSet( //
-                      page.getFirstRowId(), page.getFirstRowId() + page.size());
+            return comparator.pageContainsAnyRelevantValue(page, referenceColumnValueId);
+          }
+        }).map(new Function<ColumnPage, Pair<ColumnPage, Set<Long>>>() { // find ColumnPageValue IDs that match the
+                                                                         // comparison
+          @Override
+          public Pair<ColumnPage, Set<Long>> apply(ColumnPage page) {
+            Set<Long> pageValueIds = comparator.findActivePageValueIds(page, referenceColumnValueId);
+            return new Pair<>(page, pageValueIds);
+          }
+        }).flatMap(new Function<Pair<ColumnPage, Set<Long>>, Stream<Long>>() { // resolve RowIDs and map them flat
+          // into a single stream
+          @Override
+          public Stream<Long> apply(Pair<ColumnPage, Set<Long>> pagePair) {
+            ColumnPage page = pagePair.getLeft();
+            Set<Long> searchedPageValueIds = pagePair.getRight();
+            List<Long> res = new LinkedList<>();
+            if (activeRowIds != null) {
+              // If we're restricted to a specific set of row IDs, we decompress only the corresponding values and
+              // check those.
+              SortedSet<Long> activeRowIdsInThisPage = activeRowIds.subSet( //
+                  page.getFirstRowId(), page.getFirstRowId() + page.size());
 
-                  for (Long rowId : activeRowIdsInThisPage) {
-                    // TODO perhaps decompress whole value array, as it may be RLE encoded anyway.
-                    Long decompressedColumnPageId = page.getValues().get((int) (rowId - page.getFirstRowId()));
-                    if (searchedPageValueIds.contains(decompressedColumnPageId))
-                      res.add(rowId);
-                  }
-                } else {
-                  // TODO STAT use statistics to decide if we should decompress the whole array here.
-                  long[] decompressedValues = page.getValues().decompressedArray();
-                  for (int i = 0; i < decompressedValues.length; i++) {
-                    if (searchedPageValueIds.contains(decompressedValues[i]))
-                      res.add(i + page.getFirstRowId());
-                  }
-                }
-                return res.stream();
+              for (Long rowId : activeRowIdsInThisPage) {
+                // TODO #7 perhaps decompress whole value array, as it may be RLE encoded anyway.
+                Long decompressedColumnPageId = page.getValues().get((int) (rowId - page.getFirstRowId()));
+                if (searchedPageValueIds.contains(decompressedColumnPageId))
+                  res.add(rowId);
               }
-            });
+            } else {
+              // TODO #2 STAT use statistics to decide if we should decompress the whole array here.
+              long[] decompressedValues = page.getValues().decompressedArray();
+              for (int i = 0; i < decompressedValues.length; i++) {
+                if (searchedPageValueIds.contains(decompressedValues[i]))
+                  res.add(i + page.getFirstRowId());
+              }
+            }
+            return res.stream();
+          }
+        });
   }
 
   /**
@@ -351,57 +347,57 @@ public class RowIdInequalStep extends AbstractThreadedExecutablePlanStep {
     Long[] colValueIds1 = comparisonMap.keySet().stream().sorted().toArray(l -> new Long[l]);
 
     Stream<Long> resultRowIdStream = leftColumn.getPages().values().stream().parallel().
-    // filter out pairs that either do not match the rowID range or where the left page does not contain any
-    // interesting value
-        filter(new Predicate<ColumnPage>() {
-          @Override
-          public boolean test(ColumnPage leftColPage) {
-            if (activeRowIds != null) {
-              // If we're restricting the row IDs, we check if the page contains any row that we are interested in.
-              Long interestedRowId = activeRowIds.ceiling(leftColPage.getFirstRowId());
-              if (interestedRowId == null || interestedRowId > leftColPage.getFirstRowId() + leftColPage.size())
-                return false;
+        // filter out pairs that either do not match the rowID range or where the left page does not contain any
+        // interesting value
+    filter(new Predicate<ColumnPage>() {
+      @Override
+      public boolean test(ColumnPage leftColPage) {
+        if (activeRowIds != null) {
+          // If we're restricting the row IDs, we check if the page contains any row that we are interested in.
+          Long interestedRowId = activeRowIds.ceiling(leftColPage.getFirstRowId());
+          if (interestedRowId == null || interestedRowId > leftColPage.getFirstRowId() + leftColPage.size())
+            return false;
+        }
+
+        if (!leftColPage.getColumnPageDict().containsAnyValue(colValueIds1))
+          return false;
+
+        return true;
+      }
+    }).flatMap(new Function<ColumnPage, Stream<Long>>() {
+
+      @Override
+      public Stream<Long> apply(ColumnPage leftColPage) {
+        // resolve ColumnPage value IDs from column value IDs for left page for all column value IDs we're
+        // interested in.
+        NavigableMap<Long, Long> leftPageIdsToColumnIds = new TreeMap<>();
+        Long[] leftPageValueIds = leftColPage.getColumnPageDict().findIdsOfValues(colValueIds1);
+        for (int i = 0; i < leftPageValueIds.length; i++)
+          leftPageIdsToColumnIds.put(leftPageValueIds[i], colValueIds1[i]);
+
+        List<Long> res = new ArrayList<>();
+
+        // decompress value arrays and traverse them
+        // TODO #2 STAT decide if full value array should be decompressed when there are activeRowIds.
+        long[] leftValues = leftColPage.getValues().decompressedArray();
+
+        for (int i = 0; i < leftValues.length; i++) {
+          long rowId = leftColPage.getFirstRowId() + i;
+          if (activeRowIds == null || activeRowIds.contains(rowId)) {
+            long leftPageValueId = leftValues[i];
+            Long leftColumnValueId = leftPageIdsToColumnIds.get(leftPageValueId);
+            // check if we're interested in that column value ID.
+            if (leftColumnValueId != null) {
+              // TODO #2 STAT decide if we should decompress the whole array for the right side, too.
+              if (comparator.rowMatches(leftColumnValueId, rowId, rightColumn, comparisonMap))
+                res.add(rowId);
             }
-
-            if (!leftColPage.getColumnPageDict().containsAnyValue(colValueIds1))
-              return false;
-
-            return true;
           }
-        }).flatMap(new Function<ColumnPage, Stream<Long>>() {
+        }
+        return res.stream();
+      }
 
-          @Override
-          public Stream<Long> apply(ColumnPage leftColPage) {
-            // resolve ColumnPage value IDs from column value IDs for left page for all column value IDs we're
-            // interested in.
-            NavigableMap<Long, Long> leftPageIdsToColumnIds = new TreeMap<>();
-            Long[] leftPageValueIds = leftColPage.getColumnPageDict().findIdsOfValues(colValueIds1);
-            for (int i = 0; i < leftPageValueIds.length; i++)
-              leftPageIdsToColumnIds.put(leftPageValueIds[i], colValueIds1[i]);
-
-            List<Long> res = new ArrayList<>();
-
-            // decompress value arrays and traverse them
-            // TODO STAT decide if full value array should be decompressed when there are activeRowIds.
-            long[] leftValues = leftColPage.getValues().decompressedArray();
-
-            for (int i = 0; i < leftValues.length; i++) {
-              long rowId = leftColPage.getFirstRowId() + i;
-              if (activeRowIds == null || activeRowIds.contains(rowId)) {
-                long leftPageValueId = leftValues[i];
-                Long leftColumnValueId = leftPageIdsToColumnIds.get(leftPageValueId);
-                // check if we're interested in that column value ID.
-                if (leftColumnValueId != null) {
-                  // TODO STAT decide if we should decompress the whole array for the right side, too.
-                  if (comparator.rowMatches(leftColumnValueId, rowId, rightColumn, comparisonMap))
-                    res.add(rowId);
-                }
-              }
-            }
-            return res.stream();
-          }
-
-        });
+    });
 
     sendRowIds(resultRowIdStream);
   }
@@ -479,7 +475,8 @@ public class RowIdInequalStep extends AbstractThreadedExecutablePlanStep {
      * <p>
      * The two columns are expected to have the same column type.
      */
-    public <T> NavigableMap<Long, Long> calculateComparisonMap(StandardColumnShard leftCol, StandardColumnShard rightCol);
+    public <T> NavigableMap<Long, Long> calculateComparisonMap(StandardColumnShard leftCol,
+        StandardColumnShard rightCol);
 
     /**
      * Evaluates if a specific row where the leftCol matched a key the comparison map actually is a row that matches the
@@ -517,8 +514,8 @@ public class RowIdInequalStep extends AbstractThreadedExecutablePlanStep {
       try {
         grEqId = ((Dictionary<T>) column.getColumnShardDictionary()).findGtEqIdOfValue((T) value);
       } catch (ClassCastException e) {
-        throw new ExecutablePlanExecutionException("Cannot compare column " + column.getName() + " with value of type "
-            + value.getClass().getSimpleName());
+        throw new ExecutablePlanExecutionException(
+            "Cannot compare column " + column.getName() + " with value of type " + value.getClass().getSimpleName());
       }
       // ignore positive/negative encoding
       if (grEqId < 0)
@@ -528,9 +525,10 @@ public class RowIdInequalStep extends AbstractThreadedExecutablePlanStep {
 
     @Override
     @SuppressWarnings("unchecked")
-    public <T> NavigableMap<Long, Long> calculateComparisonMap(StandardColumnShard leftCol, StandardColumnShard rightCol) {
-      return ((Dictionary<T>) leftCol.getColumnShardDictionary()).findGtEqIds((Dictionary<T>) rightCol
-          .getColumnShardDictionary());
+    public <T> NavigableMap<Long, Long> calculateComparisonMap(StandardColumnShard leftCol,
+        StandardColumnShard rightCol) {
+      return ((Dictionary<T>) leftCol.getColumnShardDictionary())
+          .findGtEqIds((Dictionary<T>) rightCol.getColumnShardDictionary());
     }
 
     @Override
@@ -569,8 +567,8 @@ public class RowIdInequalStep extends AbstractThreadedExecutablePlanStep {
       try {
         ltEqId = ((Dictionary<T>) column.getColumnShardDictionary()).findLtEqIdOfValue((T) value);
       } catch (ClassCastException e) {
-        throw new ExecutablePlanExecutionException("Cannot compare column " + column.getName() + " with value of type "
-            + value.getClass().getSimpleName());
+        throw new ExecutablePlanExecutionException(
+            "Cannot compare column " + column.getName() + " with value of type " + value.getClass().getSimpleName());
       }
 
       // ignore positive/negative encoding
@@ -582,11 +580,11 @@ public class RowIdInequalStep extends AbstractThreadedExecutablePlanStep {
 
     @Override
     @SuppressWarnings("unchecked")
-    public <T> NavigableMap<Long, Long> calculateComparisonMap(StandardColumnShard leftCol, StandardColumnShard rightCol) {
+    public <T> NavigableMap<Long, Long> calculateComparisonMap(StandardColumnShard leftCol,
+        StandardColumnShard rightCol) {
       // start off with a 'greater or equal' map.
-      NavigableMap<Long, Long> res =
-          ((Dictionary<T>) leftCol.getColumnShardDictionary()).findGtEqIds((Dictionary<T>) rightCol
-              .getColumnShardDictionary());
+      NavigableMap<Long, Long> res = ((Dictionary<T>) leftCol.getColumnShardDictionary())
+          .findGtEqIds((Dictionary<T>) rightCol.getColumnShardDictionary());
 
       for (Iterator<Entry<Long, Long>> it = res.entrySet().iterator(); it.hasNext();) {
         Entry<Long, Long> e = it.next();
@@ -630,8 +628,8 @@ public class RowIdInequalStep extends AbstractThreadedExecutablePlanStep {
       try {
         ltEq = ((Dictionary<T>) column.getColumnShardDictionary()).findLtEqIdOfValue((T) value);
       } catch (ClassCastException e) {
-        throw new ExecutablePlanExecutionException("Cannot compare column " + column.getName() + " with value of type "
-            + value.getClass().getSimpleName());
+        throw new ExecutablePlanExecutionException(
+            "Cannot compare column " + column.getName() + " with value of type " + value.getClass().getSimpleName());
       }
 
       // ignore positive/negative encoding.
@@ -642,9 +640,10 @@ public class RowIdInequalStep extends AbstractThreadedExecutablePlanStep {
 
     @Override
     @SuppressWarnings("unchecked")
-    public <T> NavigableMap<Long, Long> calculateComparisonMap(StandardColumnShard leftCol, StandardColumnShard rightCol) {
-      return ((Dictionary<T>) leftCol.getColumnShardDictionary()).findLtEqIds((Dictionary<T>) rightCol
-          .getColumnShardDictionary());
+    public <T> NavigableMap<Long, Long> calculateComparisonMap(StandardColumnShard leftCol,
+        StandardColumnShard rightCol) {
+      return ((Dictionary<T>) leftCol.getColumnShardDictionary())
+          .findLtEqIds((Dictionary<T>) rightCol.getColumnShardDictionary());
     }
 
     @Override
@@ -683,8 +682,8 @@ public class RowIdInequalStep extends AbstractThreadedExecutablePlanStep {
       try {
         grEqId = ((Dictionary<T>) column.getColumnShardDictionary()).findGtEqIdOfValue((T) value);
       } catch (ClassCastException e) {
-        throw new ExecutablePlanExecutionException("Cannot compare column " + column.getName() + " with value of type "
-            + value.getClass().getSimpleName());
+        throw new ExecutablePlanExecutionException(
+            "Cannot compare column " + column.getName() + " with value of type " + value.getClass().getSimpleName());
       }
 
       // ignore positive/negative result encoding.
@@ -696,11 +695,11 @@ public class RowIdInequalStep extends AbstractThreadedExecutablePlanStep {
 
     @Override
     @SuppressWarnings("unchecked")
-    public <T> NavigableMap<Long, Long> calculateComparisonMap(StandardColumnShard leftCol, StandardColumnShard rightCol) {
+    public <T> NavigableMap<Long, Long> calculateComparisonMap(StandardColumnShard leftCol,
+        StandardColumnShard rightCol) {
       // start off with a 'less than or equal' comparison map
-      NavigableMap<Long, Long> res =
-          ((Dictionary<T>) leftCol.getColumnShardDictionary()).findLtEqIds((Dictionary<T>) rightCol
-              .getColumnShardDictionary());
+      NavigableMap<Long, Long> res = ((Dictionary<T>) leftCol.getColumnShardDictionary())
+          .findLtEqIds((Dictionary<T>) rightCol.getColumnShardDictionary());
 
       for (Iterator<Entry<Long, Long>> it = res.entrySet().iterator(); it.hasNext();) {
         Entry<Long, Long> e = it.next();

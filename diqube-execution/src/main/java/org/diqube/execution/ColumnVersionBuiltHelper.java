@@ -42,7 +42,7 @@ public class ColumnVersionBuiltHelper {
    * 
    * @param env
    *          The {@link ExecutionEnvironment} that is queried for the rows that are available in all columns. // -----
-   *          TODO support subset of cols
+   *          TODO #8 support subset of cols
    * @param activeRowIds
    *          The row IDs that should be worked on now as provided by any other input {@link GenericConsumer}. This set
    *          will be adjusted accordingly. After this method returns, the activeRowIds will contain only row IDs that
@@ -59,13 +59,11 @@ public class ColumnVersionBuiltHelper {
     long maxRowId;
     Collection<ColumnShard> cols = env.getAllColumnShards().values();
     if (cols.stream().anyMatch(col -> col instanceof StandardColumnShard)) {
-      maxRowId =
-          cols.stream()
-              .filter(col -> col instanceof StandardColumnShard)
-              .mapToLong(
-                  column -> column.getFirstRowId() + ((StandardColumnShard) column).getNumberOfRowsInColumnShard() - 1)
-              . //
-              min().getAsLong();
+      maxRowId = cols.stream().filter(col -> col instanceof StandardColumnShard)
+          .mapToLong(
+              column -> column.getFirstRowId() + ((StandardColumnShard) column).getNumberOfRowsInColumnShard() - 1)
+          . //
+          min().getAsLong();
     } else
       // only ConstantColumnShards
       maxRowId = cols.iterator().next().getFirstRowId();

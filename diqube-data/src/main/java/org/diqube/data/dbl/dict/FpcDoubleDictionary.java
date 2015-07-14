@@ -86,7 +86,7 @@ public class FpcDoubleDictionary implements DoubleDictionary {
       if (i < 0 || i > highestId)
         throw new IllegalArgumentException("Invalid ID requested: " + i + " max available: " + highestId);
       return pages.floorEntry(i);
-    }, DiqubeCollectors.toNavigableSet()));
+    } , DiqubeCollectors.toNavigableSet()));
 
     Map<Long, Double> resMap = new HashMap<>();
 
@@ -186,7 +186,7 @@ public class FpcDoubleDictionary implements DoubleDictionary {
 
   @Override
   public Long[] findIdsOfValues(Double[] sortedValues) {
-    // TODO optimize
+    // TODO #6 optimize
     Long[] res = new Long[sortedValues.length];
     for (int i = 0; i < res.length; i++) {
       long searchRes = binarySearchIdOfValue(sortedValues[i]);
@@ -220,7 +220,7 @@ public class FpcDoubleDictionary implements DoubleDictionary {
 
   @Override
   public boolean containsAnyValue(Double[] sortedValues) {
-    // TODO optimize
+    // TODO #6 optimize
     for (int i = 0; i < sortedValues.length; i++) {
       if (binarySearchIdOfValue(sortedValues[i]) >= 0)
         return true;
@@ -507,8 +507,8 @@ public class FpcDoubleDictionary implements DoubleDictionary {
             // end of other page, move to next page.
             otherIt.next();
             if (!otherIt.hasNext()) {
-              LongStream.rangeClosed(ourFirstIdx + i, highestId).forEach(
-                  ourId -> callback.foundSmallerId(ourId, fpcOther.highestId));
+              LongStream.rangeClosed(ourFirstIdx + i, highestId)
+                  .forEach(ourId -> callback.foundSmallerId(ourId, fpcOther.highestId));
               return;
             }
 

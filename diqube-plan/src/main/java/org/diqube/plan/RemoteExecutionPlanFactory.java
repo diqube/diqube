@@ -78,8 +78,8 @@ public class RemoteExecutionPlanFactory {
         intermediaryStep.getDetailsFunction().addToFunctionArguments(
             new RColOrValue(RColOrValue._Fields.COLUMN, new RCol(RCol._Fields.COL_NAME, param.getColumnName())));
       } else {
-        intermediaryStep.getDetailsFunction().addToFunctionArguments(
-            new RColOrValue(RColOrValue._Fields.VALUE, parseRValue(param.getValue())));
+        intermediaryStep.getDetailsFunction()
+            .addToFunctionArguments(new RColOrValue(RColOrValue._Fields.VALUE, parseRValue(param.getValue())));
       }
     }
     return intermediaryStep;
@@ -115,7 +115,7 @@ public class RemoteExecutionPlanFactory {
     if (right.getType().equals(Type.COLUMN))
       step.getDetailsRowId().setOtherColumn(new RCol(RCol._Fields.COL_NAME, right.getColumnName()));
     else
-      // TODO support multiple equal values
+      // TODO #22 support multiple equal values
       step.getDetailsRowId().addToSortedValues(parseRValue(right.getValue()));
 
     return step;
@@ -154,9 +154,8 @@ public class RemoteExecutionPlanFactory {
     step.setStepId(stepId);
     step.setType(RExecutionPlanStepType.GROUP);
     step.setDetailsGroup(new RExecutionPlanStepDetailsGroup());
-    step.getDetailsGroup().setGroupByColumns(
-        groupRequest.getGroupColumns().stream().map(colName -> new RCol(RCol._Fields.COL_NAME, colName))
-            .collect(Collectors.toList()));
+    step.getDetailsGroup().setGroupByColumns(groupRequest.getGroupColumns().stream()
+        .map(colName -> new RCol(RCol._Fields.COL_NAME, colName)).collect(Collectors.toList()));
     return step;
   }
 
@@ -197,7 +196,7 @@ public class RemoteExecutionPlanFactory {
   }
 
   public RExecutionPlanStep createResolveColumnDictId(String colName, int stepId) {
-    // TODO support resolving constants
+    // TODO #19 support resolving constants
     return createColumnDictId(colName, stepId);
   }
 

@@ -62,9 +62,9 @@ public class ConnectionPool {
    */
   public <T extends TServiceClient> Connection<T> reserveConnection(Class<T> thiftClientClass, RNodeAddress addr)
       throws ConnectionException {
-    // TODO implement pooling.
-    // TODO implement failsafe connections!
-    // TODO implement timeout
+    // TODO #32 implement pooling.
+    // TODO #32 implement failsafe connections!
+    // TODO #32 implement timeout
 
     TTransport transport = openTransport(addr);
 

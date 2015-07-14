@@ -80,9 +80,8 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
             IntermediaryResult<Object, Object, Object> oldIntermediaryResult,
             IntermediaryResult<Object, Object, Object> newIntermediaryResult) {
           logger.trace("Received intermediary results for group {} from remote", groupId);
-          forEachOutputConsumerOfType(GroupIntermediaryAggregationConsumer.class,
-              c -> c.consumeIntermediaryAggregationResult(groupId, colName, oldIntermediaryResult,
-                  newIntermediaryResult));
+          forEachOutputConsumerOfType(GroupIntermediaryAggregationConsumer.class, c -> c
+              .consumeIntermediaryAggregationResult(groupId, colName, oldIntermediaryResult, newIntermediaryResult));
         }
       };
 
@@ -140,14 +139,13 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
         remotePlanBuilder.build(remoteExecutionPlan, groupIntermediaryAggregationConsumer, columnValueConsumer);
 
     // start execution on all TableShards
-    // TODO execute really on remote.
+    // TODO #11 execute really on remote.
     int subCnt = 0;
     List<Future<Void>> futures = new ArrayList<>();
     for (ExecutablePlan executablePlanOnShard : remoteExecutablePlans) {
-      Executor executor =
-          executorManager.newQueryFixedThreadPool(executablePlanOnShard.preferredExecutorServiceSize(),
-              Thread.currentThread().getName() + "-sub-" + (subCnt++) + "-%d", //
-              QueryUuid.getCurrentQueryUuid());
+      Executor executor = executorManager.newQueryFixedThreadPool(executablePlanOnShard.preferredExecutorServiceSize(),
+          Thread.currentThread().getName() + "-sub-" + (subCnt++) + "-%d", //
+          QueryUuid.getCurrentQueryUuid());
 
       Future<Void> future = executablePlanOnShard.executeAsynchronously(executor);
       futures.add(future);

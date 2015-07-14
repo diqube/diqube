@@ -55,9 +55,8 @@ public class LongGroupDiqlExecutionTest extends GroupDiqlExecutionTest<Long> {
     initializeSimpleTable(colAValues, colBValues);
     // GIVEN
     // a simple select stmt
-    ExecutablePlan executablePlan =
-        buildExecutablePlan("Select " + COL_A + ", add(count(), 1) from " + TABLE + " where " + COL_A
-            + " = 1 group by " + COL_A);
+    ExecutablePlan executablePlan = buildExecutablePlan(
+        "Select " + COL_A + ", add(count(), 1) from " + TABLE + " where " + COL_A + " = 1 group by " + COL_A);
     ExecutorService executor = Executors.newFixedThreadPool(executablePlan.preferredExecutorServiceSize());
     try {
       // WHEN
@@ -71,18 +70,17 @@ public class LongGroupDiqlExecutionTest extends GroupDiqlExecutionTest<Long> {
       Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
 
       Assert.assertTrue(resultValues.containsKey(COL_A), "Result values should be available for result column");
-      String resColName =
-          new FunctionBasedColumnNameBuilder().withFunctionName("add")
-              .addParameterColumnName(new FunctionBasedColumnNameBuilder().withFunctionName("count").build())
-              .addParameterLiteralLong(1L).build();
+      String resColName = new FunctionBasedColumnNameBuilder().withFunctionName("add")
+          .addParameterColumnName(new FunctionBasedColumnNameBuilder().withFunctionName("count").build())
+          .addParameterLiteralLong(1L).build();
       Assert.assertTrue(resultValues.containsKey(resColName),
           "Result values should be available for aggregated res column");
       Assert.assertEquals(resultValues.size(), 2, "Result values should be available for two columns only");
 
       Object[] expectedValues = dp.a(1);
 
-      Assert.assertEquals(new HashSet<>(resultValues.get(COL_A).values()),
-          new HashSet<>(Arrays.asList(expectedValues)), "Expected to get value 1L as result");
+      Assert.assertEquals(new HashSet<>(resultValues.get(COL_A).values()), new HashSet<>(Arrays.asList(expectedValues)),
+          "Expected to get value 1L as result");
 
       expectedValues = dp.a(4);
       Assert.assertEquals(new HashSet<>(resultValues.get(resColName).values()),
@@ -99,9 +97,8 @@ public class LongGroupDiqlExecutionTest extends GroupDiqlExecutionTest<Long> {
     initializeSimpleTable(colAValues, colBValues);
     // GIVEN
     // a simple select stmt, aggregation on projected column, this happens only for resolving fields (not in where etc).
-    ExecutablePlan executablePlan =
-        buildExecutablePlan("Select " + COL_A + ", avg(add(" + COL_A + ", 1)) from " + TABLE + " where " + COL_A
-            + " = " + dp.vDiql(1) + " group by " + COL_A);
+    ExecutablePlan executablePlan = buildExecutablePlan("Select " + COL_A + ", avg(add(" + COL_A + ", 1)) from " + TABLE
+        + " where " + COL_A + " = " + dp.vDiql(1) + " group by " + COL_A);
     ExecutorService executor = Executors.newFixedThreadPool(executablePlan.preferredExecutorServiceSize());
     try {
       // WHEN
@@ -116,12 +113,10 @@ public class LongGroupDiqlExecutionTest extends GroupDiqlExecutionTest<Long> {
 
       Assert.assertTrue(resultValues.containsKey(COL_A), "Result values should be available for result column a");
 
-      String resColName =
-          new FunctionBasedColumnNameBuilder()
-              .withFunctionName("avg")
-              .addParameterColumnName(
-                  new FunctionBasedColumnNameBuilder().withFunctionName("add").addParameterColumnName(COL_A)
-                      .addParameterLiteralLong(1L).build()).build();
+      String resColName = new FunctionBasedColumnNameBuilder().withFunctionName("avg")
+          .addParameterColumnName(new FunctionBasedColumnNameBuilder().withFunctionName("add")
+              .addParameterColumnName(COL_A).addParameterLiteralLong(1L).build())
+          .build();
 
       Assert.assertTrue(resultValues.containsKey(resColName),
           "Result values should be available for result count column");
@@ -129,8 +124,8 @@ public class LongGroupDiqlExecutionTest extends GroupDiqlExecutionTest<Long> {
 
       Object[] expectedValues = dp.a(1);
 
-      Assert.assertEquals(new HashSet<>(resultValues.get(COL_A).values()),
-          new HashSet<>(Arrays.asList(expectedValues)), "Expected to get value 1L as result for colA");
+      Assert.assertEquals(new HashSet<>(resultValues.get(COL_A).values()), new HashSet<>(Arrays.asList(expectedValues)),
+          "Expected to get value 1L as result for colA");
 
       expectedValues = new Double[] { 2. }; // avg(add(colA, 1)) with colA == 1.
       Assert.assertEquals(new HashSet<>(resultValues.get(resColName).values()),
@@ -147,10 +142,8 @@ public class LongGroupDiqlExecutionTest extends GroupDiqlExecutionTest<Long> {
     initializeSimpleTable(colAValues, colBValues);
     // GIVEN
     // a simple select stmt
-    // TODO support aggregation function with parameter, count just ignores the param
-    ExecutablePlan executablePlan =
-        buildExecutablePlan("Select " + COL_A + ", add(avg(add(" + COL_A + ", 1)), 1.) from " + TABLE + " where "
-            + COL_A + " = 1 group by " + COL_A);
+    ExecutablePlan executablePlan = buildExecutablePlan("Select " + COL_A + ", add(avg(add(" + COL_A
+        + ", 1)), 1.) from " + TABLE + " where " + COL_A + " = 1 group by " + COL_A);
     ExecutorService executor = Executors.newFixedThreadPool(executablePlan.preferredExecutorServiceSize());
     try {
       // WHEN
@@ -163,15 +156,12 @@ public class LongGroupDiqlExecutionTest extends GroupDiqlExecutionTest<Long> {
       Assert.assertTrue(future.isDone(), "Future should report done");
       Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
 
-      String resColName =
-          new FunctionBasedColumnNameBuilder()
-              .withFunctionName("add")
-              .addParameterColumnName(
-                  new FunctionBasedColumnNameBuilder()
-                      .withFunctionName("avg")
-                      .addParameterColumnName(
-                          new FunctionBasedColumnNameBuilder().withFunctionName("add").addParameterColumnName(COL_A)
-                              .addParameterLiteralLong(1L).build()).build()).addParameterLiteralDouble(1.).build();
+      String resColName = new FunctionBasedColumnNameBuilder().withFunctionName("add")
+          .addParameterColumnName(new FunctionBasedColumnNameBuilder().withFunctionName("avg")
+              .addParameterColumnName(new FunctionBasedColumnNameBuilder().withFunctionName("add")
+                  .addParameterColumnName(COL_A).addParameterLiteralLong(1L).build())
+              .build())
+          .addParameterLiteralDouble(1.).build();
 
       Assert.assertTrue(resultValues.containsKey(COL_A), "Result values should be available for result column");
       Assert.assertTrue(resultValues.containsKey(resColName),
@@ -180,8 +170,8 @@ public class LongGroupDiqlExecutionTest extends GroupDiqlExecutionTest<Long> {
 
       Object[] expectedValues = dp.a(1);
 
-      Assert.assertEquals(new HashSet<>(resultValues.get(COL_A).values()),
-          new HashSet<>(Arrays.asList(expectedValues)), "Expected to get value 1L as result");
+      Assert.assertEquals(new HashSet<>(resultValues.get(COL_A).values()), new HashSet<>(Arrays.asList(expectedValues)),
+          "Expected to get value 1L as result");
 
       expectedValues = new Double[] { 3. }; // add(avg(add(colA, 1)), 1.) with colA == 1.
       Assert.assertEquals(new HashSet<>(resultValues.get(resColName).values()),
@@ -198,9 +188,8 @@ public class LongGroupDiqlExecutionTest extends GroupDiqlExecutionTest<Long> {
     initializeSimpleTable(colAValues, colBValues);
     // GIVEN
     // a simple select stmt
-    ExecutablePlan executablePlan =
-        buildExecutablePlan("Select " + COL_A + ", add(count(), 1) from " + TABLE + " where add(" + COL_A
-            + ", 1) = 2 group by " + COL_A);
+    ExecutablePlan executablePlan = buildExecutablePlan(
+        "Select " + COL_A + ", add(count(), 1) from " + TABLE + " where add(" + COL_A + ", 1) = 2 group by " + COL_A);
     ExecutorService executor = Executors.newFixedThreadPool(executablePlan.preferredExecutorServiceSize());
     try {
       // WHEN
@@ -214,18 +203,17 @@ public class LongGroupDiqlExecutionTest extends GroupDiqlExecutionTest<Long> {
       Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
 
       Assert.assertTrue(resultValues.containsKey(COL_A), "Result values should be available for result column");
-      String resColName =
-          new FunctionBasedColumnNameBuilder().withFunctionName("add")
-              .addParameterColumnName(new FunctionBasedColumnNameBuilder().withFunctionName("count").build())
-              .addParameterLiteralLong(1L).build();
+      String resColName = new FunctionBasedColumnNameBuilder().withFunctionName("add")
+          .addParameterColumnName(new FunctionBasedColumnNameBuilder().withFunctionName("count").build())
+          .addParameterLiteralLong(1L).build();
       Assert.assertTrue(resultValues.containsKey(resColName),
           "Result values should be available for aggregated res column");
       Assert.assertEquals(resultValues.size(), 2, "Result values should be available for two columns only");
 
       Object[] expectedValues = dp.a(1);
 
-      Assert.assertEquals(new HashSet<>(resultValues.get(COL_A).values()),
-          new HashSet<>(Arrays.asList(expectedValues)), "Expected to get value 1L as result");
+      Assert.assertEquals(new HashSet<>(resultValues.get(COL_A).values()), new HashSet<>(Arrays.asList(expectedValues)),
+          "Expected to get value 1L as result");
 
       expectedValues = dp.a(4);
       Assert.assertEquals(new HashSet<>(resultValues.get(resColName).values()),
@@ -280,12 +268,12 @@ public class LongGroupDiqlExecutionTest extends GroupDiqlExecutionTest<Long> {
 
         Pair<Object, Object> actualValue = new Pair<>(colAValue, countValue);
 
-        Assert.assertEquals(actualValue, expectedResult.get(orderedRowId), "Expected correct result at ordered index "
-            + orderedRowId + " (" + rowId + ")");
+        Assert.assertEquals(actualValue, expectedResult.get(orderedRowId),
+            "Expected correct result at ordered index " + orderedRowId + " (" + rowId + ")");
       }
 
-      Assert
-          .assertEquals(resultOrderRowIds.size(), expectedResult.size(), "Expected to receive correct number of rows");
+      Assert.assertEquals(resultOrderRowIds.size(), expectedResult.size(),
+          "Expected to receive correct number of rows");
     } finally {
       executor.shutdownNow();
     }

@@ -30,7 +30,7 @@ import org.diqube.execution.consumers.GenericConsumer.IdentifyingConsumerClass;
 @IdentifyingConsumerClass(RowIdConsumer.class)
 public interface RowIdConsumer extends ContinuousConsumer {
   /**
-   * Called when there are new row IDs available in the source. TODO check if the param should be a List<>
+   * Called when there are new row IDs available in the source. TODO #8 check if the param should be a List<>
    */
   public void consume(Long[] rowIds);
 }

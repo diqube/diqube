@@ -225,8 +225,8 @@ public class ProjectStep extends AbstractThreadedExecutablePlanStep {
           functionFactory.createProjectionFunction(functionNameLowerCase, inputColType);
 
       if (fn == null)
-        throw new ExecutablePlanExecutionException("Cannot find function '" + functionNameLowerCase
-            + "' with input data type " + inputColType);
+        throw new ExecutablePlanExecutionException(
+            "Cannot find function '" + functionNameLowerCase + "' with input data type " + inputColType);
 
       for (int paramIdx = 0; paramIdx < functionParameters.length; paramIdx++)
         fn.provideConstantParameter(paramIdx, functionParameters[paramIdx].getValue());
@@ -235,19 +235,16 @@ public class ProjectStep extends AbstractThreadedExecutablePlanStep {
 
       switch (fn.getOutputType()) {
       case LONG:
-        column =
-            columnShardFactory.createConstantLongColumnShard(outputColName, (Long) fnResult[0],
-                defaultEnv.getFirstRowIdInShard());
+        column = columnShardFactory.createConstantLongColumnShard(outputColName, (Long) fnResult[0],
+            defaultEnv.getFirstRowIdInShard());
         break;
       case STRING:
-        column =
-            columnShardFactory.createConstantStringColumnShard(outputColName, (String) fnResult[0],
-                defaultEnv.getFirstRowIdInShard());
+        column = columnShardFactory.createConstantStringColumnShard(outputColName, (String) fnResult[0],
+            defaultEnv.getFirstRowIdInShard());
         break;
       case DOUBLE:
-        column =
-            columnShardFactory.createConstantDoubleColumnShard(outputColName, (Double) fnResult[0],
-                defaultEnv.getFirstRowIdInShard());
+        column = columnShardFactory.createConstantDoubleColumnShard(outputColName, (Double) fnResult[0],
+            defaultEnv.getFirstRowIdInShard());
         break;
       }
       columnFullyBuilt = true;
@@ -275,7 +272,7 @@ public class ProjectStep extends AbstractThreadedExecutablePlanStep {
               Iterables.limit(curAdjustedRowIds, 100));
 
           // execute full projection, although we have specific row IDs that have been altered.
-          // TODO cache intermediary results and use that to not again apply the projection function to all elements
+          // TODO #8 cache intermediary results and use that to not again apply the projection function to all elements
           // again.
           column = buildColumnBasedProjection(temporaryEnv);
         }
@@ -330,14 +327,10 @@ public class ProjectStep extends AbstractThreadedExecutablePlanStep {
       // Find column shard that contains the least rows, in order to calculate rowID buckets below.
       // On the query master each column might have different number of rows, therefore we find the least common number
       // of rows that we can process.
-      String referenceColName =
-          inputColNames
-              .stream()
-              .filter(colName -> env.getColumnShard(colName) instanceof StandardColumnShard)
-              .map(name -> //
-                  new Pair<String, Long>(name, ((StandardColumnShard) env.getColumnShard(name))
-                      .getNumberOfRowsInColumnShard())).min((p1, p2) -> p1.getRight().compareTo(p2.getRight())).get()
-              .getLeft();
+      String referenceColName = inputColNames.stream()
+          .filter(colName -> env.getColumnShard(colName) instanceof StandardColumnShard).map(name -> //
+          new Pair<String, Long>(name, ((StandardColumnShard) env.getColumnShard(name)).getNumberOfRowsInColumnShard()))
+          .min((p1, p2) -> p1.getRight().compareTo(p2.getRight())).get().getLeft();
 
       NavigableMap<Long, ColumnPage> pages = ((StandardColumnShard) env.getColumnShard(referenceColName)).getPages();
       rowIdBucketsToProcess = pages.entrySet().stream(). //
@@ -359,8 +352,8 @@ public class ProjectStep extends AbstractThreadedExecutablePlanStep {
     ColumnShardBuilderManager columnShardBuilderManager = columnShardBuilderManagerSupplier.apply(inputColumnType);
 
     if (functionFactory.createProjectionFunction(functionNameLowerCase, inputColumnType) == null)
-      throw new ExecutablePlanExecutionException("Cannot find function '" + functionNameLowerCase
-          + "' with input data type " + inputColumnType);
+      throw new ExecutablePlanExecutionException(
+          "Cannot find function '" + functionNameLowerCase + "' with input data type " + inputColumnType);
 
     // execute ProjectionFunctions based on buckets of rowIds.
     rowIdBucketsToProcess.forEach(new Consumer<Pair<Long, Integer>>() {
@@ -384,9 +377,8 @@ public class ProjectStep extends AbstractThreadedExecutablePlanStep {
             } else {
               hadStandardColumnInput = true;
               Object[] colValues = fn.createEmptyInputArray(length);
-              int rowsResolved =
-                  resolveValuesFromColumn((StandardColumnShard) env.getColumnShard(param.getColumnName()), firstRowId,
-                      length, colValues);
+              int rowsResolved = resolveValuesFromColumn(
+                  (StandardColumnShard) env.getColumnShard(param.getColumnName()), firstRowId, length, colValues);
               if (rowsResolved != length)
                 throw new ExecutablePlanExecutionException("Column " + param.getColumnName()
                     + " does not contain the same number of rows as other columns; cannot execute function "
@@ -410,19 +402,16 @@ public class ProjectStep extends AbstractThreadedExecutablePlanStep {
           // are constants, there is only one Pair<Long, Integer> the forEach is iterating over.
           switch (fn.getOutputType()) {
           case LONG:
-            resultConstantColumn[0] =
-                columnShardFactory.createConstantLongColumnShard(outputColName, (Long) fnResult[0],
-                    defaultEnv.getFirstRowIdInShard());
+            resultConstantColumn[0] = columnShardFactory.createConstantLongColumnShard(outputColName,
+                (Long) fnResult[0], defaultEnv.getFirstRowIdInShard());
             break;
           case STRING:
-            resultConstantColumn[0] =
-                columnShardFactory.createConstantStringColumnShard(outputColName, (String) fnResult[0],
-                    defaultEnv.getFirstRowIdInShard());
+            resultConstantColumn[0] = columnShardFactory.createConstantStringColumnShard(outputColName,
+                (String) fnResult[0], defaultEnv.getFirstRowIdInShard());
             break;
           case DOUBLE:
-            resultConstantColumn[0] =
-                columnShardFactory.createConstantDoubleColumnShard(outputColName, (Double) fnResult[0],
-                    defaultEnv.getFirstRowIdInShard());
+            resultConstantColumn[0] = columnShardFactory.createConstantDoubleColumnShard(outputColName,
+                (Double) fnResult[0], defaultEnv.getFirstRowIdInShard());
             break;
           }
         }

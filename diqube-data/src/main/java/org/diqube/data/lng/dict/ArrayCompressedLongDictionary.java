@@ -33,7 +33,7 @@ import org.diqube.data.lng.array.CompressedLongArray;
 /**
  * A {@link LongDictionary} based on a {@link CompressedLongArray}.
  *
- * TODO base this dict on an array that can be indexed with long instead of int.
+ * TODO #3 base this dict on an array that can be indexed with long instead of int.
  *
  * @author Bastian Gloeckle
  */
@@ -115,7 +115,7 @@ public class ArrayCompressedLongDictionary implements LongDictionary {
    *         This is equal to the result of {@link Arrays#binarySearch(long[], long)}.
    */
   private int findIndex(long value, int lo, int high) {
-    // TODO instead of decompressing a lot of values here, we should compress the search value itself and then search
+    // TODO #5 instead of decompressing a lot of values here, we should compress the search value itself and then search
     // for it in the compressed space. This should be implemented in CompressedLongArray.
     long decompressed = sortedValues.get(lo);
     if (decompressed == value)
@@ -217,9 +217,8 @@ public class ArrayCompressedLongDictionary implements LongDictionary {
     } else {
       // Bad case: decompress whole array (should not happen, though)
       long[] decompressedValues = sortedValues.decompressedArray();
-      Long[] otherIds =
-          otherDict
-              .findIdsOfValues(LongStream.of(decompressedValues).mapToObj(Long::valueOf).toArray(l -> new Long[l]));
+      Long[] otherIds = otherDict
+          .findIdsOfValues(LongStream.of(decompressedValues).mapToObj(Long::valueOf).toArray(l -> new Long[l]));
       for (int i = 0; i < decompressedValues.length; i++) {
         Long otherId = otherIds[i];
         if (otherId != -1L)
@@ -258,7 +257,7 @@ public class ArrayCompressedLongDictionary implements LongDictionary {
 
     Set<Long> res = new HashSet<>();
     if (firstIdx < sortedValues.size()) {
-      // TODO use LongStream and findGtEqIdOfValue
+      // TODO #6 use LongStream and findGtEqIdOfValue
       for (int i = 0; i < sortedValues.size() - firstIdx; i++)
         res.add((long) i + firstIdx);
     }

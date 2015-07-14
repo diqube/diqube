@@ -108,9 +108,8 @@ public class ExecutionPlanBuilder {
 
     new ExecutionPlanValidator().validate(executionRequest, colInfo);
 
-    ExecutablePlan plan =
-        executionPlannerFactory.createExecutionPlanner().plan(executionRequest, colInfo,
-            queryMasterDefaultExecutionEnvironment);
+    ExecutablePlan plan = executionPlannerFactory.createExecutionPlanner().plan(executionRequest, colInfo,
+        queryMasterDefaultExecutionEnvironment);
 
     // wire manual consumers
     for (ExecutablePlanStep step : plan.getSteps()) {
@@ -128,7 +127,7 @@ public class ExecutionPlanBuilder {
   }
 
   private DiqlStmtContext parseWithAntlr() throws ParseException {
-    // TODO make ANTLR provide better error messages
+    // TODO #20 make ANTLR provide better error messages
     ANTLRInputStream input = new ANTLRInputStream(diql.toCharArray(), diql.length());
     DiqlLexer lexer = new DiqlLexer(input);
     lexer.addErrorListener(new BaseErrorListener() {

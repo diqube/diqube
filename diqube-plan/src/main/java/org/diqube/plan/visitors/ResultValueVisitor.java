@@ -53,7 +53,7 @@ public class ResultValueVisitor extends DiqlBaseVisitor<List<ResolveValueRequest
     ColumnOrValue anyValueResult = ctx.accept(new AnyValueVisitor(env));
 
     if (anyValueResult.getType().equals(Type.LITERAL)) {
-      // TODO support selecting literal values - currently use id() function
+      // TODO #19 support selecting literal values - currently use id() function
       throw new ParseException("Not implemented: selecting only literal values.");
     }
 

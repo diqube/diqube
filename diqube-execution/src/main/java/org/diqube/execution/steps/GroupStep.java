@@ -72,7 +72,7 @@ import com.google.common.collect.Sets;
  * Output: {@link RowIdConsumer} and/or {@link GroupConsumer} and/or {@link GroupDeltaConsumer}.
  *
  * <p>
- * TODO support grouping on projected columns. This would lead to having a ColumnBuiltConsumer as input
+ * TODO #9 support grouping on projected columns. This would lead to having a ColumnBuiltConsumer as input
  * 
  * @author Bastian Gloeckle
  */
@@ -247,10 +247,9 @@ public class GroupStep extends AbstractThreadedExecutablePlanStep {
         public void accept(ColumnPage page, List<Long> rowIdList) {
           Long[] rowIds = rowIdList.toArray(new Long[rowIdList.size()]);
 
-          // TODO perhaps decompress whole value array, as it may be RLE encoded anyway.
-          Long[] pageValueIds =
-              Stream.<Long> of(rowIds).map(rowId -> page.getValues().get((int) (rowId - page.getFirstRowId())))
-                  .toArray(l -> new Long[l]);
+          // TODO #7 perhaps decompress whole value array, as it may be RLE encoded anyway.
+          Long[] pageValueIds = Stream.<Long> of(rowIds)
+              .map(rowId -> page.getValues().get((int) (rowId - page.getFirstRowId()))).toArray(l -> new Long[l]);
 
           Long[] columnValueIds = page.getColumnPageDict().decompressValues(pageValueIds);
 

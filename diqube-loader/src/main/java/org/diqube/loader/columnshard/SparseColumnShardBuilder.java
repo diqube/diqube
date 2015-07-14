@@ -44,7 +44,7 @@ import org.diqube.util.Pair;
  * A {@link SparseColumnShardBuilder} builds a {@link StandardColumnShard} of which it is expected to have only a sparse
  * set of values for the rows.
  *
- * TODO check if separate implementation of Columnshard should be used for this.
+ * TODO #12 check if separate implementation of Columnshard should be used for this.
  *
  * @author Bastian Gloeckle
  */
@@ -209,7 +209,8 @@ public class SparseColumnShardBuilder<T> {
       }
 
       ColumnPageBuilder pageBuilder = new ColumnPageBuilder(columnPageFactory);
-      // TODO add firstRowInShard
+      // TODO add firstRowInShard - not needed that much currently, as SparseColumnShardBuilder is used on query master
+      // only.
       long firstRowId = ((long) pageNo) * ColumnShardBuilder.PROPOSAL_ROWS;
       pageBuilder.withFirstRowId(firstRowId).withValueMap(valueToId).withValues(pageValue)
           .withColumnPageName(name + "#" + firstRowId);

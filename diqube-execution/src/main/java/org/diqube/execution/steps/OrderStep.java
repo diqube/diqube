@@ -229,38 +229,37 @@ public class OrderStep extends AbstractThreadedExecutablePlanStep {
     sortColSet = sortCols.stream().map(p -> p.getLeft()).collect(Collectors.toSet());
 
     // factory method for comparators based on a specific env.
-    headComparatorProvider =
-        (executionEnvironment) -> {
-          SortComparator headComparator = null;
-          SortComparator lastComparator = null;
-          for (Pair<String, Boolean> sortCol : sortCols) {
-            String colName = sortCol.getLeft();
-            boolean sortAsc = sortCol.getRight();
+    headComparatorProvider = (executionEnvironment) -> {
+      SortComparator headComparator = null;
+      SortComparator lastComparator = null;
+      for (Pair<String, Boolean> sortCol : sortCols) {
+        String colName = sortCol.getLeft();
+        boolean sortAsc = sortCol.getRight();
 
-            NavigableMap<Long, ColumnPage> pages =
-                ((StandardColumnShard) executionEnvironment.getColumnShard(colName)).getPages();
+        NavigableMap<Long, ColumnPage> pages =
+            ((StandardColumnShard) executionEnvironment.getColumnShard(colName)).getPages();
 
-            ColumnValueIdResolver resolver = new ColumnValueIdResolver() {
-              @Override
-              public long resolveColumnValueId(long rowId) {
-                ColumnPage page = pages.floorEntry(rowId).getValue();
-                // TODO perhaps decompress whole value array, as it may be RLE encoded anyway.
-                long columnPageValueId = page.getValues().get((int) (rowId - page.getFirstRowId()));
+        ColumnValueIdResolver resolver = new ColumnValueIdResolver() {
+          @Override
+          public long resolveColumnValueId(long rowId) {
+            ColumnPage page = pages.floorEntry(rowId).getValue();
+            // TODO #7 perhaps decompress whole value array, as it may be RLE encoded anyway.
+            long columnPageValueId = page.getValues().get((int) (rowId - page.getFirstRowId()));
 
-                LongDictionary columnPageDict = page.getColumnPageDict();
-                return columnPageDict.decompressValue(columnPageValueId);
-              }
-            };
-
-            SortComparator newComparator = new SortComparator(resolver, sortAsc);
-            if (lastComparator != null)
-              lastComparator.setDelegateComparatorOnEqual(newComparator);
-            else
-              headComparator = newComparator;
-            lastComparator = newComparator;
+            LongDictionary columnPageDict = page.getColumnPageDict();
+            return columnPageDict.decompressValue(columnPageValueId);
           }
-          return headComparator;
         };
+
+        SortComparator newComparator = new SortComparator(resolver, sortAsc);
+        if (lastComparator != null)
+          lastComparator.setDelegateComparatorOnEqual(newComparator);
+        else
+          headComparator = newComparator;
+        lastComparator = newComparator;
+      }
+      return headComparator;
+    };
   }
 
   @Override
@@ -300,7 +299,7 @@ public class OrderStep extends AbstractThreadedExecutablePlanStep {
 
     if (intermediateRun) {
       // Make sure that we only order those rows, where we have values for all columns.
-      // TODO only check availability in interested columns.
+      // TODO #8 only check availability in interested columns.
       // Please note the following:
       // We only make sure that each column contains /any/ value on the row IDs, these might be as well default values
       // filled in by SparseColumnShardBuilder! We therefore might order based on "wrong" values here. But this is not
@@ -334,7 +333,7 @@ public class OrderStep extends AbstractThreadedExecutablePlanStep {
     // -
     // Execute this in each run. This is needed, as either there were new rowIds added or some rows changed their values
     // (otherwise execute() would not be called). Therefore we always need to sort the array.
-    // TODO support sorting only /some/ elements in case we're based on intermediary values.
+    // TODO #8 support sorting only /some/ elements in case we're based on intermediary values.
     Arrays.sort(sortedRowIds, 0, sortedRowIdsLength, headComparator);
 
     // cutOffPoint = first index in sortedRowIds that would be cut off by a limit/softLimit clause. null otherwise.

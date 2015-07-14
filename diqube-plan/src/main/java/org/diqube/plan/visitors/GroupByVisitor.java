@@ -55,7 +55,7 @@ public class GroupByVisitor extends DiqlBaseVisitor<Pair<GroupRequest, Compariso
 
     int columnNameCnt = 0;
     ColumnNameContext columnNameCtx;
-    // TODO support projected columns
+    // TODO #9 support projected columns
     while ((columnNameCtx = groupByCtx.getChild(ColumnNameContext.class, columnNameCnt++)) != null) {
       String colName = columnNameCtx.getChild(AnyNameContext.class, 0).getText();
 

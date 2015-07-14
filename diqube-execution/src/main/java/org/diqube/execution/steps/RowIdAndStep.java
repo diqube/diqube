@@ -39,7 +39,7 @@ import com.google.common.collect.Sets;
 /**
  * A logical AND on two row ID steps.
  *
- * TODO STAT if estimated that one source provides lots of rowIds, while the other won't we should first execute the
+ * TODO #2 STAT if estimated that one source provides lots of rowIds, while the other won't we should first execute the
  * latter and then execute the second with applying the AND right in that step.
  *
  * <p>

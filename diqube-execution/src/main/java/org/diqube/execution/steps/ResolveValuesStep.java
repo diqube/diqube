@@ -109,20 +109,21 @@ public class ResolveValuesStep extends AbstractThreadedExecutablePlanStep {
                   Long rowId = t.getMiddle();
                   Long columnValueId = t.getRight();
 
-                  // TODO decompress multiple values at once
+                  // TODO #8 decompress multiple values at once
                   Object value = env.getColumnShard(colName).getColumnShardDictionary().decompressValue(columnValueId);
 
                   return new Triple<>(colName, rowId, value);
                 }
 
-              }).collect(() -> new HashMap<String, Map<Long, Object>>(), (map, triple) -> {
+              })
+          .collect(() -> new HashMap<String, Map<Long, Object>>(), (map, triple) -> {
             String colName = triple.getLeft();
             Long rowId = triple.getMiddle();
             Object value = triple.getRight();
             if (!map.containsKey(colName))
               map.put(colName, new HashMap<>());
             map.get(colName).put(rowId, value);
-          }, (map1, map2) -> {
+          } , (map1, map2) -> {
             for (String colName : map2.keySet()) {
               if (!map1.containsKey(colName))
                 map1.put(colName, new HashMap<>());

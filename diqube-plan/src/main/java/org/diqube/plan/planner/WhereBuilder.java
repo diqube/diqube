@@ -51,9 +51,8 @@ public class WhereBuilder implements ComparisonRequestBuilder<RExecutionPlanStep
   private ColumnManager<RExecutionPlanStep> columnManager;
   private RemoteWireManager remoteWireManager;
 
-  public WhereBuilder(RemoteExecutionPlanFactory remoteExecutionPlanFactory,
-      Supplier<Integer> nextRemoteStepIdSupplier, ColumnManager<RExecutionPlanStep> columnManager,
-      RemoteWireManager remoteWireManager) {
+  public WhereBuilder(RemoteExecutionPlanFactory remoteExecutionPlanFactory, Supplier<Integer> nextRemoteStepIdSupplier,
+      ColumnManager<RExecutionPlanStep> columnManager, RemoteWireManager remoteWireManager) {
     this.remoteExecutionPlanFactory = remoteExecutionPlanFactory;
     this.nextRemoteStepIdSupplier = nextRemoteStepIdSupplier;
     this.columnManager = columnManager;
@@ -63,69 +62,68 @@ public class WhereBuilder implements ComparisonRequestBuilder<RExecutionPlanStep
   @Override
   public Pair<RExecutionPlanStep, List<RExecutionPlanStep>> build(ComparisonRequest comparisonRoot) {
     List<RExecutionPlanStep> allWhereSteps = new ArrayList<>();
-    RExecutionPlanStep whereRootStep =
-        walkComparisonTreeAndCreate(comparisonRoot,
-            new Function<Triple<ComparisonRequest, RExecutionPlanStep, RExecutionPlanStep>, RExecutionPlanStep>() {
-              @Override
-              public RExecutionPlanStep apply(Triple<ComparisonRequest, RExecutionPlanStep, RExecutionPlanStep> t) {
-                RExecutionPlanStep res = null;
-                if (t.getLeft() instanceof Leaf) {
-                  Leaf leaf = (Leaf) t.getLeft();
-                  RExecutionPlanStepType type = null;
-                  switch (leaf.getOp()) {
-                  case EQ:
-                    type = RExecutionPlanStepType.ROW_ID_EQ;
-                    break;
-                  case GT_EQ:
-                    type = RExecutionPlanStepType.ROW_ID_GT_EQ;
-                    break;
-                  case GT:
-                    type = RExecutionPlanStepType.ROW_ID_GT;
-                    break;
-                  case LT_EQ:
-                    type = RExecutionPlanStepType.ROW_ID_LT_EQ;
-                    break;
-                  case LT:
-                    type = RExecutionPlanStepType.ROW_ID_LT;
-                    break;
-                  // TODO support BETWEEN
-                  }
-                  res = remoteExecutionPlanFactory.createRowIdComparison(leaf, nextRemoteStepIdSupplier.get(), type);
-
-                  // if this step is based on any column that needs to be created (as we're in the where stmt which
-                  // cannot contain aggregate functions, these columns that need to be created need to be
-                  // projections!), we need to wait for their creation. Wire accordingly.
-
-                  if (leaf.getLeft().getType().equals(ColumnOrValue.Type.COLUMN))
-                    columnManager.wireOutputOfColumnIfAvailable(leaf.getLeft().getColumnName(), res);
-
-                  if (leaf.getRight().getType().equals(ColumnOrValue.Type.COLUMN))
-                    columnManager.wireOutputOfColumnIfAvailable(leaf.getRight().getColumnName(), res);
-
-                  allWhereSteps.add(res);
-                  return res;
-                } else if (t.getLeft() instanceof Not) {
-                  RExecutionPlanStep childStep = t.getMiddle();
-
-                  res = remoteExecutionPlanFactory.createRowIdNot(nextRemoteStepIdSupplier.get());
-                  remoteWireManager.wire(RowIdConsumer.class, childStep, res);
-
-                  allWhereSteps.add(res);
-                  return res;
-                } else if (t.getLeft() instanceof And) {
-                  res = remoteExecutionPlanFactory.createRowIdAnd(nextRemoteStepIdSupplier.get());
-                } else if (t.getLeft() instanceof Or) {
-                  res = remoteExecutionPlanFactory.createRowIdOr(nextRemoteStepIdSupplier.get());
-                }
-
-                // wire row ID flow.
-                remoteWireManager.wire(RowIdConsumer.class, t.getMiddle(), res);
-                remoteWireManager.wire(RowIdConsumer.class, t.getRight(), res);
-
-                allWhereSteps.add(res);
-                return res;
+    RExecutionPlanStep whereRootStep = walkComparisonTreeAndCreate(comparisonRoot,
+        new Function<Triple<ComparisonRequest, RExecutionPlanStep, RExecutionPlanStep>, RExecutionPlanStep>() {
+          @Override
+          public RExecutionPlanStep apply(Triple<ComparisonRequest, RExecutionPlanStep, RExecutionPlanStep> t) {
+            RExecutionPlanStep res = null;
+            if (t.getLeft() instanceof Leaf) {
+              Leaf leaf = (Leaf) t.getLeft();
+              RExecutionPlanStepType type = null;
+              switch (leaf.getOp()) {
+              case EQ:
+                type = RExecutionPlanStepType.ROW_ID_EQ;
+                break;
+              case GT_EQ:
+                type = RExecutionPlanStepType.ROW_ID_GT_EQ;
+                break;
+              case GT:
+                type = RExecutionPlanStepType.ROW_ID_GT;
+                break;
+              case LT_EQ:
+                type = RExecutionPlanStepType.ROW_ID_LT_EQ;
+                break;
+              case LT:
+                type = RExecutionPlanStepType.ROW_ID_LT;
+                break;
+              // TODO #21 support BETWEEN
               }
-            });
+              res = remoteExecutionPlanFactory.createRowIdComparison(leaf, nextRemoteStepIdSupplier.get(), type);
+
+              // if this step is based on any column that needs to be created (as we're in the where stmt which
+              // cannot contain aggregate functions, these columns that need to be created need to be
+              // projections!), we need to wait for their creation. Wire accordingly.
+
+              if (leaf.getLeft().getType().equals(ColumnOrValue.Type.COLUMN))
+                columnManager.wireOutputOfColumnIfAvailable(leaf.getLeft().getColumnName(), res);
+
+              if (leaf.getRight().getType().equals(ColumnOrValue.Type.COLUMN))
+                columnManager.wireOutputOfColumnIfAvailable(leaf.getRight().getColumnName(), res);
+
+              allWhereSteps.add(res);
+              return res;
+            } else if (t.getLeft() instanceof Not) {
+              RExecutionPlanStep childStep = t.getMiddle();
+
+              res = remoteExecutionPlanFactory.createRowIdNot(nextRemoteStepIdSupplier.get());
+              remoteWireManager.wire(RowIdConsumer.class, childStep, res);
+
+              allWhereSteps.add(res);
+              return res;
+            } else if (t.getLeft() instanceof And) {
+              res = remoteExecutionPlanFactory.createRowIdAnd(nextRemoteStepIdSupplier.get());
+            } else if (t.getLeft() instanceof Or) {
+              res = remoteExecutionPlanFactory.createRowIdOr(nextRemoteStepIdSupplier.get());
+            }
+
+            // wire row ID flow.
+            remoteWireManager.wire(RowIdConsumer.class, t.getMiddle(), res);
+            remoteWireManager.wire(RowIdConsumer.class, t.getRight(), res);
+
+            allWhereSteps.add(res);
+            return res;
+          }
+        });
     return new Pair<>(whereRootStep, allWhereSteps);
   }
 

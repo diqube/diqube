@@ -67,9 +67,9 @@ public class FunctionBasedColumnNameBuilder {
     StringBuilder sb = new StringBuilder();
     sb.append(functionName);
     sb.append("{");
-    // TODO if function does not care about order of parameters, we should create a standardized name (enables better
-    // caching)
-    // TODO for caching of aggregate functions, we need to have the group-by cols in the name, too.
+    // TODO #26 if function does not care about order of parameters, we should create a standardized name (enables
+    // better caching)
+    // TODO #26 for caching of aggregate functions, we need to have the group-by cols in the name, too.
     for (String paramName : parameterNames) {
       sb.append(paramName);
       sb.append(",");

@@ -55,7 +55,7 @@ public class TrieUtil {
     }
     ParentNode parent = (ParentNode) curNode;
 
-    // TODO do not compare to all children, but do some sort of binary search.
+    // TODO #6 do not compare to all children, but do some sort of binary search.
     for (int i = 0; i < parent.getChildNodes().length; i++) {
       char[] subSeq = parent.getChildChars()[i];
       int compareRes = compareChars(subSeq, str, fromIndex);

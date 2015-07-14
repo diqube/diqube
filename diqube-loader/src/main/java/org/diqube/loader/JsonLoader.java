@@ -77,7 +77,7 @@ import com.fasterxml.jackson.core.JsonToken;
  * (repeated fields). Currently, though, each top-level object needs to recursively be made up of the exactly same
  * fields ("optional" fields are not supported yet).
  * 
- * TODO support optional fields.
+ * TODO #14 support optional fields.
  *
  * @author Bastian Gloeckle
  */
@@ -123,11 +123,11 @@ public class JsonLoader implements Loader {
     logger.info("Inspecting JSON in order to find all columns...");
     findColumnInfo(factory, jsonBuffer, columnTypes, repeatedCols, objectLocations);
 
-    // TODO validate that we did not identify different things throughout the same input file.
+    // TODO #15 validate that we did not identify different things throughout the same input file.
 
     // put colTypes into columnInfo, throw exception if something different was identified than what was specified.
     for (String colName : columnTypes.keySet()) {
-      // TODO introduce import data specificity - when default is "double" but "long" identified, make it "double"
+      // TODO #15 introduce import data specificity - when default is "double" but "long" identified, make it "double"
       if (columnInfo.isDefaultDataType(colName))
         columnInfo.registerColumnType(colName, columnTypes.get(colName));
       else if (!columnInfo.getFinalColumnType(colName).equals(ColumnType.STRING) // overriding to STRING type is allowed
@@ -230,6 +230,7 @@ public class JsonLoader implements Loader {
       @Override
       public void valueString(String colName, JsonParser parser) throws LoadException {
         try {
+          // TODO "intern"alize the strings returned here
           res[colToColIndex.get(colName)] = parser.getValueAsString();
         } catch (IOException e) {
           throw new LoadException("Could not parse value of column " + colName + ": " + e.getMessage(), e);
@@ -430,7 +431,7 @@ public class JsonLoader implements Loader {
               handler.valueLong(colNameStack.pollLast(), parser);
             break;
           case VALUE_NULL:
-            // TODO support null
+            // TODO #14 support null
             break;
           case NOT_AVAILABLE:
           case VALUE_EMBEDDED_OBJECT:

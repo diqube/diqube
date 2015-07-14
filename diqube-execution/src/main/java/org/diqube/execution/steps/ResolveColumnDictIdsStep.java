@@ -123,7 +123,7 @@ public class ResolveColumnDictIdsStep extends AbstractThreadedExecutablePlanStep
 
         @Override
         protected void doColumnBuilt(VersionedExecutionEnvironment env, String colName, Set<Long> adjustedRowIds) {
-          // TODO act only if colName.equals(this.colName).
+          // TODO #8 act only if colName.equals(this.colName).
           synchronized (newestSync) {
             if (newestTemporaryEnv == null)
               newestTemporaryEnv = env;
@@ -221,9 +221,8 @@ public class ResolveColumnDictIdsStep extends AbstractThreadedExecutablePlanStep
           rowIdToDictIdMap.put(curRowId, columnValueId);
         forEachOutputConsumerOfType(ColumnDictIdConsumer.class, c -> c.consume(env, colName, rowIdToDictIdMap));
       } else {
-        Map<Long, Long> rowIdToColumnValueId =
-            env.getColumnShard(colName).resolveColumnValueIdsForRows(
-                activeRowIds.toArray(new Long[activeRowIds.size()]));
+        Map<Long, Long> rowIdToColumnValueId = env.getColumnShard(colName)
+            .resolveColumnValueIdsForRows(activeRowIds.toArray(new Long[activeRowIds.size()]));
 
         forEachOutputConsumerOfType(ColumnDictIdConsumer.class, c -> c.consume(env, colName, rowIdToColumnValueId));
       }

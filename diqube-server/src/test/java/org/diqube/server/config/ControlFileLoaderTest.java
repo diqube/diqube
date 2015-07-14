@@ -233,7 +233,7 @@ public class ControlFileLoaderTest {
     // As the default is "string", but JsonLoader identifies that Index is "long", we have a more exact match found -
     // use long! If there would be a specific override for column "index" in the control file, that would have to be
     // used, but there is not (only a "default" is specified).
-    // TODO introduce import data specificity - when default is "double" but "long" identified, make it "double"
+    // TODO #15 introduce import data specificity - when default is "double" but "long" identified, make it "double"
     Assert.assertTrue(shard.getLongColumns().containsKey(TABLE_AGE_COLUMN_INDEX),
         "Expected column '" + TABLE_AGE_COLUMN_INDEX + "' to be of type long.");
   }

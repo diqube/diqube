@@ -90,11 +90,10 @@ public class MasterColumnManager implements ColumnManager<ExecutablePlanStep> {
   @Override
   public void produceColumn(FunctionRequest fnReq) {
     if (fnReq.getType().equals(FunctionRequest.Type.PROJECTION)) {
-      ProjectStep projectStep =
-          executablePlanFactory.createProjectStep(nextMasterStepIdSupplier.get(), env, fnReq.getFunctionName(),
-              fnReq.getOutputColumn(),
-              fnReq.getInputParameters().toArray(new ColumnOrValue[fnReq.getInputParameters().size()]),
-              columnVersionManager);
+      ProjectStep projectStep = executablePlanFactory.createProjectStep(nextMasterStepIdSupplier.get(), env,
+          fnReq.getFunctionName(), fnReq.getOutputColumn(),
+          fnReq.getInputParameters().toArray(new ColumnOrValue[fnReq.getInputParameters().size()]),
+          columnVersionManager);
 
       // ensure all input columns are fully available on master
       for (ColumnOrValue input : fnReq.getInputParameters()) {
@@ -105,14 +104,13 @@ public class MasterColumnManager implements ColumnManager<ExecutablePlanStep> {
       functionMasterSteps.put(fnReq.getOutputColumn(),
           new ArrayList<>(Arrays.asList(new ExecutablePlanStep[] { projectStep })));
     } else {
-      // TODO do NOT calculate all Grouped results on query master, but distribute groups according to group hash
+      // TODO #28 do NOT calculate all Grouped results on query master, but distribute groups according to group hash
       // along all cluster nodes. That means that those clusternodes would fully process specific sets of groups and
       // they would need to have all the data needed for calculating those groups transferred to them. This though
       // would decrease the load on the query master heavily, especially if the results are ordered by grouped
       // columns early.
-      GroupFinalAggregationStep finalStep =
-          executablePlanFactory.createGroupFinalAggregationStep(nextMasterStepIdSupplier.get(), env,
-              fnReq.getFunctionName(), fnReq.getOutputColumn(), columnVersionManager);
+      GroupFinalAggregationStep finalStep = executablePlanFactory.createGroupFinalAggregationStep(
+          nextMasterStepIdSupplier.get(), env, fnReq.getFunctionName(), fnReq.getOutputColumn(), columnVersionManager);
 
       functionMasterSteps.put(fnReq.getOutputColumn(),
           new ArrayList<>(Arrays.asList(new ExecutablePlanStep[] { finalStep })));
@@ -173,9 +171,8 @@ public class MasterColumnManager implements ColumnManager<ExecutablePlanStep> {
 
     // take care of the columns we need to ensure are available on the query master.
     for (String transferColName : Sets.difference(columnsThatNeedToBeAvailable, functionMasterSteps.keySet())) {
-      ExecutablePlanStep masterCreationStep =
-          executablePlanFactory.createBuildColumnFromValuesStep(nextMasterStepIdSupplier.get(), env, transferColName,
-              columnVersionManager);
+      ExecutablePlanStep masterCreationStep = executablePlanFactory
+          .createBuildColumnFromValuesStep(nextMasterStepIdSupplier.get(), env, transferColName, columnVersionManager);
       functionMasterSteps.put(transferColName,
           new ArrayList<ExecutablePlanStep>(Arrays.asList(new ExecutablePlanStep[] { masterCreationStep })));
 

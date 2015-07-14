@@ -119,7 +119,7 @@ public class ControlFileLoader {
         if (keyString.startsWith(KEY_COLTYPE_PREFIX)) {
           String val = controlProperties.getProperty(keyString);
           keyString = keyString.substring(KEY_COLTYPE_PREFIX.length());
-          // TODO LoaderColumnInfo should be able to handle repeated columns nicely.
+          // TODO #13 LoaderColumnInfo should be able to handle repeated columns nicely.
           columnInfo.registerColumnType(keyString, resolveColumnType(val));
         }
       }
@@ -129,7 +129,8 @@ public class ControlFileLoader {
         throw new LoadException("File " + file.getAbsolutePath() + " does not exist or is no file.");
 
       if (tableRegistry.getTable(tableName) != null)
-        // TODO support loading multiple shards of a table from multiple control files (and removing them correctly).
+        // TODO #33 support loading multiple shards of a table from multiple control files (and removing them
+        // correctly).
         throw new LoadException("Table '" + tableName + "' already exists.");
 
       Loader loader = type.equals(TYPE_CSV) ? csvLoader : jsonLoader;

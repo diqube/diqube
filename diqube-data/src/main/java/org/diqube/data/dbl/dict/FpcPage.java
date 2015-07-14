@@ -299,7 +299,7 @@ public class FpcPage {
     for (int byteChunk = 0; byteChunk < rest.length; byteChunk++)
       rest[byteChunk] = (byte) (((xoredValue >>> (byteChunk * 8))) & 255);
 
-    // TODO this actually takes only 4 bit out of the byte
+    // TODO #6 this actually takes only 4 bit out of the byte
     byte mgmtByte = (byte) (numberOfLeadingZeroBytes | (compressionMethod << 3));
 
     res.add(mgmtByte);

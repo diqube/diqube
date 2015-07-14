@@ -97,7 +97,7 @@ public class ComparisonVisitor extends DiqlBaseVisitor<ComparisonRequest> {
     else if (comparator.getText().equals("<"))
       operator = Operator.LT;
 
-    // TODO check if both operands only select from literals and implement short-cut.
+    // TODO #25 check if both operands only select from literals and implement short-cut.
     if (firstOperand.getType().equals(Type.LITERAL) && secondOperand.getType().equals(Type.LITERAL))
       throw new ParseException("Comparisons are currently supported only with at least one side being a column.");
 

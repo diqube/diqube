@@ -138,8 +138,8 @@ public class QueryServiceHandler implements Iface {
   public void asyncExecuteQuery(RUUID queryRUuid, String diql, boolean sendPartialUpdates, RNodeAddress resultAddress)
       throws TException, RQueryException {
     UUID queryUuid = RUuidUtil.toUuid(queryRUuid);
-    logger.info("Async query {}, partial {}, resultAddress {}: {}", new Object[] { queryUuid, sendPartialUpdates,
-        resultAddress, diql });
+    logger.info("Async query {}, partial {}, resultAddress {}: {}",
+        new Object[] { queryUuid, sendPartialUpdates, resultAddress, diql });
 
     Connection<QueryResultService.Client> resultConnection =
         connectionPool.reserveConnection(QueryResultService.Client.class, resultAddress);
@@ -152,12 +152,13 @@ public class QueryServiceHandler implements Iface {
             logger.trace("New intermediary result for {}: {}", queryUuid, resultTable);
             try {
               synchronized (resultConnection) {
-                // TODO calculate percentages
+                // TODO #31 calculate percentages
                 resultService.partialUpdate(queryRUuid, resultTable, (short) 1);
               }
             } catch (TException e) {
-              logger.warn("Was not able to send out intermediary result to " + resultAddress.toString() + " for "
-                  + queryUuid, e);
+              logger.warn(
+                  "Was not able to send out intermediary result to " + resultAddress.toString() + " for " + queryUuid,
+                  e);
             }
           }
 
@@ -209,8 +210,7 @@ public class QueryServiceHandler implements Iface {
       }
     });
 
-    Executor executor =
-        executorManager.newQueryFixedThreadPool(1, "query-master-" + queryUuid + "-%d", queryUuid);
+    Executor executor = executorManager.newQueryFixedThreadPool(1, "query-master-" + queryUuid + "-%d", queryUuid);
 
     // start asynchronous execution.
     executor.execute(execute);
