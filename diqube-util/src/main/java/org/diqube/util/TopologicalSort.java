@@ -87,9 +87,8 @@ public class TopologicalSort<T> {
         predecessors.get(successor).add(successorEntry.getKey());
     }
 
-    Deque<Long> emptyPredecessors =
-        new LinkedList<Long>(predecessors.entrySet().stream().filter(entry -> entry.getValue().isEmpty())
-            .map(entry -> entry.getKey()).collect(Collectors.toList()));
+    Deque<Long> emptyPredecessors = new LinkedList<Long>(predecessors.entrySet().stream()
+        .filter(entry -> entry.getValue().isEmpty()).map(entry -> entry.getKey()).collect(Collectors.toList()));
 
     while (!emptyPredecessors.isEmpty()) {
       Long id = emptyPredecessors.poll();

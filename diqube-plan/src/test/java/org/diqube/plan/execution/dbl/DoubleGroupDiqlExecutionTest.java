@@ -153,8 +153,8 @@ public class DoubleGroupDiqlExecutionTest extends GroupDiqlExecutionTest<Double>
               + " but was " + actualValue.getLeft() + "-" + actualValue.getRight());
       }
 
-      Assert
-          .assertEquals(resultOrderRowIds.size(), expectedResult.size(), "Expected to receive correct number of rows");
+      Assert.assertEquals(resultOrderRowIds.size(), expectedResult.size(),
+          "Expected to receive correct number of rows");
     } finally {
       executor.shutdownNow();
     }

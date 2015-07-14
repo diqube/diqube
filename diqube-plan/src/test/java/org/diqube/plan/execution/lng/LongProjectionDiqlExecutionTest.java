@@ -64,9 +64,8 @@ public class LongProjectionDiqlExecutionTest extends AbstractDiqlExecutionTest<L
       Assert.assertTrue(future.isDone(), "Future should report done");
       Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
 
-      String resColName =
-          new FunctionBasedColumnNameBuilder().withFunctionName("add").addParameterColumnName(COL_A)
-              .addParameterLiteralLong(500L).build();
+      String resColName = new FunctionBasedColumnNameBuilder().withFunctionName("add").addParameterColumnName(COL_A)
+          .addParameterLiteralLong(500L).build();
 
       Assert.assertTrue(resultValues.containsKey(resColName), "Result values should be available for result column");
       Assert.assertEquals(resultValues.size(), 1, "Result values should be available for one column only");
@@ -104,9 +103,8 @@ public class LongProjectionDiqlExecutionTest extends AbstractDiqlExecutionTest<L
       Assert.assertTrue(future.isDone(), "Future should report done");
       Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
 
-      String resColName =
-          new FunctionBasedColumnNameBuilder().withFunctionName("add").addParameterColumnName(COL_A)
-              .addParameterColumnName(COL_B).build();
+      String resColName = new FunctionBasedColumnNameBuilder().withFunctionName("add").addParameterColumnName(COL_A)
+          .addParameterColumnName(COL_B).build();
 
       Assert.assertTrue(resultValues.containsKey(resColName), "Result values should be available for result column");
       Assert.assertEquals(resultValues.size(), 1, "Result values should be available for one column only");
@@ -144,12 +142,10 @@ public class LongProjectionDiqlExecutionTest extends AbstractDiqlExecutionTest<L
       Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
 
       String resColName =
-          new FunctionBasedColumnNameBuilder()
-              .withFunctionName("add")
-              .addParameterLiteralLong(1)
-              .addParameterColumnName(
-                  new FunctionBasedColumnNameBuilder().withFunctionName("add").addParameterLiteralLong(500L)
-                      .addParameterLiteralLong(1000L).build()).build();
+          new FunctionBasedColumnNameBuilder().withFunctionName("add")
+              .addParameterLiteralLong(1).addParameterColumnName(new FunctionBasedColumnNameBuilder()
+                  .withFunctionName("add").addParameterLiteralLong(500L).addParameterLiteralLong(1000L).build())
+          .build();
 
       Assert.assertTrue(resultValues.containsKey(resColName), "Result values should be available for result column");
       Assert.assertEquals(resultValues.size(), 1, "Result values should be available for one column only");
@@ -220,9 +216,8 @@ public class LongProjectionDiqlExecutionTest extends AbstractDiqlExecutionTest<L
       Assert.assertTrue(future.isDone(), "Future should report done");
       Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
 
-      String resColName =
-          new FunctionBasedColumnNameBuilder().withFunctionName("add").addParameterColumnName(COL_A)
-              .addParameterLiteralLong(500L).build();
+      String resColName = new FunctionBasedColumnNameBuilder().withFunctionName("add").addParameterColumnName(COL_A)
+          .addParameterLiteralLong(500L).build();
 
       Assert.assertTrue(resultValues.containsKey(resColName), "Result values should be available for result column");
       Assert.assertEquals(resultValues.size(), 1, "Result values should be available for one column only");

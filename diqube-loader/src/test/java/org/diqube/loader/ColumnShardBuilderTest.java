@@ -55,9 +55,8 @@ public class ColumnShardBuilderTest {
     dataContext = new AnnotationConfigApplicationContext();
     dataContext.scan("org.diqube.data");
     dataContext.refresh();
-    builder =
-        new ColumnShardBuilder<String>(dataContext.getBean(ColumnShardFactory.class),
-            dataContext.getBean(ColumnPageFactory.class), TEST_COL_NAME, 0L);
+    builder = new ColumnShardBuilder<String>(dataContext.getBean(ColumnShardFactory.class),
+        dataContext.getBean(ColumnPageFactory.class), TEST_COL_NAME, 0L);
   }
 
   @AfterMethod
@@ -77,8 +76,8 @@ public class ColumnShardBuilderTest {
     ColumnShard abstractShard = builder.build();
 
     // THEN
-    Assert
-        .assertEquals(StringStandardColumnShard.class, abstractShard.getClass(), "StringStandardColumnShard expected");
+    Assert.assertEquals(StringStandardColumnShard.class, abstractShard.getClass(),
+        "StringStandardColumnShard expected");
     StringStandardColumnShard shard = (StringStandardColumnShard) abstractShard;
 
     Assert.assertEquals(shard.getName(), TEST_COL_NAME, "Correct shard name expected");

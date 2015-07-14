@@ -70,8 +70,8 @@ public abstract class SimpleDiqlExecutionTest<T> extends AbstractDiqlExecutionTe
       Assert.assertEquals(resultValues.size(), 1, "Result values should be available for one column only");
       Object[] returnedValuesByRowId = dp.emptyArray(resultValues.get(COL_A).size());
       resultValues.get(COL_A).forEach((k, v) -> returnedValuesByRowId[k.intValue()] = v);
-      Assert
-          .assertEquals(returnedValuesByRowId, COL_A_DEFAULT_VALUES, "Expected to have all values for col a returned");
+      Assert.assertEquals(returnedValuesByRowId, COL_A_DEFAULT_VALUES,
+          "Expected to have all values for col a returned");
     } finally {
       executor.shutdownNow();
     }
@@ -91,10 +91,7 @@ public abstract class SimpleDiqlExecutionTest<T> extends AbstractDiqlExecutionTe
     int matchedRow1 = 120;
     int matchedRow2 = 100;
     ExecutablePlan executablePlan =
-        buildExecutablePlan("Select " + COL_A + ", " + COL_B + " from "
-            + TABLE
-            + " where "
-            + //
+        buildExecutablePlan("Select " + COL_A + ", " + COL_B + " from " + TABLE + " where " + //
             COL_A + " = " + COL_A_DEFAULT_VALUES_DIQL[matchedRow1] + " and " + COL_B + " = "
             + COL_B_DEFAULT_VALUES_DIQL[matchedRow1] + " or " + COL_A + " = " + COL_A_DEFAULT_VALUES_DIQL[matchedRow2]
             + " and " + COL_B + " = " + COL_B_DEFAULT_VALUES_DIQL[matchedRow2] + " or " + COL_A + " = "
@@ -300,9 +297,8 @@ public abstract class SimpleDiqlExecutionTest<T> extends AbstractDiqlExecutionTe
     Object[] colBValues = dp.a(8L, 9L, 10L, 1L, 0L, 20L);
     Long[] orderedRowIdsExpected = new Long[] { 3L, 4L, 2L, 1L };
     initializeSimpleTable(colAValues, colBValues);
-    ExecutablePlan executablePlan =
-        buildExecutablePlan("Select " + COL_A + " from " + TABLE + " order by " + COL_A + " asc, " + COL_B
-            + " DESC LIMIT 4, 1");
+    ExecutablePlan executablePlan = buildExecutablePlan(
+        "Select " + COL_A + " from " + TABLE + " order by " + COL_A + " asc, " + COL_B + " DESC LIMIT 4, 1");
     ExecutorService executor = Executors.newFixedThreadPool(executablePlan.preferredExecutorServiceSize());
     try {
       // WHEN
@@ -348,9 +344,8 @@ public abstract class SimpleDiqlExecutionTest<T> extends AbstractDiqlExecutionTe
     Object[] colBValues = dp.a(8L, 9L, 10L, 1L, 0L, 20L);
     Long[] orderedRowIdsExpected = new Long[] { 1L, 2L, 4L, 3L };
     initializeSimpleTable(colAValues, colBValues);
-    ExecutablePlan executablePlan =
-        buildExecutablePlan("Select " + COL_A + " from " + TABLE + " order by " + COL_A + " desc, " + COL_B
-            + " asC LIMIT 4, 1");
+    ExecutablePlan executablePlan = buildExecutablePlan(
+        "Select " + COL_A + " from " + TABLE + " order by " + COL_A + " desc, " + COL_B + " asC LIMIT 4, 1");
     ExecutorService executor = Executors.newFixedThreadPool(executablePlan.preferredExecutorServiceSize());
     try {
       // WHEN
@@ -484,9 +479,8 @@ public abstract class SimpleDiqlExecutionTest<T> extends AbstractDiqlExecutionTe
     initializeSimpleTable(COL_A_DEFAULT_VALUES, COL_B_DEFAULT_VALUES);
     int geIndex = (int) (VALUE_LENGTH / 2);
     // GIVEN
-    ExecutablePlan executablePlan =
-        buildExecutablePlan("Select " + COL_A + ", " + COL_B + " from " + TABLE + " where " + COL_A + " >= "
-            + COL_A_DEFAULT_VALUES_DIQL[geIndex] + " order by " + COL_A + " asc");
+    ExecutablePlan executablePlan = buildExecutablePlan("Select " + COL_A + ", " + COL_B + " from " + TABLE + " where "
+        + COL_A + " >= " + COL_A_DEFAULT_VALUES_DIQL[geIndex] + " order by " + COL_A + " asc");
     ExecutorService executor = Executors.newFixedThreadPool(executablePlan.preferredExecutorServiceSize());
     try {
       // WHEN
@@ -527,9 +521,8 @@ public abstract class SimpleDiqlExecutionTest<T> extends AbstractDiqlExecutionTe
     Set<Long> expectedResultRowIds = new HashSet<>(Arrays.asList(new Long[] { 2L, 3L, 4L, 5L }));
     initializeSimpleTable(colAValues, colBValues);
     // GIVEN
-    ExecutablePlan executablePlan =
-        buildExecutablePlan("Select " + COL_A + ", " + COL_B + " from " + TABLE + " where " + COL_A + " >= "
-            + dp.vDiql(2) + " order by " + COL_A + " asc");
+    ExecutablePlan executablePlan = buildExecutablePlan("Select " + COL_A + ", " + COL_B + " from " + TABLE + " where "
+        + COL_A + " >= " + dp.vDiql(2) + " order by " + COL_A + " asc");
     ExecutorService executor = Executors.newFixedThreadPool(executablePlan.preferredExecutorServiceSize());
     try {
       // WHEN
@@ -556,16 +549,15 @@ public abstract class SimpleDiqlExecutionTest<T> extends AbstractDiqlExecutionTe
   }
 
   @Test
-  public void selectWithColConstantGtEqNonMatchingConstantFirstRestrictionsTest() throws InterruptedException,
-      ExecutionException {
+  public void selectWithColConstantGtEqNonMatchingConstantFirstRestrictionsTest()
+      throws InterruptedException, ExecutionException {
     Object[] colAValues = dp.a(-1L, 1L, 3L, 4L, 5L, 15L);
     Object[] colBValues = dp.a(0L, 1L, 2L, 3L, 10L, 11L);
     Set<Long> expectedResultRowIds = new HashSet<>(Arrays.asList(new Long[] { 2L, 3L, 4L, 5L }));
     initializeSimpleTable(colAValues, colBValues);
     // GIVEN
-    ExecutablePlan executablePlan =
-        buildExecutablePlan("Select " + COL_A + ", " + COL_B + " from " + TABLE + " where " + dp.vDiql(2) + " <= "
-            + COL_A + " order by " + COL_A + " asc");
+    ExecutablePlan executablePlan = buildExecutablePlan("Select " + COL_A + ", " + COL_B + " from " + TABLE + " where "
+        + dp.vDiql(2) + " <= " + COL_A + " order by " + COL_A + " asc");
     ExecutorService executor = Executors.newFixedThreadPool(executablePlan.preferredExecutorServiceSize());
     try {
       // WHEN
@@ -664,9 +656,8 @@ public abstract class SimpleDiqlExecutionTest<T> extends AbstractDiqlExecutionTe
     initializeSimpleTable(COL_A_DEFAULT_VALUES, COL_B_DEFAULT_VALUES);
     int geIndex = (int) (VALUE_LENGTH / 2);
     // GIVEN
-    ExecutablePlan executablePlan =
-        buildExecutablePlan("Select " + COL_A + ", " + COL_B + " from " + TABLE + " where " + COL_A + " > "
-            + COL_A_DEFAULT_VALUES_DIQL[geIndex] + " order by " + COL_A + " asc");
+    ExecutablePlan executablePlan = buildExecutablePlan("Select " + COL_A + ", " + COL_B + " from " + TABLE + " where "
+        + COL_A + " > " + COL_A_DEFAULT_VALUES_DIQL[geIndex] + " order by " + COL_A + " asc");
     ExecutorService executor = Executors.newFixedThreadPool(executablePlan.preferredExecutorServiceSize());
     try {
       // WHEN
@@ -707,9 +698,8 @@ public abstract class SimpleDiqlExecutionTest<T> extends AbstractDiqlExecutionTe
     Set<Long> expectedResultRowIds = new HashSet<>(Arrays.asList(new Long[] { 2L, 3L, 4L, 5L }));
     initializeSimpleTable(colAValues, colBValues);
     // GIVEN
-    ExecutablePlan executablePlan =
-        buildExecutablePlan("Select " + COL_A + ", " + COL_B + " from " + TABLE + " where " + COL_A + " > "
-            + dp.vDiql(2) + " order by " + COL_A + " asc");
+    ExecutablePlan executablePlan = buildExecutablePlan("Select " + COL_A + ", " + COL_B + " from " + TABLE + " where "
+        + COL_A + " > " + dp.vDiql(2) + " order by " + COL_A + " asc");
     ExecutorService executor = Executors.newFixedThreadPool(executablePlan.preferredExecutorServiceSize());
     try {
       // WHEN
@@ -736,16 +726,15 @@ public abstract class SimpleDiqlExecutionTest<T> extends AbstractDiqlExecutionTe
   }
 
   @Test
-  public void selectWithColConstantGtNonMatchingConstantFirstRestrictionsTest() throws InterruptedException,
-      ExecutionException {
+  public void selectWithColConstantGtNonMatchingConstantFirstRestrictionsTest()
+      throws InterruptedException, ExecutionException {
     Object[] colAValues = dp.a(-1L, 1L, 3L, 4L, 5L, 15L);
     Object[] colBValues = dp.a(0L, 1L, 2L, 3L, 10L, 11L);
     Set<Long> expectedResultRowIds = new HashSet<>(Arrays.asList(new Long[] { 2L, 3L, 4L, 5L }));
     initializeSimpleTable(colAValues, colBValues);
     // GIVEN
-    ExecutablePlan executablePlan =
-        buildExecutablePlan("Select " + COL_A + ", " + COL_B + " from " + TABLE + " where " + dp.vDiql(2) + " < "
-            + COL_A + " order by " + COL_A + " asc");
+    ExecutablePlan executablePlan = buildExecutablePlan("Select " + COL_A + ", " + COL_B + " from " + TABLE + " where "
+        + dp.vDiql(2) + " < " + COL_A + " order by " + COL_A + " asc");
     ExecutorService executor = Executors.newFixedThreadPool(executablePlan.preferredExecutorServiceSize());
     try {
       // WHEN
@@ -846,9 +835,8 @@ public abstract class SimpleDiqlExecutionTest<T> extends AbstractDiqlExecutionTe
     Set<Long> expectedResultRowIds = new HashSet<>(Arrays.asList(new Long[] { 0L, 1L, 2L, 3L, 4L }));
     initializeSimpleTable(colAValues, colBValues);
     // GIVEN
-    ExecutablePlan executablePlan =
-        buildExecutablePlan("Select " + COL_A + ", " + COL_B + " from " + TABLE + " where " + COL_A + " <= "
-            + dp.vDiql(6) + " order by " + COL_A + " asc");
+    ExecutablePlan executablePlan = buildExecutablePlan("Select " + COL_A + ", " + COL_B + " from " + TABLE + " where "
+        + COL_A + " <= " + dp.vDiql(6) + " order by " + COL_A + " asc");
     ExecutorService executor = Executors.newFixedThreadPool(executablePlan.preferredExecutorServiceSize());
     try {
       // WHEN
@@ -875,16 +863,15 @@ public abstract class SimpleDiqlExecutionTest<T> extends AbstractDiqlExecutionTe
   }
 
   @Test
-  public void selectWithColConstantLtEqNonMatchingConstantFirstRestrictionsTest() throws InterruptedException,
-      ExecutionException {
+  public void selectWithColConstantLtEqNonMatchingConstantFirstRestrictionsTest()
+      throws InterruptedException, ExecutionException {
     Object[] colAValues = dp.a(-1L, 1L, 3L, 4L, 5L, 15L);
     Object[] colBValues = dp.a(0L, 1L, 2L, 3L, 10L, 11L);
     Set<Long> expectedResultRowIds = new HashSet<>(Arrays.asList(new Long[] { 0L, 1L, 2L, 3L, 4L }));
     initializeSimpleTable(colAValues, colBValues);
     // GIVEN
-    ExecutablePlan executablePlan =
-        buildExecutablePlan("Select " + COL_A + ", " + COL_B + " from " + TABLE + " where  " + dp.vDiql(6) + ">= "
-            + COL_A + " order by " + COL_A + " asc");
+    ExecutablePlan executablePlan = buildExecutablePlan("Select " + COL_A + ", " + COL_B + " from " + TABLE + " where  "
+        + dp.vDiql(6) + ">= " + COL_A + " order by " + COL_A + " asc");
     ExecutorService executor = Executors.newFixedThreadPool(executablePlan.preferredExecutorServiceSize());
     try {
       // WHEN
@@ -915,9 +902,8 @@ public abstract class SimpleDiqlExecutionTest<T> extends AbstractDiqlExecutionTe
     initializeSimpleTable(COL_A_DEFAULT_VALUES, COL_B_DEFAULT_VALUES);
     int geIndex = (int) (VALUE_LENGTH / 2);
     // GIVEN
-    ExecutablePlan executablePlan =
-        buildExecutablePlan("Select " + COL_A + ", " + COL_B + " from " + TABLE + " where " + COL_A + " <= "
-            + COL_A_DEFAULT_VALUES_DIQL[geIndex] + " order by " + COL_A + " asc");
+    ExecutablePlan executablePlan = buildExecutablePlan("Select " + COL_A + ", " + COL_B + " from " + TABLE + " where "
+        + COL_A + " <= " + COL_A_DEFAULT_VALUES_DIQL[geIndex] + " order by " + COL_A + " asc");
     ExecutorService executor = Executors.newFixedThreadPool(executablePlan.preferredExecutorServiceSize());
     try {
       // WHEN
@@ -1024,9 +1010,8 @@ public abstract class SimpleDiqlExecutionTest<T> extends AbstractDiqlExecutionTe
     initializeSimpleTable(COL_A_DEFAULT_VALUES, COL_B_DEFAULT_VALUES);
     int geIndex = (int) (VALUE_LENGTH / 2);
     // GIVEN
-    ExecutablePlan executablePlan =
-        buildExecutablePlan("Select " + COL_A + ", " + COL_B + " from " + TABLE + " where " + COL_A + " < "
-            + COL_A_DEFAULT_VALUES_DIQL[geIndex] + " order by " + COL_A + " asc");
+    ExecutablePlan executablePlan = buildExecutablePlan("Select " + COL_A + ", " + COL_B + " from " + TABLE + " where "
+        + COL_A + " < " + COL_A_DEFAULT_VALUES_DIQL[geIndex] + " order by " + COL_A + " asc");
     ExecutorService executor = Executors.newFixedThreadPool(executablePlan.preferredExecutorServiceSize());
     try {
       // WHEN
@@ -1067,9 +1052,8 @@ public abstract class SimpleDiqlExecutionTest<T> extends AbstractDiqlExecutionTe
     Set<Long> expectedResultRowIds = new HashSet<>(Arrays.asList(new Long[] { 0L, 1L, 2L, 3L, 4L }));
     initializeSimpleTable(colAValues, colBValues);
     // GIVEN
-    ExecutablePlan executablePlan =
-        buildExecutablePlan("Select " + COL_A + ", " + COL_B + " from " + TABLE + " where " + COL_A + " < "
-            + dp.vDiql(6) + " order by " + COL_A + " asc");
+    ExecutablePlan executablePlan = buildExecutablePlan("Select " + COL_A + ", " + COL_B + " from " + TABLE + " where "
+        + COL_A + " < " + dp.vDiql(6) + " order by " + COL_A + " asc");
     ExecutorService executor = Executors.newFixedThreadPool(executablePlan.preferredExecutorServiceSize());
     try {
       // WHEN
@@ -1096,16 +1080,15 @@ public abstract class SimpleDiqlExecutionTest<T> extends AbstractDiqlExecutionTe
   }
 
   @Test
-  public void selectWithColConstantLtNonMatchingConstantFirstRestrictionsTest() throws InterruptedException,
-      ExecutionException {
+  public void selectWithColConstantLtNonMatchingConstantFirstRestrictionsTest()
+      throws InterruptedException, ExecutionException {
     Object[] colAValues = dp.a(-1L, 1L, 3L, 4L, 5L, 15L);
     Object[] colBValues = dp.a(0L, 1L, 2L, 3L, 10L, 11L);
     Set<Long> expectedResultRowIds = new HashSet<>(Arrays.asList(new Long[] { 0L, 1L, 2L, 3L, 4L }));
     initializeSimpleTable(colAValues, colBValues);
     // GIVEN
-    ExecutablePlan executablePlan =
-        buildExecutablePlan("Select " + COL_A + ", " + COL_B + " from " + TABLE + " where  " + dp.vDiql(6) + "> "
-            + COL_A + " order by " + COL_A + " asc");
+    ExecutablePlan executablePlan = buildExecutablePlan("Select " + COL_A + ", " + COL_B + " from " + TABLE + " where  "
+        + dp.vDiql(6) + "> " + COL_A + " order by " + COL_A + " asc");
     ExecutorService executor = Executors.newFixedThreadPool(executablePlan.preferredExecutorServiceSize());
     try {
       // WHEN
@@ -1137,18 +1120,13 @@ public abstract class SimpleDiqlExecutionTest<T> extends AbstractDiqlExecutionTe
     // GIVEN
     int unmatchedRow1 = 10;
     int unmatchedRow2 = (int) (VALUE_LENGTH - 1);
-    ExecutablePlan executablePlan =
-        buildExecutablePlan("Select " + COL_A + ", " + COL_B
-            + " from "
-            + TABLE
-            + " where not ("
-            + //
-            COL_A + " = " + COL_A_DEFAULT_VALUES_DIQL[unmatchedRow1] + " and " + COL_B + " = "
-            + COL_B_DEFAULT_VALUES_DIQL[unmatchedRow1] + " or " + COL_A + " = "
-            + COL_A_DEFAULT_VALUES_DIQL[unmatchedRow2] + " and " + COL_B + " = "
-            + COL_B_DEFAULT_VALUES_DIQL[unmatchedRow2] + " or " + COL_A + " = " + COL_A_DEFAULT_VALUES_DIQL[150]
-            + " and " + COL_B + " = " + COL_B_DEFAULT_VALUES_DIQL[149] + //
-            ")");
+    ExecutablePlan executablePlan = buildExecutablePlan("Select " + COL_A + ", " + COL_B + " from " + TABLE
+        + " where not (" + //
+        COL_A + " = " + COL_A_DEFAULT_VALUES_DIQL[unmatchedRow1] + " and " + COL_B + " = "
+        + COL_B_DEFAULT_VALUES_DIQL[unmatchedRow1] + " or " + COL_A + " = " + COL_A_DEFAULT_VALUES_DIQL[unmatchedRow2]
+        + " and " + COL_B + " = " + COL_B_DEFAULT_VALUES_DIQL[unmatchedRow2] + " or " + COL_A + " = "
+        + COL_A_DEFAULT_VALUES_DIQL[150] + " and " + COL_B + " = " + COL_B_DEFAULT_VALUES_DIQL[149] + //
+        ")");
     ExecutorService executor = Executors.newFixedThreadPool(executablePlan.preferredExecutorServiceSize());
     try {
       // WHEN
@@ -1187,8 +1165,7 @@ public abstract class SimpleDiqlExecutionTest<T> extends AbstractDiqlExecutionTe
     int firstUnmatchedRow = 10;
     int lastUnmatchedRow = (int) (VALUE_LENGTH - 2);
     ExecutablePlan executablePlan =
-        buildExecutablePlan("Select " + COL_A + ", " + COL_B + " from " + TABLE
-            + " where not (" //
+        buildExecutablePlan("Select " + COL_A + ", " + COL_B + " from " + TABLE + " where not (" //
             + COL_A + " >= " + COL_A_DEFAULT_VALUES_DIQL[firstUnmatchedRow] + " and " + COL_B + " <= "
             + COL_B_DEFAULT_VALUES_DIQL[lastUnmatchedRow] + ")");
     ExecutorService executor = Executors.newFixedThreadPool(executablePlan.preferredExecutorServiceSize());

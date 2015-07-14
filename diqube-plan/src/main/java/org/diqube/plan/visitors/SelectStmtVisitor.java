@@ -63,8 +63,9 @@ public class SelectStmtVisitor extends DiqlBaseVisitor<ExecutionRequest> {
 
     // scan WHERE clause
     ComparisonRequest restrictions = selectStmt.accept(new ComparisonVisitor(env,
-    // we want to parse the WHERE clause here, so do not visit any sub-tree of GROUP BYs (as that might contain a HAVING
-    // clause with additional comparison contexts, but we do not want to visit them here!)
+        // we want to parse the WHERE clause here, so do not visit any sub-tree of GROUP BYs (as that might contain a
+        // HAVING
+        // clause with additional comparison contexts, but we do not want to visit them here!)
         Arrays.asList(new Class[] { GroupByClauseContext.class })));
     if (restrictions != null)
       executionRequest.setWhere(restrictions);

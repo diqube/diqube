@@ -67,8 +67,8 @@ public class ColumnShardFactory {
    *          The Column dictionary as described in the JavaDoc of {@link ColumnShard}.
    * @return The new {@link StringStandardColumnShard}.
    */
-  public StringStandardColumnShard createStandardStringColumnShard(String colName,
-      NavigableMap<Long, ColumnPage> pages, StringDictionary columnShardDictionary) {
+  public StringStandardColumnShard createStandardStringColumnShard(String colName, NavigableMap<Long, ColumnPage> pages,
+      StringDictionary columnShardDictionary) {
     return stringColumnShardFactory.createStandardStringColumnShard(colName, pages, columnShardDictionary);
   }
 
@@ -131,8 +131,8 @@ public class ColumnShardFactory {
    *          The Column dictionary as described in the JavaDoc of {@link ColumnShard}.
    * @return The new {@link DoubleStandardColumnShard}.
    */
-  public DoubleStandardColumnShard createStandardDoubleColumnShard(String colName,
-      NavigableMap<Long, ColumnPage> pages, DoubleDictionary columnShardDictionary) {
+  public DoubleStandardColumnShard createStandardDoubleColumnShard(String colName, NavigableMap<Long, ColumnPage> pages,
+      DoubleDictionary columnShardDictionary) {
     return doubleColumnShardFactory.createStandardDoubleColumnShard(colName, pages, columnShardDictionary);
   }
 

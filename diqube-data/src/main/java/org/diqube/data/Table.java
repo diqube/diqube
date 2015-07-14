@@ -44,7 +44,7 @@ public class Table {
   private String name;
   private Collection<TableShard> shards;
 
-  /* package */Table(String name, Collection<TableShard> shards) {
+  /* package */ Table(String name, Collection<TableShard> shards) {
     this.name = name;
     this.shards = shards;
   }

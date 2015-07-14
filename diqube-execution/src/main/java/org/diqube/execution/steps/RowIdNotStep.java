@@ -83,9 +83,8 @@ public class RowIdNotStep extends AbstractThreadedExecutablePlanStep {
 
       Set<Long> rowIdSet = new HashSet<Long>(rowIds);
 
-      Long[] resultRowIds =
-          LongStream.range(lowestRowId, lowestRowId + numberOfRows).filter(l -> !rowIdSet.contains(l))
-              .mapToObj(Long::valueOf).toArray(l -> new Long[l]);
+      Long[] resultRowIds = LongStream.range(lowestRowId, lowestRowId + numberOfRows).filter(l -> !rowIdSet.contains(l))
+          .mapToObj(Long::valueOf).toArray(l -> new Long[l]);
 
       forEachOutputConsumerOfType(RowIdConsumer.class, c -> c.consume(resultRowIds));
       forEachOutputConsumerOfType(GenericConsumer.class, c -> c.sourceIsDone());

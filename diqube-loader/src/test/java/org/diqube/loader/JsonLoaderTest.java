@@ -77,7 +77,8 @@ public class JsonLoaderTest {
     Set<Pair<Long, Long>> actualValues = new HashSet<>();
     LongStandardColumnShard colA = tableShard.getLongColumns().get("a");
     LongStandardColumnShard colB = tableShard.getLongColumns().get("b");
-    for (long i = tableShard.getLowestRowId(); i < tableShard.getLowestRowId() + tableShard.getNumberOfRowsInShard(); i++) {
+    for (long i = tableShard.getLowestRowId(); i < tableShard.getLowestRowId()
+        + tableShard.getNumberOfRowsInShard(); i++) {
       Long valueA = resolveSingleRowValue(colA, i);
       Long valueB = resolveSingleRowValue(colB, i);
       actualValues.add(new Pair<>(valueA, valueB));
@@ -107,7 +108,8 @@ public class JsonLoaderTest {
     LongStandardColumnShard colC0 = tableShard.getLongColumns().get("c[0]");
     LongStandardColumnShard colC1 = tableShard.getLongColumns().get("c[1]");
     LongStandardColumnShard colC2 = tableShard.getLongColumns().get("c[2]");
-    for (long i = tableShard.getLowestRowId(); i < tableShard.getLowestRowId() + tableShard.getNumberOfRowsInShard(); i++) {
+    for (long i = tableShard.getLowestRowId(); i < tableShard.getLowestRowId()
+        + tableShard.getNumberOfRowsInShard(); i++) {
       Long valueA = resolveSingleRowValue(colA, i);
       Long valueB = resolveSingleRowValue(colB, i);
       Long valueC0 = resolveSingleRowValue(colC0, i);
@@ -122,9 +124,8 @@ public class JsonLoaderTest {
   @Test
   public void arrayContainingObjectsJson() throws LoadException {
     // GIVEN
-    String json =
-        "[ { \"a\": 1, \"c\": [{ \"d\" : 4, \"e\" : 4 }, { \"d\" : 5, \"e\" : 5 }]},"
-            + "{\"a\": 2, \"c\": [ { \"d\" : 7, \"e\" : 7 }, { \"d\" : 8, \"e\" : 8 }] } ]";
+    String json = "[ { \"a\": 1, \"c\": [{ \"d\" : 4, \"e\" : 4 }, { \"d\" : 5, \"e\" : 5 }]},"
+        + "{\"a\": 2, \"c\": [ { \"d\" : 7, \"e\" : 7 }, { \"d\" : 8, \"e\" : 8 }] } ]";
 
     // WHEN
     TableShard tableShard = loader.load(0L, new BigByteBuffer(json.getBytes()), TABLE, colInfo);
@@ -142,14 +143,15 @@ public class JsonLoaderTest {
     LongStandardColumnShard colC1D = tableShard.getLongColumns().get("c[1].d");
     LongStandardColumnShard colC0E = tableShard.getLongColumns().get("c[0].e");
     LongStandardColumnShard colC1E = tableShard.getLongColumns().get("c[1].e");
-    for (long i = tableShard.getLowestRowId(); i < tableShard.getLowestRowId() + tableShard.getNumberOfRowsInShard(); i++) {
+    for (long i = tableShard.getLowestRowId(); i < tableShard.getLowestRowId()
+        + tableShard.getNumberOfRowsInShard(); i++) {
       Long valueA = resolveSingleRowValue(colA, i);
       Long valueC0D = resolveSingleRowValue(colC0D, i);
       Long valueC1D = resolveSingleRowValue(colC1D, i);
       Long valueC0E = resolveSingleRowValue(colC0E, i);
       Long valueC1E = resolveSingleRowValue(colC1E, i);
-      actualValues.add(new Triple<>(valueA, Arrays.asList(new Long[] { valueC0D, valueC1D }), Arrays.asList(new Long[] {
-          valueC0E, valueC1E })));
+      actualValues.add(new Triple<>(valueA, Arrays.asList(new Long[] { valueC0D, valueC1D }),
+          Arrays.asList(new Long[] { valueC0E, valueC1E })));
     }
 
     Assert.assertEquals(actualValues, expectedValues, "Expected correct values to be encoded");
@@ -191,7 +193,8 @@ public class JsonLoaderTest {
     Set<Pair<Long, Long>> actualValues = new HashSet<>();
     LongStandardColumnShard colA = tableShard.getLongColumns().get("a");
     LongStandardColumnShard colB = tableShard.getLongColumns().get("b");
-    for (long i = tableShard.getLowestRowId(); i < tableShard.getLowestRowId() + tableShard.getNumberOfRowsInShard(); i++) {
+    for (long i = tableShard.getLowestRowId(); i < tableShard.getLowestRowId()
+        + tableShard.getNumberOfRowsInShard(); i++) {
       Long valueA = resolveSingleRowValue(colA, i);
       Long valueB = resolveSingleRowValue(colB, i);
       actualValues.add(new Pair<>(valueA, valueB));

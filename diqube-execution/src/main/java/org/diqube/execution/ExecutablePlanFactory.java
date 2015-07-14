@@ -68,8 +68,8 @@ public class ExecutablePlanFactory {
 
   public GroupFinalAggregationStep createGroupFinalAggregationStep(int stepId, ExecutionEnvironment env,
       String functionNameLowerCase, String outputColName, ColumnVersionManager columnVersionManager) {
-    return new GroupFinalAggregationStep(stepId, env, functionFactory, columnShardBuilderFactory,
-        functionNameLowerCase, outputColName, columnVersionManager);
+    return new GroupFinalAggregationStep(stepId, env, functionFactory, columnShardBuilderFactory, functionNameLowerCase,
+        outputColName, columnVersionManager);
   }
 
   public ProjectStep createProjectStep(int stepId, ExecutionEnvironment env, String functionNameLowerCase,
@@ -107,8 +107,8 @@ public class ExecutablePlanFactory {
     return new OrderStep(stepId, env, sortCols, limit, limitStart, softLimit);
   }
 
-  public BuildColumnFromValuesStep createBuildColumnFromValuesStep(int stepId, ExecutionEnvironment env,
-      String colName, ColumnVersionManager columnVersionManager) {
+  public BuildColumnFromValuesStep createBuildColumnFromValuesStep(int stepId, ExecutionEnvironment env, String colName,
+      ColumnVersionManager columnVersionManager) {
     return new BuildColumnFromValuesStep(stepId, env, colName, columnShardBuilderFactory, columnVersionManager);
   }
 

@@ -53,7 +53,8 @@ public class ColumnVersionManager {
   private ExecutionEnvironment defaultEnv;
   private VersionedExecutionEnvironment lastVersionedExecutionEnvironment = null;
 
-  public ColumnVersionManager(ExecutionEnvironmentFactory executionEnvironmentFactory, ExecutionEnvironment defaultEnv) {
+  public ColumnVersionManager(ExecutionEnvironmentFactory executionEnvironmentFactory,
+      ExecutionEnvironment defaultEnv) {
     this.executionEnvironmentFactory = executionEnvironmentFactory;
     this.defaultEnv = defaultEnv;
   }
@@ -73,9 +74,8 @@ public class ColumnVersionManager {
     if (lastVersionedExecutionEnvironment == null)
       res = executionEnvironmentFactory.createDelegatingExecutionEnvironment(defaultEnv, Integer.MIN_VALUE);
     else
-      res =
-          executionEnvironmentFactory.createDelegatingExecutionEnvironment(lastVersionedExecutionEnvironment,
-              lastVersionedExecutionEnvironment.getVersion() + 1);
+      res = executionEnvironmentFactory.createDelegatingExecutionEnvironment(lastVersionedExecutionEnvironment,
+          lastVersionedExecutionEnvironment.getVersion() + 1);
 
     if (updatedColShard != null) {
       for (ColumnShard newShard : updatedColShard) {

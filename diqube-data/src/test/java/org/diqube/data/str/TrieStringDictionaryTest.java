@@ -93,9 +93,10 @@ public class TrieStringDictionaryTest {
     // GIVEN
     @SuppressWarnings("unchecked")
     ParentNode root = parent( //
-        new Pair<>("a", parent( //
-            new Pair<>("bc", terminal(0)), //
-            new Pair<>("cd", terminal(1)))));
+        new Pair<>("a",
+            parent( //
+                new Pair<>("bc", terminal(0)), //
+                new Pair<>("cd", terminal(1)))));
 
     TrieStringDictionary dict = new TrieStringDictionary(root, "abc", "acd", 1);
 
@@ -115,9 +116,10 @@ public class TrieStringDictionaryTest {
     // GIVEN
     @SuppressWarnings("unchecked")
     ParentNode root = parent( //
-        new Pair<>("ab", parent( //
-            new Pair<>("c", terminal(0)), //
-            new Pair<>("d", terminal(1)))));
+        new Pair<>("ab",
+            parent( //
+                new Pair<>("c", terminal(0)), //
+                new Pair<>("d", terminal(1)))));
 
     TrieStringDictionary dict = new TrieStringDictionary(root, "abc", "abd", 1);
 
@@ -137,9 +139,10 @@ public class TrieStringDictionaryTest {
     // GIVEN
     @SuppressWarnings("unchecked")
     ParentNode root = parent( //
-        new Pair<>("ab", parent( //
-            new Pair<>("", terminal(0)), //
-            new Pair<>("d", terminal(1)))));
+        new Pair<>("ab",
+            parent( //
+                new Pair<>("", terminal(0)), //
+                new Pair<>("d", terminal(1)))));
 
     TrieStringDictionary dict = new TrieStringDictionary(root, "ab", "abd", 1);
 
@@ -206,7 +209,7 @@ public class TrieStringDictionaryTest {
                 new Pair<>("", terminal(0)), //
                 new Pair<>("b", //
                     parent( //
-                    new Pair<>("c", terminal(1)))))));
+                        new Pair<>("c", terminal(1)))))));
 
     TrieStringDictionary dict = new TrieStringDictionary(root, "a", "abc", 1);
 
@@ -279,7 +282,7 @@ public class TrieStringDictionaryTest {
                 new Pair<>("", terminal(0)), //
                 new Pair<>("b", //
                     parent( //
-                    new Pair<>("c", terminal(1)))))));
+                        new Pair<>("c", terminal(1)))))));
 
     TrieStringDictionary dict = new TrieStringDictionary(root, "a", "abc", 1);
 
@@ -328,7 +331,7 @@ public class TrieStringDictionaryTest {
                 new Pair<>("", terminal(0)), //
                 new Pair<>("b", //
                     parent( //
-                    new Pair<>("c", terminal(1)))))));
+                        new Pair<>("c", terminal(1)))))));
 
     @SuppressWarnings("unchecked")
     ParentNode root2 = parent( //
@@ -337,7 +340,7 @@ public class TrieStringDictionaryTest {
                 new Pair<>("", terminal(0)), //
                 new Pair<>("b", //
                     parent( //
-                    new Pair<>("c", terminal(1)))))));
+                        new Pair<>("c", terminal(1)))))));
 
     TrieStringDictionary dict1 = new TrieStringDictionary(root1, "a", "abc", 1);
     TrieStringDictionary dict2 = new TrieStringDictionary(root2, "a", "abc", 1);
@@ -368,7 +371,7 @@ public class TrieStringDictionaryTest {
                 new Pair<>("", terminal(0)), //
                 new Pair<>("b", //
                     parent( //
-                    new Pair<>("c", terminal(1)))))));
+                        new Pair<>("c", terminal(1)))))));
 
     // contains strings:
     // aa
@@ -380,7 +383,7 @@ public class TrieStringDictionaryTest {
                 new Pair<>("a", terminal(0)), //
                 new Pair<>("b", //
                     parent( //
-                    new Pair<>("c", terminal(1)))))));
+                        new Pair<>("c", terminal(1)))))));
 
     TrieStringDictionary dict1 = new TrieStringDictionary(root1, "a", "abc", 1);
     TrieStringDictionary dict2 = new TrieStringDictionary(root2, "aa", "abc", 1);
@@ -410,7 +413,7 @@ public class TrieStringDictionaryTest {
                 new Pair<>("a", terminal(0)), //
                 new Pair<>("b", //
                     parent( //
-                    new Pair<>("c", terminal(1)))))));
+                        new Pair<>("c", terminal(1)))))));
 
     // contains strings:
     // aa
@@ -421,10 +424,10 @@ public class TrieStringDictionaryTest {
             parent( //
                 new Pair<>("a", //
                     parent( //
-                    new Pair<>("", terminal(0)))), //
+                        new Pair<>("", terminal(0)))), //
                 new Pair<>("b", //
                     parent( //
-                    new Pair<>("c", terminal(1)))))));
+                        new Pair<>("c", terminal(1)))))));
 
     TrieStringDictionary dict1 = new TrieStringDictionary(root1, "aa", "abc", 1);
     TrieStringDictionary dict2 = new TrieStringDictionary(root2, "aa", "abc", 1);
@@ -455,7 +458,7 @@ public class TrieStringDictionaryTest {
                 new Pair<>("a", terminal(0)), //
                 new Pair<>("b", //
                     parent( //
-                    new Pair<>("c", terminal(1)))))));
+                        new Pair<>("c", terminal(1)))))));
 
     // contains strings:
     // aaa
@@ -466,10 +469,10 @@ public class TrieStringDictionaryTest {
             parent( //
                 new Pair<>("a", //
                     parent( //
-                    new Pair<>("a", terminal(0)))), //
+                        new Pair<>("a", terminal(0)))), //
                 new Pair<>("b", //
                     parent( //
-                    new Pair<>("c", terminal(1)))))));
+                        new Pair<>("c", terminal(1)))))));
 
     TrieStringDictionary dict1 = new TrieStringDictionary(root1, "aa", "abc", 1);
     TrieStringDictionary dict2 = new TrieStringDictionary(root2, "aaa", "abc", 1);
@@ -499,7 +502,7 @@ public class TrieStringDictionaryTest {
                 new Pair<>("", terminal(0)), //
                 new Pair<>("b", //
                     parent( //
-                    new Pair<>("c", terminal(1)))))));
+                        new Pair<>("c", terminal(1)))))));
 
     // contains strings:
     // aa
@@ -510,10 +513,10 @@ public class TrieStringDictionaryTest {
             parent( //
                 new Pair<>("a", //
                     parent( //
-                    new Pair<>("", terminal(0)))), //
+                        new Pair<>("", terminal(0)))), //
                 new Pair<>("b", //
                     parent( //
-                    new Pair<>("c", terminal(1)))))));
+                        new Pair<>("c", terminal(1)))))));
 
     TrieStringDictionary dict1 = new TrieStringDictionary(root1, "aa", "aabc", 1);
     TrieStringDictionary dict2 = new TrieStringDictionary(root2, "aa", "abc", 1);
@@ -539,7 +542,7 @@ public class TrieStringDictionaryTest {
     ParentNode root1 = parent( //
         new Pair<>("aa", //
             parent( //
-            new Pair<>("", terminal(0)))));
+                new Pair<>("", terminal(0)))));
 
     // contains strings:
     // a
@@ -580,10 +583,10 @@ public class TrieStringDictionaryTest {
     ParentNode root2 = parent( //
         new Pair<>("a", //
             parent( //
-            new Pair<>("b",//
-                parent(//
-                    new Pair<>("c", terminal(0)), //
-                    new Pair<>("d", terminal(1)))))));
+                new Pair<>("b", //
+                    parent(//
+                        new Pair<>("c", terminal(0)), //
+                        new Pair<>("d", terminal(1)))))));
 
     TrieStringDictionary dict1 = new TrieStringDictionary(root1, "abc", "abd", 1);
     TrieStringDictionary dict2 = new TrieStringDictionary(root2, "abc", "abd", 1);
@@ -624,10 +627,10 @@ public class TrieStringDictionaryTest {
     ParentNode root2 = parent( //
         new Pair<>("a", //
             parent( //
-            new Pair<>("b",//
-                parent(//
-                    new Pair<>("c", terminal(0)), //
-                    new Pair<>("d", terminal(1)))))));
+                new Pair<>("b", //
+                    parent(//
+                        new Pair<>("c", terminal(0)), //
+                        new Pair<>("d", terminal(1)))))));
 
     TrieStringDictionary dict1 = new TrieStringDictionary(root1, "abc", "abd", 1);
     TrieStringDictionary dict2 = new TrieStringDictionary(root2, "abc", "abd", 1);
@@ -667,12 +670,12 @@ public class TrieStringDictionaryTest {
     ParentNode root2 = parent( //
         new Pair<>("a", //
             parent( //
-            new Pair<>("b",//
-                parent(//
-                    new Pair<>("c", //
-                        parent(new Pair<>("x", terminal(0)))), //
-                    new Pair<>("d", //
-                        parent(new Pair<>("y", terminal(1)))))))));
+                new Pair<>("b", //
+                    parent(//
+                        new Pair<>("c", //
+                            parent(new Pair<>("x", terminal(0)))), //
+                        new Pair<>("d", //
+                            parent(new Pair<>("y", terminal(1)))))))));
 
     TrieStringDictionary dict1 = new TrieStringDictionary(root1, "abcx", "abdy", 1);
     TrieStringDictionary dict2 = new TrieStringDictionary(root2, "abcx", "abdy", 1);
@@ -712,12 +715,12 @@ public class TrieStringDictionaryTest {
     ParentNode root2 = parent( //
         new Pair<>("a", //
             parent( //
-            new Pair<>("b",//
-                parent(//
-                    new Pair<>("c", //
-                        parent(new Pair<>("x", terminal(0)))), //
-                    new Pair<>("d", //
-                        parent(new Pair<>("y", terminal(1)))))))));
+                new Pair<>("b", //
+                    parent(//
+                        new Pair<>("c", //
+                            parent(new Pair<>("x", terminal(0)))), //
+                        new Pair<>("d", //
+                            parent(new Pair<>("y", terminal(1)))))))));
 
     TrieStringDictionary dict1 = new TrieStringDictionary(root1, "abcx", "abdy", 1);
     TrieStringDictionary dict2 = new TrieStringDictionary(root2, "abcx", "abdy", 1);
@@ -745,10 +748,10 @@ public class TrieStringDictionaryTest {
     ParentNode root1 = parent( //
         new Pair<>("a", //
             parent( //
-            new Pair<>("b", //
-                parent( //
-                    new Pair<>("c", terminal(0)), //
-                    new Pair<>("d", terminal(1)))))));
+                new Pair<>("b", //
+                    parent( //
+                        new Pair<>("c", terminal(0)), //
+                        new Pair<>("d", terminal(1)))))));
 
     // contains strings:
     // abac
@@ -758,7 +761,7 @@ public class TrieStringDictionaryTest {
     ParentNode root2 = parent( //
         new Pair<>("a", //
             parent( //
-                new Pair<>("ba",//
+                new Pair<>("ba", //
                     parent(//
                         new Pair<>("c", terminal(0)), //
                         new Pair<>("d", terminal(1)))), //
@@ -790,10 +793,10 @@ public class TrieStringDictionaryTest {
     ParentNode root1 = parent( //
         new Pair<>("a", //
             parent( //
-            new Pair<>("b", //
-                parent( //
-                    new Pair<>("c", terminal(0)), //
-                    new Pair<>("d", terminal(1)))))));
+                new Pair<>("b", //
+                    parent( //
+                        new Pair<>("c", terminal(0)), //
+                        new Pair<>("d", terminal(1)))))));
 
     // contains strings:
     // abac
@@ -803,7 +806,7 @@ public class TrieStringDictionaryTest {
     ParentNode root2 = parent( //
         new Pair<>("a", //
             parent( //
-                new Pair<>("ba",//
+                new Pair<>("ba", //
                     parent(//
                         new Pair<>("c", terminal(0)), //
                         new Pair<>("d", terminal(1)))), //
@@ -839,10 +842,10 @@ public class TrieStringDictionaryTest {
     ParentNode root1 = parent( //
         new Pair<>("x", //
             parent( //
-            new Pair<>("b", //
-                parent( //
-                    new Pair<>("c", terminal(0)), //
-                    new Pair<>("d", terminal(1)))))));
+                new Pair<>("b", //
+                    parent( //
+                        new Pair<>("c", terminal(0)), //
+                        new Pair<>("d", terminal(1)))))));
 
     // contains strings:
     // abac
@@ -852,7 +855,7 @@ public class TrieStringDictionaryTest {
     ParentNode root2 = parent( //
         new Pair<>("a", //
             parent( //
-                new Pair<>("ba",//
+                new Pair<>("ba", //
                     parent(//
                         new Pair<>("c", terminal(0)), //
                         new Pair<>("d", terminal(1)))), //
@@ -889,10 +892,10 @@ public class TrieStringDictionaryTest {
             parent( //
                 new Pair<>("ab", //
                     parent( //
-                    new Pair<>("y", terminal(0)))), //
+                        new Pair<>("y", terminal(0)))), //
                 new Pair<>("ac", //
                     parent( //
-                    new Pair<>("y", terminal(1)))))));
+                        new Pair<>("y", terminal(1)))))));
 
     // contains strings:
     // xa
@@ -900,7 +903,7 @@ public class TrieStringDictionaryTest {
     ParentNode root2 = parent( //
         new Pair<>("x", //
             parent( //
-            new Pair<>("a", terminal(0)))));
+                new Pair<>("a", terminal(0)))));
 
     TrieStringDictionary dict1 = new TrieStringDictionary(root1, "xaby", "xacy", 1);
     TrieStringDictionary dict2 = new TrieStringDictionary(root2, "xa", "xa", 0);
@@ -934,7 +937,7 @@ public class TrieStringDictionaryTest {
                 new Pair<>("", terminal(0)), //
                 new Pair<>("b", //
                     parent( //
-                    new Pair<>("c", terminal(1)))))));
+                        new Pair<>("c", terminal(1)))))));
 
     // contains strings:
     // aa
@@ -946,7 +949,7 @@ public class TrieStringDictionaryTest {
                 new Pair<>("a", terminal(0)), //
                 new Pair<>("b", //
                     parent( //
-                    new Pair<>("c", terminal(1)))))));
+                        new Pair<>("c", terminal(1)))))));
 
     TrieStringDictionary dict1 = new TrieStringDictionary(root1, "a", "abc", 1);
     TrieStringDictionary dict2 = new TrieStringDictionary(root2, "aa", "abc", 1);
@@ -987,7 +990,7 @@ public class TrieStringDictionaryTest {
     ParentNode root2 = parent( //
         new Pair<>("x", //
             parent( //
-            new Pair<>("a", terminal(0)))));
+                new Pair<>("a", terminal(0)))));
 
     TrieStringDictionary dict1 = new TrieStringDictionary(root1, "xab", "xac", 1);
     TrieStringDictionary dict2 = new TrieStringDictionary(root2, "xa", "xa", 0);
@@ -1017,7 +1020,7 @@ public class TrieStringDictionaryTest {
     ParentNode root1 = parent( //
         new Pair<>("a", //
             parent( //
-            new Pair<>("ab", terminal(0)))));
+                new Pair<>("ab", terminal(0)))));
 
     // contains strings:
     // aaa
@@ -1026,9 +1029,9 @@ public class TrieStringDictionaryTest {
     ParentNode root2 = parent( //
         new Pair<>("a", //
             parent( //
-            new Pair<>("a", //
-                parent(new Pair<>("a", terminal(0)),//
-                    new Pair<>("c", terminal(1)))))));
+                new Pair<>("a", //
+                    parent(new Pair<>("a", terminal(0)), //
+                        new Pair<>("c", terminal(1)))))));
 
     TrieStringDictionary dict1 = new TrieStringDictionary(root1, "aab", "aab", 0);
     TrieStringDictionary dict2 = new TrieStringDictionary(root2, "aaa", "aac", 1);
@@ -1062,14 +1065,16 @@ public class TrieStringDictionaryTest {
     @SuppressWarnings("unchecked")
     ParentNode root1 = parent( //
         new Pair<>("aab", terminal(0)), //
-        new Pair<>("b", parent( //
-            new Pair<>("a", parent( //
-                new Pair<>("b", terminal(1)), //
-                new Pair<>("d", terminal(2)), //
-                new Pair<>("e", terminal(3)), //
-                new Pair<>("f", terminal(4)) //
-                )), //
-            new Pair<>("bf", terminal(5)))));
+        new Pair<>("b",
+            parent( //
+                new Pair<>("a",
+                    parent( //
+                        new Pair<>("b", terminal(1)), //
+                        new Pair<>("d", terminal(2)), //
+                        new Pair<>("e", terminal(3)), //
+                        new Pair<>("f", terminal(4)) //
+    )), //
+                new Pair<>("bf", terminal(5)))));
 
     // contains strings:
     // baa (0)
@@ -1080,17 +1085,20 @@ public class TrieStringDictionaryTest {
     // bbb (5)
     @SuppressWarnings("unchecked")
     ParentNode root2 = parent( //
-        new Pair<>("b", parent( //
-            new Pair<>("a", parent( //
-                new Pair<>("a", terminal(0)), //
-                new Pair<>("b", terminal(1)), //
-                new Pair<>("c", terminal(2)), //
-                new Pair<>("d", terminal(3)) //
-                )), //
-            new Pair<>("b", parent( //
-                new Pair<>("a", terminal(4)), //
-                new Pair<>("b", terminal(5)) //
-                )))));
+        new Pair<>("b",
+            parent( //
+                new Pair<>("a",
+                    parent( //
+                        new Pair<>("a", terminal(0)), //
+                        new Pair<>("b", terminal(1)), //
+                        new Pair<>("c", terminal(2)), //
+                        new Pair<>("d", terminal(3)) //
+    )), //
+                new Pair<>("b",
+                    parent( //
+                        new Pair<>("a", terminal(4)), //
+                        new Pair<>("b", terminal(5)) //
+    )))));
 
     TrieStringDictionary dict1 = new TrieStringDictionary(root1, "aab", "bbf", 5);
     TrieStringDictionary dict2 = new TrieStringDictionary(root2, "baa", "bbb", 5);
@@ -1130,10 +1138,10 @@ public class TrieStringDictionaryTest {
     ParentNode root1 = parent( //
         new Pair<>("a", //
             parent( //
-            new Pair<>("b", //
-                parent( //
-                    new Pair<>("c", terminal(0)), //
-                    new Pair<>("d", terminal(1)))))));
+                new Pair<>("b", //
+                    parent( //
+                        new Pair<>("c", terminal(0)), //
+                        new Pair<>("d", terminal(1)))))));
 
     // contains strings:
     // abac
@@ -1143,7 +1151,7 @@ public class TrieStringDictionaryTest {
     ParentNode root2 = parent( //
         new Pair<>("a", //
             parent( //
-                new Pair<>("ba",//
+                new Pair<>("ba", //
                     parent(//
                         new Pair<>("c", terminal(0)), //
                         new Pair<>("d", terminal(1)))), //
@@ -1180,10 +1188,10 @@ public class TrieStringDictionaryTest {
     ParentNode root1 = parent( //
         new Pair<>("x", //
             parent( //
-            new Pair<>("b", //
-                parent( //
-                    new Pair<>("c", terminal(0)), //
-                    new Pair<>("d", terminal(1)))))));
+                new Pair<>("b", //
+                    parent( //
+                        new Pair<>("c", terminal(0)), //
+                        new Pair<>("d", terminal(1)))))));
 
     // contains strings:
     // abac
@@ -1193,7 +1201,7 @@ public class TrieStringDictionaryTest {
     ParentNode root2 = parent( //
         new Pair<>("a", //
             parent( //
-                new Pair<>("ba",//
+                new Pair<>("ba", //
                     parent(//
                         new Pair<>("c", terminal(0)), //
                         new Pair<>("d", terminal(1)))), //
@@ -1231,10 +1239,10 @@ public class TrieStringDictionaryTest {
             parent( //
                 new Pair<>("ab", //
                     parent( //
-                    new Pair<>("y", terminal(0)))), //
+                        new Pair<>("y", terminal(0)))), //
                 new Pair<>("ac", //
                     parent( //
-                    new Pair<>("y", terminal(1)))))));
+                        new Pair<>("y", terminal(1)))))));
 
     // contains strings:
     // xa
@@ -1242,7 +1250,7 @@ public class TrieStringDictionaryTest {
     ParentNode root2 = parent( //
         new Pair<>("x", //
             parent( //
-            new Pair<>("a", terminal(0)))));
+                new Pair<>("a", terminal(0)))));
 
     TrieStringDictionary dict1 = new TrieStringDictionary(root1, "xaby", "xacy", 1);
     TrieStringDictionary dict2 = new TrieStringDictionary(root2, "xa", "xa", 0);
@@ -1275,7 +1283,7 @@ public class TrieStringDictionaryTest {
                 new Pair<>("", terminal(0)), //
                 new Pair<>("b", //
                     parent( //
-                    new Pair<>("c", terminal(1)))))));
+                        new Pair<>("c", terminal(1)))))));
 
     // contains strings:
     // aa
@@ -1287,7 +1295,7 @@ public class TrieStringDictionaryTest {
                 new Pair<>("a", terminal(0)), //
                 new Pair<>("b", //
                     parent( //
-                    new Pair<>("c", terminal(1)))))));
+                        new Pair<>("c", terminal(1)))))));
 
     TrieStringDictionary dict1 = new TrieStringDictionary(root1, "a", "abc", 1);
     TrieStringDictionary dict2 = new TrieStringDictionary(root2, "aa", "abc", 1);
@@ -1329,7 +1337,7 @@ public class TrieStringDictionaryTest {
     ParentNode root2 = parent( //
         new Pair<>("x", //
             parent( //
-            new Pair<>("a", terminal(0)))));
+                new Pair<>("a", terminal(0)))));
 
     TrieStringDictionary dict1 = new TrieStringDictionary(root1, "xab", "xac", 1);
     TrieStringDictionary dict2 = new TrieStringDictionary(root2, "xa", "xa", 0);
@@ -1358,7 +1366,7 @@ public class TrieStringDictionaryTest {
     ParentNode root1 = parent( //
         new Pair<>("a", //
             parent( //
-            new Pair<>("ab", terminal(0)))));
+                new Pair<>("ab", terminal(0)))));
 
     // contains strings:
     // aaa
@@ -1367,9 +1375,9 @@ public class TrieStringDictionaryTest {
     ParentNode root2 = parent( //
         new Pair<>("a", //
             parent( //
-            new Pair<>("a", //
-                parent(new Pair<>("a", terminal(0)),//
-                    new Pair<>("c", terminal(1)))))));
+                new Pair<>("a", //
+                    parent(new Pair<>("a", terminal(0)), //
+                        new Pair<>("c", terminal(1)))))));
 
     TrieStringDictionary dict1 = new TrieStringDictionary(root1, "aab", "aab", 0);
     TrieStringDictionary dict2 = new TrieStringDictionary(root2, "aaa", "aac", 1);
@@ -1403,14 +1411,16 @@ public class TrieStringDictionaryTest {
     @SuppressWarnings("unchecked")
     ParentNode root1 = parent( //
         new Pair<>("aab", terminal(0)), //
-        new Pair<>("b", parent( //
-            new Pair<>("a", parent( //
-                new Pair<>("b", terminal(1)), //
-                new Pair<>("d", terminal(2)), //
-                new Pair<>("e", terminal(3)), //
-                new Pair<>("f", terminal(4)) //
-                )), //
-            new Pair<>("bf", terminal(5)))));
+        new Pair<>("b",
+            parent( //
+                new Pair<>("a",
+                    parent( //
+                        new Pair<>("b", terminal(1)), //
+                        new Pair<>("d", terminal(2)), //
+                        new Pair<>("e", terminal(3)), //
+                        new Pair<>("f", terminal(4)) //
+    )), //
+                new Pair<>("bf", terminal(5)))));
 
     // contains strings:
     // baa (0)
@@ -1421,17 +1431,20 @@ public class TrieStringDictionaryTest {
     // bbb (5)
     @SuppressWarnings("unchecked")
     ParentNode root2 = parent( //
-        new Pair<>("b", parent( //
-            new Pair<>("a", parent( //
-                new Pair<>("a", terminal(0)), //
-                new Pair<>("b", terminal(1)), //
-                new Pair<>("c", terminal(2)), //
-                new Pair<>("d", terminal(3)) //
-                )), //
-            new Pair<>("b", parent( //
-                new Pair<>("a", terminal(4)), //
-                new Pair<>("b", terminal(5)) //
-                )))));
+        new Pair<>("b",
+            parent( //
+                new Pair<>("a",
+                    parent( //
+                        new Pair<>("a", terminal(0)), //
+                        new Pair<>("b", terminal(1)), //
+                        new Pair<>("c", terminal(2)), //
+                        new Pair<>("d", terminal(3)) //
+    )), //
+                new Pair<>("b",
+                    parent( //
+                        new Pair<>("a", terminal(4)), //
+                        new Pair<>("b", terminal(5)) //
+    )))));
 
     TrieStringDictionary dict1 = new TrieStringDictionary(root1, "aab", "bbf", 5);
     TrieStringDictionary dict2 = new TrieStringDictionary(root2, "baa", "bbb", 5);
@@ -1471,9 +1484,9 @@ public class TrieStringDictionaryTest {
     ParentNode root = parent( //
         new Pair<>("a", //
             parent( //
-            new Pair<>("a", //
-                parent(new Pair<>("a", terminal(0)),//
-                    new Pair<>("c", terminal(1)))))));
+                new Pair<>("a", //
+                    parent(new Pair<>("a", terminal(0)), //
+                        new Pair<>("c", terminal(1)))))));
 
     TrieStringDictionary trieDict = new TrieStringDictionary(root, "aaa", "aac", 1);
 
@@ -1505,9 +1518,9 @@ public class TrieStringDictionaryTest {
     ParentNode root = parent( //
         new Pair<>("a", //
             parent( //
-            new Pair<>("a", //
-                parent(new Pair<>("a", terminal(0)),//
-                    new Pair<>("c", terminal(1)))))));
+                new Pair<>("a", //
+                    parent(new Pair<>("a", terminal(0)), //
+                        new Pair<>("c", terminal(1)))))));
 
     TrieStringDictionary trieDict = new TrieStringDictionary(root, "aaa", "aac", 1);
 

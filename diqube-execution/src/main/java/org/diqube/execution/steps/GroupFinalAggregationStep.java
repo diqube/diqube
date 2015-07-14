@@ -116,8 +116,8 @@ public class GroupFinalAggregationStep extends AbstractThreadedExecutablePlanSte
   protected void validateOutputConsumer(GenericConsumer consumer) throws IllegalArgumentException {
     if (!(consumer instanceof GroupFinalAggregationConsumer) && !(consumer instanceof ColumnBuiltConsumer)
         && !(consumer instanceof ColumnVersionBuiltConsumer))
-      throw new IllegalArgumentException("Only GroupFinalAggregationConsumer, ColumnBuiltConsumer "
-          + "and ColumnVersionBuiltConsumer supported.");
+      throw new IllegalArgumentException(
+          "Only GroupFinalAggregationConsumer, ColumnBuiltConsumer " + "and ColumnVersionBuiltConsumer supported.");
   }
 
   @Override
@@ -138,8 +138,8 @@ public class GroupFinalAggregationStep extends AbstractThreadedExecutablePlanSte
         IntermediaryResult<Object, Object, Object> oldIntermediary = update.getMiddle();
         IntermediaryResult<Object, Object, Object> newIntermediary = update.getRight();
 
-        logger.trace("Processing update of group {} on col {}: new {}, old {}", groupId, outputColName,
-            newIntermediary, oldIntermediary);
+        logger.trace("Processing update of group {} on col {}: new {}, old {}", groupId, outputColName, newIntermediary,
+            oldIntermediary);
 
         if (!aggregationFunctions.containsKey(groupId)) {
           AggregationFunction<Object, IntermediaryResult<Object, Object, Object>, Object> fn =

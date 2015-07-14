@@ -81,8 +81,8 @@ public class ColumnShardBuilderManager {
       if (!stringBuilders.containsKey(colName)) {
         synchronized (stringBuilders) {
           if (!stringBuilders.containsKey(colName)) {
-            stringBuilders.put(colName, new ColumnShardBuilder<String>(columnShardFactory, columnPageFactory, colName,
-                firstRowIdInShard));
+            stringBuilders.put(colName,
+                new ColumnShardBuilder<String>(columnShardFactory, columnPageFactory, colName, firstRowIdInShard));
           }
         }
       }
@@ -92,8 +92,8 @@ public class ColumnShardBuilderManager {
       if (!longBuilders.containsKey(colName)) {
         synchronized (longBuilders) {
           if (!longBuilders.containsKey(colName)) {
-            longBuilders.put(colName, new ColumnShardBuilder<Long>(columnShardFactory, columnPageFactory, colName,
-                firstRowIdInShard));
+            longBuilders.put(colName,
+                new ColumnShardBuilder<Long>(columnShardFactory, columnPageFactory, colName, firstRowIdInShard));
           }
         }
       }
@@ -103,8 +103,8 @@ public class ColumnShardBuilderManager {
       if (!doubleBuilders.containsKey(colName)) {
         synchronized (doubleBuilders) {
           if (!doubleBuilders.containsKey(colName)) {
-            doubleBuilders.put(colName, new ColumnShardBuilder<Double>(columnShardFactory, columnPageFactory, colName,
-                firstRowIdInShard));
+            doubleBuilders.put(colName,
+                new ColumnShardBuilder<Double>(columnShardFactory, columnPageFactory, colName, firstRowIdInShard));
           }
         }
       }

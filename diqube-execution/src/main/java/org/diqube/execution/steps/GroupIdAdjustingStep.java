@@ -108,8 +108,8 @@ public class GroupIdAdjustingStep extends AbstractThreadedExecutablePlanStep {
             }
           }
 
-          incomingGroupIntermediaries.get(groupId).addLast(
-              new Triple<>(colName, oldIntermediaryResult, newIntermediaryResult));
+          incomingGroupIntermediaries.get(groupId)
+              .addLast(new Triple<>(colName, oldIntermediaryResult, newIntermediaryResult));
         }
       };
 
@@ -159,15 +159,16 @@ public class GroupIdAdjustingStep extends AbstractThreadedExecutablePlanStep {
         incomingGroupIdToValues.remove(groupIdDone);
 
       if (!newGroupIds.isEmpty())
-        forEachOutputConsumerOfType(RowIdConsumer.class, c -> c.consume(newGroupIds.stream().toArray(l -> new Long[l])));
+        forEachOutputConsumerOfType(RowIdConsumer.class,
+            c -> c.consume(newGroupIds.stream().toArray(l -> new Long[l])));
     }
 
     processIncomingGroupIntermediaries();
 
     if ((groupInputIsDone.get() && isEmpty(incomingGroupIntermediaries)) || // all groups processed.
-        // all column values processed - it could happen that we receive values for fewer rowIds than we receive group
-        // information for, as the rowIds may have been cut-off (order!) after calculating group intermediaries.
-        (groupInputIsDone.get() && columnValueSourceIsDone.get() && incomingGroupIdToValues.isEmpty())) {
+    // all column values processed - it could happen that we receive values for fewer rowIds than we receive group
+    // information for, as the rowIds may have been cut-off (order!) after calculating group intermediaries.
+    (groupInputIsDone.get() && columnValueSourceIsDone.get() && incomingGroupIdToValues.isEmpty())) {
 
       if ((groupInputIsDone.get() && columnValueSourceIsDone.get() && incomingGroupIdToValues.isEmpty())
           && !isEmpty(incomingGroupIntermediaries))
@@ -195,8 +196,7 @@ public class GroupIdAdjustingStep extends AbstractThreadedExecutablePlanStep {
           Triple<String, IntermediaryResult<Object, Object, Object>, IntermediaryResult<Object, Object, Object>> update =
               incomingGroupIntermediaries.get(inputGroupId).poll();
 
-          forEachOutputConsumerOfType(
-              GroupIntermediaryAggregationConsumer.class,
+          forEachOutputConsumerOfType(GroupIntermediaryAggregationConsumer.class,
               c -> c.consumeIntermediaryAggregationResult(newGroupId, update.getLeft(), update.getMiddle(),
                   update.getRight()));
         }
@@ -216,8 +216,8 @@ public class GroupIdAdjustingStep extends AbstractThreadedExecutablePlanStep {
 
   @Override
   protected List<GenericConsumer> inputConsumers() {
-    return new ArrayList<>(Arrays.asList(new GenericConsumer[] { columnValueConsumer,
-        groupIntermediateAggregateConsumer }));
+    return new ArrayList<>(
+        Arrays.asList(new GenericConsumer[] { columnValueConsumer, groupIntermediateAggregateConsumer }));
   }
 
   @Override

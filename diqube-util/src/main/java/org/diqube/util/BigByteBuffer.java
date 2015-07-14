@@ -48,8 +48,8 @@ public class BigByteBuffer implements Closeable {
     this(channel, mode, initializer, DEFAULT_MAX_SINGLE_SIZE);
   }
 
-  public BigByteBuffer(FileChannel channel, MapMode mode, Consumer<MappedByteBuffer> initializer, int maxSingleShardSize)
-      throws IOException {
+  public BigByteBuffer(FileChannel channel, MapMode mode, Consumer<MappedByteBuffer> initializer,
+      int maxSingleShardSize) throws IOException {
     int numberOfByteBuffers = (int) (channel.size() / maxSingleShardSize);
 
     if (channel.size() % maxSingleShardSize > 0)
@@ -125,9 +125,9 @@ public class BigByteBuffer implements Closeable {
       return -1;
 
     if (byteIdx < 0 || byteIdx > totalSize || length < 0 || target.length < targetOffset + length)
-      throw new ArrayIndexOutOfBoundsException("Tried to access index " + byteIdx + " length " + length
-          + " but size available is " + totalSize + ". Target arrays length is " + target.length + ", target offset "
-          + targetOffset);
+      throw new ArrayIndexOutOfBoundsException(
+          "Tried to access index " + byteIdx + " length " + length + " but size available is " + totalSize
+              + ". Target arrays length is " + target.length + ", target offset " + targetOffset);
 
     if (length == 0)
       return 0;

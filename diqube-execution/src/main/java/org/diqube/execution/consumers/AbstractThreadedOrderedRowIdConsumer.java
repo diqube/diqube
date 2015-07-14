@@ -31,8 +31,8 @@ import org.diqube.execution.steps.AbstractThreadedExecutablePlanStep;
  *
  * @author Bastian Gloeckle
  */
-public abstract class AbstractThreadedOrderedRowIdConsumer extends AbstractPlanStepBasedGenericConsumer implements
-    OrderedRowIdConsumer {
+public abstract class AbstractThreadedOrderedRowIdConsumer extends AbstractPlanStepBasedGenericConsumer
+    implements OrderedRowIdConsumer {
 
   public AbstractThreadedOrderedRowIdConsumer(AbstractThreadedExecutablePlanStep planStep) {
     super(planStep);

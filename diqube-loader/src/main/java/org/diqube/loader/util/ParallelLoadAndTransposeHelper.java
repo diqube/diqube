@@ -97,7 +97,7 @@ public class ParallelLoadAndTransposeHelper {
         (col, values, rowId) -> { // add results to the col Builders
           Object[] finalValues = columnInfo.getFinalTransformFunc(col).apply(values);
           columnBuilderManager.addValues(col, finalValues, rowId);
-        }, colNames, tableName, executorManager);
+        } , colNames, tableName, executorManager);
 
     try {
       transposeThread.start();

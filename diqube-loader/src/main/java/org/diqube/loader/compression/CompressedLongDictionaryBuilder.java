@@ -66,8 +66,8 @@ import org.slf4j.LoggerFactory;
 public class CompressedLongDictionaryBuilder {
   private static final Logger logger = LoggerFactory.getLogger(CompressedLongDictionaryBuilder.class);
 
-  private static final List<LongArrayCompressionStrategy> COMPRESSION_STRATEGIES = Arrays
-      .asList(new LongArrayCompressionStrategy[] { new BitEfficientCompressionStrategy(),
+  private static final List<LongArrayCompressionStrategy> COMPRESSION_STRATEGIES =
+      Arrays.asList(new LongArrayCompressionStrategy[] { new BitEfficientCompressionStrategy(),
           new ReferenceAndBitEfficientCompressionStrategy() });
 
   private NavigableMap<Long, Long> entityMap;
@@ -127,8 +127,8 @@ public class CompressedLongDictionaryBuilder {
     for (LongArrayCompressionStrategy strat : COMPRESSION_STRATEGIES) {
       double ratio = strat.compressionRatio(uncompressed);
 
-      logger.trace("Dictionary '{}' using {} would have expected ratio {}", new Object[] { name,
-          strat.getClass().getSimpleName(), ratio });
+      logger.trace("Dictionary '{}' using {} would have expected ratio {}",
+          new Object[] { name, strat.getClass().getSimpleName(), ratio });
 
       if (ratio < bestRatio) {
         bestRatio = ratio;
@@ -138,8 +138,8 @@ public class CompressedLongDictionaryBuilder {
 
     LongDictionary dictRes = null;
     try {
-      logger.debug("Compressing dictionary '{}' using {} (expected ratio {})", new Object[] { name,
-          bestStrat.getClass().getSimpleName(), bestRatio });
+      logger.debug("Compressing dictionary '{}' using {} (expected ratio {})",
+          new Object[] { name, bestStrat.getClass().getSimpleName(), bestRatio });
 
       CompressedLongArray compressedArray = bestStrat.compress(uncompressed);
       dictRes = new ArrayCompressedLongDictionary(compressedArray);

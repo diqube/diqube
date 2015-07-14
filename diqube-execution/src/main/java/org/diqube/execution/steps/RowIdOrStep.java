@@ -129,10 +129,11 @@ public class RowIdOrStep extends AbstractThreadedExecutablePlanStep {
       else if (rightRowIdConsumer.getNumberOfTimesWired() == 0)
         sourceStep.addOutputConsumer(rightRowIdConsumer);
       else
-        throw new ExecutablePlanBuildException("Could not wire additional input, because all inputs are wired already.");
+        throw new ExecutablePlanBuildException(
+            "Could not wire additional input, because all inputs are wired already.");
     } else
-      throw new ExecutablePlanBuildException("Could not wire input as only RowIdConsumers are supported, but "
-          + type.getSimpleName() + " requested.");
+      throw new ExecutablePlanBuildException(
+          "Could not wire input as only RowIdConsumers are supported, but " + type.getSimpleName() + " requested.");
   }
 
 }

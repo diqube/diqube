@@ -40,8 +40,8 @@ public class LoggingTestNgListener implements IInvokedMethodListener {
   @Override
   public void beforeInvocation(IInvokedMethod method, ITestResult testResult) {
     if (method.getTestMethod().getConstructorOrMethod().getMethod() != null && method.getTestMethod().isTest())
-      logger.info("Executing {}#{}", method.getTestMethod().getTestClass().getName(), method.getTestMethod()
-          .getConstructorOrMethod().getMethod().getName());
+      logger.info("Executing {}#{}", method.getTestMethod().getTestClass().getName(),
+          method.getTestMethod().getConstructorOrMethod().getMethod().getName());
   }
 
   @Override

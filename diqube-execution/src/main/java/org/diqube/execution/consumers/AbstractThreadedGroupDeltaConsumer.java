@@ -32,8 +32,8 @@ import org.diqube.execution.steps.AbstractThreadedExecutablePlanStep;
  * 
  * @author Bastian Gloeckle
  */
-public abstract class AbstractThreadedGroupDeltaConsumer extends AbstractPlanStepBasedGenericConsumer implements
-    GroupDeltaConsumer {
+public abstract class AbstractThreadedGroupDeltaConsumer extends AbstractPlanStepBasedGenericConsumer
+    implements GroupDeltaConsumer {
 
   public AbstractThreadedGroupDeltaConsumer(AbstractThreadedExecutablePlanStep planStep) {
     super(planStep);

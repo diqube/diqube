@@ -43,7 +43,7 @@ public class ColumnPage {
 
   private long firstRowId;
 
-  /* package */ColumnPage(LongDictionary columnPageDict, CompressedLongArray values, long firstRowId) {
+  /* package */ ColumnPage(LongDictionary columnPageDict, CompressedLongArray values, long firstRowId) {
     this.columnPageDict = columnPageDict;
     this.values = values;
     this.firstRowId = firstRowId;

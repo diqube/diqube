@@ -30,8 +30,8 @@ import org.diqube.execution.steps.AbstractThreadedExecutablePlanStep;
  *
  * @author Bastian Gloeckle
  */
-public abstract class AbstractThreadedColumnVersionBuiltConsumer extends AbstractPlanStepBasedGenericConsumer implements
-    ColumnVersionBuiltConsumer {
+public abstract class AbstractThreadedColumnVersionBuiltConsumer extends AbstractPlanStepBasedGenericConsumer
+    implements ColumnVersionBuiltConsumer {
 
   public AbstractThreadedColumnVersionBuiltConsumer(AbstractThreadedExecutablePlanStep planStep) {
     super(planStep);

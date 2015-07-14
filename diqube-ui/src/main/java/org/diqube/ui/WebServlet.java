@@ -71,9 +71,8 @@ public class WebServlet extends HttpServlet {
     } catch (TException e) {
       resp.getWriter().write("Exception: " + e.getMessage());
     }
-    resp.getWriter().write(
-        "\n\n\ndiqube is distributed under the terms of the GNU Affero General Public License 3, "
-            + "its source code is available at https://github.com/diqube.");
+    resp.getWriter().write("\n\n\ndiqube is distributed under the terms of the GNU Affero General Public License 3, "
+        + "its source code is available at https://github.com/diqube.");
   }
 
   private RNodeAddress createOurAddress(HttpServletRequest req) {

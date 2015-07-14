@@ -134,7 +134,8 @@ public abstract class AbstractThreadedExecutablePlanStep implements ExecutablePl
   abstract protected void validateOutputConsumer(GenericConsumer consumer) throws IllegalArgumentException;
 
   @SuppressWarnings("unchecked")
-  protected <T extends GenericConsumer> void forEachOutputConsumerOfType(Class<? extends T> type, Consumer<T> consumer) {
+  protected <T extends GenericConsumer> void forEachOutputConsumerOfType(Class<? extends T> type,
+      Consumer<T> consumer) {
     for (GenericConsumer outputConsumer : outputConsumers) {
       if (type.isInstance(outputConsumer))
         consumer.accept((T) outputConsumer);

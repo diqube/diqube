@@ -59,7 +59,7 @@ public class ExecutablePlan {
 
   private ExecutablePlanInfo info;
 
-  /* package */ExecutablePlan(ExecutionEnvironment defaultEnv, Collection<ExecutablePlanStep> steps,
+  /* package */ ExecutablePlan(ExecutionEnvironment defaultEnv, Collection<ExecutablePlanStep> steps,
       ExecutablePlanInfo info) {
     this.defaultEnv = defaultEnv;
     this.steps = steps;

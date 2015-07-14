@@ -136,8 +136,8 @@ public final class HashingBatchCollector<T> implements Collector<T, ConcurrentHa
 
   @Override
   public Set<java.util.stream.Collector.Characteristics> characteristics() {
-    return new HashSet<Collector.Characteristics>(Arrays.asList(new Characteristics[] { Characteristics.CONCURRENT,
-        Characteristics.UNORDERED }));
+    return new HashSet<Collector.Characteristics>(
+        Arrays.asList(new Characteristics[] { Characteristics.CONCURRENT, Characteristics.UNORDERED }));
   }
 
   /**

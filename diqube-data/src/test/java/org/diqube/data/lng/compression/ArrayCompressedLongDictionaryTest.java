@@ -102,8 +102,8 @@ public class ArrayCompressedLongDictionaryTest {
     Long[] ids = new Long[] { 0L, 1L, MAX_ID, MAX_ID - 1 };
     Long[] decompressedValues = dict.decompressValues(ids);
     for (int i = 0; i < ids.length; i++)
-      Assert.assertEquals(decompressedValues[i], Long.valueOf(ids[i] + ID_VALUE_DELTA), "Value for ID " + ids[i]
-          + " is wrong");
+      Assert.assertEquals(decompressedValues[i], Long.valueOf(ids[i] + ID_VALUE_DELTA),
+          "Value for ID " + ids[i] + " is wrong");
   }
 
   @Test

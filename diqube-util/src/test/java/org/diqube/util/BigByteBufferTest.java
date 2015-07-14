@@ -174,7 +174,7 @@ public class BigByteBufferTest {
       try (BigByteBuffer buf = new BigByteBuffer(f.getChannel(), MapMode.READ_ONLY, b -> b.load(), 5 // 5 per shard,
                                                                                                      // maps perfect on
                                                                                                      // 10 length
-          )) {
+      )) {
 
         // WHEN THEN
         Assert.assertEquals(1, buf.get(0));
@@ -220,7 +220,7 @@ public class BigByteBufferTest {
     fos.close();
     try (RandomAccessFile f = new RandomAccessFile(tmpFile, "r")) {
       try (BigByteBuffer buf = new BigByteBuffer(f.getChannel(), MapMode.READ_ONLY, b -> b.load(), 4 // 4 per shard
-          )) {
+      )) {
 
         // WHEN THEN
         Assert.assertEquals(1, buf.get(0));
@@ -277,7 +277,7 @@ public class BigByteBufferTest {
     fos.close();
     try (RandomAccessFile f = new RandomAccessFile(tmpFile, "r")) {
       try (BigByteBuffer buf = new BigByteBuffer(f.getChannel(), MapMode.READ_ONLY, b -> b.load(), 4 // 4 per shard
-          )) {
+      )) {
 
         // WHEN THEN
         byte[] tmp = new byte[4];

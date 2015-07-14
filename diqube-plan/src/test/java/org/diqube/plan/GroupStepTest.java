@@ -242,8 +242,8 @@ public class GroupStepTest {
 
             long valueA = resolveValueForRowId(columns.get(COL_A), groupId);
             long valueB = resolveValueForRowId(columns.get(COL_B), groupId);
-            return new Pair<Pair<Long, Long>, Set<Long>>(new Pair<Long, Long>(valueA, valueB), new HashSet<Long>(t
-                .getValue()));
+            return new Pair<Pair<Long, Long>, Set<Long>>(new Pair<Long, Long>(valueA, valueB),
+                new HashSet<Long>(t.getValue()));
           }
         }).forEach(pair -> resultValueToRowIdMap.put(pair.getLeft(), pair.getRight()));
 
@@ -288,8 +288,8 @@ public class GroupStepTest {
     return tableFactory.createTableShard(columns.values());
   }
 
-  private List<AbstractThreadedExecutablePlanStep> createExecutableSteps(ExecutionEnvironment env,
-      String[] resolveCols, String[] groupByCols) {
+  private List<AbstractThreadedExecutablePlanStep> createExecutableSteps(ExecutionEnvironment env, String[] resolveCols,
+      String[] groupByCols) {
 
     List<AbstractThreadedExecutablePlanStep> res = new ArrayList<>();
     int stepId = 0;

@@ -76,8 +76,8 @@ public class ReferenceBasedLongArray extends AbstractTransitiveExplorableCompres
     if (inputArray.length == 0)
       return 1.;
 
-    return transitiveCalculator.calculateTransitiveCompressionRatio(min - refPoint, secondMin - refPoint, max
-        - refPoint, inputArray.length);
+    return transitiveCalculator.calculateTransitiveCompressionRatio(min - refPoint, secondMin - refPoint,
+        max - refPoint, inputArray.length);
   }
 
   @Override

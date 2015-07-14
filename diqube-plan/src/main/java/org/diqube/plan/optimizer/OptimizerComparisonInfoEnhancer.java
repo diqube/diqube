@@ -76,8 +76,9 @@ public class OptimizerComparisonInfoEnhancer {
         idsAllChildrenEquals.remove(reqId);
 
       if (req.getOptimizerComparisonInfo().getParent() != null)
-        allRequests.add(new Pair<>(req.getOptimizerComparisonInfo().getParent().getOptimizerComparisonInfo()
-            .getOptimizerId(), allChildrenAreEquals));
+        allRequests
+            .add(new Pair<>(req.getOptimizerComparisonInfo().getParent().getOptimizerComparisonInfo().getOptimizerId(),
+                allChildrenAreEquals));
     }
 
     for (Entry<Integer, ComparisonRequest> e : idToRequest.entrySet())

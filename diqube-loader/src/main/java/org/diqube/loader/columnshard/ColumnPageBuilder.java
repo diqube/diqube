@@ -45,8 +45,8 @@ import org.slf4j.LoggerFactory;
 public class ColumnPageBuilder {
   private static final Logger logger = LoggerFactory.getLogger(ColumnPageBuilder.class);
 
-  private static final List<LongArrayCompressionStrategy> COMPRESSION_STRATEGIES = Arrays
-      .asList(new LongArrayCompressionStrategy[] { new BitEfficientCompressionStrategy(),
+  private static final List<LongArrayCompressionStrategy> COMPRESSION_STRATEGIES =
+      Arrays.asList(new LongArrayCompressionStrategy[] { new BitEfficientCompressionStrategy(),
           new RunLengthAndBitEfficientCompressionStrategy() });
 
   private long firstRowId;
@@ -121,8 +121,8 @@ public class ColumnPageBuilder {
 
     for (LongArrayCompressionStrategy strat : COMPRESSION_STRATEGIES) {
       double ratio = strat.compressionRatio(values);
-      logger.trace("Values of '{}' using {} would have expected ratio {}", new Object[] { name,
-          strat.getClass().getSimpleName(), ratio });
+      logger.trace("Values of '{}' using {} would have expected ratio {}",
+          new Object[] { name, strat.getClass().getSimpleName(), ratio });
 
       if (ratio < bestRatio) {
         bestRatio = ratio;
@@ -131,8 +131,8 @@ public class ColumnPageBuilder {
     }
 
     try {
-      logger.debug("Compressing values of '{}' using {} (expected ratio {})", new Object[] { name,
-          bestStrat.getClass().getSimpleName(), bestRatio });
+      logger.debug("Compressing values of '{}' using {} (expected ratio {})",
+          new Object[] { name, bestStrat.getClass().getSimpleName(), bestRatio });
 
       CompressedLongArray compressedValues = bestStrat.compress(values);
 

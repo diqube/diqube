@@ -40,7 +40,8 @@ public class ColumnShardBuilderFactory {
   @Inject
   private ColumnPageFactory columnPageFactory;
 
-  public ColumnShardBuilderManager createColumnShardBuilderManager(LoaderColumnInfo columnInfo, long firstRowIdInShard) {
+  public ColumnShardBuilderManager createColumnShardBuilderManager(LoaderColumnInfo columnInfo,
+      long firstRowIdInShard) {
     return new ColumnShardBuilderManager(columnShardFactory, columnPageFactory, columnInfo, firstRowIdInShard);
   }
 

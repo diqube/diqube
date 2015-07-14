@@ -117,13 +117,14 @@ public class ServerImplementation {
     serverArgs.protocolFactory(new TCompactProtocol.Factory());
     logger.info("Thrift server will use {} selector threads.", selectorThreads);
     serverArgs.selectorThreads(selectorThreads);
-    serverArgs.executorService(executorManager.newCachedThreadPool("server-worker-%d", new Thread.UncaughtExceptionHandler() {
-      @Override
-      public void uncaughtException(Thread t, Throwable e) {
-        logger.error("Uncaught exception in one of the server workers", e);
-        server.stop(); // stop everything and shut down.
-      }
-    }));
+    serverArgs
+        .executorService(executorManager.newCachedThreadPool("server-worker-%d", new Thread.UncaughtExceptionHandler() {
+          @Override
+          public void uncaughtException(Thread t, Throwable e) {
+            logger.error("Uncaught exception in one of the server workers", e);
+            server.stop(); // stop everything and shut down.
+          }
+        }));
     return serverArgs;
   }
 }

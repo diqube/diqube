@@ -122,8 +122,8 @@ public class CompressedStringDictionaryBuilder {
 
         if (curNode.getChildNodes().containsKey(interestingKey)) {
           ConstructionParentNode nodeToMove = curNode.getChildNodes().get(interestingKey);
-          nodeToMove.setParentToThisStringLength(nodeToMove.getParentToThisStringLength()
-              - interestingCommonPrefix.length());
+          nodeToMove
+              .setParentToThisStringLength(nodeToMove.getParentToThisStringLength() - interestingCommonPrefix.length());
           newParent.getChildNodes().put(removePrefix(interestingKey, interestingCommonPrefix), nodeToMove);
           curNode.getChildNodes().remove(interestingKey);
         } else {
@@ -144,9 +144,8 @@ public class CompressedStringDictionaryBuilder {
       }
     }
 
-    TrieStringDictionary res =
-        new TrieStringDictionary(root.constructFinalNode(), entityMap.firstKey(), entityMap.lastKey(),
-            entityMap.size() - 1);
+    TrieStringDictionary res = new TrieStringDictionary(root.constructFinalNode(), entityMap.firstKey(),
+        entityMap.lastKey(), entityMap.size() - 1);
     return new Pair<>(res, idMap);
   }
 

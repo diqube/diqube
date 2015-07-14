@@ -133,8 +133,8 @@ public abstract class OrderSplitDiqlExecutionTest<T> extends AbstractDiqlExecuti
         Object valueColB = resultValues.get(COL_B).get(rowId);
         Object valueColCount = resultValues.get(resultCountCol).get(rowId);
         Triple<Object, Object, Object> actualResult = new Triple<>(valueColA, valueColB, valueColCount);
-        Assert
-            .assertEquals(actualResult, expected, "Expected correct result for index " + i + " (rowId " + rowId + ")");
+        Assert.assertEquals(actualResult, expected,
+            "Expected correct result for index " + i + " (rowId " + rowId + ")");
       }
 
       Assert.assertEquals(resultOrderRowIds.size(), expectedValues.size(), "Expected correct number of result rows");
@@ -155,12 +155,10 @@ public abstract class OrderSplitDiqlExecutionTest<T> extends AbstractDiqlExecuti
 
       Map<Pair<Object, Object>, Integer> actualRowIdValues = new HashMap<>();
       for (Long reportedRowId : allRowIdsReportedByClusterNodes) {
-        Object colAValue =
-            (reportedRowId < colAShard1.length) ? colAShard1[reportedRowId.intValue()]
-                : colAShard2[(int) (reportedRowId - colAShard1.length)];
-        Object colBValue =
-            (reportedRowId < colBShard1.length) ? colBShard1[reportedRowId.intValue()]
-                : colBShard2[(int) (reportedRowId - colBShard1.length)];
+        Object colAValue = (reportedRowId < colAShard1.length) ? colAShard1[reportedRowId.intValue()]
+            : colAShard2[(int) (reportedRowId - colAShard1.length)];
+        Object colBValue = (reportedRowId < colBShard1.length) ? colBShard1[reportedRowId.intValue()]
+            : colBShard2[(int) (reportedRowId - colBShard1.length)];
 
         Pair<Object, Object> value = new Pair<>(colAValue, colBValue);
         if (actualRowIdValues.containsKey(value))
@@ -244,8 +242,8 @@ public abstract class OrderSplitDiqlExecutionTest<T> extends AbstractDiqlExecuti
         Object valueColA = resultValues.get(COL_A).get(rowId);
         Object valueColB = resultValues.get(COL_B).get(rowId);
         Pair<Object, Object> actualResult = new Pair<>(valueColA, valueColB);
-        Assert
-            .assertEquals(actualResult, expected, "Expected correct result for index " + i + " (rowId " + rowId + ")");
+        Assert.assertEquals(actualResult, expected,
+            "Expected correct result for index " + i + " (rowId " + rowId + ")");
       }
 
       Assert.assertEquals(resultOrderRowIds.size(), expectedValues.size(), "Expected correct number of result rows");
@@ -264,12 +262,10 @@ public abstract class OrderSplitDiqlExecutionTest<T> extends AbstractDiqlExecuti
 
       Map<Pair<Object, Object>, Integer> actualRowIdValues = new HashMap<>();
       for (Long reportedRowId : allRowIdsReportedByClusterNodes) {
-        Object colAValue =
-            (reportedRowId < colAShard1.length) ? colAShard1[reportedRowId.intValue()]
-                : colAShard2[(int) (reportedRowId - colAShard1.length)];
-        Object colBValue =
-            (reportedRowId < colBShard1.length) ? colBShard1[reportedRowId.intValue()]
-                : colBShard2[(int) (reportedRowId - colBShard1.length)];
+        Object colAValue = (reportedRowId < colAShard1.length) ? colAShard1[reportedRowId.intValue()]
+            : colAShard2[(int) (reportedRowId - colAShard1.length)];
+        Object colBValue = (reportedRowId < colBShard1.length) ? colBShard1[reportedRowId.intValue()]
+            : colBShard2[(int) (reportedRowId - colBShard1.length)];
 
         Pair<Object, Object> value = new Pair<>(colAValue, colBValue);
         if (actualRowIdValues.containsKey(value))

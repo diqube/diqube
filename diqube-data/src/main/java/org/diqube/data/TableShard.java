@@ -43,7 +43,7 @@ public class TableShard {
   private Map<String, DoubleStandardColumnShard> doubleColumns = new HashMap<>();
   private Map<String, LongStandardColumnShard> longColumns = new HashMap<>();
 
-  /* package */TableShard(Collection<StandardColumnShard> columns) {
+  /* package */ TableShard(Collection<StandardColumnShard> columns) {
     for (ColumnShard col : columns) {
       switch (col.getColumnType()) {
       case STRING:

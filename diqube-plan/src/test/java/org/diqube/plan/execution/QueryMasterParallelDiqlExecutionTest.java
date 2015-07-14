@@ -97,12 +97,12 @@ public abstract class QueryMasterParallelDiqlExecutionTest<T> extends AbstractRe
       values.put(1L, groupByValue2);
       values.put(2L, groupByValue3);
       firstRemote.getOutputValues().consume(COL_A, values);
-      firstRemote.getOutputGroups()
-          .consumeIntermediaryAggregationResult(0L, countCol, intermediary(0), intermediary(3));
-      firstRemote.getOutputGroups()
-          .consumeIntermediaryAggregationResult(1L, countCol, intermediary(0), intermediary(1));
-      firstRemote.getOutputGroups()
-          .consumeIntermediaryAggregationResult(2L, countCol, intermediary(0), intermediary(1));
+      firstRemote.getOutputGroups().consumeIntermediaryAggregationResult(0L, countCol, intermediary(0),
+          intermediary(3));
+      firstRemote.getOutputGroups().consumeIntermediaryAggregationResult(1L, countCol, intermediary(0),
+          intermediary(1));
+      firstRemote.getOutputGroups().consumeIntermediaryAggregationResult(2L, countCol, intermediary(0),
+          intermediary(1));
 
       // now:
       // Group 0: value 3
@@ -151,12 +151,12 @@ public abstract class QueryMasterParallelDiqlExecutionTest<T> extends AbstractRe
           () -> resultValues.get(countCol) != null && resultValues.get(countCol).get(0L).equals(expectedValueRun2));
 
       // first shard found some more values.
-      firstRemote.getOutputGroups()
-          .consumeIntermediaryAggregationResult(0L, countCol, intermediary(3), intermediary(4));
-      firstRemote.getOutputGroups()
-          .consumeIntermediaryAggregationResult(1L, countCol, intermediary(1), intermediary(2));
-      firstRemote.getOutputGroups()
-          .consumeIntermediaryAggregationResult(2L, countCol, intermediary(1), intermediary(5));
+      firstRemote.getOutputGroups().consumeIntermediaryAggregationResult(0L, countCol, intermediary(3),
+          intermediary(4));
+      firstRemote.getOutputGroups().consumeIntermediaryAggregationResult(1L, countCol, intermediary(1),
+          intermediary(2));
+      firstRemote.getOutputGroups().consumeIntermediaryAggregationResult(2L, countCol, intermediary(1),
+          intermediary(5));
 
       // now: (these values are only correct, if orderStep did NOT cut off group 1L in last execution, otherwise 1L is
       // the only group left!)
@@ -169,8 +169,7 @@ public abstract class QueryMasterParallelDiqlExecutionTest<T> extends AbstractRe
 
       // THEN
       List<Long> expectedOrderingRun3 = Arrays.asList(new Long[] { 2L });
-      waitUntilOrFail(
-          newOrderedRowIdsNotify, //
+      waitUntilOrFail(newOrderedRowIdsNotify, //
           () -> "Not correct ordering value. Was: " + resultOrderRowIds + " Expected: "
               + expectedOrderingRun3.toString(), //
           () -> resultOrderRowIds.equals(expectedOrderingRun3));
@@ -224,10 +223,10 @@ public abstract class QueryMasterParallelDiqlExecutionTest<T> extends AbstractRe
       values.put(0L, groupByValue1);
       values.put(1L, groupByValue2);
       firstRemote.getOutputValues().consume(COL_A, values);
-      firstRemote.getOutputGroups()
-          .consumeIntermediaryAggregationResult(0L, countCol, intermediary(0), intermediary(5));
-      firstRemote.getOutputGroups()
-          .consumeIntermediaryAggregationResult(1L, countCol, intermediary(0), intermediary(1));
+      firstRemote.getOutputGroups().consumeIntermediaryAggregationResult(0L, countCol, intermediary(0),
+          intermediary(5));
+      firstRemote.getOutputGroups().consumeIntermediaryAggregationResult(1L, countCol, intermediary(0),
+          intermediary(1));
 
       // now:
       // Group 0: value 3
@@ -269,10 +268,10 @@ public abstract class QueryMasterParallelDiqlExecutionTest<T> extends AbstractRe
           () -> resultValues.get(countCol) != null && resultValues.get(countCol).get(0L).equals(expectedValueRun2));
 
       // first shard found some more values.
-      firstRemote.getOutputGroups()
-          .consumeIntermediaryAggregationResult(0L, countCol, intermediary(5), intermediary(2)); // LOWER!
-      firstRemote.getOutputGroups()
-          .consumeIntermediaryAggregationResult(1L, countCol, intermediary(1), intermediary(2));
+      firstRemote.getOutputGroups().consumeIntermediaryAggregationResult(0L, countCol, intermediary(5),
+          intermediary(2)); // LOWER!
+      firstRemote.getOutputGroups().consumeIntermediaryAggregationResult(1L, countCol, intermediary(1),
+          intermediary(2));
 
       // now: (these values are only correct, if orderStep did NOT cut off group 1L in last execution, otherwise 1L is
       // the only group left!)
@@ -284,8 +283,7 @@ public abstract class QueryMasterParallelDiqlExecutionTest<T> extends AbstractRe
 
       // THEN
       List<Long> expectedOrderingRun3 = Arrays.asList(new Long[] { 1L });
-      waitUntilOrFail(
-          newOrderedRowIdsNotify, //
+      waitUntilOrFail(newOrderedRowIdsNotify, //
           () -> "Not correct ordering value. Was: " + resultOrderRowIds + " Expected: "
               + expectedOrderingRun3.toString(), //
           () -> resultOrderRowIds.equals(expectedOrderingRun3));

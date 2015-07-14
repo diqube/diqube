@@ -51,7 +51,9 @@ public class RunLengthLongArray extends AbstractTransitiveExplorableCompressedLo
   private long minCount;
   /** Contains compressed values. If <code>null</code>, the compressed values are in {@link #delegateCompressedValue} */
   private long[] compressedValues;
-  /** Contains compressed counts. If <code>null</code>, the compressed values are in {@link #delegateCompressedCounts} */
+  /**
+   * Contains compressed counts. If <code>null</code>, the compressed values are in {@link #delegateCompressedCounts}
+   */
   private long[] compressedCounts;
   /** Contains compressed values. If <code>null</code>, the compressed values are in {@link #compressedValues} */
   private ExplorableCompressedLongArray delegateCompressedValue = null;
@@ -115,9 +117,8 @@ public class RunLengthLongArray extends AbstractTransitiveExplorableCompressedLo
   @Override
   protected double doTransitiveExpectedCompressionRatio(long[] inputArray, boolean isSorted,
       TransitiveCompressionRatioCalculator transitiveCalculator) {
-    double valueCompression =
-        transitiveCalculator.calculateTransitiveCompressionRatio(minValue, secondMinValue, maxValue,
-            numberOfDifferentTuples);
+    double valueCompression = transitiveCalculator.calculateTransitiveCompressionRatio(minValue, secondMinValue,
+        maxValue, numberOfDifferentTuples);
     double countCompression =
         transitiveCalculator.calculateTransitiveCompressionRatio(minCount, minCount, maxCount, numberOfDifferentTuples);
 

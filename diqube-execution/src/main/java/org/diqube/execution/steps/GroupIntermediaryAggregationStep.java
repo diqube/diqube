@@ -166,8 +166,8 @@ public class GroupIntermediaryAggregationStep extends AbstractThreadedExecutable
 
           @Override
           public Long[] getColumnValueIds() {
-            return env.getColumnShard(inputColumnName).resolveColumnValueIdsForRowsFlat(
-                newRowIds.toArray(new Long[newRowIds.size()]));
+            return env.getColumnShard(inputColumnName)
+                .resolveColumnValueIdsForRowsFlat(newRowIds.toArray(new Long[newRowIds.size()]));
           }
 
           @Override

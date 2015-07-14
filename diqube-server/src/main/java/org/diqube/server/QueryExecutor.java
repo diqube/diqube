@@ -181,10 +181,9 @@ class QueryExecutor {
     return new Runnable() {
       @Override
       public void run() {
-        Executor executor =
-            executorManager.newQueryFixedThreadPool(plan.preferredExecutorServiceSize(), "query-worker-" + queryUuid
-                + "-%d", //
-                queryUuid);
+        Executor executor = executorManager.newQueryFixedThreadPool(plan.preferredExecutorServiceSize(),
+            "query-worker-" + queryUuid + "-%d", //
+            queryUuid);
 
         Future<Void> planFuture = plan.executeAsynchronously(executor);
 

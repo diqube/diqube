@@ -43,7 +43,7 @@ public class DiqubeCollectors {
         (left, right) -> {
           left.addAll(right);
           return left;
-        }, //
+        } , //
         Collector.Characteristics.UNORDERED);
   }
 }

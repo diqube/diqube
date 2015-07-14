@@ -107,8 +107,8 @@ public class ExecutablePlanStepFromRemoteFactory {
     case RESOLVE_VALUES:
       return createResolveValues(remoteStep);
     }
-    throw new ExecutablePlanBuildException("Could not create executable step for remote step '" + remoteStep.toString()
-        + "'");
+    throw new ExecutablePlanBuildException(
+        "Could not create executable step for remote step '" + remoteStep.toString() + "'");
   }
 
   private ExecutablePlanStep createRowIdInequal(ExecutionEnvironment defaultEnv, RExecutionPlanStep remoteStep,
@@ -164,8 +164,8 @@ public class ExecutablePlanStepFromRemoteFactory {
         sortedValues = details.getSortedValues().stream().map(v -> v.getStrValue()).toArray(l -> new String[l]);
       } else {
         if (!details.getSortedValues().stream().allMatch(v -> v.isSetDoubleValue()))
-          throw new ExecutablePlanBuildException("Values compared to column " + colName
-              + " are not of the same or a valid type.");
+          throw new ExecutablePlanBuildException(
+              "Values compared to column " + colName + " are not of the same or a valid type.");
 
         sortedValues = details.getSortedValues().stream().map(v -> v.getDoubleValue()).toArray(l -> new Double[l]);
       }
@@ -190,7 +190,8 @@ public class ExecutablePlanStepFromRemoteFactory {
     return new RowIdSinkStep(remoteStep.getStepId(), defaultEnv);
   }
 
-  private ExecutablePlanStep createResolveColumnDictIds(ExecutionEnvironment defaultEnv, RExecutionPlanStep remoteStep) {
+  private ExecutablePlanStep createResolveColumnDictIds(ExecutionEnvironment defaultEnv,
+      RExecutionPlanStep remoteStep) {
     String colName = remoteStep.getDetailsResolve().getColumn().getColName();
     return new ResolveColumnDictIdsStep(remoteStep.getStepId(), defaultEnv, colName);
   }
@@ -200,14 +201,13 @@ public class ExecutablePlanStepFromRemoteFactory {
   }
 
   private ExecutablePlanStep createOrder(ExecutionEnvironment defaultEnv, RExecutionPlanStep remoteStep) {
-    List<Pair<String, Boolean>> orderColumns =
-        remoteStep.getDetailsOrder().getOrderColumns().stream()
-            .map(new Function<RExecutionPlanStepDetailsOrderCol, Pair<String, Boolean>>() {
-              @Override
-              public Pair<String, Boolean> apply(RExecutionPlanStepDetailsOrderCol t) {
-                return new Pair<>(t.getColumn().getColName(), t.isSortAscending());
-              }
-            }).collect(Collectors.toList());
+    List<Pair<String, Boolean>> orderColumns = remoteStep.getDetailsOrder().getOrderColumns().stream()
+        .map(new Function<RExecutionPlanStepDetailsOrderCol, Pair<String, Boolean>>() {
+          @Override
+          public Pair<String, Boolean> apply(RExecutionPlanStepDetailsOrderCol t) {
+            return new Pair<>(t.getColumn().getColName(), t.isSortAscending());
+          }
+        }).collect(Collectors.toList());
 
     Long limit = null;
     Long limitStart = null;
@@ -223,9 +223,8 @@ public class ExecutablePlanStepFromRemoteFactory {
   }
 
   private ExecutablePlanStep createGroup(ExecutionEnvironment defaultEnv, RExecutionPlanStep remoteStep) {
-    List<String> colsToGroupBy =
-        remoteStep.getDetailsGroup().getGroupByColumns().stream().map(col -> col.getColName())
-            .collect(Collectors.toList());
+    List<String> colsToGroupBy = remoteStep.getDetailsGroup().getGroupByColumns().stream().map(col -> col.getColName())
+        .collect(Collectors.toList());
 
     return new GroupStep(remoteStep.getStepId(), defaultEnv, colsToGroupBy);
   }

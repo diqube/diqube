@@ -34,7 +34,7 @@ public class ExecutablePlanInfo {
 
   private boolean isGrouped;
 
-  /* package */ExecutablePlanInfo(List<String> selectedColumnNames, boolean isOrdered, boolean isGrouped) {
+  /* package */ ExecutablePlanInfo(List<String> selectedColumnNames, boolean isOrdered, boolean isGrouped) {
     this.selectedColumnNames = selectedColumnNames;
     this.isOrdered = isOrdered;
     this.isGrouped = isGrouped;

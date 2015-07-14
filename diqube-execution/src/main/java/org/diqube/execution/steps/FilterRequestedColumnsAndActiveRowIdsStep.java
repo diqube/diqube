@@ -153,7 +153,8 @@ public class FilterRequestedColumnsAndActiveRowIdsStep extends AbstractThreadedE
       }
     }
 
-    if (valueSourcesAreDone.get() && rowIdSourcesAreDone.get() && incomingRowIds.isEmpty() && incomingValues.isEmpty()) {
+    if (valueSourcesAreDone.get() && rowIdSourcesAreDone.get() && incomingRowIds.isEmpty()
+        && incomingValues.isEmpty()) {
       forEachOutputConsumerOfType(GenericConsumer.class, c -> c.sourceIsDone());
       doneProcessing();
     }

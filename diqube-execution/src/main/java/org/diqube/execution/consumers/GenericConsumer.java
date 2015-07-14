@@ -93,6 +93,6 @@ public interface GenericConsumer {
   @Target({ ElementType.TYPE })
   @Retention(RetentionPolicy.RUNTIME)
   public static @interface IdentifyingConsumerClass {
-    Class<? extends GenericConsumer> value();
+    Class<? extends GenericConsumer>value();
   }
 }

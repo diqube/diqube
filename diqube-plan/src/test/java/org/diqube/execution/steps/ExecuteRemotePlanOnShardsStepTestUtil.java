@@ -50,8 +50,7 @@ public class ExecuteRemotePlanOnShardsStepTestUtil {
    *          results, this function returns a list of {@link ExecutablePlan}s, typically one for each
    *          {@link TableShard} of the affected table.
    */
-  public static void addCustomRemoteExecution(
-      ExecuteRemotePlanOnShardsStep step,
+  public static void addCustomRemoteExecution(ExecuteRemotePlanOnShardsStep step,
       Function<Triple<RExecutionPlan, GroupIntermediaryAggregationConsumer, ColumnValueConsumer>, List<ExecutablePlan>> providerFn) {
     step.setRemotePlanBuilder(new RemotePlanBuilder() {
       @Override

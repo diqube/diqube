@@ -34,8 +34,8 @@ import org.diqube.data.str.StringColumnShard;
  *
  * @author Bastian Gloeckle
  */
-public class DelegatingExecutionEnvironment extends AbstractExecutionEnvironment implements
-    VersionedExecutionEnvironment {
+public class DelegatingExecutionEnvironment extends AbstractExecutionEnvironment
+    implements VersionedExecutionEnvironment {
 
   private ExecutionEnvironment delegate;
   private int version;

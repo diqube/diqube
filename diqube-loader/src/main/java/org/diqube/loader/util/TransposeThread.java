@@ -88,24 +88,23 @@ public class TransposeThread extends Thread {
     this.provideRowIdsFn = provideRowIdsFn;
     this.columnValuesReadyCallbacks = columnValuesReadyCallbacks;
     this.columnNames = columnNames;
-    executorService =
-        executorManager.newCachedThreadPool("transpose-worker-" + tableName + "-%d",
-            new Thread.UncaughtExceptionHandler() {
-              @Override
-              public void uncaughtException(Thread t, Throwable e) {
-                wasGoodShutdown = false;
-                shutdownExceptionMessage = e.getClass().getSimpleName() + ": " + e.getMessage();
-                logger.error("Exception while transposing data of table " + tableName, e);
-                TransposeThread.this.interrupt();
+    executorService = executorManager.newCachedThreadPool("transpose-worker-" + tableName + "-%d",
+        new Thread.UncaughtExceptionHandler() {
+          @Override
+          public void uncaughtException(Thread t, Throwable e) {
+            wasGoodShutdown = false;
+            shutdownExceptionMessage = e.getClass().getSimpleName() + ": " + e.getMessage();
+            logger.error("Exception while transposing data of table " + tableName, e);
+            TransposeThread.this.interrupt();
 
-                // exception case: We worked on a batch, although it turned out to be an exception.
-                // Remember and wake up any threads that might be waiting on that batch...
-                batchesWorkedOn.incrementAndGet();
-                synchronized (batchNotify) {
-                  batchNotify.notifyAll();
-                }
-              }
-            });
+            // exception case: We worked on a batch, although it turned out to be an exception.
+            // Remember and wake up any threads that might be waiting on that batch...
+            batchesWorkedOn.incrementAndGet();
+            synchronized (batchNotify) {
+              batchNotify.notifyAll();
+            }
+          }
+        });
     gracefulShutdown = false;
     wasGoodShutdown = true;
   }

@@ -57,9 +57,9 @@ public class DefaultConfigValuesAvailable {
 
     Set<String> notAvailableKeys = Sets.difference(neededConfigKeys, properties.keySet());
 
-    Assert.assertEquals(notAvailableKeys, new HashSet<String>(), "Expected that for each constant in "
-        + ConfigKey.class.getSimpleName() + " there is a default value in "
-        + ConfigurationManager.DEFAULT_CONFIG_CLASSPATH_FILENAME
-        + ". For the following keys there is no default value: ");
+    Assert.assertEquals(notAvailableKeys, new HashSet<String>(),
+        "Expected that for each constant in " + ConfigKey.class.getSimpleName() + " there is a default value in "
+            + ConfigurationManager.DEFAULT_CONFIG_CLASSPATH_FILENAME
+            + ". For the following keys there is no default value: ");
   }
 }

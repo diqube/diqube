@@ -72,8 +72,8 @@ public abstract class GroupDiqlExecutionTest<T> extends AbstractDiqlExecutionTes
       for (int i = 0; i < 99; i++)
         expectedValues[i] = dp.v(i);
 
-      Assert.assertEquals(new HashSet<>(resultValues.get(COL_A).values()),
-          new HashSet<>(Arrays.asList(expectedValues)), "Expected to receive values of 99 groups");
+      Assert.assertEquals(new HashSet<>(resultValues.get(COL_A).values()), new HashSet<>(Arrays.asList(expectedValues)),
+          "Expected to receive values of 99 groups");
     } finally {
       executor.shutdownNow();
     }
@@ -114,8 +114,8 @@ public abstract class GroupDiqlExecutionTest<T> extends AbstractDiqlExecutionTes
       Object[] expectedValues = dp.a(0, 1); // for the first group value 0L, for the second group
       // value 1L.
 
-      Assert.assertEquals(new HashSet<>(resultValues.get(COL_A).values()),
-          new HashSet<>(Arrays.asList(expectedValues)), "Expected to receive values of 2 groups");
+      Assert.assertEquals(new HashSet<>(resultValues.get(COL_A).values()), new HashSet<>(Arrays.asList(expectedValues)),
+          "Expected to receive values of 2 groups");
     } finally {
       executor.shutdownNow();
     }
@@ -128,9 +128,8 @@ public abstract class GroupDiqlExecutionTest<T> extends AbstractDiqlExecutionTes
     initializeSimpleTable(colAValues, colBValues);
     // GIVEN
     // a simple select stmt
-    ExecutablePlan executablePlan =
-        buildExecutablePlan("Select " + COL_A + ", count() from " + TABLE + " where " + COL_A + " = " + dp.vDiql(1)
-            + " group by " + COL_A);
+    ExecutablePlan executablePlan = buildExecutablePlan(
+        "Select " + COL_A + ", count() from " + TABLE + " where " + COL_A + " = " + dp.vDiql(1) + " group by " + COL_A);
     ExecutorService executor = Executors.newFixedThreadPool(executablePlan.preferredExecutorServiceSize());
     try {
       // WHEN
@@ -154,8 +153,8 @@ public abstract class GroupDiqlExecutionTest<T> extends AbstractDiqlExecutionTes
 
       Object[] expectedValues = dp.a(1);
 
-      Assert.assertEquals(new HashSet<>(resultValues.get(COL_A).values()),
-          new HashSet<>(Arrays.asList(expectedValues)), "Expected to get value 1L as result for colA");
+      Assert.assertEquals(new HashSet<>(resultValues.get(COL_A).values()), new HashSet<>(Arrays.asList(expectedValues)),
+          "Expected to get value 1L as result for colA");
 
       expectedValues = new Long[] { 3L };
       Assert.assertEquals(new HashSet<>(resultValues.get(resColName).values()),

@@ -58,7 +58,9 @@ public class BitEfficientLongArray extends AbstractExplorableCompressedLongArray
    * {@link #prepareCompression(long[], boolean)}.
    */
   private boolean isSameValue;
-  /** true if our compression contains a sign-bit first. Available after {@link #prepareCompression(long[], boolean)}. */
+  /**
+   * true if our compression contains a sign-bit first. Available after {@link #prepareCompression(long[], boolean)}.
+   */
   private boolean containsSignBit;
   /**
    * The array containing the bit-compressed values. This does not contain the {@link Long#MIN_VALUE} elements of the
@@ -116,15 +118,15 @@ public class BitEfficientLongArray extends AbstractExplorableCompressedLongArray
    * set:
    * 
    * <ul>
-   * <li> {@link #isSorted}
-   * <li> {@link #size}
-   * <li> {@link #numberOfLongMinValues}
-   * <li> {@link #absoluteMinValue}
-   * <li> {@link #minValue}
-   * <li> {@link #maxValue}
-   * <li> {@link #isSameValue}
-   * <li> {@link #numberOfBitsPerValue}
-   * <li> {@link #containsSignBit}
+   * <li>{@link #isSorted}
+   * <li>{@link #size}
+   * <li>{@link #numberOfLongMinValues}
+   * <li>{@link #absoluteMinValue}
+   * <li>{@link #minValue}
+   * <li>{@link #maxValue}
+   * <li>{@link #isSameValue}
+   * <li>{@link #numberOfBitsPerValue}
+   * <li>{@link #containsSignBit}
    * </ul>
    * 
    * @param originalValues
@@ -426,9 +428,8 @@ public class BitEfficientLongArray extends AbstractExplorableCompressedLongArray
     long value;
     if (numberOfBitsStoredInCompressedLong >= numberOfBitsPerValue) {
       // Compressed value is fully contained in one compressedValue[] entry.
-      value =
-          compressedValues[compressedPos]
-              & createBitMask(compressedPosUppermostBit - numberOfBitsPerValue + 1, compressedPosUppermostBit);
+      value = compressedValues[compressedPos]
+          & createBitMask(compressedPosUppermostBit - numberOfBitsPerValue + 1, compressedPosUppermostBit);
       value = value >>> (compressedPosUppermostBit - numberOfBitsPerValue + 1);
     } else {
       // Compressed value is split across two compressedValue[] entries.

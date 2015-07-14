@@ -76,7 +76,7 @@ public class ExecutablePlanFromRemoteBuilder {
 
   private ExecutablePlanFactory executablePlanFactory;
 
-  /* package */ExecutablePlanFromRemoteBuilder(TableRegistry tableRegistry,
+  /* package */ ExecutablePlanFromRemoteBuilder(TableRegistry tableRegistry,
       ExecutionEnvironmentFactory executionEnvironmentFactory,
       ExecutablePlanStepFromRemoteFactory executablePlanStepFactory, ExecutablePlanFactory executablePlanFactory) {
     this.tableRegistry = tableRegistry;
@@ -147,8 +147,8 @@ public class ExecutablePlanFromRemoteBuilder {
               throw new ExecutablePlanBuildException("Could not find data flow target.");
 
             for (RExecutionPlanStepDataType type : targetEntry.getValue()) {
-              logger.trace("Wiring {} from {} to {}", new Object[] { stepDataTypeToConsumerClass.get(type), sourceStep,
-                  targetStep });
+              logger.trace("Wiring {} from {} to {}",
+                  new Object[] { stepDataTypeToConsumerClass.get(type), sourceStep, targetStep });
               targetStep.wireOneInputConsumerToOutputOf(stepDataTypeToConsumerClass.get(type), sourceStep);
             }
           }
@@ -175,9 +175,9 @@ public class ExecutablePlanFromRemoteBuilder {
   private ExecutablePlanInfo createExecutablePlanInfo(RExecutionPlan plan) {
     List<String> selectedCols = new ArrayList<>();
 
-    selectedCols.addAll(plan.getSteps().stream()
-        .filter(s -> s.getType().equals(RExecutionPlanStepType.RESOLVE_COLUMN_DICT_IDS))
-        .map(s -> s.getDetailsResolve().getColumn().getColName()).collect(Collectors.toList()));
+    selectedCols
+        .addAll(plan.getSteps().stream().filter(s -> s.getType().equals(RExecutionPlanStepType.RESOLVE_COLUMN_DICT_IDS))
+            .map(s -> s.getDetailsResolve().getColumn().getColName()).collect(Collectors.toList()));
 
     boolean isOrdered = plan.getSteps().stream().anyMatch(s -> s.getType().equals(RExecutionPlanStepType.ORDER));
     boolean isGrouped = plan.getSteps().stream().anyMatch(s -> s.getType().equals(RExecutionPlanStepType.GROUP));

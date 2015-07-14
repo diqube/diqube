@@ -39,7 +39,8 @@ public class ExecutionEnvironmentFactory {
     return new DefaultExecutionEnvironment(tableShard);
   }
 
-  public DelegatingExecutionEnvironment createDelegatingExecutionEnvironment(ExecutionEnvironment delegate, int version) {
+  public DelegatingExecutionEnvironment createDelegatingExecutionEnvironment(ExecutionEnvironment delegate,
+      int version) {
     return new DelegatingExecutionEnvironment(delegate, version);
   }
 }

@@ -88,9 +88,8 @@ public class RowIdSinkStep extends AbstractThreadedExecutablePlanStep {
         long numberOfRows = env.getTableShardIfAvailable().getNumberOfRowsInShard();
         if (numberOfRows > 0) {
           // TODO think about not passing an array with all rowIDs.
-          Long[] rowIds =
-              LongStream.range(lowestRowId, lowestRowId + numberOfRows).mapToObj(Long::valueOf)
-                  .toArray(l -> new Long[l]);
+          Long[] rowIds = LongStream.range(lowestRowId, lowestRowId + numberOfRows).mapToObj(Long::valueOf)
+              .toArray(l -> new Long[l]);
           forEachOutputConsumerOfType(RowIdConsumer.class, c -> c.consume(rowIds));
         }
       }

@@ -70,8 +70,8 @@ public class ConfigurationManager {
 
     defaultProperties = new Properties();
     try {
-      defaultProperties.load(new InputStreamReader(this.getClass().getResourceAsStream(
-          DEFAULT_CONFIG_CLASSPATH_FILENAME), Charset.forName("UTF-8")));
+      defaultProperties.load(new InputStreamReader(
+          this.getClass().getResourceAsStream(DEFAULT_CONFIG_CLASSPATH_FILENAME), Charset.forName("UTF-8")));
     } catch (IOException e) {
       throw new RuntimeException("Could not load default config.");
     }

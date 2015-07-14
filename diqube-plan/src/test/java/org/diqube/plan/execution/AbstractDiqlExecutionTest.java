@@ -86,7 +86,9 @@ public abstract class AbstractDiqlExecutionTest<T> {
   /** Result of the final ordering is there was one. This contains ordered list of row IDs. */
   protected List<Long> resultOrderRowIds;
 
-  /** {@link Object#notifyAll()} will be called on this object as soon as new data is available in {@link #resultValues} */
+  /**
+   * {@link Object#notifyAll()} will be called on this object as soon as new data is available in {@link #resultValues}
+   */
   protected Object newValuesNotify;
   /**
    * {@link Object#notifyAll()} will be called on this object as soon as new data is available in
@@ -139,43 +141,42 @@ public abstract class AbstractDiqlExecutionTest<T> {
     newValuesNotify = new Object();
     newOrderedRowIdsNotify = new Object();
 
-    executionPlanBuilder =
-        dataContext.getBean(ExecutionPlanBuilderFactory.class).createExecutionPlanBuilder()
-            .withFinalColumnValueConsumer(new AbstractThreadedColumnValueConsumer(null) {
+    executionPlanBuilder = dataContext.getBean(ExecutionPlanBuilderFactory.class).createExecutionPlanBuilder()
+        .withFinalColumnValueConsumer(new AbstractThreadedColumnValueConsumer(null) {
 
-              @Override
-              protected void allSourcesAreDone() {
-                columnValueConsumerIsDone = true;
-              }
+          @Override
+          protected void allSourcesAreDone() {
+            columnValueConsumerIsDone = true;
+          }
 
-              @Override
-              protected synchronized void doConsume(String colName, Map<Long, Object> values) {
-                if (!resultValues.containsKey(colName))
-                  resultValues.put(colName, new HashMap<>());
+          @Override
+          protected synchronized void doConsume(String colName, Map<Long, Object> values) {
+            if (!resultValues.containsKey(colName))
+              resultValues.put(colName, new HashMap<>());
 
-                @SuppressWarnings({ "unchecked", "rawtypes" })
-                Map<Long, T> valuesLongLong = (((Map) values));
+            @SuppressWarnings({ "unchecked", "rawtypes" })
+            Map<Long, T> valuesLongLong = (((Map) values));
 
-                resultValues.get(colName).putAll(valuesLongLong);
+            resultValues.get(colName).putAll(valuesLongLong);
 
-                synchronized (newValuesNotify) {
-                  newValuesNotify.notifyAll();
-                }
-              }
-            }).withFinalOrderedRowIdConsumer(new AbstractThreadedOrderedRowIdConsumer(null) {
+            synchronized (newValuesNotify) {
+              newValuesNotify.notifyAll();
+            }
+          }
+        }).withFinalOrderedRowIdConsumer(new AbstractThreadedOrderedRowIdConsumer(null) {
 
-              @Override
-              protected void allSourcesAreDone() {
-              }
+          @Override
+          protected void allSourcesAreDone() {
+          }
 
-              @Override
-              protected void doConsumeOrderedRowIds(List<Long> rowIds) {
-                resultOrderRowIds = rowIds;
-                synchronized (newOrderedRowIdsNotify) {
-                  newOrderedRowIdsNotify.notifyAll();
-                }
-              }
-            });
+          @Override
+          protected void doConsumeOrderedRowIds(List<Long> rowIds) {
+            resultOrderRowIds = rowIds;
+            synchronized (newOrderedRowIdsNotify) {
+              newOrderedRowIdsNotify.notifyAll();
+            }
+          }
+        });
 
     ColumnShardBuilderFactory columnBuilderFactory = dataContext.getBean(ColumnShardBuilderFactory.class);
     LoaderColumnInfo colInfo = new LoaderColumnInfo(colType);

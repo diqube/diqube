@@ -51,9 +51,8 @@ public class MasterOrderHandler implements OrderRequestBuilder<ExecutablePlanSte
   @Override
   public ExecutablePlanStep build(OrderRequest orderRequest) {
     // On Query master we want to order with all requested columns - including any grouped columns.
-    ExecutablePlanStep masterOrderStep =
-        executablePlanFactory.createOrderStep(nextMasterStepSupplier.get(), env, orderRequest.getColumns(),
-            orderRequest.getLimit(), orderRequest.getLimitStart(), null);
+    ExecutablePlanStep masterOrderStep = executablePlanFactory.createOrderStep(nextMasterStepSupplier.get(), env,
+        orderRequest.getColumns(), orderRequest.getLimit(), orderRequest.getLimitStart(), null);
 
     // If ordering needs to wait for columns to be built, wire that.
     for (Pair<String, Boolean> orderPair : orderRequest.getColumns()) {

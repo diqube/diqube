@@ -34,7 +34,8 @@ import org.diqube.function.IntermediaryResult;
  * @author Bastian Gloeckle
  */
 @Function(name = AvgDoubleFunction.NAME)
-public class AvgDoubleFunction implements AggregationFunction<Double, IntermediaryResult<Double, Long, Object>, Double> {
+public class AvgDoubleFunction
+    implements AggregationFunction<Double, IntermediaryResult<Double, Long, Object>, Double> {
 
   public static final String NAME = "avg";
 

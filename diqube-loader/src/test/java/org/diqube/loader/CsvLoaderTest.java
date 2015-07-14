@@ -212,14 +212,12 @@ public class CsvLoaderTest {
     List res = new ArrayList();
     for (ColumnPage page : ((Map<Long, ColumnPage>) col.getPages()).values()) {
       // find column value IDs from column page value Ids
-      List<Long> cvIds =
-          Arrays.asList(PrimitiveUtils.toBoxedArray(page.getValues().decompressedArray())).stream()
-              .map(cpvId -> page.getColumnPageDict().decompressValue(cpvId)).collect(Collectors.toList());
+      List<Long> cvIds = Arrays.asList(PrimitiveUtils.toBoxedArray(page.getValues().decompressedArray())).stream()
+          .map(cpvId -> page.getColumnPageDict().decompressValue(cpvId)).collect(Collectors.toList());
 
       switch (col.getColumnType()) {
       case STRING:
-        res.addAll(cvIds.stream()
-            .map(cvId -> ((StringDictionary) col.getColumnShardDictionary()).decompressValue(cvId))
+        res.addAll(cvIds.stream().map(cvId -> ((StringDictionary) col.getColumnShardDictionary()).decompressValue(cvId))
             .collect(Collectors.toList()));
         break;
       case LONG:
@@ -227,8 +225,7 @@ public class CsvLoaderTest {
             .collect(Collectors.toList()));
         break;
       case DOUBLE:
-        res.addAll(cvIds.stream()
-            .map(cvId -> ((DoubleDictionary) col.getColumnShardDictionary()).decompressValue(cvId))
+        res.addAll(cvIds.stream().map(cvId -> ((DoubleDictionary) col.getColumnShardDictionary()).decompressValue(cvId))
             .collect(Collectors.toList()));
         break;
       }

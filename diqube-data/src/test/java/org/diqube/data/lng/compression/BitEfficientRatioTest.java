@@ -43,14 +43,13 @@ public class BitEfficientRatioTest {
       BitEfficientLongArray longArray = new BitEfficientLongArray();
       double ratioSorted = longArray.expectedCompressionRatio(inputArray, true);
       double ratioUnsorted = longArray.expectedCompressionRatio(inputArray, false);
-      double ratioStatic =
-          BitEfficientLongArray.calculateApproxCompressionRatio(1, inputArray[inputArray.length - 1],
-              inputArray.length, 0);
+      double ratioStatic = BitEfficientLongArray.calculateApproxCompressionRatio(1, inputArray[inputArray.length - 1],
+          inputArray.length, 0);
 
-      Assert.assertEquals(ratioUnsorted, ratioSorted, 0.001, "Sorted ratio should be equal to unsorted (bits=" + noBits
-          + ")");
-      Assert.assertEquals(ratioStatic, ratioUnsorted, 0.001, "Expected ratio to be equal with static method (bits="
-          + noBits + ")");
+      Assert.assertEquals(ratioUnsorted, ratioSorted, 0.001,
+          "Sorted ratio should be equal to unsorted (bits=" + noBits + ")");
+      Assert.assertEquals(ratioStatic, ratioUnsorted, 0.001,
+          "Expected ratio to be equal with static method (bits=" + noBits + ")");
       Assert.assertEquals(ratioUnsorted, noBits / 64., 0.001, "Expected different ratio (bits=" + noBits + ")");
     }
   }
