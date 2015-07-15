@@ -7,6 +7,7 @@ easily.
 
 Make sure you have the prerequisites installed:
 
+ * Java 8
  * [Maven 3][1]
  * [Apache Thrift][2] compiler 0.9.2
 
