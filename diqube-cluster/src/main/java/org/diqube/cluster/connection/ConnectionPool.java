@@ -18,7 +18,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.server;
+package org.diqube.cluster.connection;
 
 import java.lang.reflect.InvocationTargetException;
 
@@ -33,7 +33,6 @@ import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.remote.base.thrift.RNodeAddress;
-import org.diqube.remote.query.QueryResultServiceConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,16 +59,15 @@ public class ConnectionPool {
    * @param addr
    *          The address of the node to open a connection to.
    */
-  public <T extends TServiceClient> Connection<T> reserveConnection(Class<T> thiftClientClass, RNodeAddress addr)
-      throws ConnectionException {
+  public <T extends TServiceClient> Connection<T> reserveConnection(Class<T> thiftClientClass, String thriftServiceName,
+      RNodeAddress addr) throws ConnectionException {
     // TODO #32 implement pooling.
     // TODO #32 implement failsafe connections!
     // TODO #32 implement timeout
 
     TTransport transport = openTransport(addr);
 
-    TProtocol queryProtocol =
-        new TMultiplexedProtocol(new TCompactProtocol(transport), QueryResultServiceConstants.SERVICE_NAME);
+    TProtocol queryProtocol = new TMultiplexedProtocol(new TCompactProtocol(transport), thriftServiceName);
 
     T queryResultClient;
     try {

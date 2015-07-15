@@ -28,6 +28,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.diqube.config.ConfigKey;
+import org.diqube.config.ConfigurationManager;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

@@ -26,6 +26,8 @@ import java.util.concurrent.Executor;
 import javax.inject.Inject;
 
 import org.apache.thrift.TException;
+import org.diqube.cluster.connection.ConnectionPool;
+import org.diqube.cluster.connection.ConnectionPool.Connection;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.plan.ExecutionPlanBuilderFactory;
 import org.diqube.plan.exception.ParseException;
@@ -36,12 +38,12 @@ import org.diqube.queries.QueryUuidProvider;
 import org.diqube.remote.base.thrift.RNodeAddress;
 import org.diqube.remote.base.thrift.RUUID;
 import org.diqube.remote.base.util.RUuidUtil;
+import org.diqube.remote.query.QueryResultServiceConstants;
 import org.diqube.remote.query.thrift.QueryResultService;
 import org.diqube.remote.query.thrift.QueryService;
 import org.diqube.remote.query.thrift.QueryService.Iface;
 import org.diqube.remote.query.thrift.RQueryException;
 import org.diqube.remote.query.thrift.RResultTable;
-import org.diqube.server.ConnectionPool.Connection;
 import org.diqube.threads.ExecutorManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -160,8 +162,8 @@ public class QueryServiceHandler implements Iface {
     logger.info("Async query {}, partial {}, resultAddress {}: {}",
         new Object[] { queryUuid, sendPartialUpdates, resultAddress, diql });
 
-    Connection<QueryResultService.Client> resultConnection =
-        connectionPool.reserveConnection(QueryResultService.Client.class, resultAddress);
+    Connection<QueryResultService.Client> resultConnection = connectionPool
+        .reserveConnection(QueryResultService.Client.class, QueryResultServiceConstants.SERVICE_NAME, resultAddress);
     QueryResultService.Iface resultService = resultConnection.getService();
 
     UUID executionUuid = queryUuidProvider.createNewExecutionUuid(queryUuid, "master-" + queryUuid);

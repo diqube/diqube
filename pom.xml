@@ -47,13 +47,16 @@
 
   <modules>
     <module>diqube-test-util</module>
+    <module>diqube-listeners</module>
     <module>diqube-remote</module>
     <module>diqube-util</module>
     <module>diqube-queries</module>
     <module>diqube-threads</module>
+    <module>diqube-context</module>
+    <module>diqube-config</module>
+    <module>diqube-cluster</module>
     <module>diqube-data</module>
     <module>diqube-diql</module>
-    <module>diqube-context</module>
     <module>diqube-loader</module>
     <module>diqube-function</module>
     <module>diqube-plan</module>

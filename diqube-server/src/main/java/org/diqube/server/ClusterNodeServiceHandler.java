@@ -21,6 +21,7 @@
 package org.diqube.server;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
@@ -29,6 +30,9 @@ import java.util.concurrent.Executor;
 import javax.inject.Inject;
 
 import org.apache.thrift.TException;
+import org.diqube.cluster.ClusterManager;
+import org.diqube.cluster.connection.ConnectionPool;
+import org.diqube.cluster.connection.ConnectionPool.Connection;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.data.TableShard;
 import org.diqube.execution.ExecutablePlanFromRemoteBuilderFactory;
@@ -43,6 +47,7 @@ import org.diqube.remote.base.thrift.RUUID;
 import org.diqube.remote.base.thrift.RValue;
 import org.diqube.remote.base.util.RUuidUtil;
 import org.diqube.remote.base.util.RValueUtil;
+import org.diqube.remote.cluster.ClusterNodeServiceConstants;
 import org.diqube.remote.cluster.RIntermediateAggregationResultUtil;
 import org.diqube.remote.cluster.thrift.ClusterNodeService;
 import org.diqube.remote.cluster.thrift.ClusterNodeService.Iface;
@@ -50,7 +55,6 @@ import org.diqube.remote.cluster.thrift.RExecutionException;
 import org.diqube.remote.cluster.thrift.RExecutionPlan;
 import org.diqube.remote.cluster.thrift.ROldNewIntermediateAggregationResult;
 import org.diqube.remote.query.thrift.QueryService;
-import org.diqube.server.ConnectionPool.Connection;
 import org.diqube.server.RemoteExecutionPlanExecutor.RemoteExecutionPlanExecutionCallback;
 import org.diqube.threads.ExecutorManager;
 import org.slf4j.Logger;
@@ -64,8 +68,6 @@ import org.slf4j.LoggerFactory;
  * 
  * When executing queries, the of this service methods will be called on the "query remote" nodes.
  * 
- * TODO #11 implement.
- *
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
@@ -90,6 +92,9 @@ public class ClusterNodeServiceHandler implements Iface {
   @Inject
   private QueryUuidProvider queryUuidProvider;
 
+  @Inject
+  private ClusterManager clusterManager;
+
   /**
    * Starts executing a {@link RExecutionPlan} on all {@link TableShard}s on this node, which act as "query remote"
    * node.
@@ -100,8 +105,8 @@ public class ClusterNodeServiceHandler implements Iface {
   @Override
   public void executeOnAllLocalShards(RExecutionPlan executionPlan, RUUID remoteQueryUuid, RNodeAddress resultAddress)
       throws TException {
-    Connection<ClusterNodeService.Client> resultConnection =
-        connectionPool.reserveConnection(ClusterNodeService.Client.class, resultAddress);
+    Connection<ClusterNodeService.Client> resultConnection = connectionPool
+        .reserveConnection(ClusterNodeService.Client.class, ClusterNodeServiceConstants.SERVICE_NAME, resultAddress);
 
     UUID queryUuid = RUuidUtil.toUuid(remoteQueryUuid);
     // The executionUuid we will use for the all executors executing something started by this API call.
@@ -263,6 +268,22 @@ public class ClusterNodeServiceHandler implements Iface {
   public void executionException(RUUID remoteQueryUuid, RExecutionException executionException) throws TException {
     for (QueryResultHandler handler : queryRegistry.getQueryResultHandlers(RUuidUtil.toUuid(remoteQueryUuid)))
       handler.oneRemoteException(executionException.getMessage());
+  }
+
+  /**
+   * A new cluster node says "hello".
+   */
+  @Override
+  public void hello(RNodeAddress newNode) throws TException {
+    clusterManager.newNode(newNode);
+  }
+
+  /**
+   * Someone asks us what cluster nodes we know and what tables they serve shards of.
+   */
+  @Override
+  public Map<RNodeAddress, List<String>> clusterLayout() throws TException {
+    return clusterManager.getClusterLayout();
   }
 
 }

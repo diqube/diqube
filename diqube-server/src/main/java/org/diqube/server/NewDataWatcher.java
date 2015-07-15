@@ -34,19 +34,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 
+import org.diqube.config.Config;
+import org.diqube.config.ConfigKey;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.context.Profiles;
 import org.diqube.data.TableFactory;
 import org.diqube.execution.TableRegistry;
+import org.diqube.listeners.ClusterManagerListener;
 import org.diqube.loader.CsvLoader;
 import org.diqube.loader.JsonLoader;
 import org.diqube.loader.LoadException;
-import org.diqube.server.config.Config;
-import org.diqube.server.config.ConfigKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
@@ -62,7 +62,7 @@ import org.springframework.context.annotation.Profile;
  */
 @AutoInstatiate
 @Profile(Profiles.NEW_DATA_WATCHER)
-public class NewDataWatcher {
+public class NewDataWatcher implements ClusterManagerListener {
 
   private static final Logger logger = LoggerFactory.getLogger(NewDataWatcher.class);
 
@@ -91,8 +91,10 @@ public class NewDataWatcher {
 
   private Map<String, String> tableNamesByControlFilePath = new HashMap<>();
 
-  @PostConstruct
-  public void initialize() {
+  @Override
+  public void clusterInitialized() {
+    // Start initializing as soon as we're ready to communicate with the cluster.
+
     watchPath = Paths.get(directory).toAbsolutePath();
     File f = watchPath.toFile();
     if (!f.exists() || !f.isDirectory()) {
@@ -198,4 +200,5 @@ public class NewDataWatcher {
       }
     }
   }
+
 }

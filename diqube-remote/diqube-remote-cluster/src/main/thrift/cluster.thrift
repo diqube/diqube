@@ -164,5 +164,12 @@ service ClusterNodeService {
   
   oneway void executionDone(1: base.RUUID queryId),
   
-  oneway void executionException(1: base.RUUID queryId, 2:RExecutionException executionException)
+  oneway void executionException(1: base.RUUID queryId, 2:RExecutionException executionException),
+  
+  // a new node says hello to all cluster nodes
+  void hello(1: base.RNodeAddress newNode),
+  
+  // After a new node has said hello, it will fetch the current active nodes in the whole cluster and the tablenames
+  // they are serving. 
+  map<base.RNodeAddress, list<string>> clusterLayout()
 }

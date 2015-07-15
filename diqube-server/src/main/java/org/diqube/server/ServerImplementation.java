@@ -20,6 +20,8 @@
  */
 package org.diqube.server;
 
+import java.util.List;
+
 import javax.inject.Inject;
 
 import org.apache.thrift.TMultiplexedProcessor;
@@ -29,13 +31,14 @@ import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TNonblockingServerSocket;
 import org.apache.thrift.transport.TNonblockingServerTransport;
 import org.apache.thrift.transport.TTransportException;
+import org.diqube.config.Config;
+import org.diqube.config.ConfigKey;
 import org.diqube.context.AutoInstatiate;
+import org.diqube.listeners.ServingListener;
 import org.diqube.remote.cluster.ClusterNodeServiceConstants;
 import org.diqube.remote.cluster.thrift.ClusterNodeService;
 import org.diqube.remote.query.QueryServiceConstants;
 import org.diqube.remote.query.thrift.QueryService;
-import org.diqube.server.config.Config;
-import org.diqube.server.config.ConfigKey;
 import org.diqube.server.thrift.ThriftServer;
 import org.diqube.threads.ExecutorManager;
 import org.slf4j.Logger;
@@ -66,6 +69,9 @@ public class ServerImplementation {
   @Inject
   private ExecutorManager executorManager;
 
+  @Inject
+  private List<ServingListener> servingListeners;
+
   private TThreadedSelectorServer server;
 
   public void serve() {
@@ -74,7 +80,7 @@ public class ServerImplementation {
     if (serverArgs == null)
       return;
 
-    server = new ThriftServer(serverArgs, "server-selector-%d");
+    server = new ThriftServer(serverArgs, "server-selector-%d", servingListeners);
 
     // Make sure we at least try to clean up a little bit when the VM is shut down.
     Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {

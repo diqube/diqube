@@ -21,10 +21,14 @@
 package org.diqube.execution;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+
+import javax.inject.Inject;
 
 import org.diqube.context.AutoInstatiate;
 import org.diqube.data.Table;
+import org.diqube.listeners.TableLoadListener;
 
 /**
  * All {@link Table} objects that are available on the current cluster node are registered here.
@@ -35,6 +39,9 @@ import org.diqube.data.Table;
 public class TableRegistry {
   private Map<String, Table> tables = new HashMap<String, Table>();
 
+  @Inject
+  private List<TableLoadListener> tableLoadListeners;
+
   public synchronized Table getTable(String name) {
     return tables.get(name);
   }
@@ -43,9 +50,13 @@ public class TableRegistry {
     if (tables.containsKey(name))
       throw new IllegalStateException("Table '" + name + "' exists already.");
     tables.put(name, table);
+
+    tableLoadListeners.forEach(l -> l.tableShardLoaded(name));
   }
 
   public synchronized void removeTable(String name) {
     tables.remove(name);
+
+    tableLoadListeners.forEach(l -> l.tableShardUnloaded(name, false));
   }
 }

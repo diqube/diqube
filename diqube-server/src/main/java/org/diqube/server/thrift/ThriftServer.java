@@ -22,8 +22,10 @@ package org.diqube.server.thrift;
 
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 
 import org.apache.thrift.server.TThreadedSelectorServer;
+import org.diqube.listeners.ServingListener;
 
 /**
  * A simple sub-class of {@link TThreadedSelectorServer} that enforces the selectorThreads to get a nice name.
@@ -36,6 +38,7 @@ import org.apache.thrift.server.TThreadedSelectorServer;
 public class ThriftServer extends TThreadedSelectorServer {
 
   private String selectorThreadNameFormat;
+  private List<ServingListener> servingListeners;
 
   /**
    * @param args
@@ -46,9 +49,10 @@ public class ThriftServer extends TThreadedSelectorServer {
    *          ThreadFactory and will be assigned sequentially. For example, {@code "rpc-pool-%d"} will generate thread
    *          names like {@code "rpc-pool-0"}, {@code "rpc-pool-1"}, {@code "rpc-pool-2"}, etc.
    */
-  public ThriftServer(Args args, String selectorThreadNameFormat) {
+  public ThriftServer(Args args, String selectorThreadNameFormat, List<ServingListener> servingListeners) {
     super(args);
     this.selectorThreadNameFormat = selectorThreadNameFormat;
+    this.servingListeners = servingListeners;
   }
 
   @Override
@@ -62,4 +66,13 @@ public class ThriftServer extends TThreadedSelectorServer {
     return super.createSelectorThreadLoadBalancer(threads);
   }
 
+  @Override
+  protected void setServing(boolean serving) {
+    super.setServing(serving);
+
+    if (serving)
+      servingListeners.forEach(l -> l.localServerStartedServing());
+    else
+      servingListeners.forEach(l -> l.localServerStoppedServing());
+  }
 }

@@ -18,9 +18,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.server.config;
-
-import org.diqube.server.NewDataWatcher;
+package org.diqube.config;
 
 /**
  * Configuration keys which can be used to resolve configuration values.
@@ -49,10 +47,29 @@ public class ConfigKey {
   public static final String SELECTOR_THREADS = "selectorThreads";
 
   /**
-   * The directory which should be watched for new data to be loaded. See {@link NewDataWatcher} for more details.
+   * The directory which should be watched for new data to be loaded. See NewDataWatcher for more details.
    * 
    * <p>
    * This can be a relative path which is then interpreted as being relative to the current working directory.
    */
   public static final String DATA_DIR = "dataDir";
+
+  /**
+   * The host of this node which is usable by other cluster nodes to communicate with this node.
+   * 
+   * This can either be an IP address or a hostname that is resolved via DNS.
+   * 
+   * Special value "*" is for automatic detection. Have a look at the log messages after startup to find out which value
+   * was chosen.
+   */
+  public static final String OUR_HOST = "host";
+
+  /**
+   * A few addresses of nodes in the diqube cluster this node should connect to.
+   * 
+   * Format is: <code>
+   * host:port,host:post,host:port, ...
+   * </code>
+   */
+  public static final String CLUSTER_NODES = "clusterNodes";
 }
