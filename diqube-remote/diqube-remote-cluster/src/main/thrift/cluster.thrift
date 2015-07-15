@@ -33,10 +33,17 @@ union RColOrValue {
   2: optional base.RValue value
 }
 
+enum RColumnType {
+  STRING,
+  DOUBLE,
+  LONG
+}
+
 struct RIntermediateAggregationResult {
-  1: base.RValue value1,
-  2: optional base.RValue value2,
-  3: optional base.RValue value3
+  1: RColumnType inputColumnType,
+  2: base.RValue value1,
+  3: optional base.RValue value2,
+  4: optional base.RValue value3
 }
 
 struct ROldNewIntermediateAggregationResult {

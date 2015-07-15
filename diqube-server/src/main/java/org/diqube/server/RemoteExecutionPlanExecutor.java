@@ -42,8 +42,8 @@ import org.diqube.function.IntermediaryResult;
 import org.diqube.queries.QueryRegistry;
 import org.diqube.remote.base.thrift.RValue;
 import org.diqube.remote.base.util.RValueUtil;
+import org.diqube.remote.cluster.RIntermediateAggregationResultUtil;
 import org.diqube.remote.cluster.thrift.RExecutionPlan;
-import org.diqube.remote.cluster.thrift.RIntermediateAggregationResult;
 import org.diqube.remote.cluster.thrift.ROldNewIntermediateAggregationResult;
 import org.diqube.threads.ExecutorManager;
 
@@ -137,9 +137,11 @@ public class RemoteExecutionPlanExecutor {
               IntermediaryResult<Object, Object, Object> newIntermediaryResult) {
             ROldNewIntermediateAggregationResult res = new ROldNewIntermediateAggregationResult();
             if (oldIntermediaryResult != null)
-              res.setOldResult(buildIntermediateAggregationResult(oldIntermediaryResult));
+              res.setOldResult(
+                  RIntermediateAggregationResultUtil.buildRIntermediateAggregationResult(oldIntermediaryResult));
             if (newIntermediaryResult != null)
-              res.setNewResult(buildIntermediateAggregationResult(newIntermediaryResult));
+              res.setNewResult(
+                  RIntermediateAggregationResultUtil.buildRIntermediateAggregationResult(newIntermediaryResult));
 
             callback.newGroupIntermediaryAggregration(groupId, colName, res);
           }
@@ -173,17 +175,6 @@ public class RemoteExecutionPlanExecutor {
           }
       }
     };
-  }
-
-  private RIntermediateAggregationResult buildIntermediateAggregationResult(
-      IntermediaryResult<Object, Object, Object> input) {
-    RIntermediateAggregationResult res = new RIntermediateAggregationResult();
-    res.setValue1(RValueUtil.createRValue(input.getLeft()));
-    if (input.getMiddle() != null)
-      res.setValue2(RValueUtil.createRValue(input.getMiddle()));
-    if (input.getRight() != null)
-      res.setValue3(RValueUtil.createRValue(input.getRight()));
-    return res;
   }
 
   /**

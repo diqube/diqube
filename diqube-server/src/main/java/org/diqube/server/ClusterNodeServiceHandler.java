@@ -20,7 +20,9 @@
  */
 package org.diqube.server;
 
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 
@@ -31,13 +33,17 @@ import org.diqube.context.AutoInstatiate;
 import org.diqube.data.TableShard;
 import org.diqube.execution.ExecutablePlanFromRemoteBuilderFactory;
 import org.diqube.execution.TableRegistry;
+import org.diqube.function.IntermediaryResult;
 import org.diqube.queries.QueryRegistry;
 import org.diqube.queries.QueryRegistry.QueryExceptionHandler;
+import org.diqube.queries.QueryRegistry.QueryResultHandler;
 import org.diqube.queries.QueryUuidProvider;
 import org.diqube.remote.base.thrift.RNodeAddress;
 import org.diqube.remote.base.thrift.RUUID;
 import org.diqube.remote.base.thrift.RValue;
 import org.diqube.remote.base.util.RUuidUtil;
+import org.diqube.remote.base.util.RValueUtil;
+import org.diqube.remote.cluster.RIntermediateAggregationResultUtil;
 import org.diqube.remote.cluster.thrift.ClusterNodeService;
 import org.diqube.remote.cluster.thrift.ClusterNodeService.Iface;
 import org.diqube.remote.cluster.thrift.RExecutionException;
@@ -87,6 +93,9 @@ public class ClusterNodeServiceHandler implements Iface {
   /**
    * Starts executing a {@link RExecutionPlan} on all {@link TableShard}s on this node, which act as "query remote"
    * node.
+   * 
+   * Please note that the results of this call will be available through a {@link QueryResultHandler} which can be
+   * registered at {@link QueryRegistry}.
    */
   @Override
   public void executeOnAllLocalShards(RExecutionPlan executionPlan, RUUID remoteQueryUuid, RNodeAddress resultAddress)
@@ -205,8 +214,18 @@ public class ClusterNodeServiceHandler implements Iface {
    * {@link #executeOnAllShards(RExecutionPlan, RUUID, RNodeAddress, boolean)} on another node.
    */
   @Override
-  public void groupIntermediateAggregationResultAvailable(RUUID queryId, long groupId, String colName,
+  public void groupIntermediateAggregationResultAvailable(RUUID remoteQueryUuid, long groupId, String colName,
       ROldNewIntermediateAggregationResult result) throws TException {
+
+    IntermediaryResult<Object, Object, Object> oldRes = null;
+    if (result.isSetOldResult())
+      oldRes = RIntermediateAggregationResultUtil.buildIntermediateAggregationResult(result.getOldResult());
+    IntermediaryResult<Object, Object, Object> newRes = null;
+    if (result.isSetNewResult())
+      newRes = RIntermediateAggregationResultUtil.buildIntermediateAggregationResult(result.getNewResult());
+
+    for (QueryResultHandler handler : queryRegistry.getQueryResultHandlers(RUuidUtil.toUuid(remoteQueryUuid)))
+      handler.newIntermediaryAggregationResult(groupId, colName, oldRes, newRes);
   }
 
   /**
@@ -216,7 +235,14 @@ public class ClusterNodeServiceHandler implements Iface {
    * {@link #executeOnAllShards(RExecutionPlan, RUUID, RNodeAddress, boolean)} on another node.
    */
   @Override
-  public void columnValueAvailable(RUUID queryId, String colName, Map<Long, RValue> valuesByRowId) throws TException {
+  public void columnValueAvailable(RUUID remoteQueryUuid, String colName, Map<Long, RValue> valuesByRowId)
+      throws TException {
+    Map<Long, Object> values = new HashMap<>();
+    for (Entry<Long, RValue> remoteEntry : valuesByRowId.entrySet())
+      values.put(remoteEntry.getKey(), RValueUtil.createValue(remoteEntry.getValue()));
+
+    for (QueryResultHandler handler : queryRegistry.getQueryResultHandlers(RUuidUtil.toUuid(remoteQueryUuid)))
+      handler.newColumnValues(colName, values);
   }
 
   /**
@@ -224,7 +250,9 @@ public class ClusterNodeServiceHandler implements Iface {
    * completed successfully.
    */
   @Override
-  public void executionDone(RUUID queryId) throws TException {
+  public void executionDone(RUUID remoteQueryUuid) throws TException {
+    for (QueryResultHandler handler : queryRegistry.getQueryResultHandlers(RUuidUtil.toUuid(remoteQueryUuid)))
+      handler.oneRemoteDone();
   }
 
   /**
@@ -232,7 +260,9 @@ public class ClusterNodeServiceHandler implements Iface {
    * with an exception.
    */
   @Override
-  public void executionException(RUUID queryId, RExecutionException executionException) throws TException {
+  public void executionException(RUUID remoteQueryUuid, RExecutionException executionException) throws TException {
+    for (QueryResultHandler handler : queryRegistry.getQueryResultHandlers(RUuidUtil.toUuid(remoteQueryUuid)))
+      handler.oneRemoteException(executionException.getMessage());
   }
 
 }

@@ -39,4 +39,15 @@ public class RValueUtil {
       return null;
     return res;
   }
+
+  public static Object createValue(RValue value) {
+    Object res;
+    if (value.isSetStrValue())
+      res = value.getStrValue();
+    else if (value.isSetLongValue())
+      res = value.getLongValue();
+    else
+      res = value.getDoubleValue();
+    return res;
+  }
 }

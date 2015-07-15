@@ -144,5 +144,10 @@
       <artifactId>diqube-remote-base</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>diqube-function</artifactId>
+      <version>${project.version}</version>
+    </dependency>
   </dependencies>
 </project>
