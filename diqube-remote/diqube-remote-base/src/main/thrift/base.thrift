@@ -33,7 +33,7 @@ struct RNodeHttpAddress {
 
 struct RNodeDefaultAddress {
   1: string host,
-  2: i32 port
+  2: i16 port
 }
 
 enum RNodeAccessType {
