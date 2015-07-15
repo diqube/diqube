@@ -41,9 +41,12 @@ public class QueryThreadFactory implements ThreadFactory {
   private UUID queryUuid;
   private QueryRegistry queryRegistry;
 
-  public QueryThreadFactory(ThreadFactory delegate, UUID queryUuid, QueryRegistry queryRegistry) {
+  private UUID executionUuid;
+
+  public QueryThreadFactory(ThreadFactory delegate, UUID queryUuid, UUID executionUuid, QueryRegistry queryRegistry) {
     this.delegate = delegate;
     this.queryUuid = queryUuid;
+    this.executionUuid = executionUuid;
     this.queryRegistry = queryRegistry;
   }
 
@@ -52,11 +55,11 @@ public class QueryThreadFactory implements ThreadFactory {
     Thread delegateRes = delegate.newThread(new Runnable() {
       @Override
       public void run() {
-        QueryUuid.setCurrentQueryUuid(queryUuid);
+        QueryUuid.setCurrentQueryUuidAndExecutionUuid(queryUuid, executionUuid);
         try {
           r.run();
         } finally {
-          QueryUuid.clearCurrentQueryUuid();
+          QueryUuid.clearCurrent();
         }
       }
     });
@@ -66,7 +69,7 @@ public class QueryThreadFactory implements ThreadFactory {
       public void uncaughtException(Thread t, Throwable e) {
         if (queryUuid == null)
           logger.error("Unhandled exception", e);
-        else if (!queryRegistry.handleException(queryUuid, e))
+        else if (!queryRegistry.handleException(queryUuid, executionUuid, e))
           logger.error("Unhandled exception of query that is no longer active (" + queryUuid + ")", e);
       }
     });

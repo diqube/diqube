@@ -33,6 +33,7 @@ import org.diqube.data.TableShard;
 import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.env.VersionedExecutionEnvironment;
 import org.diqube.queries.QueryRegistry;
+import org.diqube.queries.QueryUuid;
 import org.diqube.threads.ExecutorManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,6 +48,14 @@ import org.slf4j.LoggerFactory;
  * additionally holds the _default_ {@link ExecutionEnvironment} which is used to hold temporary information while the
  * plan is being executed - information that needs to be shared between the {@link ExecutablePlanStep}s. See JavaDoc of
  * {@link ExecutionEnvironment} and {@link VersionedExecutionEnvironment} for more information.
+ * 
+ * <p>
+ * An ExecutablePlan executes one part of the overall execution for a query (= a diql string sent by the user). Each
+ * {@link ExecutablePlan} therefore belongs to a query, which has a query UUID. As the execution of each query is
+ * distributed across the diqube cluster, each cluster node participating in the execution (query master and each query
+ * remote) has an execution UUID for identifying the things that are being executed together. Those two UUIDs can be
+ * fetched from {@link QueryUuid} class while in a thread that is currently executing some part of this
+ * {@link ExecutablePlan}.
  *
  * @author Bastian Gloeckle
  */
@@ -84,8 +93,9 @@ public class ExecutablePlan {
    *          not enough threads available, it is not guaranteed that there will be no deadlock.
    * @return A Future that can be used to query the state of the computation of all steps. Note that
    *         {@link Future#cancel(boolean)} will not work on the returned future, stop the executor passed to this
-   *         method instead (one might want to use {@link ExecutorManager#shutdownEverythingOfQuery(java.util.UUID)} and
-   *         {@link QueryRegistry#unregisterQuery(java.util.UUID)}).
+   *         method instead (one might want to use
+   *         {@link ExecutorManager#shutdownEverythingOfQueryExecution(java.util.UUID)} and
+   *         {@link QueryRegistry#unregisterQueryExecution(java.util.UUID)}).
    */
   public Future<Void> executeAsynchronously(Executor executor) {
     logger.trace("Executing asynchronously {}", this);

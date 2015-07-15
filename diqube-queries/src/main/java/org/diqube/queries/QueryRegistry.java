@@ -27,6 +27,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 
 import org.diqube.context.AutoInstatiate;
+import org.diqube.util.Pair;
 
 /**
  * All queries being executed are registered here. This class will be informed about any asynchronous exceptions that
@@ -41,22 +42,23 @@ import org.diqube.context.AutoInstatiate;
  */
 @AutoInstatiate
 public class QueryRegistry {
-  private Map<UUID, QueryExceptionHandler> exceptionHandlers = new ConcurrentHashMap<>();
+  private Map<Pair<UUID, UUID>, QueryExceptionHandler> exceptionHandlers = new ConcurrentHashMap<>();
 
   /**
-   * Register a query and its exception handler. Note that for the query {@link #unregisterQuery(UUID)} has to be
-   * called.
+   * Register a query, its execution and its exception handler. Note that for the query
+   * {@link #unregisterQueryExecution(UUID)} has to be called. For query UUID/execution UUID, see {@link QueryUuid} and
+   * ExecutablePlan.
    */
-  public void registerQuery(UUID queryUuid, QueryExceptionHandler exceptionHandler) {
-    exceptionHandlers.put(queryUuid, exceptionHandler);
+  public void registerQueryExecution(UUID queryUuid, UUID executionUuid, QueryExceptionHandler exceptionHandler) {
+    exceptionHandlers.put(new Pair<>(queryUuid, executionUuid), exceptionHandler);
   }
 
   /**
-   * Unregisters a query, all exceptions that will be thrown in one of the queries {@link ExecutorService}s in the
-   * future will not be passed on to the registered {@link QueryExceptionHandler} any more!
+   * Unregisters a query execution, all exceptions that will be thrown in one of the corresponding {@link Executor}s in
+   * the future will not be passed on to the registered {@link QueryExceptionHandler} any more!
    */
-  public void unregisterQuery(UUID queryUuid) {
-    exceptionHandlers.remove(queryUuid);
+  public void unregisterQueryExecution(UUID queryUuid, UUID executionUuid) {
+    exceptionHandlers.remove(new Pair<>(queryUuid, executionUuid));
   }
 
   /**
@@ -64,14 +66,14 @@ public class QueryRegistry {
    * 
    * @return <code>true</code> when the exception was handled by an exception handler, <code>false</code> otherwise.
    */
-  public boolean handleException(UUID queryUuid, Throwable t) {
-    QueryExceptionHandler handler = exceptionHandlers.get(queryUuid);
+  public boolean handleException(UUID queryUuid, UUID executionUuid, Throwable t) {
+    QueryExceptionHandler handler = exceptionHandlers.get(new Pair<>(queryUuid, executionUuid));
 
     if (handler == null)
       return false;
 
     handler.handleException(t);
-    unregisterQuery(queryUuid);
+    unregisterQueryExecution(queryUuid, executionUuid);
     return true;
   }
 
@@ -80,7 +82,7 @@ public class QueryRegistry {
    */
   public static interface QueryExceptionHandler {
     /**
-     * Handle the given exception. The query will automatically be unregistered in the {@link QueryRegistry}.
+     * Handle the given exception. The query execution will automatically be unregistered in the {@link QueryRegistry}.
      */
     public void handleException(Throwable t);
   }

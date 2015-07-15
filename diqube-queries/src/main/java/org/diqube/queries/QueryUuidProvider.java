@@ -18,25 +18,34 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.remote.base.util;
+package org.diqube.queries;
 
-import org.diqube.remote.base.thrift.RValue;
+import java.util.UUID;
+
+import org.diqube.context.AutoInstatiate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
+ * A provider for new Query UUIDs and Execution UUIDs.
+ *
+ * @see QueryUuid
  *
  * @author Bastian Gloeckle
  */
-public class RValueUtil {
-  public static RValue createRValue(Object value) {
-    RValue res = new RValue();
-    if (value instanceof String)
-      res.setStrValue((String) value);
-    else if (value instanceof Long)
-      res.setLongValue((Long) value);
-    else if (value instanceof Double)
-      res.setDoubleValue((Double) value);
-    else
-      return null;
+@AutoInstatiate
+public class QueryUuidProvider {
+  private static final Logger logger = LoggerFactory.getLogger(QueryUuidProvider.class);
+
+  public UUID createNewQueryUuid(String diql) {
+    UUID res = UUID.randomUUID();
+    logger.info("New query UUID {} for query '{}'", res, diql);
+    return res;
+  }
+
+  public UUID createNewExecutionUuid(UUID queryUuid, String description) {
+    UUID res = UUID.randomUUID();
+    logger.info("New execution UUID {} for query {}: {}", res, queryUuid, description);
     return res;
   }
 }

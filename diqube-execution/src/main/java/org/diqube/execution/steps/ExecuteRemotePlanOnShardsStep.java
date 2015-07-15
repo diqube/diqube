@@ -145,7 +145,7 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
     for (ExecutablePlan executablePlanOnShard : remoteExecutablePlans) {
       Executor executor = executorManager.newQueryFixedThreadPool(executablePlanOnShard.preferredExecutorServiceSize(),
           Thread.currentThread().getName() + "-sub-" + (subCnt++) + "-%d", //
-          QueryUuid.getCurrentQueryUuid());
+          QueryUuid.getCurrentQueryUuid(), QueryUuid.getCurrentExecutionUuid());
 
       Future<Void> future = executablePlanOnShard.executeAsynchronously(executor);
       futures.add(future);

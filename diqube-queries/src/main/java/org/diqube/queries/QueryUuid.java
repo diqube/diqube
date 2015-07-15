@@ -22,26 +22,34 @@ package org.diqube.queries;
 
 import java.util.UUID;
 
+import org.diqube.util.Pair;
+
 /**
- * Class that can provide the query UUID to any thread while executing a query.
+ * Class that can provide the query UUID and execution UUID to any thread while executing a query.
+ * 
+ * A query UUID is and ID identifying a global query across the whole diqube cluster - meaning the execution of one diql
+ * string that was sent by the user. A query can have multiple executions, though - namely one for the query master and
+ * then for each query remote another one.
  *
  * @author Bastian Gloeckle
  */
 public class QueryUuid {
-  private static final ThreadLocal<UUID> queryUuidThreadLocal = new ThreadLocal<>();
+  private static final ThreadLocal<Pair<UUID, UUID>> queryUuidThreadLocal = new ThreadLocal<>();
 
   /**
    * @param queryUuid
    *          The query UUID for the current thread.
+   * @param executionUuid
+   *          The execution UUID for the current thread.
    */
-  public static void setCurrentQueryUuid(UUID queryUuid) {
-    queryUuidThreadLocal.set(queryUuid);
+  public static void setCurrentQueryUuidAndExecutionUuid(UUID queryUuid, UUID executionUuid) {
+    queryUuidThreadLocal.set(new Pair<>(queryUuid, executionUuid));
   }
 
   /**
-   * Call this method to clear the resources taken up from a call to {@link #setCurrentQueryUuid(UUID)}.
+   * Call this method to clear the resources taken up from a call to {@link #setCurrentQueryUuidAndExecutionUuid(UUID)}.
    */
-  public static void clearCurrentQueryUuid() {
+  public static void clearCurrent() {
     queryUuidThreadLocal.set(null);
   }
 
@@ -50,7 +58,20 @@ public class QueryUuid {
    *         UUID that the current thread is supposed to work for.
    */
   public static UUID getCurrentQueryUuid() {
-    return queryUuidThreadLocal.get();
+    Pair<UUID, UUID> p = queryUuidThreadLocal.get();
+    if (p == null)
+      return null;
+    return p.getLeft();
+  }
+
+  /**
+   * @return The execution UUID of the current thread if available, else <code>null</code>.
+   */
+  public static UUID getCurrentExecutionUuid() {
+    Pair<UUID, UUID> p = queryUuidThreadLocal.get();
+    if (p == null)
+      return null;
+    return p.getRight();
   }
 
 }

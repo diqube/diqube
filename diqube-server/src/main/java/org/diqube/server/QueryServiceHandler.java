@@ -32,6 +32,7 @@ import org.diqube.plan.exception.ParseException;
 import org.diqube.plan.exception.ValidationException;
 import org.diqube.queries.QueryRegistry;
 import org.diqube.queries.QueryRegistry.QueryExceptionHandler;
+import org.diqube.queries.QueryUuidProvider;
 import org.diqube.remote.base.thrift.RNodeAddress;
 import org.diqube.remote.base.thrift.RUUID;
 import org.diqube.remote.base.util.RUuidUtil;
@@ -68,6 +69,9 @@ public class QueryServiceHandler implements Iface {
   @Inject
   private ConnectionPool connectionPool;
 
+  @Inject
+  private QueryUuidProvider queryUuidProvider;
+
   /**
    * Executes the given diql query on the diqube cluster, where this node will be the query master.
    * 
@@ -83,44 +87,47 @@ public class QueryServiceHandler implements Iface {
     Throwable[] resThrowable = new Throwable[1];
     resThrowable[0] = null;
 
+    UUID executionUuid = queryUuidProvider.createNewExecutionUuid(queryUuid, "master-" + queryUuid);
+
+    QueryExceptionHandler exceptionHandler = new QueryExceptionHandler() {
+      @Override
+      public void handleException(Throwable t) {
+        logger.error("Exception while executing query {} execution {}", queryUuid, executionUuid, t);
+
+        resThrowable[0] = t;
+
+        // shutdown everything.
+        executorManager.shutdownEverythingOfQueryExecution(queryUuid, executionUuid);
+      }
+    };
+
     MasterQueryExecutor queryExecutor = new MasterQueryExecutor(executorManager, executionPlanBuilderFactory,
         new MasterQueryExecutor.QueryExecutorCallback() {
           @Override
           public void intermediaryResultTableAvailable(RResultTable resultTable) {
+            // noop
           }
 
           @Override
           public void finalResultTableAvailable(RResultTable resultTable) {
-            logger.trace("Final result for {}: {}", queryUuid, resultTable);
+            logger.trace("Final result for {} execution {}: {}", queryUuid, executionUuid, resultTable);
 
             res[0] = resultTable;
 
             // we received the final result, be sure to clean up.
-            queryRegistry.unregisterQuery(queryUuid);
-            executorManager.shutdownEverythingOfQuery(queryUuid);
+            queryRegistry.unregisterQueryExecution(queryUuid, executionUuid);
+            executorManager.shutdownEverythingOfQueryExecution(queryUuid, executionUuid);
           }
         }, false);
 
     Runnable execute;
     try {
-      execute = queryExecutor.prepareExecution(queryUuid, diql);
+      execute = queryExecutor.prepareExecution(queryUuid, executionUuid, diql);
     } catch (ParseException | ValidationException e) {
-      logger.warn("Exception while preparing the query execution of {}: {}", queryUuid, e.getMessage());
+      logger.warn("Exception while preparing the query execution of {} execution {}: {}", queryUuid, executionUuid,
+          e.getMessage());
       throw new RQueryException(e.getMessage());
     }
-
-    // register the query and act correctly in case any of the treads throws an exception during execution.
-    queryRegistry.registerQuery(queryUuid, new QueryExceptionHandler() {
-      @Override
-      public void handleException(Throwable t) {
-        logger.error("Exception while executing query " + queryUuid, t);
-
-        resThrowable[0] = t;
-
-        // shutdown everything.
-        executorManager.shutdownEverythingOfQuery(queryUuid);
-      }
-    });
 
     // start synchronous execution.
     try {
@@ -157,8 +164,31 @@ public class QueryServiceHandler implements Iface {
         connectionPool.reserveConnection(QueryResultService.Client.class, resultAddress);
     QueryResultService.Iface resultService = resultConnection.getService();
 
+    UUID executionUuid = queryUuidProvider.createNewExecutionUuid(queryUuid, "master-" + queryUuid);
+
+    QueryExceptionHandler exceptionHandler = new QueryExceptionHandler() {
+      @Override
+      public void handleException(Throwable t) {
+        logger.error("Exception while executing query " + queryUuid, t);
+
+        try {
+          synchronized (resultConnection) {
+            resultService.queryException(queryRUuid, new RQueryException(t.getMessage()));
+          }
+        } catch (TException e) {
+          logger.warn("Was not able to send out exception to " + resultAddress.toString() + " for " + queryUuid, e);
+        }
+
+        // shutdown everything.
+        connectionPool.releaseConnection(resultConnection);
+        queryRegistry.unregisterQueryExecution(queryUuid, executionUuid);
+        executorManager.shutdownEverythingOfQueryExecution(queryUuid, executionUuid);
+      }
+    };
+
     MasterQueryExecutor queryExecutor = new MasterQueryExecutor(executorManager, executionPlanBuilderFactory,
         new MasterQueryExecutor.QueryExecutorCallback() {
+
           @Override
           public void intermediaryResultTableAvailable(RResultTable resultTable) {
             logger.trace("New intermediary result for {}: {}", queryUuid, resultTable);
@@ -187,42 +217,26 @@ public class QueryServiceHandler implements Iface {
                   e);
             }
 
-            // we received the final result, be sure to clean up.
+            // we received the final result, be sure to clean up everything.
             connectionPool.releaseConnection(resultConnection);
-            queryRegistry.unregisterQuery(queryUuid);
-            executorManager.shutdownEverythingOfQuery(queryUuid); // this will kill our thread, too!
+            queryRegistry.unregisterQueryExecution(queryUuid, executionUuid);
+            executorManager.shutdownEverythingOfQueryExecution(queryUuid, executionUuid); // this will kill our
+            // thread, too!
           }
         }, sendPartialUpdates);
 
+    queryRegistry.registerQueryExecution(queryUuid, executionUuid, exceptionHandler);
+
     Runnable execute;
     try {
-      execute = queryExecutor.prepareExecution(queryUuid, diql);
+      execute = queryExecutor.prepareExecution(queryUuid, executionUuid, diql);
     } catch (ParseException | ValidationException e) {
       logger.warn("Exception while preparing the query execution of {}: {}", queryUuid, e.getMessage());
       throw new RQueryException(e.getMessage());
     }
 
-    // register the query and act correctly in case any of the treads throws an exception during execution.
-    queryRegistry.registerQuery(queryUuid, new QueryExceptionHandler() {
-      @Override
-      public void handleException(Throwable t) {
-        logger.error("Exception while executing query " + queryUuid, t);
-
-        try {
-          synchronized (resultConnection) {
-            resultService.queryException(queryRUuid, new RQueryException(t.getMessage()));
-          }
-        } catch (TException e) {
-          logger.warn("Was not able to send out exception to " + resultAddress.toString() + " for " + queryUuid, e);
-        }
-
-        // shutdown everything.
-        connectionPool.releaseConnection(resultConnection);
-        executorManager.shutdownEverythingOfQuery(queryUuid);
-      }
-    });
-
-    Executor executor = executorManager.newQueryFixedThreadPool(1, "query-master-" + queryUuid + "-%d", queryUuid);
+    Executor executor =
+        executorManager.newQueryFixedThreadPool(1, "query-master-" + queryUuid + "-%d", queryUuid, executionUuid);
 
     // start asynchronous execution.
     executor.execute(execute);

@@ -39,6 +39,7 @@ import org.diqube.execution.TableRegistry;
 import org.diqube.execution.consumers.AbstractThreadedColumnValueConsumer;
 import org.diqube.execution.consumers.AbstractThreadedGroupIntermediaryAggregationConsumer;
 import org.diqube.function.IntermediaryResult;
+import org.diqube.queries.QueryRegistry;
 import org.diqube.remote.base.thrift.RValue;
 import org.diqube.remote.base.util.RValueUtil;
 import org.diqube.remote.cluster.thrift.RExecutionPlan;
@@ -50,6 +51,9 @@ import org.diqube.threads.ExecutorManager;
  * Executes a {@link RExecutionPlan} on a "query remote" node.
  * 
  * One instance of this class can only be used to execute one {@link RExecutionPlan} on the node.
+ * 
+ * <p>
+ * As soon as result data is available, it will be published to the callback instance.
  * 
  * @author Bastian Gloeckle
  */
@@ -75,11 +79,14 @@ public class RemoteExecutionPlanExecutor {
   /**
    * Prepares execution of the given {@link RExecutionPlan}.
    * 
-   * The returned {@link Runnable} will, when {@link Runnable#run() ran} will start execution of the plan on all local
+   * The returned {@link Runnable} will, when {@link Runnable#run() ran}, start execution of the plan on all local
    * {@link TableShard}s and will block the current thread until the execution is complete. Until then, the provided
    * callback will be called accordingly.
+   * 
+   * For each TableShard a new Executor will be used and a corresponding execution UUID will be created. This will not
+   * automatically be registered with {@link QueryRegistry} though!
    */
-  public Runnable prepareExecution(UUID queryId, RExecutionPlan executionPlan,
+  public Runnable prepareExecution(UUID queryUuid, UUID executionUuid, RExecutionPlan executionPlan,
       RemoteExecutionPlanExecutionCallback callback) {
     int numberOfTableShards = tableRegistry.getTable(executionPlan.getTable()).getShards().size();
 
@@ -111,7 +118,6 @@ public class RemoteExecutionPlanExecutor {
     });
     executablePlanBuilder
         .withFinalGroupIntermediateAggregationConsumer(new AbstractThreadedGroupIntermediaryAggregationConsumer(null) {
-
           @Override
           protected void allSourcesAreDone() {
             int numberDone = groupIntermediateDone.incrementAndGet();
@@ -152,7 +158,7 @@ public class RemoteExecutionPlanExecutor {
           TableShard shard = plan.getDefaultExecutionEnvironment().getTableShardIfAvailable();
 
           Executor executor = executorManager.newQueryFixedThreadPool(plan.preferredExecutorServiceSize(),
-              "query-remote-worker-" + queryId + "-shard" + shard.getLowestRowId() + "-%d", queryId);
+              "query-remote-worker-" + queryUuid + "-shard" + shard.getLowestRowId() + "-%d", queryUuid, executionUuid);
 
           Future<Void> f = plan.executeAsynchronously(executor);
           futures.add(f);
@@ -184,13 +190,25 @@ public class RemoteExecutionPlanExecutor {
    * Callback for new data that was calculated for any TableShard.
    */
   public static interface RemoteExecutionPlanExecutionCallback {
+    /**
+     * Execution on all local TableShards has completed.
+     */
     public void executionDone();
 
+    /**
+     * New column values are available.
+     */
     public void newColumnValues(String colName, Map<Long, RValue> values);
 
+    /**
+     * A new intermediary result from an aggregation function is available.
+     */
     public void newGroupIntermediaryAggregration(long groupId, String colName,
         ROldNewIntermediateAggregationResult result);
 
+    /**
+     * An exception was thrown during execution.
+     */
     public void exceptionThrown(Throwable t);
   }
 

@@ -102,7 +102,8 @@ class MasterQueryExecutor {
    * @throws ValidationException
    *           in case the query cannot be validated.
    */
-  public Runnable prepareExecution(UUID queryUuid, String diql) throws ParseException, ValidationException {
+  public Runnable prepareExecution(UUID queryUuid, UUID executionUuid, String diql)
+      throws ParseException, ValidationException {
     ExecutionPlanBuilder planBuilder = executionPlanBuildeFactory.createExecutionPlanBuilder();
     planBuilder.fromDiql(diql);
     planBuilder.withFinalColumnValueConsumer(new AbstractThreadedColumnValueConsumer(null) {
@@ -184,7 +185,7 @@ class MasterQueryExecutor {
       public void run() {
         Executor executor = executorManager.newQueryFixedThreadPool(plan.preferredExecutorServiceSize(),
             "query-master-worker-" + queryUuid + "-%d", //
-            queryUuid);
+            queryUuid, executionUuid);
 
         Future<Void> planFuture = plan.executeAsynchronously(executor);
 

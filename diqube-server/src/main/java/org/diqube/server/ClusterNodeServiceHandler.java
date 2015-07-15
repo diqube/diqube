@@ -32,6 +32,8 @@ import org.diqube.data.TableShard;
 import org.diqube.execution.ExecutablePlanFromRemoteBuilderFactory;
 import org.diqube.execution.TableRegistry;
 import org.diqube.queries.QueryRegistry;
+import org.diqube.queries.QueryRegistry.QueryExceptionHandler;
+import org.diqube.queries.QueryUuidProvider;
 import org.diqube.remote.base.thrift.RNodeAddress;
 import org.diqube.remote.base.thrift.RUUID;
 import org.diqube.remote.base.thrift.RValue;
@@ -54,7 +56,7 @@ import org.slf4j.LoggerFactory;
  * This means that this service - in contrast to {@link QueryService} and its {@link QueryServiceHandler} - will not be
  * called by users (or the UI) directly.
  * 
- * When executing queries, these methods will be called on the "query remote" nodes.
+ * When executing queries, the of this service methods will be called on the "query remote" nodes.
  * 
  * TODO #11 implement.
  *
@@ -79,90 +81,120 @@ public class ClusterNodeServiceHandler implements Iface {
   @Inject
   private QueryRegistry queryRegistry;
 
+  @Inject
+  private QueryUuidProvider queryUuidProvider;
+
   /**
    * Starts executing a {@link RExecutionPlan} on all {@link TableShard}s on this node, which act as "query remote"
    * node.
    */
   @Override
-  public void executeOnAllLocalShards(RExecutionPlan executionPlan, RUUID remoteQueryId, RNodeAddress resultAddress)
+  public void executeOnAllLocalShards(RExecutionPlan executionPlan, RUUID remoteQueryUuid, RNodeAddress resultAddress)
       throws TException {
-    Connection<ClusterNodeService.Client> connection =
+    Connection<ClusterNodeService.Client> resultConnection =
         connectionPool.reserveConnection(ClusterNodeService.Client.class, resultAddress);
 
-    UUID queryUuid = RUuidUtil.toUuid(remoteQueryId);
+    UUID queryUuid = RUuidUtil.toUuid(remoteQueryUuid);
+    // The executionUuid we will use for the all executors executing something started by this API call.
+    UUID executionUuid = queryUuidProvider.createNewExecutionUuid(queryUuid, "remote-" + queryUuid);
 
     RemoteExecutionPlanExecutor executor =
         new RemoteExecutionPlanExecutor(tableRegistry, executablePlanBuilderFactory, executorManager);
 
-    Runnable execute = executor.prepareExecution(queryUuid, executionPlan, new RemoteExecutionPlanExecutionCallback() {
-
-      private void returnResources() {
-        connectionPool.releaseConnection(connection);
-        queryRegistry.unregisterQuery(queryUuid);
-        executorManager.shutdownEverythingOfQuery(queryUuid); // this will kill our thread, too!
-      }
-
+    // Exception handler that handles exceptions that are thrown during execution (one handler for all TableShards!)
+    // This can also close all resources, if parameters "null,null" are passed.
+    QueryExceptionHandler exceptionHandler = new QueryExceptionHandler() {
       @Override
-      public void newGroupIntermediaryAggregration(long groupId, String colName,
-          ROldNewIntermediateAggregationResult result) {
-        synchronized (connection) {
+      public void handleException(Throwable t) {
+        if (t != null) {
+          logger.error("Exception while executing query {} execution {}", queryUuid, executionUuid, t);
+          RExecutionException ex = new RExecutionException();
+          ex.setMessage(t.getMessage());
           try {
-            connection.getService().groupIntermediateAggregationResultAvailable(remoteQueryId, groupId, colName,
-                result);
+            resultConnection.getService().executionException(remoteQueryUuid, ex);
           } catch (TException e) {
             logger.error("Could not sent new group intermediaries to client for query {}", queryUuid, e);
-
-            // TODO #32 mark connection as dead.
-            returnResources();
-          }
-        }
-      }
-
-      @Override
-      public void newColumnValues(String colName, Map<Long, RValue> values) {
-        synchronized (connection) {
-          try {
-            connection.getService().columnValueAvailable(remoteQueryId, colName, values);
-          } catch (TException e) {
-            logger.error("Could not sent new group intermediaries to client for query {}", queryUuid, e);
-
-            // TODO #32 mark connection as dead.
-            returnResources();
-          }
-        }
-      }
-
-      @Override
-      public void executionDone() {
-        synchronized (connection) {
-          try {
-            connection.getService().executionDone(remoteQueryId);
-          } catch (TException e) {
-            logger.error("Could not sent 'done' to client for query {}", queryUuid, e);
             // TODO #32 mark connection as dead.
           }
         }
-        returnResources();
-      }
 
-      @Override
-      public void exceptionThrown(Throwable t) {
-        logger.error("Exception while executing query {}", queryUuid, t);
-        RExecutionException ex = new RExecutionException(t.getMessage());
-        synchronized (connection) {
-          try {
-            connection.getService().executionException(remoteQueryId, ex);
-          } catch (TException e) {
-            logger.error("Could not sent 'exception' to client for query {}", queryUuid, e);
-            // TODO #32 mark connection as dead.
-          }
+        // shutdown everything for all TableShards.
+        synchronized (resultConnection) {
+          connectionPool.releaseConnection(resultConnection);
         }
-        returnResources();
+        queryRegistry.unregisterQueryExecution(queryUuid, executionUuid);
+        executorManager.shutdownEverythingOfQueryExecution(queryUuid, executionUuid); // this will kill our
+                                                                                      // thread!
       }
-    });
+    };
 
-    Executor threadPool =
-        executorManager.newQueryFixedThreadPool(1, "query-remote-master-" + queryUuid + "-%d", queryUuid);
+    Runnable execute =
+        executor.prepareExecution(queryUuid, executionUuid, executionPlan, new RemoteExecutionPlanExecutionCallback() {
+          @Override
+          public void newGroupIntermediaryAggregration(long groupId, String colName,
+              ROldNewIntermediateAggregationResult result) {
+            synchronized (resultConnection) {
+              try {
+                resultConnection.getService().groupIntermediateAggregationResultAvailable(remoteQueryUuid, groupId,
+                    colName, result);
+              } catch (TException e) {
+                logger.error("Could not sent new group intermediaries to client for query {}", queryUuid, e);
+
+                // TODO #32 mark connection as dead.
+                exceptionHandler.handleException(null);
+              }
+            }
+          }
+
+          @Override
+          public void newColumnValues(String colName, Map<Long, RValue> values) {
+            synchronized (resultConnection) {
+              try {
+                resultConnection.getService().columnValueAvailable(remoteQueryUuid, colName, values);
+              } catch (TException e) {
+                logger.error("Could not sent new group intermediaries to client for query {}", queryUuid, e);
+
+                // TODO #32 mark connection as dead.
+                exceptionHandler.handleException(null);
+              }
+            }
+          }
+
+          @Override
+          public void executionDone() {
+            synchronized (resultConnection) {
+              try {
+                resultConnection.getService().executionDone(remoteQueryUuid);
+              } catch (TException e) {
+                logger.error("Could not sent 'done' to client for query {}", queryUuid, e);
+                // TODO #32 mark connection as dead.
+              }
+            }
+            exceptionHandler.handleException(null);
+          }
+
+          @Override
+          public void exceptionThrown(Throwable t) {
+            logger.error("Exception while executing query {}", queryUuid, t);
+            RExecutionException ex = new RExecutionException(t.getMessage());
+            synchronized (resultConnection) {
+              try {
+                resultConnection.getService().executionException(remoteQueryUuid, ex);
+              } catch (TException e) {
+                logger.error("Could not sent 'exception' to client for query {}", queryUuid, e);
+                // TODO #32 mark connection as dead.
+              }
+            }
+            exceptionHandler.handleException(null);
+          }
+        });
+
+    // prepare to launch the execution in a different Thread
+    Executor threadPool = executorManager.newQueryFixedThreadPool(1, "query-remote-master-" + queryUuid + "-%d",
+        queryUuid, executionUuid);
+    queryRegistry.registerQueryExecution(queryUuid, executionUuid, exceptionHandler);
+
+    // start execution of ExecutablePlan(s) asynchronously.
     threadPool.execute(execute);
   }
 
