@@ -63,7 +63,6 @@ public class ClusterLayout {
     if (tables.containsKey(addr))
       return true;
 
-    logger.info("New cluster node {}", addr);
     tables.put(addr, new Pair<>(0L, new ConcurrentSkipListSet<>()));
     return false;
   }
