@@ -20,6 +20,8 @@
  */
 package org.diqube.cluster.connection;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 
 import org.apache.thrift.TServiceClient;
@@ -63,7 +65,7 @@ public class ConnectionPool {
       RNodeAddress addr) throws ConnectionException {
     // TODO #32 implement pooling.
     // TODO #32 implement failsafe connections!
-    // TODO #32 implement timeout
+    // TODO #32 implement timeout, inform clustermanager!
 
     TTransport transport = openTransport(addr);
 
@@ -83,7 +85,7 @@ public class ConnectionPool {
       throw new ConnectionException("Could not open connection to " + addr, e);
     }
 
-    return new Connection<>(queryResultClient, transport, addr);
+    return new Connection<>(this, queryResultClient, transport, addr);
   }
 
   private TTransport openTransport(RNodeAddress addr) throws ConnectionException {
@@ -109,12 +111,14 @@ public class ConnectionPool {
     connection.getTransport().close();
   }
 
-  public static class Connection<T> {
+  public static class Connection<T> implements Closeable {
     private T service;
     private TTransport transport;
     private RNodeAddress address;
+    private ConnectionPool parentPool;
 
-    private Connection(T service, TTransport transport, RNodeAddress address) {
+    private Connection(ConnectionPool parentPool, T service, TTransport transport, RNodeAddress address) {
+      this.parentPool = parentPool;
       this.service = service;
       this.transport = transport;
       this.address = address;
@@ -131,6 +135,11 @@ public class ConnectionPool {
 
     private RNodeAddress getAddress() {
       return address;
+    }
+
+    @Override
+    public void close() throws IOException {
+      parentPool.releaseConnection(this);
     }
   }
 

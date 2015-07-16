@@ -18,26 +18,28 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.listeners;
+package org.diqube.context;
 
-import org.diqube.context.AutoInstatiate;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
+import javax.inject.Inject;
+
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
- * Listener for information if the local thrift server is serving or not.
+ * Similar to {@link Inject}, but marks the injection as optional - if no bean is available to be wired, the field will
+ * simply be <code>null</code>.
  * 
- * All implementing classes need to have a bean in the context (=have the {@link AutoInstatiate} annotation).
+ * This is meaningful to be used when wiring all available listeners (from diqube-listeners) for example.
  *
  * @author Bastian Gloeckle
  */
-public interface ServingListener {
-  /**
-   * The local thrift server started serving, which means that our process is now reachable by other machines over the
-   * network.
-   */
-  public void localServerStartedServing();
+@Target({ ElementType.FIELD })
+@Retention(RetentionPolicy.RUNTIME)
+@Autowired(required = false)
+public @interface InjectOptional {
 
-  /**
-   * The local thrift server stopped serving, which means that our process is not reachable by anyone anymore.
-   */
-  public void localServerStoppedServing();
 }

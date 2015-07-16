@@ -1,15 +1,32 @@
+/**
+ * diqube: Distributed Query Base.
+ *
+ * Copyright (C) 2015 Bastian Gloeckle
+ *
+ * This file is part of diqube.
+ *
+ * diqube is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 package org.diqube.cluster;
 
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
-import java.util.Deque;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedDeque;
 
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
@@ -20,6 +37,7 @@ import org.diqube.cluster.connection.ConnectionPool.Connection;
 import org.diqube.config.Config;
 import org.diqube.config.ConfigKey;
 import org.diqube.context.AutoInstatiate;
+import org.diqube.context.InjectOptional;
 import org.diqube.listeners.ClusterManagerListener;
 import org.diqube.listeners.ServingListener;
 import org.diqube.listeners.TableLoadListener;
@@ -27,6 +45,7 @@ import org.diqube.remote.base.thrift.RNodeAddress;
 import org.diqube.remote.base.util.RNodeAddressUtil;
 import org.diqube.remote.cluster.ClusterNodeServiceConstants;
 import org.diqube.remote.cluster.thrift.ClusterNodeService;
+import org.diqube.remote.cluster.thrift.ClusterNodeService.Client;
 import org.diqube.util.Pair;
 import org.diqube.util.RandomManager;
 import org.slf4j.Logger;
@@ -49,7 +68,7 @@ public class ClusterManager implements ServingListener, TableLoadListener {
   @Config(ConfigKey.PORT)
   private int ourPort;
 
-  private Pair<String, Short> ourHostPair;
+  private NodeAddress ourHostAddr;
 
   @Config(ConfigKey.CLUSTER_NODES)
   private String clusterNodesConfigString;
@@ -57,16 +76,13 @@ public class ClusterManager implements ServingListener, TableLoadListener {
   @Inject
   private ConnectionPool connectionPool;
 
-  @Inject
+  @InjectOptional
   private List<ClusterManagerListener> clusterManagerListeners;
 
   @Inject
   private RandomManager randomManager;
 
-  /**
-   * Map from remote address to Deque of tablenames of tables it serves shards of.
-   */
-  private Map<Pair<String, Short>, Deque<String>> clusterLayout = new ConcurrentHashMap<>();
+  private ClusterLayout clusterLayout = new ClusterLayout();
 
   @PostConstruct
   public void initialize() {
@@ -85,10 +101,13 @@ public class ClusterManager implements ServingListener, TableLoadListener {
     } else
       logger.info("Using {} as our host address. We expect that other cluster nodes will be able to reach this node "
           + "under that address!", ourHost);
+
+    ourHostAddr = new NodeAddress(ourHost, (short) ourPort);
+    clusterLayout.addNode(ourHostAddr);
   }
 
-  private List<Pair<String, Short>> parseClusterNodes(String clusterNodes) {
-    List<Pair<String, Short>> res = new ArrayList<>();
+  private List<NodeAddress> parseClusterNodes(String clusterNodes) {
+    List<NodeAddress> res = new ArrayList<>();
 
     for (String clusterNodeString : clusterNodes.split(",")) {
       int lastColon = clusterNodeString.lastIndexOf(":");
@@ -109,7 +128,7 @@ public class ClusterManager implements ServingListener, TableLoadListener {
       }
       String host = clusterNodeString.substring(0, lastColon);
 
-      res.add(new Pair<>(host, port));
+      res.add(new NodeAddress(host, port));
     }
 
     if (res.isEmpty())
@@ -122,18 +141,17 @@ public class ClusterManager implements ServingListener, TableLoadListener {
   public void localServerStartedServing() {
     // start sending hello messages etc as soon as our server is up and running so we can receive answers.
 
-    ourHostPair = new Pair<>(ourHost, (short) ourPort);
-    clusterLayout.put(ourHostPair, new ConcurrentLinkedDeque<>());
-
     if (clusterNodesConfigString == null || "".equals(clusterNodesConfigString)) {
       logger.info("There are no cluster nodes configured, will therefore not connect anywhere.");
-      clusterManagerListeners.forEach(l -> l.clusterInitialized());
+      if (clusterManagerListeners != null)
+        clusterManagerListeners.forEach(l -> l.clusterInitialized());
       return;
     }
-    List<Pair<String, Short>> clusterNodes = parseClusterNodes(this.clusterNodesConfigString);
+    List<NodeAddress> clusterNodes = parseClusterNodes(this.clusterNodesConfigString);
     if (clusterNodes == null) {
       logger.warn("There are no cluster nodes configured, will therefore not connect anywhere.");
-      clusterManagerListeners.forEach(l -> l.clusterInitialized());
+      if (clusterManagerListeners != null)
+        clusterManagerListeners.forEach(l -> l.clusterInitialized());
       return;
     }
     RNodeAddress ourAddress = RNodeAddressUtil.buildDefault(ourHost, (short) ourPort);
@@ -143,152 +161,150 @@ public class ClusterManager implements ServingListener, TableLoadListener {
     new Thread(new Runnable() {
       @Override
       public void run() {
-        List<Pair<String, Short>> workingRemoteAddr = new ArrayList<>();
+        List<NodeAddress> workingRemoteAddr = new ArrayList<>();
 
-        for (Pair<String, Short> nodeAddrPair : clusterNodes) {
-          Connection<ClusterNodeService.Client> conn = null;
-          try {
-            RNodeAddress addr = RNodeAddressUtil.buildDefault(nodeAddrPair);
-            conn = connectionPool.reserveConnection(ClusterNodeService.Client.class,
-                ClusterNodeServiceConstants.SERVICE_NAME, addr);
-
+        for (NodeAddress nodeAddr : clusterNodes) {
+          try (Connection<ClusterNodeService.Client> conn = reserveConnection(nodeAddr)) {
             conn.getService().hello(ourAddress);
-            workingRemoteAddr.add(nodeAddrPair);
-          } catch (TException e) {
-            logger.warn("Could not say hello to cluster node at {}:{}, will ignore that node for now.",
-                nodeAddrPair.getLeft(), nodeAddrPair.getRight(), e);
-          } finally {
-            if (conn != null)
-              connectionPool.releaseConnection(conn);
+            workingRemoteAddr.add(nodeAddr);
+          } catch (TException | IOException e) {
+            logger.warn("Could not say hello to cluster node at {}, will ignore that node for now.", nodeAddr, e);
           }
         }
 
         if (workingRemoteAddr.isEmpty())
           logger.warn("There are no live cluster nodes, will therefore not connect anywhere.");
         else {
-          Pair<String, Short> clusterLayoutAddr =
-              workingRemoteAddr.get(randomManager.nextInt(workingRemoteAddr.size()));
-          logger.info("Fetching cluster layout data from {}:{}.", clusterLayoutAddr.getLeft(),
-              clusterLayoutAddr.getRight());
+          NodeAddress clusterLayoutAddr = workingRemoteAddr.get(randomManager.nextInt(workingRemoteAddr.size()));
+          logger.info("Fetching cluster layout data from {}.", clusterLayoutAddr);
 
-          RNodeAddress addr = RNodeAddressUtil.buildDefault(clusterLayoutAddr);
-          Connection<ClusterNodeService.Client> conn = null;
-          try {
-            conn = connectionPool.reserveConnection(ClusterNodeService.Client.class,
-                ClusterNodeServiceConstants.SERVICE_NAME, addr);
-            Map<RNodeAddress, List<String>> newClusterLayout = conn.getService().clusterLayout();
+          try (Connection<ClusterNodeService.Client> conn = reserveConnection(clusterLayoutAddr)) {
+            Map<RNodeAddress, Map<Long, List<String>>> newClusterLayout = conn.getService().clusterLayout();
 
-            for (Entry<RNodeAddress, List<String>> layoutEntry : newClusterLayout.entrySet())
-              loadNodeInfo(layoutEntry.getKey(), layoutEntry.getValue());
+            for (Entry<RNodeAddress, Map<Long, List<String>>> layoutEntry : newClusterLayout.entrySet()) {
+              // layoutEntry.getValue() is a map containing only a single entry (see .thrift file!).
+              long version = layoutEntry.getValue().keySet().iterator().next();
+              List<String> tables = layoutEntry.getValue().get(version);
+              loadNodeInfo(layoutEntry.getKey(), version, tables);
+            }
 
-            logger.info("Loaded cluster data of {} nodes: {}", clusterLayout.size(), clusterLayout.keySet());
-          } catch (TException e) {
+            logger.info("Loaded cluster data of {} nodes: {}", clusterLayout.getNumberOfNodes(),
+                clusterLayout.getNodes());
+          } catch (TException | IOException e) {
             // TODO remote node could go down right now.
-            logger.error("Could not retrieve cluster layout from {}:{}.", clusterLayoutAddr.getLeft(),
-                clusterLayoutAddr.getRight());
-          } finally {
-            if (conn != null)
-              connectionPool.releaseConnection(conn);
+            logger.error("Could not retrieve cluster layout from {}.", clusterLayoutAddr);
           }
 
           // say hello to all nodes
-          for (Pair<String, Short> remotePair : clusterLayout.keySet()) {
-            if (remotePair.equals(ourHostPair))
+          for (NodeAddress remoteAddr : clusterLayout.getNodes()) {
+            if (remoteAddr.equals(ourHostAddr))
               continue;
 
-            conn = null;
-            addr = RNodeAddressUtil.buildDefault(remotePair);
-            try {
-              conn = connectionPool.reserveConnection(ClusterNodeService.Client.class,
-                  ClusterNodeServiceConstants.SERVICE_NAME, addr);
-
+            try (Connection<ClusterNodeService.Client> conn = reserveConnection(remoteAddr)) {
               // TODO send hash of table-name-list we have of the node - if anything changed in the meantime, we
               // should fetch the new info.
               conn.getService().hello(ourAddress);
-            } catch (TException e) {
-              logger.error("Could not say hello to node {}:{}.", clusterLayoutAddr.getLeft(),
-                  clusterLayoutAddr.getRight());
+            } catch (TException | IOException e) {
+              logger.error("Could not say hello to node {}.", clusterLayoutAddr);
               // TODO mark node as dead.
-            } finally {
-              if (conn != null)
-                connectionPool.releaseConnection(conn);
             }
           }
         }
 
-        clusterManagerListeners.forEach(l -> l.clusterInitialized());
+        if (clusterManagerListeners != null)
+          clusterManagerListeners.forEach(l -> l.clusterInitialized());
       }
     }, "cluster-bootstrap").start();
   }
 
+  private Connection<Client> reserveConnection(NodeAddress addr) {
+    return connectionPool.reserveConnection(ClusterNodeService.Client.class, ClusterNodeServiceConstants.SERVICE_NAME,
+        addr.createRemote());
+  }
+
   @Override
   public void localServerStoppedServing() {
-    // TODO try to tell everybody that we are dying
+    // Inform as much nodes as possible that we died.
+    RNodeAddress ourRemoteAddr = ourHostAddr.createRemote();
+    for (NodeAddress addr : clusterLayout.getNodes()) {
+      if (addr.equals(ourHostAddr))
+        continue;
+
+      try (Connection<ClusterNodeService.Client> conn = reserveConnection(addr)) {
+        conn.getService().nodeDied(ourRemoteAddr);
+      } catch (IOException | TException e) {
+        logger.error("Could not communicate with {}", addr);
+        // TODO mark node as dead
+      }
+    }
   }
 
   /**
    * Set the given list of table names as our clusterLayout information for the given node.
    */
-  private void loadNodeInfo(RNodeAddress nodeAddr, List<String> tables) {
-    Pair<String, Short> addr = RNodeAddressUtil.readDefault(nodeAddr);
-
-    if (!clusterLayout.containsKey(addr) || !clusterLayout.get(addr).isEmpty())
-      clusterLayout.put(addr, new ConcurrentLinkedDeque<>());
-    clusterLayout.get(addr).addAll(tables);
+  public void loadNodeInfo(RNodeAddress nodeAddr, long version, List<String> tables) {
+    clusterLayout.setTables(new NodeAddress(nodeAddr), version, tables);
   }
 
   /**
    * Called when a new cluster node came online.
    */
   public void newNode(RNodeAddress newNodeAddress) {
-    Pair<String, Short> addr = RNodeAddressUtil.readDefault(newNodeAddress);
-
-    if (!clusterLayout.containsKey(addr)) {
-      logger.info("Learned about a new cluster node being online: {}:{}.", addr.getLeft(), addr.getRight());
-      clusterLayout.put(addr, new ConcurrentLinkedDeque<>());
-    }
+    // we might know about that node already, though.
+    clusterLayout.addNode(new NodeAddress(newNodeAddress));
   }
 
   /**
    * We are informed that a specific node died.
    */
   public void nodeDied(RNodeAddress diedAddr) {
-    Pair<String, Short> addr = RNodeAddressUtil.readDefault(diedAddr);
-
-    clusterLayout.remove(addr);
-
-    // TODO inform other nodes about dead node.
+    clusterLayout.removeNode(new NodeAddress(diedAddr));
   }
 
-  /**
-   * @return Currently known cluster layout, mapping from remote address to list of tablesnames we know that remote
-   *         serves shards of.
-   */
-  public Map<RNodeAddress, List<String>> getClusterLayout() {
-    Map<RNodeAddress, List<String>> res = new HashMap<>();
-
-    for (Entry<Pair<String, Short>, Deque<String>> entry : clusterLayout.entrySet()) {
-      RNodeAddress addr = RNodeAddressUtil.buildDefault(entry.getKey());
-      res.put(addr, new ArrayList<>(entry.getValue().size()));
-      res.get(addr).addAll(entry.getValue());
-    }
-
-    return res;
+  public ClusterLayout getClusterLayout() {
+    return clusterLayout;
   }
 
   @Override
   public synchronized void tableShardLoaded(String tableName) {
-    if (!clusterLayout.get(ourHostPair).contains(tableName)) {
-      clusterLayout.get(ourHostPair).add(tableName);
-      // TODO inform other nodes.
+    boolean isNewTable = clusterLayout.addTable(ourHostAddr, tableName) != null;
+
+    if (isNewTable) {
+      RNodeAddress ourRemoteAddr = ourHostAddr.createRemote();
+      Pair<Long, List<String>> versionedTableList = clusterLayout.getVersionedTableList(ourHostAddr);
+      for (NodeAddress addr : clusterLayout.getNodes()) {
+        if (addr.equals(ourHostAddr))
+          continue;
+
+        try (Connection<ClusterNodeService.Client> conn = reserveConnection(addr)) {
+          conn.getService().newNodeData(ourRemoteAddr, versionedTableList.getLeft(), versionedTableList.getRight());
+        } catch (IOException | TException e) {
+          logger.error("Could not communicate with {}", addr);
+          // TODO mark node as dead
+        }
+      }
     }
   }
 
   @Override
   public void tableShardUnloaded(String tableName, boolean nodeStillContainsOtherShard) {
     if (!nodeStillContainsOtherShard) {
-      clusterLayout.get(ourHostPair).remove(tableName);
-      // TODO inform other nodes.
+      boolean tableWasRemoved = clusterLayout.removeTable(ourHostAddr, tableName) != null;
+      if (tableWasRemoved) {
+        RNodeAddress ourRemoteAddr = ourHostAddr.createRemote();
+        Pair<Long, List<String>> versionedTableList = clusterLayout.getVersionedTableList(ourHostAddr);
+        for (NodeAddress addr : clusterLayout.getNodes()) {
+          if (addr.equals(ourHostAddr))
+            continue;
+
+          try (Connection<ClusterNodeService.Client> conn = reserveConnection(addr)) {
+            conn.getService().newNodeData(ourRemoteAddr, versionedTableList.getLeft(), versionedTableList.getRight());
+          } catch (IOException | TException e) {
+            logger.error("Could not communicate with {}", addr);
+            // TODO mark node as dead
+          }
+        }
+      }
     }
   }
 }

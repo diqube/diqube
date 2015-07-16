@@ -282,8 +282,24 @@ public class ClusterNodeServiceHandler implements Iface {
    * Someone asks us what cluster nodes we know and what tables they serve shards of.
    */
   @Override
-  public Map<RNodeAddress, List<String>> clusterLayout() throws TException {
-    return clusterManager.getClusterLayout();
+  public Map<RNodeAddress, Map<Long, List<String>>> clusterLayout() throws TException {
+    return clusterManager.getClusterLayout().createRemoteLayout();
+  }
+
+  /**
+   * A cluster node has an updated list of tables available for which it serves data.
+   */
+  @Override
+  public void newNodeData(RNodeAddress nodeAddr, long version, List<String> tables) throws TException {
+    clusterManager.loadNodeInfo(nodeAddr, version, tables);
+  }
+
+  /**
+   * A cluster node died.
+   */
+  @Override
+  public void nodeDied(RNodeAddress nodeAddr) throws TException {
+    clusterManager.nodeDied(nodeAddr);
   }
 
 }

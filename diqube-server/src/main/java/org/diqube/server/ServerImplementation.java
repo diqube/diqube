@@ -34,6 +34,7 @@ import org.apache.thrift.transport.TTransportException;
 import org.diqube.config.Config;
 import org.diqube.config.ConfigKey;
 import org.diqube.context.AutoInstatiate;
+import org.diqube.context.InjectOptional;
 import org.diqube.listeners.ServingListener;
 import org.diqube.remote.cluster.ClusterNodeServiceConstants;
 import org.diqube.remote.cluster.thrift.ClusterNodeService;
@@ -69,7 +70,7 @@ public class ServerImplementation {
   @Inject
   private ExecutorManager executorManager;
 
-  @Inject
+  @InjectOptional
   private List<ServingListener> servingListeners;
 
   private TThreadedSelectorServer server;

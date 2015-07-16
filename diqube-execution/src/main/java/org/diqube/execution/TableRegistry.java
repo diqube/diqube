@@ -24,9 +24,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.inject.Inject;
-
 import org.diqube.context.AutoInstatiate;
+import org.diqube.context.InjectOptional;
 import org.diqube.data.Table;
 import org.diqube.listeners.TableLoadListener;
 
@@ -39,7 +38,7 @@ import org.diqube.listeners.TableLoadListener;
 public class TableRegistry {
   private Map<String, Table> tables = new HashMap<String, Table>();
 
-  @Inject
+  @InjectOptional
   private List<TableLoadListener> tableLoadListeners;
 
   public synchronized Table getTable(String name) {
@@ -51,7 +50,8 @@ public class TableRegistry {
       throw new IllegalStateException("Table '" + name + "' exists already.");
     tables.put(name, table);
 
-    tableLoadListeners.forEach(l -> l.tableShardLoaded(name));
+    if (tableLoadListeners != null)
+      tableLoadListeners.forEach(l -> l.tableShardLoaded(name));
   }
 
   public synchronized void removeTable(String name) {

@@ -48,6 +48,8 @@ public class ThriftServer extends TThreadedSelectorServer {
    *          etc.) will be supplied as the single parameter. This integer will be unique to the built instance of the
    *          ThreadFactory and will be assigned sequentially. For example, {@code "rpc-pool-%d"} will generate thread
    *          names like {@code "rpc-pool-0"}, {@code "rpc-pool-1"}, {@code "rpc-pool-2"}, etc.
+   * @param servingListeners
+   *          listeners that should be informed about the state of the server. <code>null</code> possible.
    */
   public ThriftServer(Args args, String selectorThreadNameFormat, List<ServingListener> servingListeners) {
     super(args);
@@ -70,9 +72,11 @@ public class ThriftServer extends TThreadedSelectorServer {
   protected void setServing(boolean serving) {
     super.setServing(serving);
 
-    if (serving)
-      servingListeners.forEach(l -> l.localServerStartedServing());
-    else
-      servingListeners.forEach(l -> l.localServerStoppedServing());
+    if (servingListeners != null) {
+      if (serving)
+        servingListeners.forEach(l -> l.localServerStartedServing());
+      else
+        servingListeners.forEach(l -> l.localServerStoppedServing());
+    }
   }
 }
