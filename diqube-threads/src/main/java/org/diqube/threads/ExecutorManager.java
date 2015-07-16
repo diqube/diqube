@@ -289,6 +289,15 @@ public class ExecutorManager {
 
         if (numberOfServicesToShutdown.get() > 0) {
           synchronized (shutdownExecutors) {
+            // If the "shutdown" request was sent from a thread that would itself be shutdown, we give it a grace period
+            // of 100ms to finish its job, before sending the shutdown (and interrupting those threads, which might
+            // perhaps lead to exceptions in the logs, although they should not be serious, because the threads should
+            // have completed their work already)
+            try {
+              Thread.sleep(100);
+            } catch (InterruptedException e) {
+              return;
+            }
             while (numberOfServicesToShutdown.get() > 0) {
               ExecutorService executor = shutdownExecutors.poll();
               executor.shutdownNow();

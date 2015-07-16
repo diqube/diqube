@@ -20,21 +20,24 @@
  */
 package org.diqube.execution.steps;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.thrift.TException;
+import org.diqube.cluster.ClusterManager;
+import org.diqube.cluster.connection.ConnectionPool;
+import org.diqube.cluster.connection.ConnectionPool.Connection;
+import org.diqube.cluster.connection.ConnectionPool.ConnectionException;
 import org.diqube.execution.ExecutablePlan;
 import org.diqube.execution.ExecutablePlanFromRemoteBuilder;
 import org.diqube.execution.ExecutablePlanFromRemoteBuilderFactory;
-import org.diqube.execution.consumers.AbstractThreadedColumnValueConsumer;
-import org.diqube.execution.consumers.AbstractThreadedGroupIntermediaryAggregationConsumer;
 import org.diqube.execution.consumers.ColumnValueConsumer;
 import org.diqube.execution.consumers.GenericConsumer;
 import org.diqube.execution.consumers.GroupIntermediaryAggregationConsumer;
@@ -42,9 +45,14 @@ import org.diqube.execution.consumers.RowIdConsumer;
 import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.exception.ExecutablePlanExecutionException;
 import org.diqube.function.IntermediaryResult;
+import org.diqube.queries.QueryRegistry;
+import org.diqube.queries.QueryRegistry.QueryResultHandler;
 import org.diqube.queries.QueryUuid;
+import org.diqube.remote.base.thrift.RNodeAddress;
+import org.diqube.remote.base.util.RUuidUtil;
+import org.diqube.remote.cluster.ClusterNodeServiceConstants;
+import org.diqube.remote.cluster.thrift.ClusterNodeService;
 import org.diqube.remote.cluster.thrift.RExecutionPlan;
-import org.diqube.threads.ExecutorManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,39 +73,50 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
   private static final Logger logger = LoggerFactory.getLogger(ExecuteRemotePlanOnShardsStep.class);
 
   private RExecutionPlan remoteExecutionPlan;
-  private RemotePlanBuilder remotePlanBuilder;
+  private ClusterManager clusterManager;
+  private QueryRegistry queryRegistry;
+  private ConnectionPool connectionPool;
+  private ClusterNodeService.Iface localClusterNodeService;
 
-  private GroupIntermediaryAggregationConsumer groupIntermediaryAggregationConsumer =
-      new AbstractThreadedGroupIntermediaryAggregationConsumer(null) {
+  private Object wait = new Object();
 
-        @Override
-        protected void allSourcesAreDone() {
-          forEachOutputConsumerOfType(GroupIntermediaryAggregationConsumer.class, c -> c.sourceIsDone());
-        }
+  private String exceptionMessage = null;
+  private AtomicInteger remotesDone = new AtomicInteger(0);
 
-        @Override
-        protected void doConsumeIntermediaryAggregationResult(long groupId, String colName,
-            IntermediaryResult<Object, Object, Object> oldIntermediaryResult,
-            IntermediaryResult<Object, Object, Object> newIntermediaryResult) {
-          logger.trace("Received intermediary results for group {} from remote", groupId);
-          forEachOutputConsumerOfType(GroupIntermediaryAggregationConsumer.class, c -> c
-              .consumeIntermediaryAggregationResult(groupId, colName, oldIntermediaryResult, newIntermediaryResult));
-        }
-      };
-
-  private ColumnValueConsumer columnValueConsumer = new AbstractThreadedColumnValueConsumer(null) {
+  private QueryResultHandler resultHandler = new QueryResultHandler() {
     private final Object EMPTY = new Object();
 
     private Map<Long, Object> alreadyReportedRowIds = new HashMap<>();
 
     @Override
-    protected void allSourcesAreDone() {
-      forEachOutputConsumerOfType(ColumnValueConsumer.class, c -> c.sourceIsDone());
-      forEachOutputConsumerOfType(RowIdConsumer.class, c -> c.sourceIsDone());
+    public void oneRemoteException(String msg) {
+      exceptionMessage = msg;
+      logger.trace("One remote is exception");
+      synchronized (wait) {
+        wait.notifyAll();
+      }
     }
 
     @Override
-    protected synchronized void doConsume(String colName, Map<Long, Object> values) {
+    public void oneRemoteDone() {
+      remotesDone.incrementAndGet();
+      logger.trace("One remote is done");
+      synchronized (wait) {
+        wait.notifyAll();
+      }
+    }
+
+    @Override
+    public void newIntermediaryAggregationResult(long groupId, String colName,
+        IntermediaryResult<Object, Object, Object> oldIntermediaryResult,
+        IntermediaryResult<Object, Object, Object> newIntermediaryResult) {
+      logger.trace("Received intermediary results for group {} from remote", groupId);
+      forEachOutputConsumerOfType(GroupIntermediaryAggregationConsumer.class,
+          c -> c.consumeIntermediaryAggregationResult(groupId, colName, oldIntermediaryResult, newIntermediaryResult));
+    }
+
+    @Override
+    public void newColumnValues(String colName, Map<Long, Object> values) {
       logger.trace("Received column values for col '{}' and rowIds (limit) {} from remote", colName,
           Iterables.limit(values.keySet(), 100));
 
@@ -115,14 +134,15 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
     }
   };
 
-  private ExecutorManager executorManager;
-
   public ExecuteRemotePlanOnShardsStep(int stepId, ExecutionEnvironment env, RExecutionPlan remoteExecutionPlan,
-      ExecutablePlanFromRemoteBuilderFactory executablePlanFromRemoteBuilderFactory, ExecutorManager executorManager) {
+      ClusterManager clusterManager, QueryRegistry queryRegistry, ConnectionPool connectionPool,
+      ClusterNodeService.Iface localClusterNodeService) {
     super(stepId);
     this.remoteExecutionPlan = remoteExecutionPlan;
-    this.executorManager = executorManager;
-    this.remotePlanBuilder = new DefaultRemotePlanBuilder(executablePlanFromRemoteBuilderFactory);
+    this.clusterManager = clusterManager;
+    this.queryRegistry = queryRegistry;
+    this.connectionPool = connectionPool;
+    this.localClusterNodeService = localClusterNodeService;
   }
 
   @Override
@@ -135,34 +155,65 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
 
   @Override
   protected void execute() {
-    List<ExecutablePlan> remoteExecutablePlans =
-        remotePlanBuilder.build(remoteExecutionPlan, groupIntermediaryAggregationConsumer, columnValueConsumer);
+    Collection<RNodeAddress> remoteNodes =
+        clusterManager.getClusterLayout().findNodesServingTable(remoteExecutionPlan.getTable());
 
-    // start execution on all TableShards
-    // TODO #11 execute really on remote.
-    int subCnt = 0;
-    List<Future<Void>> futures = new ArrayList<>();
-    for (ExecutablePlan executablePlanOnShard : remoteExecutablePlans) {
-      Executor executor = executorManager.newQueryFixedThreadPool(executablePlanOnShard.preferredExecutorServiceSize(),
-          Thread.currentThread().getName() + "-sub-" + (subCnt++) + "-%d", //
-          QueryUuid.getCurrentQueryUuid(), QueryUuid.getCurrentExecutionUuid());
+    if (remoteNodes.isEmpty())
+      throw new ExecutablePlanExecutionException(
+          "There are no cluster nodes serving table '" + remoteExecutionPlan.getTable() + "'");
 
-      Future<Void> future = executablePlanOnShard.executeAsynchronously(executor);
-      futures.add(future);
-    }
+    int numberOfActiveRemotes = remoteNodes.size();
+    queryRegistry.addQueryResultHandler(QueryUuid.getCurrentQueryUuid(), resultHandler);
+    try {
+      // distribute query execution
+      RNodeAddress ourRemoteAddr = clusterManager.getOurHostAddr().createRemote();
+      for (RNodeAddress remoteAddr : remoteNodes) {
+        if (remoteAddr.equals(ourRemoteAddr)) {
+          // short-cut in case the remote is actually local - do not de-/searialize and use network interface. This is
+          // a nice implementation for unit tests, too.
+          try {
+            localClusterNodeService.executeOnAllLocalShards(remoteExecutionPlan,
+                RUuidUtil.toRUuid(QueryUuid.getCurrentQueryUuid()), ourRemoteAddr);
+          } catch (TException e) {
+            logger.error("Could not execute remote plan on local node", e);
+            throw new ExecutablePlanExecutionException("Could not execute remote plan on local node", e);
+          }
+          continue;
+        }
 
-    // wait for all TableShards
-    for (Future<Void> future : futures) {
-      try {
-        future.get();
-      } catch (InterruptedException | ExecutionException e) {
-        // this will effectively end up stopping the execution of the whole ExecutablePlan. This is what we want. See
-        // QueryUncaughtExceptionHandler.
-        throw new ExecutablePlanExecutionException("Could not execute remote plan", e);
+        try (Connection<ClusterNodeService.Client> conn = connectionPool
+            .reserveConnection(ClusterNodeService.Client.class, ClusterNodeServiceConstants.SERVICE_NAME, remoteAddr)) {
+
+          conn.getService().executeOnAllLocalShards(remoteExecutionPlan,
+              RUuidUtil.toRUuid(QueryUuid.getCurrentQueryUuid()), ourRemoteAddr);
+        } catch (IOException | ConnectionException | TException e) {
+          // TODO #32 mark connection as dead
+          logger.error("Could not distribute execution of query {} to remote {}", QueryUuid.getCurrentQueryUuid(),
+              remoteAddr, e);
+          throw new ExecutablePlanExecutionException("Could not distribute query to cluster", e);
+        }
       }
+
+      // wait until done
+      while (remotesDone.get() < numberOfActiveRemotes && exceptionMessage == null) {
+        synchronized (wait) {
+          try {
+            wait.wait(1000);
+          } catch (InterruptedException e) {
+            // we were interrupted, exit quietly.
+            return;
+          }
+        }
+      }
+    } finally {
+      queryRegistry.removeQueryResultHandler(QueryUuid.getCurrentQueryUuid(), resultHandler);
     }
 
-    // explicitly do NOT send sourceIsDone, as this is sent by the anonymous classes already.
+    if (exceptionMessage != null)
+      throw new ExecutablePlanExecutionException(
+          "Exception while waiting for the results from remotes: " + exceptionMessage);
+
+    forEachOutputConsumerOfType(GenericConsumer.class, c -> c.sourceIsDone());
     doneProcessing();
   }
 
@@ -178,10 +229,6 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
   @Override
   protected String getAdditionalToStringDetails() {
     return "remoteExecutionPlan=" + remoteExecutionPlan;
-  }
-
-  /* package */void setRemotePlanBuilder(RemotePlanBuilder remotePlanBuilder) {
-    this.remotePlanBuilder = remotePlanBuilder;
   }
 
   /**

@@ -29,7 +29,7 @@ import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.diqube.data.TableShard;
 import org.diqube.execution.ExecutablePlan;
@@ -38,6 +38,7 @@ import org.diqube.execution.ExecutablePlanFromRemoteBuilderFactory;
 import org.diqube.execution.TableRegistry;
 import org.diqube.execution.consumers.AbstractThreadedColumnValueConsumer;
 import org.diqube.execution.consumers.AbstractThreadedGroupIntermediaryAggregationConsumer;
+import org.diqube.execution.steps.GroupIntermediaryAggregationStep;
 import org.diqube.function.IntermediaryResult;
 import org.diqube.queries.QueryRegistry;
 import org.diqube.remote.base.thrift.RValue;
@@ -60,18 +61,15 @@ import org.diqube.threads.ExecutorManager;
 public class RemoteExecutionPlanExecutor {
   private ExecutablePlanFromRemoteBuilderFactory executablePlanBuilderFactory;
 
-  private AtomicInteger columnValuesDone = new AtomicInteger(0);
-  private AtomicInteger groupIntermediateDone = new AtomicInteger(0);
+  private AtomicBoolean columnValuesDone = new AtomicBoolean(false);
+  private AtomicBoolean groupIntermediateDone = new AtomicBoolean(false);
   private Object doneSync = new Object();
   private volatile boolean doneSent = false;
-
-  private TableRegistry tableRegistry;
 
   private ExecutorManager executorManager;
 
   public RemoteExecutionPlanExecutor(TableRegistry tableRegistry,
       ExecutablePlanFromRemoteBuilderFactory executablePlanBuilderFactory, ExecutorManager executorManager) {
-    this.tableRegistry = tableRegistry;
     this.executablePlanBuilderFactory = executablePlanBuilderFactory;
     this.executorManager = executorManager;
   }
@@ -88,16 +86,14 @@ public class RemoteExecutionPlanExecutor {
    */
   public Runnable prepareExecution(UUID queryUuid, UUID executionUuid, RExecutionPlan executionPlan,
       RemoteExecutionPlanExecutionCallback callback) {
-    int numberOfTableShards = tableRegistry.getTable(executionPlan.getTable()).getShards().size();
-
     ExecutablePlanFromRemoteBuilder executablePlanBuilder =
         executablePlanBuilderFactory.createExecutablePlanFromRemoteBuilder();
     executablePlanBuilder.withRemoteExecutionPlan(executionPlan);
     executablePlanBuilder.withFinalColumnValueConsumer(new AbstractThreadedColumnValueConsumer(null) {
       @Override
       protected void allSourcesAreDone() {
-        int numberDone = columnValuesDone.incrementAndGet();
-        if (numberDone == numberOfTableShards && groupIntermediateDone.get() == numberOfTableShards) {
+        columnValuesDone.set(true);
+        if (groupIntermediateDone.get()) {
           synchronized (doneSync) {
             if (!doneSent) {
               callback.executionDone();
@@ -120,8 +116,8 @@ public class RemoteExecutionPlanExecutor {
         .withFinalGroupIntermediateAggregationConsumer(new AbstractThreadedGroupIntermediaryAggregationConsumer(null) {
           @Override
           protected void allSourcesAreDone() {
-            int numberDone = groupIntermediateDone.incrementAndGet();
-            if (numberDone == numberOfTableShards && columnValuesDone.get() == numberOfTableShards) {
+            groupIntermediateDone.set(true);
+            if (columnValuesDone.get()) {
               synchronized (doneSync) {
                 if (!doneSent) {
                   callback.executionDone();
@@ -148,8 +144,12 @@ public class RemoteExecutionPlanExecutor {
         });
     List<ExecutablePlan> executablePlans = executablePlanBuilder.build();
 
-    if (!executablePlans.iterator().next().getInfo().isGrouped())
-      groupIntermediateDone.set(numberOfTableShards);
+    if (!executablePlans.iterator().next().getInfo().isGrouped() || //
+        !executablePlans.iterator().next().getSteps().stream()
+            .anyMatch(s -> s instanceof GroupIntermediaryAggregationStep))
+      // If not grouped or grouped but not containing an aggregation step (in the latter case we will not receive any
+      // "allSourcesDone" calls either!)
+      groupIntermediateDone.set(true);
 
     return new Runnable() {
       @Override
@@ -169,8 +169,11 @@ public class RemoteExecutionPlanExecutor {
         for (Future<?> f : futures)
           try {
             f.get();
-          } catch (InterruptedException | ExecutionException e) {
+          } catch (ExecutionException e) {
             callback.exceptionThrown(e);
+            return;
+          } catch (InterruptedException e) {
+            // interrupted, stop quietly.
             return;
           }
       }

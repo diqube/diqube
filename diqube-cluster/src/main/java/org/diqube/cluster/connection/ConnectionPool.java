@@ -47,6 +47,8 @@ import org.slf4j.LoggerFactory;
 public class ConnectionPool {
   private static final Logger logger = LoggerFactory.getLogger(ConnectionPool.class);
 
+  private ConnectionFactory connectionFactory = new DefaultConnectionFactory();
+
   /**
    * Reserve a connection for the given remote addrress.
    * 
@@ -67,38 +69,7 @@ public class ConnectionPool {
     // TODO #32 implement failsafe connections!
     // TODO #32 implement timeout, inform clustermanager!
 
-    TTransport transport = openTransport(addr);
-
-    TProtocol queryProtocol = new TMultiplexedProtocol(new TCompactProtocol(transport), thriftServiceName);
-
-    T queryResultClient;
-    try {
-      queryResultClient = thiftClientClass.getConstructor(TProtocol.class).newInstance(queryProtocol);
-    } catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException
-        | NoSuchMethodException | SecurityException e) {
-      logger.error("Error while constructing a client", e);
-      throw new ConnectionException("Error while constructing a client", e);
-    }
-    try {
-      transport.open();
-    } catch (TTransportException e) {
-      throw new ConnectionException("Could not open connection to " + addr, e);
-    }
-
-    return new Connection<>(this, queryResultClient, transport, addr);
-  }
-
-  private TTransport openTransport(RNodeAddress addr) throws ConnectionException {
-    if (addr.isSetHttpAddr()) {
-      try {
-        return new THttpClient(addr.getHttpAddr().getUrl());
-      } catch (TTransportException e) {
-        throw new ConnectionException("Could not open connection to " + addr, e);
-      }
-    }
-
-    TTransport transport = new TSocket(addr.getDefaultAddr().getHost(), addr.getDefaultAddr().getPort());
-    return new TFramedTransport(transport);
+    return connectionFactory.createConnection(thiftClientClass, thriftServiceName, addr);
   }
 
   /**
@@ -111,18 +82,73 @@ public class ConnectionPool {
     connection.getTransport().close();
   }
 
+  /**
+   * Override connection factory for tests.
+   */
+  /* package */ void setConnectionFactory(ConnectionFactory connectionFactory) {
+    this.connectionFactory = connectionFactory;
+  }
+
+  /**
+   * Create and open a new connection. Needed for override-possibility in unit tests.
+   */
+  public static interface ConnectionFactory {
+    public <T extends TServiceClient> Connection<T> createConnection(Class<T> thiftClientClass,
+        String thriftServiceName, RNodeAddress addr) throws ConnectionException;
+  }
+
+  private class DefaultConnectionFactory implements ConnectionFactory {
+    private TTransport openTransport(RNodeAddress addr) throws ConnectionException {
+      if (addr.isSetHttpAddr()) {
+        try {
+          return new THttpClient(addr.getHttpAddr().getUrl());
+        } catch (TTransportException e) {
+          throw new ConnectionException("Could not open connection to " + addr, e);
+        }
+      }
+
+      TTransport transport = new TSocket(addr.getDefaultAddr().getHost(), addr.getDefaultAddr().getPort());
+      return new TFramedTransport(transport);
+    }
+
+    @Override
+    public <T extends TServiceClient> Connection<T> createConnection(Class<T> thiftClientClass,
+        String thriftServiceName, RNodeAddress addr) throws ConnectionException {
+
+      TTransport transport = openTransport(addr);
+
+      TProtocol queryProtocol = new TMultiplexedProtocol(new TCompactProtocol(transport), thriftServiceName);
+
+      T queryResultClient;
+      try {
+        queryResultClient = thiftClientClass.getConstructor(TProtocol.class).newInstance(queryProtocol);
+      } catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException
+          | NoSuchMethodException | SecurityException e) {
+        logger.error("Error while constructing a client", e);
+        throw new ConnectionException("Error while constructing a client", e);
+      }
+      try {
+        transport.open();
+      } catch (TTransportException e) {
+        throw new ConnectionException("Could not open connection to " + addr, e);
+      }
+
+      return new Connection<>(ConnectionPool.this, queryResultClient, transport, addr);
+    }
+
+  }
+
   public static class Connection<T> implements Closeable {
     private T service;
     private TTransport transport;
     private RNodeAddress address;
     private ConnectionPool parentPool;
 
-    private Connection(ConnectionPool parentPool, T service, TTransport transport, RNodeAddress address) {
+    /* package */ Connection(ConnectionPool parentPool, T service, TTransport transport, RNodeAddress address) {
       this.parentPool = parentPool;
       this.service = service;
       this.transport = transport;
       this.address = address;
-
     }
 
     public T getService() {
@@ -143,7 +169,7 @@ public class ConnectionPool {
     }
   }
 
-  public class ConnectionException extends RuntimeException {
+  public static class ConnectionException extends RuntimeException {
     private static final long serialVersionUID = 1L;
 
     public ConnectionException() {

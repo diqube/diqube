@@ -101,6 +101,20 @@ public class ClusterLayout {
     return res;
   }
 
+  /**
+   * Finds the addresses of nodes of which is known that they serve parts of a specific table.
+   */
+  public Collection<RNodeAddress> findNodesServingTable(String table) {
+    List<RNodeAddress> res = new ArrayList<>();
+
+    for (Entry<NodeAddress, Pair<Long, NavigableSet<String>>> e : tables.entrySet()) {
+      if (e.getValue().getRight().contains(table))
+        res.add(e.getKey().createRemote());
+    }
+
+    return res;
+  }
+
   /* package */ synchronized Pair<Long, List<String>> getVersionedTableList(NodeAddress addr) {
     List<String> resList = new ArrayList<>(tables.get(addr).getRight());
     return new Pair<>(tables.get(addr).getLeft(), resList);

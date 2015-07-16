@@ -41,6 +41,10 @@ diqube source code.
         * Logback Classic Module (ch.qos.logback:logback-classic:1.1.2 - http://logback.qos.ch)
         * Logback Core Module (ch.qos.logback:logback-core:1.1.2 - http://logback.qos.ch)
 
+    MIT License (mockito) [mockito-mit.txt]:
+
+        * Mockito (org.mockito:mockito-all:1.9.5 - http://www.mockito.org)
+
     MIT License (slf4j) [slf4j-mit.txt]:
 
         * JCL 1.1.1 implemented over SLF4J (org.slf4j:jcl-over-slf4j:1.7.12 - http://www.slf4j.org)

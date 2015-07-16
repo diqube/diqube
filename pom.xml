@@ -307,6 +307,12 @@
         <version>2.5.3</version>
       </dependency>
       <dependency>
+        <groupId>org.mockito</groupId>
+        <artifactId>mockito-all</artifactId>
+        <version>1.9.5</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
         <groupId>javax.servlet</groupId>
         <artifactId>javax.servlet-api</artifactId>
         <version>3.1.0</version>
@@ -385,6 +391,8 @@
                     <licenseMerge>Apache License 2.0 [apache-20.txt]|The Apache Software License, Version 2.0|Apache License|Apache License, Version 2.0|Apache 2</licenseMerge>
                     <!-- "SLF4J" uses the following license name, use a different, more clear one. -->
                     <licenseMerge>MIT License (slf4j) [slf4j-mit.txt]|MIT License</licenseMerge>
+                    <!-- "Mockito" uses the following license name, use a different, more clear one. -->
+                    <licenseMerge>MIT License (mockito) [mockito-mit.txt]|The MIT License</licenseMerge>
                     <!-- "abego TreeLayout Core" uses the following license name, use a different, more clear one. -->
                     <licenseMerge>BSD (abego) [abego-bsd.txt]|BSD 3-Clause "New" or "Revised" License (BSD-3-Clause)</licenseMerge>
                     <!-- "ANTLR" uses the following license name, use a different, more clear one. -->

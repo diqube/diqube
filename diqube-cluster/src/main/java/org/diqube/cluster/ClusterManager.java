@@ -326,4 +326,8 @@ public class ClusterManager implements ServingListener, TableLoadListener {
       }
     }
   }
+
+  public NodeAddress getOurHostAddr() {
+    return ourHostAddr;
+  }
 }

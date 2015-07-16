@@ -66,6 +66,9 @@ public class RemoteOrderHandler implements OrderRequestBuilder<RExecutionPlanSte
           orderRequest.createSubOrderRequestUpTo(pair -> columnInfo.containsKey(pair.getLeft())
               && columnInfo.get(pair.getLeft()).getType().equals(FunctionRequest.Type.AGGREGATION));
 
+      if (clusterNodeOrder.getColumns().isEmpty())
+        return null;
+
       if (clusterNodeOrder.getLimitStart() != null) {
         // be sure that all results of the cluster nodes are included and sent to the query master
         clusterNodeOrder.setLimit(clusterNodeOrder.getLimit() + clusterNodeOrder.getLimitStart());

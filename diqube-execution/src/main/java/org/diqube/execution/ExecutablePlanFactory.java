@@ -25,7 +25,10 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
+import org.diqube.cluster.ClusterManager;
+import org.diqube.cluster.connection.ConnectionPool;
 import org.diqube.context.AutoInstatiate;
+import org.diqube.context.InjectOptional;
 import org.diqube.data.colshard.ColumnShardFactory;
 import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.steps.BuildColumnFromValuesStep;
@@ -39,8 +42,9 @@ import org.diqube.execution.steps.ResolveColumnDictIdsStep;
 import org.diqube.execution.steps.ResolveValuesStep;
 import org.diqube.function.FunctionFactory;
 import org.diqube.loader.columnshard.ColumnShardBuilderFactory;
+import org.diqube.queries.QueryRegistry;
+import org.diqube.remote.cluster.thrift.ClusterNodeService;
 import org.diqube.remote.cluster.thrift.RExecutionPlan;
-import org.diqube.threads.ExecutorManager;
 import org.diqube.util.ColumnOrValue;
 import org.diqube.util.Pair;
 
@@ -58,13 +62,19 @@ public class ExecutablePlanFactory {
   private ColumnShardBuilderFactory columnShardBuilderFactory;
 
   @Inject
-  private ExecutablePlanFromRemoteBuilderFactory executablePlanFromRemoteBuilderFactory;
-
-  @Inject
   private ColumnShardFactory columnShardFactory;
 
   @Inject
-  private ExecutorManager executorManager;
+  private QueryRegistry queryRegistry;
+
+  @Inject
+  private ClusterManager clusterManager;
+
+  @Inject
+  private ConnectionPool connectionPool;
+
+  @InjectOptional // not available in tests
+  private ClusterNodeService.Iface localClusterNodeService;
 
   public GroupFinalAggregationStep createGroupFinalAggregationStep(int stepId, ExecutionEnvironment env,
       String functionNameLowerCase, String outputColName, ColumnVersionManager columnVersionManager) {
@@ -98,8 +108,8 @@ public class ExecutablePlanFactory {
 
   public ExecuteRemotePlanOnShardsStep createExecuteRemotePlanStep(int stepId, ExecutionEnvironment env,
       RExecutionPlan remotePlan) {
-    return new ExecuteRemotePlanOnShardsStep(stepId, env, remotePlan, executablePlanFromRemoteBuilderFactory,
-        executorManager);
+    return new ExecuteRemotePlanOnShardsStep(stepId, env, remotePlan, clusterManager, queryRegistry, connectionPool,
+        localClusterNodeService);
   }
 
   public OrderStep createOrderStep(int stepId, ExecutionEnvironment env, List<Pair<String, Boolean>> sortCols,

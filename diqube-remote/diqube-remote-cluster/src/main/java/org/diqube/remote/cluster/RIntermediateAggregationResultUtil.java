@@ -42,17 +42,19 @@ public class RIntermediateAggregationResultUtil {
     if (input.isSetValue3())
       right = RValueUtil.createValue(input.getValue3());
 
-    ColumnType type;
-    switch (input.getInputColumnType()) {
-    case LONG:
-      type = ColumnType.LONG;
-      break;
-    case DOUBLE:
-      type = ColumnType.DOUBLE;
-      break;
-    default:
-      type = ColumnType.STRING;
-      break;
+    ColumnType type = null;
+    if (input.isSetInputColumnType()) {
+      switch (input.getInputColumnType()) {
+      case LONG:
+        type = ColumnType.LONG;
+        break;
+      case DOUBLE:
+        type = ColumnType.DOUBLE;
+        break;
+      default:
+        type = ColumnType.STRING;
+        break;
+      }
     }
 
     IntermediaryResult<Object, Object, Object> res =
@@ -69,16 +71,18 @@ public class RIntermediateAggregationResultUtil {
     if (input.getRight() != null)
       res.setValue3(RValueUtil.createRValue(input.getRight()));
 
-    switch (input.getInputColumnType()) {
-    case STRING:
-      res.setInputColumnType(RColumnType.STRING);
-      break;
-    case LONG:
-      res.setInputColumnType(RColumnType.LONG);
-      break;
-    case DOUBLE:
-      res.setInputColumnType(RColumnType.DOUBLE);
-      break;
+    if (input.getInputColumnType() != null) {
+      switch (input.getInputColumnType()) {
+      case STRING:
+        res.setInputColumnType(RColumnType.STRING);
+        break;
+      case LONG:
+        res.setInputColumnType(RColumnType.LONG);
+        break;
+      case DOUBLE:
+        res.setInputColumnType(RColumnType.DOUBLE);
+        break;
+      }
     }
 
     return res;

@@ -105,8 +105,20 @@ public class ClusterNodeServiceHandler implements Iface {
   @Override
   public void executeOnAllLocalShards(RExecutionPlan executionPlan, RUUID remoteQueryUuid, RNodeAddress resultAddress)
       throws TException {
-    Connection<ClusterNodeService.Client> resultConnection = connectionPool
-        .reserveConnection(ClusterNodeService.Client.class, ClusterNodeServiceConstants.SERVICE_NAME, resultAddress);
+    Object connSync = new Object();
+    Connection<ClusterNodeService.Client> resultConnection;
+    ClusterNodeService.Iface resultService;
+
+    if (resultAddress.equals(clusterManager.getOurHostAddr().createRemote())) {
+      // implement short cut if we should answer to the local node, i.e. the query master is running on this node, too.
+      // This is a nice implementation for unit tests, too.
+      resultConnection = null;
+      resultService = this;
+    } else {
+      resultConnection = connectionPool.reserveConnection(ClusterNodeService.Client.class,
+          ClusterNodeServiceConstants.SERVICE_NAME, resultAddress);
+      resultService = resultConnection.getService();
+    }
 
     UUID queryUuid = RUuidUtil.toUuid(remoteQueryUuid);
     // The executionUuid we will use for the all executors executing something started by this API call.
@@ -125,7 +137,7 @@ public class ClusterNodeServiceHandler implements Iface {
           RExecutionException ex = new RExecutionException();
           ex.setMessage(t.getMessage());
           try {
-            resultConnection.getService().executionException(remoteQueryUuid, ex);
+            resultService.executionException(remoteQueryUuid, ex);
           } catch (TException e) {
             logger.error("Could not sent new group intermediaries to client for query {}", queryUuid, e);
             // TODO #32 mark connection as dead.
@@ -133,8 +145,10 @@ public class ClusterNodeServiceHandler implements Iface {
         }
 
         // shutdown everything for all TableShards.
-        synchronized (resultConnection) {
-          connectionPool.releaseConnection(resultConnection);
+        if (resultConnection != null) {
+          synchronized (connSync) {
+            connectionPool.releaseConnection(resultConnection);
+          }
         }
         queryRegistry.unregisterQueryExecution(queryUuid, executionUuid);
         executorManager.shutdownEverythingOfQueryExecution(queryUuid, executionUuid); // this will kill our
@@ -147,10 +161,9 @@ public class ClusterNodeServiceHandler implements Iface {
           @Override
           public void newGroupIntermediaryAggregration(long groupId, String colName,
               ROldNewIntermediateAggregationResult result) {
-            synchronized (resultConnection) {
+            synchronized (connSync) {
               try {
-                resultConnection.getService().groupIntermediateAggregationResultAvailable(remoteQueryUuid, groupId,
-                    colName, result);
+                resultService.groupIntermediateAggregationResultAvailable(remoteQueryUuid, groupId, colName, result);
               } catch (TException e) {
                 logger.error("Could not sent new group intermediaries to client for query {}", queryUuid, e);
 
@@ -162,9 +175,9 @@ public class ClusterNodeServiceHandler implements Iface {
 
           @Override
           public void newColumnValues(String colName, Map<Long, RValue> values) {
-            synchronized (resultConnection) {
+            synchronized (connSync) {
               try {
-                resultConnection.getService().columnValueAvailable(remoteQueryUuid, colName, values);
+                resultService.columnValueAvailable(remoteQueryUuid, colName, values);
               } catch (TException e) {
                 logger.error("Could not sent new group intermediaries to client for query {}", queryUuid, e);
 
@@ -176,9 +189,9 @@ public class ClusterNodeServiceHandler implements Iface {
 
           @Override
           public void executionDone() {
-            synchronized (resultConnection) {
+            synchronized (connSync) {
               try {
-                resultConnection.getService().executionDone(remoteQueryUuid);
+                resultService.executionDone(remoteQueryUuid);
               } catch (TException e) {
                 logger.error("Could not sent 'done' to client for query {}", queryUuid, e);
                 // TODO #32 mark connection as dead.
@@ -191,9 +204,9 @@ public class ClusterNodeServiceHandler implements Iface {
           public void exceptionThrown(Throwable t) {
             logger.error("Exception while executing query {}", queryUuid, t);
             RExecutionException ex = new RExecutionException(t.getMessage());
-            synchronized (resultConnection) {
+            synchronized (connSync) {
               try {
-                resultConnection.getService().executionException(remoteQueryUuid, ex);
+                resultService.executionException(remoteQueryUuid, ex);
               } catch (TException e) {
                 logger.error("Could not sent 'exception' to client for query {}", queryUuid, e);
                 // TODO #32 mark connection as dead.
