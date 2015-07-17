@@ -20,6 +20,7 @@
  */
 package org.diqube.cluster;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -29,6 +30,7 @@ import org.apache.thrift.TException;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.remote.base.thrift.RNodeAddress;
 import org.diqube.remote.cluster.thrift.ClusterManagementService;
+import org.diqube.util.Pair;
 
 /**
  * Implements {@link ClusterManagementService}, which manages the various nodes of a diqube cluster.
@@ -44,10 +46,13 @@ public class ClusterManagementServiceHandler implements ClusterManagementService
 
   /**
    * A new cluster node says "hello".
+   * 
+   * @return the current version number of the table-list this node serves parts of.
    */
   @Override
-  public void hello(RNodeAddress newNode) throws TException {
+  public long hello(RNodeAddress newNode) throws TException {
     clusterManager.newNode(newNode);
+    return clusterManager.getClusterLayout().getVersionedTableList(clusterManager.getOurHostAddr()).getLeft();
   }
 
   /**
@@ -72,6 +77,18 @@ public class ClusterManagementServiceHandler implements ClusterManagementService
   @Override
   public void nodeDied(RNodeAddress nodeAddr) throws TException {
     clusterManager.nodeDied(nodeAddr);
+  }
+
+  /**
+   * @return single entry map containing the current version and current list of table names this node serves parts of.
+   */
+  @Override
+  public Map<Long, List<String>> fetchCurrentTablesServed() throws TException {
+    Pair<Long, List<String>> p =
+        clusterManager.getClusterLayout().getVersionedTableList(clusterManager.getOurHostAddr());
+    Map<Long, List<String>> res = new HashMap<>();
+    res.put(p.getLeft(), p.getRight());
+    return res;
   }
 
 }

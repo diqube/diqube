@@ -204,9 +204,14 @@ public class ClusterManager implements ServingListener, TableLoadListener {
               continue;
 
             try (Connection<ClusterManagementService.Client> conn = reserveConnection(remoteAddr)) {
-              // TODO send hash of table-name-list we have of the node - if anything changed in the meantime, we
-              // should fetch the new info.
-              conn.getService().hello(ourAddress);
+              long version = conn.getService().hello(ourAddress);
+
+              if (version != clusterLayout.getVersionedTableList(remoteAddr).getLeft()) {
+                // node already has new list of tables, fetch new list, as we might miss it otherwise.
+                Map<Long, List<String>> newTables = conn.getService().fetchCurrentTablesServed();
+                long newVersion = newTables.keySet().iterator().next();
+                loadNodeInfo(remoteAddr.createRemote(), newVersion, newTables.get(version));
+              }
             } catch (ConnectionException | TException | IOException e) {
               logger.error("Could not say hello to node {}.", clusterLayoutAddr);
               // TODO mark node as dead.
