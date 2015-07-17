@@ -142,7 +142,7 @@ public class QueryRegistry {
   }
 
   /**
-   * Handles results that are received by the ClusterNodeService from query remotes.
+   * Handles results that are received by the ClusterQueryService from query remotes.
    * 
    * This needs to be implemented on the query master.
    */

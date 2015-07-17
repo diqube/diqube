@@ -153,7 +153,7 @@ exception RExecutionException {
     1: string message;
 }
 
-service ClusterNodeService {
+service ClusterQueryService {
   oneway void executeOnAllLocalShards(
     1:RExecutionPlan executionPlan, 2: base.RUUID queryId, 3: base.RNodeAddress resultAddress),
   
@@ -165,7 +165,9 @@ service ClusterNodeService {
   oneway void executionDone(1: base.RUUID queryId),
   
   oneway void executionException(1: base.RUUID queryId, 2:RExecutionException executionException),
-  
+}
+
+service ClusterManagementService {
   // a new node says hello to all cluster nodes
   void hello(1: base.RNodeAddress newNode),
   

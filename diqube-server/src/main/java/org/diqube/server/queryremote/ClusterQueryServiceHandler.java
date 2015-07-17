@@ -21,7 +21,6 @@
 package org.diqube.server.queryremote;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
@@ -47,10 +46,9 @@ import org.diqube.remote.base.thrift.RUUID;
 import org.diqube.remote.base.thrift.RValue;
 import org.diqube.remote.base.util.RUuidUtil;
 import org.diqube.remote.base.util.RValueUtil;
-import org.diqube.remote.cluster.ClusterNodeServiceConstants;
+import org.diqube.remote.cluster.ClusterQueryServiceConstants;
 import org.diqube.remote.cluster.RIntermediateAggregationResultUtil;
-import org.diqube.remote.cluster.thrift.ClusterNodeService;
-import org.diqube.remote.cluster.thrift.ClusterNodeService.Iface;
+import org.diqube.remote.cluster.thrift.ClusterQueryService;
 import org.diqube.remote.cluster.thrift.RExecutionException;
 import org.diqube.remote.cluster.thrift.RExecutionPlan;
 import org.diqube.remote.cluster.thrift.ROldNewIntermediateAggregationResult;
@@ -62,7 +60,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Implements {@link ClusterNodeService}, which manages communication between various cluster nodes of diqube servers.
+ * Implements {@link ClusterQueryService}, which is the cluster-side API to distribute the execution of queries.
  * 
  * This means that this service - in contrast to {@link QueryService} and its {@link QueryServiceHandler} - will not be
  * called by users (or the UI) directly.
@@ -72,8 +70,8 @@ import org.slf4j.LoggerFactory;
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
-public class ClusterNodeServiceHandler implements Iface {
-  private static final Logger logger = LoggerFactory.getLogger(ClusterNodeServiceHandler.class);
+public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
+  private static final Logger logger = LoggerFactory.getLogger(ClusterQueryServiceHandler.class);
 
   @Inject
   private TableRegistry tableRegistry;
@@ -107,8 +105,8 @@ public class ClusterNodeServiceHandler implements Iface {
   public void executeOnAllLocalShards(RExecutionPlan executionPlan, RUUID remoteQueryUuid, RNodeAddress resultAddress)
       throws TException {
     Object connSync = new Object();
-    Connection<ClusterNodeService.Client> resultConnection;
-    ClusterNodeService.Iface resultService;
+    Connection<ClusterQueryService.Client> resultConnection;
+    ClusterQueryService.Iface resultService;
 
     if (resultAddress.equals(clusterManager.getOurHostAddr().createRemote())) {
       // implement short cut if we should answer to the local node, i.e. the query master is running on this node, too.
@@ -116,8 +114,8 @@ public class ClusterNodeServiceHandler implements Iface {
       resultConnection = null;
       resultService = this;
     } else {
-      resultConnection = connectionPool.reserveConnection(ClusterNodeService.Client.class,
-          ClusterNodeServiceConstants.SERVICE_NAME, resultAddress);
+      resultConnection = connectionPool.reserveConnection(ClusterQueryService.Client.class,
+          ClusterQueryServiceConstants.SERVICE_NAME, resultAddress);
       resultService = resultConnection.getService();
     }
 
@@ -282,38 +280,6 @@ public class ClusterNodeServiceHandler implements Iface {
   public void executionException(RUUID remoteQueryUuid, RExecutionException executionException) throws TException {
     for (QueryResultHandler handler : queryRegistry.getQueryResultHandlers(RUuidUtil.toUuid(remoteQueryUuid)))
       handler.oneRemoteException(executionException.getMessage());
-  }
-
-  /**
-   * A new cluster node says "hello".
-   */
-  @Override
-  public void hello(RNodeAddress newNode) throws TException {
-    clusterManager.newNode(newNode);
-  }
-
-  /**
-   * Someone asks us what cluster nodes we know and what tables they serve shards of.
-   */
-  @Override
-  public Map<RNodeAddress, Map<Long, List<String>>> clusterLayout() throws TException {
-    return clusterManager.getClusterLayout().createRemoteLayout();
-  }
-
-  /**
-   * A cluster node has an updated list of tables available for which it serves data.
-   */
-  @Override
-  public void newNodeData(RNodeAddress nodeAddr, long version, List<String> tables) throws TException {
-    clusterManager.loadNodeInfo(nodeAddr, version, tables);
-  }
-
-  /**
-   * A cluster node died.
-   */
-  @Override
-  public void nodeDied(RNodeAddress nodeAddr) throws TException {
-    clusterManager.nodeDied(nodeAddr);
   }
 
 }

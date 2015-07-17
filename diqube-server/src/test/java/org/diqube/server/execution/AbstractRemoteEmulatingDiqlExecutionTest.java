@@ -35,9 +35,9 @@ import org.diqube.cluster.connection.ConnectionPoolTestUtil;
 import org.diqube.data.ColumnType;
 import org.diqube.queries.QueryRegistry;
 import org.diqube.remote.base.thrift.RNodeAddress;
-import org.diqube.remote.cluster.thrift.ClusterNodeService;
-import org.diqube.server.execution.util.NoopClusterNodeService;
-import org.diqube.server.queryremote.ClusterNodeServiceHandler;
+import org.diqube.remote.cluster.thrift.ClusterQueryService;
+import org.diqube.server.execution.util.NoopClusterQueryService;
+import org.diqube.server.queryremote.ClusterQueryServiceHandler;
 import org.diqube.util.Pair;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.support.GenericBeanDefinition;
@@ -60,10 +60,10 @@ public abstract class AbstractRemoteEmulatingDiqlExecutionTest<T> extends Abstra
 
   @Override
   protected void adjustContextBeforeRefresh(AnnotationConfigApplicationContext ctx) {
-    // replace the default ClusterNodeServiceHandler with a Noop handler, as otherwise the ExecuteRemote step would
+    // replace the default ClusterQueryServiceHandler with a Noop handler, as otherwise the ExecuteRemote step would
     // access the only "remote" (= local process) through the bean in the context directly, without accessing any
     // connections - we would then not be able to fully emulate the remotes.
-    overrideBean(ctx, ClusterNodeServiceHandler.class, NoopClusterNodeService.class);
+    overrideBean(ctx, ClusterQueryServiceHandler.class, NoopClusterQueryService.class);
   }
 
   /**
@@ -109,7 +109,7 @@ public abstract class AbstractRemoteEmulatingDiqlExecutionTest<T> extends Abstra
       @Override
       public <C extends TServiceClient> Connection<C> createConnection(Class<C> thiftClientClass,
           String thriftServiceName, RNodeAddress addr) throws ConnectionException {
-        return (Connection<C>) ConnectionPoolTestUtil.createConnection(pool, ClusterNodeService.Client.class);
+        return (Connection<C>) ConnectionPoolTestUtil.createConnection(pool, ClusterQueryService.Client.class);
       }
     });
   }

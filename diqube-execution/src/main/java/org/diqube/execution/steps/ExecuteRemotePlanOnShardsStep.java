@@ -50,8 +50,8 @@ import org.diqube.queries.QueryRegistry.QueryResultHandler;
 import org.diqube.queries.QueryUuid;
 import org.diqube.remote.base.thrift.RNodeAddress;
 import org.diqube.remote.base.util.RUuidUtil;
-import org.diqube.remote.cluster.ClusterNodeServiceConstants;
-import org.diqube.remote.cluster.thrift.ClusterNodeService;
+import org.diqube.remote.cluster.ClusterQueryServiceConstants;
+import org.diqube.remote.cluster.thrift.ClusterQueryService;
 import org.diqube.remote.cluster.thrift.RExecutionPlan;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -76,7 +76,7 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
   private ClusterManager clusterManager;
   private QueryRegistry queryRegistry;
   private ConnectionPool connectionPool;
-  private ClusterNodeService.Iface localClusterNodeService;
+  private ClusterQueryService.Iface localClusterQueryService;
 
   private Object wait = new Object();
 
@@ -136,13 +136,13 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
 
   public ExecuteRemotePlanOnShardsStep(int stepId, ExecutionEnvironment env, RExecutionPlan remoteExecutionPlan,
       ClusterManager clusterManager, QueryRegistry queryRegistry, ConnectionPool connectionPool,
-      ClusterNodeService.Iface localClusterNodeService) {
+      ClusterQueryService.Iface localClusterQueryService) {
     super(stepId);
     this.remoteExecutionPlan = remoteExecutionPlan;
     this.clusterManager = clusterManager;
     this.queryRegistry = queryRegistry;
     this.connectionPool = connectionPool;
-    this.localClusterNodeService = localClusterNodeService;
+    this.localClusterQueryService = localClusterQueryService;
   }
 
   @Override
@@ -172,7 +172,7 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
           // short-cut in case the remote is actually local - do not de-/searialize and use network interface. This is
           // a nice implementation for unit tests, too.
           try {
-            localClusterNodeService.executeOnAllLocalShards(remoteExecutionPlan,
+            localClusterQueryService.executeOnAllLocalShards(remoteExecutionPlan,
                 RUuidUtil.toRUuid(QueryUuid.getCurrentQueryUuid()), ourRemoteAddr);
           } catch (TException e) {
             logger.error("Could not execute remote plan on local node", e);
@@ -181,8 +181,8 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
           continue;
         }
 
-        try (Connection<ClusterNodeService.Client> conn = connectionPool
-            .reserveConnection(ClusterNodeService.Client.class, ClusterNodeServiceConstants.SERVICE_NAME, remoteAddr)) {
+        try (Connection<ClusterQueryService.Client> conn = connectionPool.reserveConnection(
+            ClusterQueryService.Client.class, ClusterQueryServiceConstants.SERVICE_NAME, remoteAddr)) {
 
           conn.getService().executeOnAllLocalShards(remoteExecutionPlan,
               RUuidUtil.toRUuid(QueryUuid.getCurrentQueryUuid()), ourRemoteAddr);

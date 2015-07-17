@@ -43,7 +43,7 @@ import org.diqube.execution.steps.ResolveValuesStep;
 import org.diqube.function.FunctionFactory;
 import org.diqube.loader.columnshard.ColumnShardBuilderFactory;
 import org.diqube.queries.QueryRegistry;
-import org.diqube.remote.cluster.thrift.ClusterNodeService;
+import org.diqube.remote.cluster.thrift.ClusterQueryService;
 import org.diqube.remote.cluster.thrift.RExecutionPlan;
 import org.diqube.util.ColumnOrValue;
 import org.diqube.util.Pair;
@@ -74,7 +74,7 @@ public class ExecutablePlanFactory {
   private ConnectionPool connectionPool;
 
   @InjectOptional // not available in tests
-  private ClusterNodeService.Iface localClusterNodeService;
+  private ClusterQueryService.Iface localClusterQueryService;
 
   public GroupFinalAggregationStep createGroupFinalAggregationStep(int stepId, ExecutionEnvironment env,
       String functionNameLowerCase, String outputColName, ColumnVersionManager columnVersionManager) {
@@ -109,7 +109,7 @@ public class ExecutablePlanFactory {
   public ExecuteRemotePlanOnShardsStep createExecuteRemotePlanStep(int stepId, ExecutionEnvironment env,
       RExecutionPlan remotePlan) {
     return new ExecuteRemotePlanOnShardsStep(stepId, env, remotePlan, clusterManager, queryRegistry, connectionPool,
-        localClusterNodeService);
+        localClusterQueryService);
   }
 
   public OrderStep createOrderStep(int stepId, ExecutionEnvironment env, List<Pair<String, Boolean>> sortCols,

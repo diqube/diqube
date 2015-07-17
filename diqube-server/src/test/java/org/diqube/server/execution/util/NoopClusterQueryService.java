@@ -20,26 +20,25 @@
  */
 package org.diqube.server.execution.util;
 
-import java.util.List;
 import java.util.Map;
 
 import org.apache.thrift.TException;
 import org.diqube.remote.base.thrift.RNodeAddress;
 import org.diqube.remote.base.thrift.RUUID;
 import org.diqube.remote.base.thrift.RValue;
-import org.diqube.remote.cluster.thrift.ClusterNodeService;
+import org.diqube.remote.cluster.thrift.ClusterQueryService;
 import org.diqube.remote.cluster.thrift.RExecutionException;
 import org.diqube.remote.cluster.thrift.RExecutionPlan;
 import org.diqube.remote.cluster.thrift.ROldNewIntermediateAggregationResult;
-import org.diqube.server.queryremote.ClusterNodeServiceHandler;
+import org.diqube.server.queryremote.ClusterQueryServiceHandler;
 
 /**
- * A {@link ClusterNodeService} that simply does nothing. Usable for unit tests, if the original
- * {@link ClusterNodeServiceHandler} bean in the context gets overridden.
+ * A {@link ClusterQueryService} that simply does nothing. Usable for unit tests, if the original
+ * {@link ClusterQueryServiceHandler} bean in the context gets overridden.
  *
  * @author Bastian Gloeckle
  */
-public class NoopClusterNodeService implements ClusterNodeService.Iface {
+public class NoopClusterQueryService implements ClusterQueryService.Iface {
 
   @Override
   public void executeOnAllLocalShards(RExecutionPlan executionPlan, RUUID queryId, RNodeAddress resultAddress)
@@ -61,23 +60,6 @@ public class NoopClusterNodeService implements ClusterNodeService.Iface {
 
   @Override
   public void executionException(RUUID queryId, RExecutionException executionException) throws TException {
-  }
-
-  @Override
-  public void hello(RNodeAddress newNode) throws TException {
-  }
-
-  @Override
-  public Map<RNodeAddress, Map<Long, List<String>>> clusterLayout() throws TException {
-    return null;
-  }
-
-  @Override
-  public void newNodeData(RNodeAddress nodeAddr, long version, List<String> tables) throws TException {
-  }
-
-  @Override
-  public void nodeDied(RNodeAddress nodeAddr) throws TException {
   }
 
 }

@@ -44,9 +44,8 @@ import org.diqube.listeners.ServingListener;
 import org.diqube.listeners.TableLoadListener;
 import org.diqube.remote.base.thrift.RNodeAddress;
 import org.diqube.remote.base.util.RNodeAddressUtil;
-import org.diqube.remote.cluster.ClusterNodeServiceConstants;
-import org.diqube.remote.cluster.thrift.ClusterNodeService;
-import org.diqube.remote.cluster.thrift.ClusterNodeService.Client;
+import org.diqube.remote.cluster.ClusterManagementServiceConstants;
+import org.diqube.remote.cluster.thrift.ClusterManagementService;
 import org.diqube.util.Pair;
 import org.diqube.util.RandomManager;
 import org.slf4j.Logger;
@@ -165,7 +164,7 @@ public class ClusterManager implements ServingListener, TableLoadListener {
         List<NodeAddress> workingRemoteAddr = new ArrayList<>();
 
         for (NodeAddress nodeAddr : clusterNodes) {
-          try (Connection<ClusterNodeService.Client> conn = reserveConnection(nodeAddr)) {
+          try (Connection<ClusterManagementService.Client> conn = reserveConnection(nodeAddr)) {
             conn.getService().hello(ourAddress);
             workingRemoteAddr.add(nodeAddr);
           } catch (ConnectionException | TException | IOException e) {
@@ -181,7 +180,7 @@ public class ClusterManager implements ServingListener, TableLoadListener {
           NodeAddress clusterLayoutAddr = workingRemoteAddr.get(randomManager.nextInt(workingRemoteAddr.size()));
           logger.info("Fetching cluster layout data from {}", clusterLayoutAddr);
 
-          try (Connection<ClusterNodeService.Client> conn = reserveConnection(clusterLayoutAddr)) {
+          try (Connection<ClusterManagementService.Client> conn = reserveConnection(clusterLayoutAddr)) {
             Map<RNodeAddress, Map<Long, List<String>>> newClusterLayout = conn.getService().clusterLayout();
 
             for (Entry<RNodeAddress, Map<Long, List<String>>> layoutEntry : newClusterLayout.entrySet()) {
@@ -204,7 +203,7 @@ public class ClusterManager implements ServingListener, TableLoadListener {
             if (remoteAddr.equals(ourHostAddr))
               continue;
 
-            try (Connection<ClusterNodeService.Client> conn = reserveConnection(remoteAddr)) {
+            try (Connection<ClusterManagementService.Client> conn = reserveConnection(remoteAddr)) {
               // TODO send hash of table-name-list we have of the node - if anything changed in the meantime, we
               // should fetch the new info.
               conn.getService().hello(ourAddress);
@@ -221,9 +220,9 @@ public class ClusterManager implements ServingListener, TableLoadListener {
     }, "cluster-bootstrap").start();
   }
 
-  private Connection<Client> reserveConnection(NodeAddress addr) throws ConnectionException {
-    return connectionPool.reserveConnection(ClusterNodeService.Client.class, ClusterNodeServiceConstants.SERVICE_NAME,
-        addr.createRemote());
+  private Connection<ClusterManagementService.Client> reserveConnection(NodeAddress addr) throws ConnectionException {
+    return connectionPool.reserveConnection(ClusterManagementService.Client.class,
+        ClusterManagementServiceConstants.SERVICE_NAME, addr.createRemote());
   }
 
   @Override
@@ -234,7 +233,7 @@ public class ClusterManager implements ServingListener, TableLoadListener {
       if (addr.equals(ourHostAddr))
         continue;
 
-      try (Connection<ClusterNodeService.Client> conn = reserveConnection(addr)) {
+      try (Connection<ClusterManagementService.Client> conn = reserveConnection(addr)) {
         conn.getService().nodeDied(ourRemoteAddr);
       } catch (ConnectionException | IOException | TException e) {
         logger.error("Could not communicate with {}", addr);
@@ -291,7 +290,7 @@ public class ClusterManager implements ServingListener, TableLoadListener {
         if (addr.equals(ourHostAddr))
           continue;
 
-        try (Connection<ClusterNodeService.Client> conn = reserveConnection(addr)) {
+        try (Connection<ClusterManagementService.Client> conn = reserveConnection(addr)) {
           conn.getService().newNodeData(ourRemoteAddr, versionedTableList.getLeft(), versionedTableList.getRight());
         } catch (ConnectionException | IOException | TException e) {
           logger.error("Could not communicate with {}", addr);
@@ -316,7 +315,7 @@ public class ClusterManager implements ServingListener, TableLoadListener {
           if (addr.equals(ourHostAddr))
             continue;
 
-          try (Connection<ClusterNodeService.Client> conn = reserveConnection(addr)) {
+          try (Connection<ClusterManagementService.Client> conn = reserveConnection(addr)) {
             conn.getService().newNodeData(ourRemoteAddr, versionedTableList.getLeft(), versionedTableList.getRight());
           } catch (ConnectionException | IOException | TException e) {
             logger.error("Could not communicate with {}", addr);

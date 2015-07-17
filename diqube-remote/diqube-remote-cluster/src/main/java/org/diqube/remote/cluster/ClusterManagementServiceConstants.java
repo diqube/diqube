@@ -21,14 +21,14 @@
 package org.diqube.remote.cluster;
 
 import org.apache.thrift.protocol.TMultiplexedProtocol;
-import org.diqube.remote.cluster.thrift.ClusterNodeService;
+import org.diqube.remote.cluster.thrift.ClusterManagementService;
 
 /**
- * Constants to be used when using {@link ClusterNodeService}.
+ * Constants to be used when using {@link ClusterManagementService}.
  *
  * @author Bastian Gloeckle
  */
-public class ClusterNodeServiceConstants {
+public class ClusterManagementServiceConstants {
   /** Name of the query service as set up in {@link TMultiplexedProtocol}. */
-  public static final String SERVICE_NAME = "C";
+  public static final String SERVICE_NAME = "M";
 }

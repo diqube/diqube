@@ -36,8 +36,10 @@ import org.diqube.config.ConfigKey;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.context.InjectOptional;
 import org.diqube.listeners.ServingListener;
-import org.diqube.remote.cluster.ClusterNodeServiceConstants;
-import org.diqube.remote.cluster.thrift.ClusterNodeService;
+import org.diqube.remote.cluster.ClusterManagementServiceConstants;
+import org.diqube.remote.cluster.ClusterQueryServiceConstants;
+import org.diqube.remote.cluster.thrift.ClusterManagementService;
+import org.diqube.remote.cluster.thrift.ClusterQueryService;
 import org.diqube.remote.query.QueryServiceConstants;
 import org.diqube.remote.query.thrift.QueryService;
 import org.diqube.server.thrift.ThriftServer;
@@ -62,7 +64,10 @@ public class ServerImplementation {
   private int selectorThreads;
 
   @Inject
-  private ClusterNodeService.Iface clusterNodeHandler;
+  private ClusterQueryService.Iface clusterQueryHandler;
+
+  @Inject
+  private ClusterManagementService.Iface clusterManagementService;
 
   @Inject
   private QueryService.Iface queryHandler;
@@ -76,7 +81,8 @@ public class ServerImplementation {
   private TThreadedSelectorServer server;
 
   public void serve() {
-    TThreadedSelectorServer.Args serverArgs = createServerArgs(clusterNodeHandler, queryHandler);
+    TThreadedSelectorServer.Args serverArgs =
+        createServerArgs(clusterQueryHandler, clusterManagementService, queryHandler);
 
     if (serverArgs == null)
       return;
@@ -97,14 +103,16 @@ public class ServerImplementation {
     server.serve();
   }
 
-  private TThreadedSelectorServer.Args createServerArgs(ClusterNodeService.Iface clusterNodeHandler,
-      QueryService.Iface queryHandler) {
+  private TThreadedSelectorServer.Args createServerArgs(ClusterQueryService.Iface clusterQueryHandler,
+      ClusterManagementService.Iface clusterManagementHandler, QueryService.Iface queryHandler) {
     TMultiplexedProcessor multiProcessor = new TMultiplexedProcessor();
 
     multiProcessor.registerProcessor(QueryServiceConstants.SERVICE_NAME,
         new QueryService.Processor<QueryService.Iface>(queryHandler));
-    multiProcessor.registerProcessor(ClusterNodeServiceConstants.SERVICE_NAME,
-        new ClusterNodeService.Processor<ClusterNodeService.Iface>(clusterNodeHandler));
+    multiProcessor.registerProcessor(ClusterQueryServiceConstants.SERVICE_NAME,
+        new ClusterQueryService.Processor<ClusterQueryService.Iface>(clusterQueryHandler));
+    multiProcessor.registerProcessor(ClusterManagementServiceConstants.SERVICE_NAME,
+        new ClusterManagementService.Processor<ClusterManagementService.Iface>(clusterManagementHandler));
 
     TNonblockingServerTransport transport;
     try {
