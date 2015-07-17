@@ -62,4 +62,8 @@ public class NoopClusterQueryService implements ClusterQueryService.Iface {
   public void executionException(RUUID queryId, RExecutionException executionException) throws TException {
   }
 
+  @Override
+  public void cancelExecution(RUUID queryUuid) throws TException {
+  }
+
 }

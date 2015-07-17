@@ -165,6 +165,8 @@ service ClusterQueryService {
   oneway void executionDone(1: base.RUUID queryId),
   
   oneway void executionException(1: base.RUUID queryId, 2:RExecutionException executionException),
+  
+  oneway void cancelExecution(1: base.RUUID queryUuid)
 }
 
 service ClusterManagementService {

@@ -28,13 +28,15 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.thrift.TException;
 import org.diqube.cluster.ClusterManager;
+import org.diqube.cluster.connection.Connection;
 import org.diqube.cluster.connection.ConnectionPool;
-import org.diqube.cluster.connection.ConnectionPool.Connection;
 import org.diqube.cluster.connection.ConnectionPool.ConnectionException;
+import org.diqube.cluster.connection.SocketListener;
 import org.diqube.execution.ExecutablePlan;
 import org.diqube.execution.ExecutablePlanFromRemoteBuilder;
 import org.diqube.execution.ExecutablePlanFromRemoteBuilderFactory;
@@ -79,6 +81,8 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
   private ClusterQueryService.Iface localClusterQueryService;
 
   private Object wait = new Object();
+
+  private Collection<RNodeAddress> remotesTriggered = null;
 
   private String exceptionMessage = null;
   private AtomicInteger remotesDone = new AtomicInteger(0);
@@ -158,9 +162,24 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
     Collection<RNodeAddress> remoteNodes =
         clusterManager.getClusterLayout().findNodesServingTable(remoteExecutionPlan.getTable());
 
+    remotesTriggered = new ConcurrentLinkedDeque<>();
+
     if (remoteNodes.isEmpty())
       throw new ExecutablePlanExecutionException(
           "There are no cluster nodes serving table '" + remoteExecutionPlan.getTable() + "'");
+
+    // this will be installed on the sockets we use to communicate to the remotes.
+    SocketListener socketListener = new SocketListener() {
+      @Override
+      public void connectionDied() {
+        // one remote won't be able to fulfill our request :/
+        remotesDone.incrementAndGet();
+        logger.warn(
+            "A remote node died, but it would have contained information for query "
+                + "{} execution {}. The information will not be available to the user therefore.",
+            QueryUuid.getCurrentQueryUuid(), QueryUuid.getCurrentExecutionUuid());
+      }
+    };
 
     int numberOfActiveRemotes = remoteNodes.size();
     queryRegistry.addQueryResultHandler(QueryUuid.getCurrentQueryUuid(), resultHandler);
@@ -182,15 +201,20 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
         }
 
         try (Connection<ClusterQueryService.Client> conn = connectionPool.reserveConnection(
-            ClusterQueryService.Client.class, ClusterQueryServiceConstants.SERVICE_NAME, remoteAddr)) {
+            ClusterQueryService.Client.class, ClusterQueryServiceConstants.SERVICE_NAME, remoteAddr, socketListener)) {
 
           conn.getService().executeOnAllLocalShards(remoteExecutionPlan,
               RUuidUtil.toRUuid(QueryUuid.getCurrentQueryUuid()), ourRemoteAddr);
+          remotesTriggered.add(remoteAddr);
         } catch (IOException | ConnectionException | TException e) {
-          // TODO #32 mark connection as dead
-          logger.error("Could not distribute execution of query {} to remote {}", QueryUuid.getCurrentQueryUuid(),
-              remoteAddr, e);
-          throw new ExecutablePlanExecutionException("Could not distribute query to cluster", e);
+          // Connection will be marked as dead automatically, the remote will automatically be removed from ClusterNode
+          // (see ConnectionPool). We just ignore the remote for now.
+          logger.warn(
+              "Remote node {} is not online anymore, but it would have contained information for query "
+                  + "{} execution {}. The information will not be available to the user therefore.",
+              QueryUuid.getCurrentQueryUuid(), QueryUuid.getCurrentExecutionUuid());
+          remotesDone.incrementAndGet();
+          // TODO #37: We should inform the user about this situation.
         }
       }
 
@@ -205,6 +229,7 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
           }
         }
       }
+      remotesTriggered.clear();
     } finally {
       queryRegistry.removeQueryResultHandler(QueryUuid.getCurrentQueryUuid(), resultHandler);
     }
@@ -215,6 +240,14 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
 
     forEachOutputConsumerOfType(GenericConsumer.class, c -> c.sourceIsDone());
     doneProcessing();
+  }
+
+  /**
+   * @return The addresses of those query remotes that this step triggered an execution on. Might be <code>null</code>
+   *         or empty.
+   */
+  public Collection<RNodeAddress> getRemotesTriggered() {
+    return remotesTriggered;
   }
 
   @Override
@@ -262,5 +295,4 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
     }
 
   }
-
 }

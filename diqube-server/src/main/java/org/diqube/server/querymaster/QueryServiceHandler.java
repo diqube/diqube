@@ -20,15 +20,20 @@
  */
 package org.diqube.server.querymaster;
 
+import java.io.IOException;
+import java.util.Collection;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 
 import javax.inject.Inject;
 
 import org.apache.thrift.TException;
+import org.diqube.cluster.connection.Connection;
 import org.diqube.cluster.connection.ConnectionPool;
-import org.diqube.cluster.connection.ConnectionPool.Connection;
+import org.diqube.cluster.connection.ConnectionPool.ConnectionException;
+import org.diqube.cluster.connection.SocketListener;
 import org.diqube.context.AutoInstatiate;
+import org.diqube.execution.steps.ExecuteRemotePlanOnShardsStep;
 import org.diqube.plan.ExecutionPlanBuilderFactory;
 import org.diqube.plan.exception.ParseException;
 import org.diqube.plan.exception.ValidationException;
@@ -38,6 +43,8 @@ import org.diqube.queries.QueryUuidProvider;
 import org.diqube.remote.base.thrift.RNodeAddress;
 import org.diqube.remote.base.thrift.RUUID;
 import org.diqube.remote.base.util.RUuidUtil;
+import org.diqube.remote.cluster.ClusterQueryServiceConstants;
+import org.diqube.remote.cluster.thrift.ClusterQueryService;
 import org.diqube.remote.query.QueryResultServiceConstants;
 import org.diqube.remote.query.thrift.QueryResultService;
 import org.diqube.remote.query.thrift.QueryService;
@@ -45,6 +52,8 @@ import org.diqube.remote.query.thrift.QueryService.Iface;
 import org.diqube.remote.query.thrift.RQueryException;
 import org.diqube.remote.query.thrift.RResultTable;
 import org.diqube.threads.ExecutorManager;
+import org.diqube.util.Holder;
+import org.diqube.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -122,9 +131,11 @@ public class QueryServiceHandler implements Iface {
           }
         }, false);
 
+    queryRegistry.registerQueryExecution(queryUuid, executionUuid, exceptionHandler);
+
     Runnable execute;
     try {
-      execute = queryExecutor.prepareExecution(queryUuid, executionUuid, diql);
+      execute = queryExecutor.prepareExecution(queryUuid, executionUuid, diql).getLeft();
     } catch (ParseException | ValidationException e) {
       logger.warn("Exception while preparing the query execution of {} execution {}: {}", queryUuid, executionUuid,
           e.getMessage());
@@ -162,11 +173,53 @@ public class QueryServiceHandler implements Iface {
     logger.info("Async query {}, partial {}, resultAddress {}: {}",
         new Object[] { queryUuid, sendPartialUpdates, resultAddress, diql });
 
-    Connection<QueryResultService.Client> resultConnection = connectionPool
-        .reserveConnection(QueryResultService.Client.class, QueryResultServiceConstants.SERVICE_NAME, resultAddress);
-    QueryResultService.Iface resultService = resultConnection.getService();
-
     UUID executionUuid = queryUuidProvider.createNewExecutionUuid(queryUuid, "master-" + queryUuid);
+
+    // will hold the remote execution step, if one is available.
+    Holder<ExecuteRemotePlanOnShardsStep> remoteExecutionStepHolder = new Holder<>();
+
+    SocketListener resultSocketListener = new SocketListener() {
+      @Override
+      public void connectionDied() {
+        // The connection to the "resultAdress" node died.
+        logger.error(
+            "Connection to result node of query {}, execution {} ({}) died unexpectedly. "
+                + "Cancelling execution, there will no results be provided any more.",
+            queryUuid, executionUuid, resultAddress);
+        // the connection will be returned automatically, the remote node will be removed from ClusterManager
+        // automatically.
+
+        if (remoteExecutionStepHolder.getValue() != null) {
+          // check if we already spawned some calculations on query remotes. If we have any, try to cancel those
+          // executions if possible.
+          ExecuteRemotePlanOnShardsStep remoteStep = remoteExecutionStepHolder.getValue();
+          Collection<RNodeAddress> remoteNodesTriggered = remoteStep.getRemotesTriggered();
+          if (remoteNodesTriggered != null && !remoteNodesTriggered.isEmpty()) {
+            logger.info("Cancelling execution on remotes for query {}: {}", queryUuid, remoteNodesTriggered);
+            for (RNodeAddress triggeredRemote : remoteNodesTriggered) {
+              try (Connection<ClusterQueryService.Client> conn = connectionPool.reserveConnection(
+                  ClusterQueryService.Client.class, ClusterQueryServiceConstants.SERVICE_NAME, triggeredRemote, null)) {
+                conn.getService().cancelExecution(queryRUuid);
+              } catch (ConnectionException | IOException | TException e) {
+                // swallow - if we can't cancel, that's fine, too.
+              }
+            }
+          }
+        }
+
+        queryRegistry.unregisterQueryExecution(queryUuid, executionUuid);
+        executorManager.shutdownEverythingOfQueryExecution(queryUuid, executionUuid);
+      }
+    };
+
+    Connection<QueryResultService.Client> resultConnection;
+    try {
+      resultConnection = connectionPool.reserveConnection(QueryResultService.Client.class,
+          QueryResultServiceConstants.SERVICE_NAME, resultAddress, resultSocketListener);
+    } catch (ConnectionException e) {
+      throw new RQueryException("Could not open connection to result node: " + e.getMessage());
+    }
+    QueryResultService.Iface resultService = resultConnection.getService();
 
     QueryExceptionHandler exceptionHandler = new QueryExceptionHandler() {
       @Override
@@ -231,7 +284,11 @@ public class QueryServiceHandler implements Iface {
 
     Runnable execute;
     try {
-      execute = queryExecutor.prepareExecution(queryUuid, executionUuid, diql);
+      Pair<Runnable, ExecuteRemotePlanOnShardsStep> p = queryExecutor.prepareExecution(queryUuid, executionUuid, diql);
+      execute = p.getLeft();
+      if (p.getRight() != null)
+        remoteExecutionStepHolder.setValue(p.getRight());
+
     } catch (ParseException | ValidationException e) {
       logger.warn("Exception while preparing the query execution of {}: {}", queryUuid, e.getMessage());
       throw new RQueryException(e.getMessage());

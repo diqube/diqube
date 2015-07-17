@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -34,9 +35,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.diqube.execution.ExecutablePlan;
+import org.diqube.execution.ExecutablePlanStep;
 import org.diqube.execution.consumers.AbstractThreadedColumnValueConsumer;
 import org.diqube.execution.consumers.AbstractThreadedGroupFinalAggregationConsumer;
 import org.diqube.execution.consumers.AbstractThreadedOrderedRowIdConsumer;
+import org.diqube.execution.steps.ExecuteRemotePlanOnShardsStep;
 import org.diqube.plan.ExecutionPlanBuilder;
 import org.diqube.plan.ExecutionPlanBuilderFactory;
 import org.diqube.plan.exception.ParseException;
@@ -45,6 +48,7 @@ import org.diqube.remote.base.thrift.RValue;
 import org.diqube.remote.base.util.RValueUtil;
 import org.diqube.remote.query.thrift.RResultTable;
 import org.diqube.threads.ExecutorManager;
+import org.diqube.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -97,12 +101,14 @@ class MasterQueryExecutor {
    * The returned {@link Runnable} will, when called, execute the query, block the current thread until the execution is
    * done and will call the callback accordingly.
    * 
+   * @return A pair consisting of the Runnable mentioned above and the {@link ExecuteRemotePlanOnShardsStep} if there is
+   *         one available in the created plan (otherwise <code>null</code>).
    * @throws ParseException
    *           in case the query cannot be parsed.
    * @throws ValidationException
    *           in case the query cannot be validated.
    */
-  public Runnable prepareExecution(UUID queryUuid, UUID executionUuid, String diql)
+  public Pair<Runnable, ExecuteRemotePlanOnShardsStep> prepareExecution(UUID queryUuid, UUID executionUuid, String diql)
       throws ParseException, ValidationException {
     ExecutionPlanBuilder planBuilder = executionPlanBuildeFactory.createExecutionPlanBuilder();
     planBuilder.fromDiql(diql);
@@ -180,7 +186,7 @@ class MasterQueryExecutor {
     if (!isOrdered)
       orderedDone.set(true);
 
-    return new Runnable() {
+    Runnable r = new Runnable() {
       @Override
       public void run() {
         Executor executor = executorManager.newQueryFixedThreadPool(plan.preferredExecutorServiceSize(),
@@ -192,6 +198,11 @@ class MasterQueryExecutor {
         processUntilPlanIsExecuted(planFuture);
       }
     };
+    Optional<ExecutablePlanStep> executeRemoteStep =
+        plan.getSteps().stream().filter(s -> s instanceof ExecuteRemotePlanOnShardsStep).findFirst();
+
+    return new Pair<>(r,
+        executeRemoteStep.isPresent() ? ((ExecuteRemotePlanOnShardsStep) executeRemoteStep.get()) : null);
   }
 
   /**

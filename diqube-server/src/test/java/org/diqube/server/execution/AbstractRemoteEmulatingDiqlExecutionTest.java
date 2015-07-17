@@ -27,11 +27,12 @@ import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
 import org.apache.thrift.TServiceClient;
+import org.diqube.cluster.connection.Connection;
+import org.diqube.cluster.connection.ConnectionFactory;
 import org.diqube.cluster.connection.ConnectionPool;
-import org.diqube.cluster.connection.ConnectionPool.Connection;
 import org.diqube.cluster.connection.ConnectionPool.ConnectionException;
-import org.diqube.cluster.connection.ConnectionPool.ConnectionFactory;
 import org.diqube.cluster.connection.ConnectionPoolTestUtil;
+import org.diqube.cluster.connection.SocketListener;
 import org.diqube.data.ColumnType;
 import org.diqube.queries.QueryRegistry;
 import org.diqube.remote.base.thrift.RNodeAddress;
@@ -108,7 +109,7 @@ public abstract class AbstractRemoteEmulatingDiqlExecutionTest<T> extends Abstra
       @SuppressWarnings("unchecked")
       @Override
       public <C extends TServiceClient> Connection<C> createConnection(Class<C> thiftClientClass,
-          String thriftServiceName, RNodeAddress addr) throws ConnectionException {
+          String thriftServiceName, RNodeAddress addr, SocketListener socketListener) throws ConnectionException {
         return (Connection<C>) ConnectionPoolTestUtil.createConnection(pool, ClusterQueryService.Client.class);
       }
     });

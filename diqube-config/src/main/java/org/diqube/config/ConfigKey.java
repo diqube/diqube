@@ -72,4 +72,11 @@ public class ConfigKey {
    * </code>
    */
   public static final String CLUSTER_NODES = "clusterNodes";
+
+  /**
+   * Timeout that should be used for connections this node opens to other nodes. Value is in milliseconds.
+   * 
+   * This timeout is for opening connections and reading data from the remote.
+   */
+  public static final String CLIENT_SOCKET_TIMEOUT_MS = "clientSocketTimeoutMs";
 }

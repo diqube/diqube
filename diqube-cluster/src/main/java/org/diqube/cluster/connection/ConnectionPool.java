@@ -20,19 +20,14 @@
  */
 package org.diqube.cluster.connection;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
+import javax.annotation.PostConstruct;
+import javax.inject.Inject;
 
 import org.apache.thrift.TServiceClient;
-import org.apache.thrift.protocol.TCompactProtocol;
-import org.apache.thrift.protocol.TMultiplexedProtocol;
-import org.apache.thrift.protocol.TProtocol;
-import org.apache.thrift.transport.TFramedTransport;
-import org.apache.thrift.transport.THttpClient;
-import org.apache.thrift.transport.TSocket;
-import org.apache.thrift.transport.TTransport;
-import org.apache.thrift.transport.TTransportException;
+import org.diqube.cluster.ClusterManager;
+import org.diqube.cluster.NodeAddress;
+import org.diqube.config.Config;
+import org.diqube.config.ConfigKey;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.remote.base.thrift.RNodeAddress;
 import org.slf4j.Logger;
@@ -45,9 +40,20 @@ import org.slf4j.LoggerFactory;
  */
 @AutoInstatiate
 public class ConnectionPool {
-  private static final Logger logger = LoggerFactory.getLogger(ConnectionPool.class);
+  static final Logger logger = LoggerFactory.getLogger(ConnectionPool.class);
 
-  private ConnectionFactory connectionFactory = new DefaultConnectionFactory();
+  @Config(ConfigKey.CLIENT_SOCKET_TIMEOUT_MS)
+  private int socketTimeout;
+
+  private ConnectionFactory connectionFactory;
+
+  @Inject
+  private ClusterManager clusterManager;
+
+  @PostConstruct
+  public void initialize() {
+    connectionFactory = new DefaultConnectionFactory(this, socketTimeout);
+  }
 
   /**
    * Reserve a connection for the given remote addrress.
@@ -62,14 +68,37 @@ public class ConnectionPool {
    *          The class of the thrift service client that the caller wants to access.
    * @param addr
    *          The address of the node to open a connection to.
+   * @param socketListener
+   *          A listener that will be informed if anything happens to the connection. Can be <code>null</code>. The
+   *          remote node the connection was opened to will be removed from {@link ClusterManager} automatically before
+   *          calling this listener.
+   * @throws ConnectionException
+   *           if connection could not be opened. The corresponding remote will be automatically removed from
+   *           {@link ClusterManager}.
    */
   public <T extends TServiceClient> Connection<T> reserveConnection(Class<T> thiftClientClass, String thriftServiceName,
-      RNodeAddress addr) throws ConnectionException {
+      RNodeAddress addr, SocketListener socketListener) throws ConnectionException {
     // TODO #32 implement pooling.
-    // TODO #32 implement failsafe connections!
-    // TODO #32 implement timeout, inform clustermanager!
+    // TODO #32 add thread that sends keep-alives. If one fails, inform all currently reserved connections to that
+    // remote.
 
-    return connectionFactory.createConnection(thiftClientClass, thriftServiceName, addr);
+    try {
+      return connectionFactory.createConnection(thiftClientClass, thriftServiceName, addr, new SocketListener() {
+        @Override
+        public void connectionDied() {
+          // TODO #32: retry if connection was pooled.
+          logger.warn("Connection to {} died unexpectedly.", new NodeAddress(addr));
+          clusterManager.nodeDied(addr);
+
+          if (socketListener != null)
+            socketListener.connectionDied();
+        }
+      });
+    } catch (ConnectionException e) {
+      logger.warn("Could not connect to {}.", new NodeAddress(addr));
+      clusterManager.nodeDied(addr);
+      throw new ConnectionException("Error connecting to " + addr, e);
+    }
   }
 
   /**
@@ -87,86 +116,6 @@ public class ConnectionPool {
    */
   /* package */ void setConnectionFactory(ConnectionFactory connectionFactory) {
     this.connectionFactory = connectionFactory;
-  }
-
-  /**
-   * Create and open a new connection. Needed for override-possibility in unit tests.
-   */
-  public static interface ConnectionFactory {
-    public <T extends TServiceClient> Connection<T> createConnection(Class<T> thiftClientClass,
-        String thriftServiceName, RNodeAddress addr) throws ConnectionException;
-  }
-
-  private class DefaultConnectionFactory implements ConnectionFactory {
-    private TTransport openTransport(RNodeAddress addr) throws ConnectionException {
-      if (addr.isSetHttpAddr()) {
-        try {
-          return new THttpClient(addr.getHttpAddr().getUrl());
-        } catch (TTransportException e) {
-          throw new ConnectionException("Could not open connection to " + addr, e);
-        }
-      }
-
-      TTransport transport = new TSocket(addr.getDefaultAddr().getHost(), addr.getDefaultAddr().getPort());
-      return new TFramedTransport(transport);
-    }
-
-    @Override
-    public <T extends TServiceClient> Connection<T> createConnection(Class<T> thiftClientClass,
-        String thriftServiceName, RNodeAddress addr) throws ConnectionException {
-
-      TTransport transport = openTransport(addr);
-
-      TProtocol queryProtocol = new TMultiplexedProtocol(new TCompactProtocol(transport), thriftServiceName);
-
-      T queryResultClient;
-      try {
-        queryResultClient = thiftClientClass.getConstructor(TProtocol.class).newInstance(queryProtocol);
-      } catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException
-          | NoSuchMethodException | SecurityException e) {
-        logger.error("Error while constructing a client", e);
-        throw new ConnectionException("Error while constructing a client", e);
-      }
-      try {
-        transport.open();
-      } catch (TTransportException e) {
-        throw new ConnectionException("Could not open connection to " + addr, e);
-      }
-
-      return new Connection<>(ConnectionPool.this, queryResultClient, transport, addr);
-    }
-
-  }
-
-  public static class Connection<T> implements Closeable {
-    private T service;
-    private TTransport transport;
-    private RNodeAddress address;
-    private ConnectionPool parentPool;
-
-    /* package */ Connection(ConnectionPool parentPool, T service, TTransport transport, RNodeAddress address) {
-      this.parentPool = parentPool;
-      this.service = service;
-      this.transport = transport;
-      this.address = address;
-    }
-
-    public T getService() {
-      return service;
-    }
-
-    private TTransport getTransport() {
-      return transport;
-    }
-
-    private RNodeAddress getAddress() {
-      return address;
-    }
-
-    @Override
-    public void close() throws IOException {
-      parentPool.releaseConnection(this);
-    }
   }
 
   public static class ConnectionException extends RuntimeException {

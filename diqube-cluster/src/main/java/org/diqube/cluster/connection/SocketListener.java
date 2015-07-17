@@ -20,23 +20,14 @@
  */
 package org.diqube.cluster.connection;
 
-import org.apache.thrift.transport.TTransport;
-import org.mockito.Mockito;
-
 /**
- * Util class for unit tests which need to adjust {@link ConnectionPool}.
- * 
- * This is in the sam epackage as {@link ConnectionPool} to be able to use the package-level methods.
+ * A Listener on events that happen on a socket that was opened by {@link ConnectionPool}.
  *
  * @author Bastian Gloeckle
  */
-public class ConnectionPoolTestUtil {
-  public static void setConnectionFactory(ConnectionPool pool, ConnectionFactory factory) {
-    pool.setConnectionFactory(factory);
-  }
-
-  public static <T> Connection<T> createConnection(ConnectionPool parentPool, Class<T> service) {
-    return new Connection<T>(parentPool, Mockito.mock(service, Mockito.RETURNS_MOCKS),
-        Mockito.mock(TTransport.class, Mockito.RETURNS_MOCKS), null);
-  }
+public interface SocketListener {
+  /**
+   * The connection to the server died unexpectedly.
+   */
+  public void connectionDied();
 }

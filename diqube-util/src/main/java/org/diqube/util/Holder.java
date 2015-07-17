@@ -18,25 +18,28 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.cluster.connection;
-
-import org.apache.thrift.transport.TTransport;
-import org.mockito.Mockito;
+package org.diqube.util;
 
 /**
- * Util class for unit tests which need to adjust {@link ConnectionPool}.
- * 
- * This is in the sam epackage as {@link ConnectionPool} to be able to use the package-level methods.
+ * Holds a reference to a specific object. This is mutable.
  *
  * @author Bastian Gloeckle
  */
-public class ConnectionPoolTestUtil {
-  public static void setConnectionFactory(ConnectionPool pool, ConnectionFactory factory) {
-    pool.setConnectionFactory(factory);
+public class Holder<T> {
+  private T value = null;
+
+  public Holder() {
   }
 
-  public static <T> Connection<T> createConnection(ConnectionPool parentPool, Class<T> service) {
-    return new Connection<T>(parentPool, Mockito.mock(service, Mockito.RETURNS_MOCKS),
-        Mockito.mock(TTransport.class, Mockito.RETURNS_MOCKS), null);
+  public Holder(T value) {
+    this.value = value;
+  }
+
+  public T getValue() {
+    return value;
+  }
+
+  public void setValue(T value) {
+    this.value = value;
   }
 }

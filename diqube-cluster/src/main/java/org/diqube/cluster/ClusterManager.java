@@ -24,16 +24,18 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 
 import org.apache.thrift.TException;
+import org.diqube.cluster.connection.Connection;
 import org.diqube.cluster.connection.ConnectionPool;
-import org.diqube.cluster.connection.ConnectionPool.Connection;
 import org.diqube.cluster.connection.ConnectionPool.ConnectionException;
 import org.diqube.config.Config;
 import org.diqube.config.ConfigKey;
@@ -172,49 +174,63 @@ public class ClusterManager implements ServingListener, TableLoadListener {
           }
         }
 
-        logger.info("Successfully greeted cluster nodes {}", workingRemoteAddr);
+        logger.info("Greeted cluster nodes {}", workingRemoteAddr);
 
         if (workingRemoteAddr.isEmpty())
-          logger.warn("There are no live cluster nodes, will therefore not connect anywhere.");
+          logger.warn("There are no cluster nodes alive, will therefore not connect anywhere.");
         else {
-          NodeAddress clusterLayoutAddr = workingRemoteAddr.get(randomManager.nextInt(workingRemoteAddr.size()));
-          logger.info("Fetching cluster layout data from {}", clusterLayoutAddr);
+          boolean fetchedClusterLayout = false;
+          Set<NodeAddress> visitedRemoteNodesForLayout = new HashSet<>();
+          while (!fetchedClusterLayout && visitedRemoteNodesForLayout.size() < workingRemoteAddr.size()) {
+            NodeAddress clusterLayoutAddr = null;
+            while (clusterLayoutAddr == null || visitedRemoteNodesForLayout.contains(clusterLayoutAddr))
+              clusterLayoutAddr = workingRemoteAddr.get(randomManager.nextInt(workingRemoteAddr.size()));
+            visitedRemoteNodesForLayout.add(clusterLayoutAddr);
+            logger.info("Fetching cluster layout data from {}", clusterLayoutAddr);
 
-          try (Connection<ClusterManagementService.Client> conn = reserveConnection(clusterLayoutAddr)) {
-            Map<RNodeAddress, Map<Long, List<String>>> newClusterLayout = conn.getService().clusterLayout();
+            try (Connection<ClusterManagementService.Client> conn = reserveConnection(clusterLayoutAddr)) {
+              Map<RNodeAddress, Map<Long, List<String>>> newClusterLayout = conn.getService().clusterLayout();
 
-            for (Entry<RNodeAddress, Map<Long, List<String>>> layoutEntry : newClusterLayout.entrySet()) {
-              // layoutEntry.getValue() is a map containing only a single entry (see .thrift file!).
-              long version = layoutEntry.getValue().keySet().iterator().next();
-              List<String> tables = layoutEntry.getValue().get(version);
-              loadNodeInfo(layoutEntry.getKey(), version, tables);
+              for (Entry<RNodeAddress, Map<Long, List<String>>> layoutEntry : newClusterLayout.entrySet()) {
+                // layoutEntry.getValue() is a map containing only a single entry (see .thrift file!).
+                long version = layoutEntry.getValue().keySet().iterator().next();
+                List<String> tables = layoutEntry.getValue().get(version);
+                loadNodeInfo(layoutEntry.getKey(), version, tables);
+              }
+
+              logger.info("Loaded cluster data from {} of {} nodes: {}", clusterLayoutAddr,
+                  clusterLayout.getNumberOfNodes(), clusterLayout.getNodes());
+              fetchedClusterLayout = true;
+            } catch (ConnectionException | TException | IOException e) {
+              logger.error("Could not retrieve cluster layout from {}.", clusterLayoutAddr);
             }
-
-            logger.info("Loaded cluster data from {} of {} nodes: {}", clusterLayoutAddr,
-                clusterLayout.getNumberOfNodes(), clusterLayout.getNodes());
-          } catch (ConnectionException | TException | IOException e) {
-            // TODO remote node could go down right now.
-            logger.error("Could not retrieve cluster layout from {}.", clusterLayoutAddr);
           }
 
-          logger.info("Starting to greet all cluster nodes");
-          // say hello to all nodes
-          for (NodeAddress remoteAddr : clusterLayout.getNodes()) {
-            if (remoteAddr.equals(ourHostAddr))
-              continue;
+          if (!fetchedClusterLayout) {
+            // ConnectionPool guarantees that it has removed those nodes that we were not able to access from this
+            // ClusterManager already, therefore ClusterLayout is empty now (contains only our node).
+            logger.warn("I was able to say hello to at least one cluster node, but was unable to retrieve the cluster "
+                + "layout from all of them. I am now not connected to any node.");
+          } else {
+            logger.info("Starting to greet all cluster nodes I know.");
+            // say hello to all nodes
+            for (NodeAddress remoteAddr : clusterLayout.getNodes()) {
+              if (remoteAddr.equals(ourHostAddr))
+                continue;
 
-            try (Connection<ClusterManagementService.Client> conn = reserveConnection(remoteAddr)) {
-              long version = conn.getService().hello(ourAddress);
+              try (Connection<ClusterManagementService.Client> conn = reserveConnection(remoteAddr)) {
+                long version = conn.getService().hello(ourAddress);
 
-              if (version != clusterLayout.getVersionedTableList(remoteAddr).getLeft()) {
-                // node already has new list of tables, fetch new list, as we might miss it otherwise.
-                Map<Long, List<String>> newTables = conn.getService().fetchCurrentTablesServed();
-                long newVersion = newTables.keySet().iterator().next();
-                loadNodeInfo(remoteAddr.createRemote(), newVersion, newTables.get(version));
+                if (version != clusterLayout.getVersionedTableList(remoteAddr).getLeft()) {
+                  // node already has new list of tables, fetch new list, as we might miss it otherwise.
+                  Map<Long, List<String>> newTables = conn.getService().fetchCurrentTablesServed();
+                  long newVersion = newTables.keySet().iterator().next();
+                  loadNodeInfo(remoteAddr.createRemote(), newVersion, newTables.get(version));
+                }
+              } catch (ConnectionException | TException | IOException e) {
+                // swallow, in case an exception happens, this will be handled automatically by the default listeners in
+                // ConnectionPool.
               }
-            } catch (ConnectionException | TException | IOException e) {
-              logger.error("Could not say hello to node {}.", clusterLayoutAddr);
-              // TODO mark node as dead.
             }
           }
         }
@@ -227,7 +243,8 @@ public class ClusterManager implements ServingListener, TableLoadListener {
 
   private Connection<ClusterManagementService.Client> reserveConnection(NodeAddress addr) throws ConnectionException {
     return connectionPool.reserveConnection(ClusterManagementService.Client.class,
-        ClusterManagementServiceConstants.SERVICE_NAME, addr.createRemote());
+        ClusterManagementServiceConstants.SERVICE_NAME, addr.createRemote(),
+        null /* node will be removed automatically from ClusterManager, therefore no separate listener needed */);
   }
 
   @Override
@@ -241,8 +258,8 @@ public class ClusterManager implements ServingListener, TableLoadListener {
       try (Connection<ClusterManagementService.Client> conn = reserveConnection(addr)) {
         conn.getService().nodeDied(ourRemoteAddr);
       } catch (ConnectionException | IOException | TException e) {
-        logger.error("Could not communicate with {}", addr);
-        // TODO mark node as dead
+        // swallow, in case an exception happens, this will be handled automatically by the default listeners in
+        // ConnectionPool.
       }
     }
   }
@@ -272,7 +289,7 @@ public class ClusterManager implements ServingListener, TableLoadListener {
   public void nodeDied(RNodeAddress diedAddr) {
     NodeAddress addr = new NodeAddress(diedAddr);
     if (clusterLayout.removeNode(addr) && !addr.equals(ourHostAddr))
-      logger.info("Cluster node died {}", addr);
+      logger.info("Cluster node died: {}. Will not send any requests to that node any more.", addr);
   }
 
   public ClusterLayout getClusterLayout() {
@@ -298,8 +315,8 @@ public class ClusterManager implements ServingListener, TableLoadListener {
         try (Connection<ClusterManagementService.Client> conn = reserveConnection(addr)) {
           conn.getService().newNodeData(ourRemoteAddr, versionedTableList.getLeft(), versionedTableList.getRight());
         } catch (ConnectionException | IOException | TException e) {
-          logger.error("Could not communicate with {}", addr);
-          // TODO mark node as dead
+          // swallow, in case an exception happens, this will be handled automatically by the default listeners in
+          // ConnectionPool.
         }
       }
     }
@@ -323,8 +340,8 @@ public class ClusterManager implements ServingListener, TableLoadListener {
           try (Connection<ClusterManagementService.Client> conn = reserveConnection(addr)) {
             conn.getService().newNodeData(ourRemoteAddr, versionedTableList.getLeft(), versionedTableList.getRight());
           } catch (ConnectionException | IOException | TException e) {
-            logger.error("Could not communicate with {}", addr);
-            // TODO mark node as dead
+            // swallow, in case an exception happens, this will be handled automatically by the default listeners in
+            // ConnectionPool.
           }
         }
       }

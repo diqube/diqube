@@ -24,14 +24,17 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 
 import javax.inject.Inject;
 
 import org.apache.thrift.TException;
 import org.diqube.cluster.ClusterManager;
+import org.diqube.cluster.connection.Connection;
 import org.diqube.cluster.connection.ConnectionPool;
-import org.diqube.cluster.connection.ConnectionPool.Connection;
+import org.diqube.cluster.connection.ConnectionPool.ConnectionException;
+import org.diqube.cluster.connection.SocketListener;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.data.TableShard;
 import org.diqube.execution.ExecutablePlanFromRemoteBuilderFactory;
@@ -56,6 +59,7 @@ import org.diqube.remote.query.thrift.QueryService;
 import org.diqube.server.querymaster.QueryServiceHandler;
 import org.diqube.server.queryremote.RemoteExecutionPlanExecutor.RemoteExecutionPlanExecutionCallback;
 import org.diqube.threads.ExecutorManager;
+import org.diqube.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,6 +76,13 @@ import org.slf4j.LoggerFactory;
 @AutoInstatiate
 public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
   private static final Logger logger = LoggerFactory.getLogger(ClusterQueryServiceHandler.class);
+
+  /**
+   * The executionUuids we are using by the queryUuids. THis contains only those executionUuids of queries which are
+   * being executed currently. Additionally this map contains the "resultConnection" that was opened for the given
+   * query.
+   */
+  private Map<UUID, Pair<UUID, Connection<?>>> executionUuidsAndResultConnections = new ConcurrentHashMap<>();
 
   @Inject
   private TableRegistry tableRegistry;
@@ -108,20 +119,44 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
     Connection<ClusterQueryService.Client> resultConnection;
     ClusterQueryService.Iface resultService;
 
+    UUID queryUuid = RUuidUtil.toUuid(remoteQueryUuid);
+    // The executionUuid we will use for the all executors executing something started by this API call.
+    UUID executionUuid = queryUuidProvider.createNewExecutionUuid(queryUuid, "remote-" + queryUuid);
+
     if (resultAddress.equals(clusterManager.getOurHostAddr().createRemote())) {
       // implement short cut if we should answer to the local node, i.e. the query master is running on this node, too.
       // This is a nice implementation for unit tests, too.
       resultConnection = null;
       resultService = this;
     } else {
-      resultConnection = connectionPool.reserveConnection(ClusterQueryService.Client.class,
-          ClusterQueryServiceConstants.SERVICE_NAME, resultAddress);
+      SocketListener resultSocketListener = new SocketListener() {
+        @Override
+        public void connectionDied() {
+          // Connection to result node died. The node will automatically be removed from ClusterManager and the
+          // connection will automatically be handled.
+          logger.error(
+              "Result node of query {} execution {} ({}) died unexpectedly. It will not receive any "
+                  + "results of the execution any more, cancelling execution.",
+              queryUuid, executionUuid, resultAddress);
+
+          executionUuidsAndResultConnections.remove(queryUuid);
+          queryRegistry.unregisterQueryExecution(queryUuid, executionUuid);
+          executorManager.shutdownEverythingOfQueryExecution(queryUuid, executionUuid); // this will kill our thread!
+        }
+      };
+
+      try {
+        resultConnection = connectionPool.reserveConnection(ClusterQueryService.Client.class,
+            ClusterQueryServiceConstants.SERVICE_NAME, resultAddress, resultSocketListener);
+      } catch (ConnectionException e) {
+        logger.error("Could not open connection to the result node for query {} execution {} ({}). Will not start "
+            + "executing anything.", queryUuid, executionUuid, resultAddress);
+        return;
+      }
       resultService = resultConnection.getService();
     }
 
-    UUID queryUuid = RUuidUtil.toUuid(remoteQueryUuid);
-    // The executionUuid we will use for the all executors executing something started by this API call.
-    UUID executionUuid = queryUuidProvider.createNewExecutionUuid(queryUuid, "remote-" + queryUuid);
+    executionUuidsAndResultConnections.put(queryUuid, new Pair<>(executionUuid, resultConnection));
 
     RemoteExecutionPlanExecutor executor =
         new RemoteExecutionPlanExecutor(tableRegistry, executablePlanBuilderFactory, executorManager);
@@ -138,8 +173,7 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
           try {
             resultService.executionException(remoteQueryUuid, ex);
           } catch (TException e) {
-            logger.error("Could not sent new group intermediaries to client for query {}", queryUuid, e);
-            // TODO #32 mark connection as dead.
+            // swallow, the resultSocketListener handles this.
           }
         }
 
@@ -149,9 +183,9 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
             connectionPool.releaseConnection(resultConnection);
           }
         }
+        executionUuidsAndResultConnections.remove(queryUuid);
         queryRegistry.unregisterQueryExecution(queryUuid, executionUuid);
-        executorManager.shutdownEverythingOfQueryExecution(queryUuid, executionUuid); // this will kill our
-                                                                                      // thread!
+        executorManager.shutdownEverythingOfQueryExecution(queryUuid, executionUuid); // this will kill our thread!
       }
     };
 
@@ -165,8 +199,6 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
                 resultService.groupIntermediateAggregationResultAvailable(remoteQueryUuid, groupId, colName, result);
               } catch (TException e) {
                 logger.error("Could not sent new group intermediaries to client for query {}", queryUuid, e);
-
-                // TODO #32 mark connection as dead.
                 exceptionHandler.handleException(null);
               }
             }
@@ -179,8 +211,6 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
                 resultService.columnValueAvailable(remoteQueryUuid, colName, values);
               } catch (TException e) {
                 logger.error("Could not sent new group intermediaries to client for query {}", queryUuid, e);
-
-                // TODO #32 mark connection as dead.
                 exceptionHandler.handleException(null);
               }
             }
@@ -193,7 +223,6 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
                 resultService.executionDone(remoteQueryUuid);
               } catch (TException e) {
                 logger.error("Could not sent 'done' to client for query {}", queryUuid, e);
-                // TODO #32 mark connection as dead.
               }
             }
             exceptionHandler.handleException(null);
@@ -208,7 +237,6 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
                 resultService.executionException(remoteQueryUuid, ex);
               } catch (TException e) {
                 logger.error("Could not sent 'exception' to client for query {}", queryUuid, e);
-                // TODO #32 mark connection as dead.
               }
             }
             exceptionHandler.handleException(null);
@@ -280,6 +308,27 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
   public void executionException(RUUID remoteQueryUuid, RExecutionException executionException) throws TException {
     for (QueryResultHandler handler : queryRegistry.getQueryResultHandlers(RUuidUtil.toUuid(remoteQueryUuid)))
       handler.oneRemoteException(executionException.getMessage());
+  }
+
+  /**
+   * We are asked to cancel the execution of the given query.
+   */
+  @Override
+  public void cancelExecution(RUUID remoteQueryUuid) throws TException {
+    UUID queryUuid = RUuidUtil.toUuid(remoteQueryUuid);
+    Pair<UUID, Connection<?>> p = executionUuidsAndResultConnections.get(queryUuid);
+    if (p != null) {
+      UUID executionUuid = p.getLeft();
+      logger.info("We were asked to cancel execution of query {} which has exection {}. Doing that.", queryUuid,
+          executionUuid);
+
+      if (p.getRight() != null)
+        connectionPool.releaseConnection(p.getRight());
+
+      executionUuidsAndResultConnections.remove(queryUuid);
+      queryRegistry.unregisterQueryExecution(queryUuid, executionUuid);
+      executorManager.shutdownEverythingOfQueryExecution(queryUuid, executionUuid); // this will kill our thread!
+    }
   }
 
 }
