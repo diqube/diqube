@@ -35,8 +35,8 @@ import javax.inject.Inject;
 
 import org.apache.thrift.TException;
 import org.diqube.cluster.connection.Connection;
+import org.diqube.cluster.connection.ConnectionException;
 import org.diqube.cluster.connection.ConnectionPool;
-import org.diqube.cluster.connection.ConnectionPool.ConnectionException;
 import org.diqube.config.Config;
 import org.diqube.config.ConfigKey;
 import org.diqube.context.AutoInstatiate;
@@ -284,12 +284,21 @@ public class ClusterManager implements ServingListener, TableLoadListener {
   }
 
   /**
-   * We are informed that a specific node died.
+   * We are informed that a specific node died. Thi9s happens either if our node itself identified another node to not
+   * be available any more (e.g. when a connection fails), or when the dying node had the chance to inform us that it
+   * died.
    */
   public void nodeDied(RNodeAddress diedAddr) {
     NodeAddress addr = new NodeAddress(diedAddr);
-    if (clusterLayout.removeNode(addr) && !addr.equals(ourHostAddr))
+    if (clusterLayout.removeNode(addr) && !addr.equals(ourHostAddr)) {
       logger.info("Cluster node died: {}. Will not send any requests to that node any more.", addr);
+      if (clusterManagerListeners != null)
+        // This might be harmful if a node informed us about the death of a third node - we would kill e.g. connections
+        // to the third node, although that node might be up and running for us (if there are network segment failures
+        // etc.). But as this scenario cannot happen currently (see JavaDoc of this method), we're fine to fire the
+        // event and ConnectionPool to listen to it.
+        clusterManagerListeners.forEach(l -> l.nodeDied(diedAddr));
+    }
   }
 
   public ClusterLayout getClusterLayout() {

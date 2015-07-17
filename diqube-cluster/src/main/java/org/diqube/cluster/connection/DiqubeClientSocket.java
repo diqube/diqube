@@ -56,9 +56,9 @@ public class DiqubeClientSocket extends TSocket {
 
   private synchronized void connectionDied() {
     if (!listenerInformed) {
+      close();
       listener.connectionDied();
       listenerInformed = true;
-      close();
     }
   }
 

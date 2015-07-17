@@ -18,28 +18,25 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.listeners;
-
-import org.diqube.context.AutoInstatiate;
-import org.diqube.remote.base.thrift.RNodeAddress;
+package org.diqube.cluster.connection;
 
 /**
- * A listener for events of the ClusterManager.
- * 
- * All implementing classes need to be available in the context (= they need to have the {@link AutoInstatiate}
- * annotation).
+ * Exception when connecting to a remote machine.
  *
  * @author Bastian Gloeckle
  */
-public interface ClusterManagerListener {
+public class ConnectionException extends RuntimeException {
+  private static final long serialVersionUID = 1L;
 
-  /**
-   * The ClusterManager is initialized and we're ready to interact with the cluster.
-   */
-  public void clusterInitialized();
+  public ConnectionException() {
+    super();
+  }
 
-  /**
-   * A specific node in the cluster died.
-   */
-  public void nodeDied(RNodeAddress nodeAddr);
+  public ConnectionException(String msg) {
+    super(msg);
+  }
+
+  public ConnectionException(String msg, Throwable cause) {
+    super(msg, cause);
+  }
 }

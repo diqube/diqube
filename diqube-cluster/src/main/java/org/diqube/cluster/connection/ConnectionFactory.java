@@ -21,7 +21,6 @@
 package org.diqube.cluster.connection;
 
 import org.apache.thrift.TServiceClient;
-import org.diqube.cluster.connection.ConnectionPool.ConnectionException;
 import org.diqube.remote.base.thrift.RNodeAddress;
 
 /**
@@ -33,7 +32,7 @@ public interface ConnectionFactory {
   /**
    * Create and open a new connection.
    * 
-   * @param thiftClientClass
+   * @param thriftClientClass
    *          The "Client" class of the thrift service to open a connection for.
    * @param thriftServiceName
    *          The service name of the service (see constants in [ServiceName]Constants class).
@@ -45,6 +44,27 @@ public interface ConnectionFactory {
    * @throws ConnectionException
    *           If anything happens.
    */
-  public <T extends TServiceClient> Connection<T> createConnection(Class<T> thiftClientClass, String thriftServiceName,
+  public <T extends TServiceClient> Connection<T> createConnection(Class<T> thriftClientClass, String thriftServiceName,
       RNodeAddress addr, SocketListener socketListener) throws ConnectionException;
+
+  /**
+   * Create a new connection object based on an old one, whose socket is still open. The new one will provide a
+   * different service than the old one.
+   * 
+   * Be aware that this does not change the {@link SocketListener}!
+   * 
+   * @param oldConnection
+   *          The {@link Connection} whose socket should be used. Do not use this connection object any more after
+   *          calling this method!
+   * @param newThriftClientClass
+   *          The class of the new service.
+   * @param newThriftServiceName
+   *          The thrift service name of the new service.
+   * @return The new connection.
+   * @throws ConnectionException
+   *           if anything went wrong.
+   */
+  public <T extends TServiceClient, U extends TServiceClient> Connection<U> createConnection(
+      Connection<T> oldConnection, Class<U> newThriftClientClass, String newThriftServiceName)
+          throws ConnectionException;
 }

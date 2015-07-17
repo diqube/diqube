@@ -25,7 +25,9 @@ import org.apache.thrift.TProcessor;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.protocol.TProtocolFactory;
 import org.apache.thrift.server.TServlet;
+import org.diqube.remote.query.KeepAliveServiceConstants;
 import org.diqube.remote.query.QueryResultServiceConstants;
+import org.diqube.remote.query.thrift.KeepAliveService;
 import org.diqube.remote.query.thrift.QueryResultService;
 
 /**
@@ -48,6 +50,8 @@ public class ThriftServlet extends TServlet {
 
     res.registerProcessor(QueryResultServiceConstants.SERVICE_NAME,
         new QueryResultService.Processor<QueryResultService.Iface>(new QueryResultServiceHandler()));
+    res.registerProcessor(KeepAliveServiceConstants.SERVICE_NAME,
+        new KeepAliveService.Processor<KeepAliveService.Iface>(new KeepAliveServiceHandler()));
 
     return res;
   }

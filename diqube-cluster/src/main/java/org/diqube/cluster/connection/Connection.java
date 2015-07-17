@@ -57,7 +57,7 @@ public class Connection<T> implements Closeable {
     return transport;
   }
 
-  private RNodeAddress getAddress() {
+  /* package */ RNodeAddress getAddress() {
     return address;
   }
 

@@ -18,28 +18,17 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.listeners;
+package org.diqube.remote.query;
 
-import org.diqube.context.AutoInstatiate;
-import org.diqube.remote.base.thrift.RNodeAddress;
+import org.apache.thrift.protocol.TMultiplexedProtocol;
+import org.diqube.remote.query.thrift.KeepAliveService;
 
 /**
- * A listener for events of the ClusterManager.
- * 
- * All implementing classes need to be available in the context (= they need to have the {@link AutoInstatiate}
- * annotation).
+ * Constants to be used when using {@link KeepAliveService}.
  *
  * @author Bastian Gloeckle
  */
-public interface ClusterManagerListener {
-
-  /**
-   * The ClusterManager is initialized and we're ready to interact with the cluster.
-   */
-  public void clusterInitialized();
-
-  /**
-   * A specific node in the cluster died.
-   */
-  public void nodeDied(RNodeAddress nodeAddr);
+public class KeepAliveServiceConstants {
+  /** Name of the query service as set up in {@link TMultiplexedProtocol}. */
+  public static final String SERVICE_NAME = "K";
 }

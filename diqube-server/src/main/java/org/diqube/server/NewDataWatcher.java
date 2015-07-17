@@ -47,6 +47,7 @@ import org.diqube.listeners.ClusterManagerListener;
 import org.diqube.loader.CsvLoader;
 import org.diqube.loader.JsonLoader;
 import org.diqube.loader.LoadException;
+import org.diqube.remote.base.thrift.RNodeAddress;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
@@ -120,6 +121,11 @@ public class NewDataWatcher implements ClusterManagerListener {
 
     thread = new NewDataWatchThread(initialControlFiles);
     thread.start();
+  }
+
+  @Override
+  public void nodeDied(RNodeAddress nodeAddr) {
+    // noop
   }
 
   @PreDestroy

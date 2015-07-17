@@ -79,4 +79,9 @@ public class ConfigKey {
    * This timeout is for opening connections and reading data from the remote.
    */
   public static final String CLIENT_SOCKET_TIMEOUT_MS = "clientSocketTimeoutMs";
+
+  /**
+   * Time in milliseconds between keep alives that are sent to all nodes.
+   */
+  public static final String KEEP_ALIVE_MS = "keepAliveMs";
 }

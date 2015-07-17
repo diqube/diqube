@@ -30,7 +30,6 @@ import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.THttpClient;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
-import org.diqube.cluster.connection.ConnectionPool.ConnectionException;
 import org.diqube.remote.base.thrift.RNodeAddress;
 
 /**
@@ -57,7 +56,7 @@ class DefaultConnectionFactory implements ConnectionFactory {
         // TODO #32: Integrate SocketListener into HTTP connections.
         return new THttpClient(addr.getHttpAddr().getUrl());
       } catch (TTransportException e) {
-        throw new ConnectionPool.ConnectionException("Could not open connection to " + addr, e);
+        throw new ConnectionException("Could not open connection to " + addr, e);
       }
     }
 
@@ -67,28 +66,43 @@ class DefaultConnectionFactory implements ConnectionFactory {
   }
 
   @Override
-  public <T extends TServiceClient> Connection<T> createConnection(Class<T> thiftClientClass, String thriftServiceName,
+  public <T extends TServiceClient> Connection<T> createConnection(Class<T> thriftClientClass, String thriftServiceName,
       RNodeAddress addr, SocketListener socketListener) throws ConnectionException {
 
     TTransport transport = openTransport(addr, socketListener);
 
+    T queryResultClient = createProtocolAndClient(thriftClientClass, thriftServiceName, transport);
+    try {
+      transport.open();
+    } catch (TTransportException e) {
+      throw new ConnectionException("Could not open connection to " + addr, e);
+    }
+
+    return new Connection<>(connectionPool, queryResultClient, transport, addr);
+  }
+
+  private <T extends TServiceClient> T createProtocolAndClient(Class<T> thriftClientClass, String thriftServiceName,
+      TTransport transport) throws ConnectionException {
     TProtocol queryProtocol = new TMultiplexedProtocol(new TCompactProtocol(transport), thriftServiceName);
 
     T queryResultClient;
     try {
-      queryResultClient = thiftClientClass.getConstructor(TProtocol.class).newInstance(queryProtocol);
+      queryResultClient = thriftClientClass.getConstructor(TProtocol.class).newInstance(queryProtocol);
     } catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException
         | NoSuchMethodException | SecurityException e) {
       ConnectionPool.logger.error("Error while constructing a client", e);
-      throw new ConnectionPool.ConnectionException("Error while constructing a client", e);
+      throw new ConnectionException("Error while constructing a client", e);
     }
-    try {
-      transport.open();
-    } catch (TTransportException e) {
-      throw new ConnectionPool.ConnectionException("Could not open connection to " + addr, e);
-    }
+    return queryResultClient;
+  }
 
-    return new Connection<>(connectionPool, queryResultClient, transport, addr);
+  @Override
+  public <T extends TServiceClient, U extends TServiceClient> Connection<U> createConnection(
+      Connection<T> oldConnection, Class<U> newThriftClientClass, String newThriftServiceName)
+          throws ConnectionException {
+    U client = createProtocolAndClient(newThriftClientClass, newThriftServiceName, oldConnection.getTransport());
+
+    return new Connection<>(connectionPool, client, oldConnection.getTransport(), oldConnection.getAddress());
   }
 
 }

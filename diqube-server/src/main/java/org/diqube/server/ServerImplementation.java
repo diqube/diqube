@@ -40,7 +40,9 @@ import org.diqube.remote.cluster.ClusterManagementServiceConstants;
 import org.diqube.remote.cluster.ClusterQueryServiceConstants;
 import org.diqube.remote.cluster.thrift.ClusterManagementService;
 import org.diqube.remote.cluster.thrift.ClusterQueryService;
+import org.diqube.remote.query.KeepAliveServiceConstants;
 import org.diqube.remote.query.QueryServiceConstants;
+import org.diqube.remote.query.thrift.KeepAliveService;
 import org.diqube.remote.query.thrift.QueryService;
 import org.diqube.server.thrift.ThriftServer;
 import org.diqube.threads.ExecutorManager;
@@ -71,6 +73,9 @@ public class ServerImplementation {
 
   @Inject
   private QueryService.Iface queryHandler;
+
+  @Inject
+  private KeepAliveService.Iface keepAliveHandler;
 
   @Inject
   private ExecutorManager executorManager;
@@ -113,6 +118,8 @@ public class ServerImplementation {
         new ClusterQueryService.Processor<ClusterQueryService.Iface>(clusterQueryHandler));
     multiProcessor.registerProcessor(ClusterManagementServiceConstants.SERVICE_NAME,
         new ClusterManagementService.Processor<ClusterManagementService.Iface>(clusterManagementHandler));
+    multiProcessor.registerProcessor(KeepAliveServiceConstants.SERVICE_NAME,
+        new KeepAliveService.Processor<KeepAliveService.Iface>(keepAliveHandler));
 
     TNonblockingServerTransport transport;
     try {

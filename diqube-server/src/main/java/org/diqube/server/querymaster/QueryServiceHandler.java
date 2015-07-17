@@ -29,8 +29,8 @@ import javax.inject.Inject;
 
 import org.apache.thrift.TException;
 import org.diqube.cluster.connection.Connection;
+import org.diqube.cluster.connection.ConnectionException;
 import org.diqube.cluster.connection.ConnectionPool;
-import org.diqube.cluster.connection.ConnectionPool.ConnectionException;
 import org.diqube.cluster.connection.SocketListener;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.execution.steps.ExecuteRemotePlanOnShardsStep;

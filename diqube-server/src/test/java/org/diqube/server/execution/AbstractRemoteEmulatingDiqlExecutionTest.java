@@ -28,9 +28,9 @@ import java.util.stream.LongStream;
 
 import org.apache.thrift.TServiceClient;
 import org.diqube.cluster.connection.Connection;
+import org.diqube.cluster.connection.ConnectionException;
 import org.diqube.cluster.connection.ConnectionFactory;
 import org.diqube.cluster.connection.ConnectionPool;
-import org.diqube.cluster.connection.ConnectionPool.ConnectionException;
 import org.diqube.cluster.connection.ConnectionPoolTestUtil;
 import org.diqube.cluster.connection.SocketListener;
 import org.diqube.data.ColumnType;
@@ -111,6 +111,13 @@ public abstract class AbstractRemoteEmulatingDiqlExecutionTest<T> extends Abstra
       public <C extends TServiceClient> Connection<C> createConnection(Class<C> thiftClientClass,
           String thriftServiceName, RNodeAddress addr, SocketListener socketListener) throws ConnectionException {
         return (Connection<C>) ConnectionPoolTestUtil.createConnection(pool, ClusterQueryService.Client.class);
+      }
+
+      @Override
+      public <U extends TServiceClient, V extends TServiceClient> Connection<V> createConnection(
+          Connection<U> oldConnection, Class<V> newThriftClientClass, String newThriftServiceName)
+              throws ConnectionException {
+        return null;
       }
     });
   }
