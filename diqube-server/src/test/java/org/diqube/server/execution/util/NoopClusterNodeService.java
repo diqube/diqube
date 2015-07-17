@@ -31,7 +31,7 @@ import org.diqube.remote.cluster.thrift.ClusterNodeService;
 import org.diqube.remote.cluster.thrift.RExecutionException;
 import org.diqube.remote.cluster.thrift.RExecutionPlan;
 import org.diqube.remote.cluster.thrift.ROldNewIntermediateAggregationResult;
-import org.diqube.server.ClusterNodeServiceHandler;
+import org.diqube.server.queryremote.ClusterNodeServiceHandler;
 
 /**
  * A {@link ClusterNodeService} that simply does nothing. Usable for unit tests, if the original

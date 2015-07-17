@@ -18,7 +18,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.server;
+package org.diqube.server.queryremote;
 
 import java.util.HashMap;
 import java.util.List;
@@ -55,7 +55,8 @@ import org.diqube.remote.cluster.thrift.RExecutionException;
 import org.diqube.remote.cluster.thrift.RExecutionPlan;
 import org.diqube.remote.cluster.thrift.ROldNewIntermediateAggregationResult;
 import org.diqube.remote.query.thrift.QueryService;
-import org.diqube.server.RemoteExecutionPlanExecutor.RemoteExecutionPlanExecutionCallback;
+import org.diqube.server.querymaster.QueryServiceHandler;
+import org.diqube.server.queryremote.RemoteExecutionPlanExecutor.RemoteExecutionPlanExecutionCallback;
 import org.diqube.threads.ExecutorManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
