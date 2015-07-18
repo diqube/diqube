@@ -7,7 +7,8 @@ install:
   - build/travis-setup-maven.sh
 script:
   - mvn clean install
-cache:
-  directories:
-  - $HOME/thrift-092
-  - $HOME/.m2
+  
+# cache:
+#   directories:
+#   - $HOME/thrift-092
+#   - $HOME/.m2
