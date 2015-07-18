@@ -77,7 +77,7 @@
                 <exec executable="${thrift.executable}" outputproperty="thrift.actual.version">
                   <arg value="--version" />
                 </exec>
-                <fail message="Thrift compiler found, but wrong version. Need version ${thrift.version.required}! But was: ${thrift.actual.version}">
+                <fail message="Thrift compiler found, but wrong version. Need version ${thrift.version.required}!">
                   <condition>
                     <not>
                       <equals arg1="Thrift version ${thrift.version.required}" arg2="${thrift.actual.version}" />

@@ -3,11 +3,7 @@ sudo: true
 jdk:
   - oraclejdk8
 install: 
-  - build/travis-install.sh
+  - build/travis-compile-thrift.sh
+  - build/travis-setup-maven.sh
 script:
   - mvn clean install
-  
-# cache:
-#   directories:
-#   - $HOME/thrift-092
-#   - $HOME/.m2
