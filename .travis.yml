@@ -7,4 +7,4 @@ install:
   - build/travis-setup-maven.sh > /dev/null
 script:
   - mvn clean install -DskipTests
-  - mvn test >> tst.log || if tail -n 100 tst.log | grep "BUILD FAILURE" > /dev/null; then tail -n 1000 tst.log; fi; exit 1
+  - mvn test > tst.log ; if tail -n 100 tst.log | grep "BUILD FAILURE" > /dev/null; then tail -n 1000 tst.log; exit 1; fi;
