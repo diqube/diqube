@@ -1,0 +1,13 @@
+language: java
+sudo: false
+jdk:
+  - oraclejdk8
+install: 
+  - build/travis-compile-thrift.sh
+  - build/travis-setup-maven.sh
+script:
+  - mvn clean install
+cache:
+  directories:
+  - $HOME/thrift-092
+  - $HOME/.m2
