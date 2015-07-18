@@ -4,9 +4,9 @@ set -vx
 
 # Our thrift executable needs an updated libstdc++
 sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test || exit 1
-sudo apt-get -y -dd update || exit 1
-sudo apt-get -y -dd upgrade || exit 1
-sudo apt-get -y -dd dist-upgrade || exit 1
+sudo apt-get -y -qq update || exit 1
+sudo apt-get -y -qq upgrade || exit 1
+sudo apt-get -y -qq dist-upgrade || exit 1
 
 SRC_DIR="`pwd`"
 cd "$HOME"
