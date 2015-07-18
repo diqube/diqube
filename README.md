@@ -5,6 +5,8 @@ easily.
 
 ##Building from source##
 
+[![Build Status](https://travis-ci.org/diqube/diqube.svg?branch=master)](https://travis-ci.org/diqube/diqube)
+
 Make sure you have the prerequisites installed:
 
  * Java 8
