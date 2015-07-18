@@ -2,7 +2,7 @@
 
 set -vx
 
-if ! [ -d "$HOME/thrift-092" ]; then
+if [ ! -d "$HOME/thrift-092" ]; then
   SRC_DIR="`pwd`"
   cd "$HOME"
   git clone https://git-wip-us.apache.org/repos/asf/thrift.git thrift
@@ -13,5 +13,7 @@ if ! [ -d "$HOME/thrift-092" ]; then
   ./configure
   make
   cd "$SRC_DIR"
+else
+  echo 'Using cached directory.';
 fi
 
