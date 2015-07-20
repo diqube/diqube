@@ -78,7 +78,7 @@ class DefaultConnectionFactory implements ConnectionFactory {
       throw new ConnectionException("Could not open connection to " + addr, e);
     }
 
-    return new Connection<>(connectionPool, queryResultClient, transport, addr);
+    return new Connection<>(connectionPool, thriftClientClass, queryResultClient, transport, addr);
   }
 
   private <T extends TServiceClient> T createProtocolAndClient(Class<T> thriftClientClass, String thriftServiceName,
@@ -102,7 +102,8 @@ class DefaultConnectionFactory implements ConnectionFactory {
           throws ConnectionException {
     U client = createProtocolAndClient(newThriftClientClass, newThriftServiceName, oldConnection.getTransport());
 
-    return new Connection<>(connectionPool, client, oldConnection.getTransport(), oldConnection.getAddress());
+    return new Connection<>(connectionPool, newThriftClientClass, client, oldConnection.getTransport(),
+        oldConnection.getAddress());
   }
 
 }

@@ -215,6 +215,9 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
               QueryUuid.getCurrentQueryUuid(), QueryUuid.getCurrentExecutionUuid());
           remotesDone.incrementAndGet();
           // TODO #37: We should inform the user about this situation.
+        } catch (InterruptedException e) {
+          // exit quietly
+          return;
         }
       }
 

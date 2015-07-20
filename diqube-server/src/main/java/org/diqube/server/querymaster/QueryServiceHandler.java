@@ -202,6 +202,9 @@ public class QueryServiceHandler implements Iface {
                 conn.getService().cancelExecution(queryRUuid);
               } catch (ConnectionException | IOException | TException e) {
                 // swallow - if we can't cancel, that's fine, too.
+              } catch (InterruptedException e) {
+                // stop quietly.
+                break;
               }
             }
           }
@@ -216,7 +219,8 @@ public class QueryServiceHandler implements Iface {
     try {
       resultConnection = connectionPool.reserveConnection(QueryResultService.Client.class,
           QueryResultServiceConstants.SERVICE_NAME, resultAddress, resultSocketListener);
-    } catch (ConnectionException e) {
+    } catch (ConnectionException | InterruptedException e) {
+      logger.error("Could not open connection to result node", e);
       throw new RQueryException("Could not open connection to result node: " + e.getMessage());
     }
     QueryResultService.Iface resultService = resultConnection.getService();

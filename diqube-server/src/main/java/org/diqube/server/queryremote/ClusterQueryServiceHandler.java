@@ -148,7 +148,7 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
       try {
         resultConnection = connectionPool.reserveConnection(ClusterQueryService.Client.class,
             ClusterQueryServiceConstants.SERVICE_NAME, resultAddress, resultSocketListener);
-      } catch (ConnectionException e) {
+      } catch (ConnectionException | InterruptedException e) {
         logger.error("Could not open connection to the result node for query {} execution {} ({}). Will not start "
             + "executing anything.", queryUuid, executionUuid, resultAddress);
         return;

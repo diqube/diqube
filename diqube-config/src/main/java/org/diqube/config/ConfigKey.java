@@ -84,4 +84,12 @@ public class ConfigKey {
    * Time in milliseconds between keep alives that are sent to all nodes.
    */
   public static final String KEEP_ALIVE_MS = "keepAliveMs";
+
+  /**
+   * Limit of how many connections should be opened overall from this node.
+   * 
+   * This is a "soft" limit, as in some circumstances diqube might open slightly more connections than this limit, which
+   * is e.g. to ensure that no deadlocks occur.
+   */
+  public static final String CONNECTION_SOFT_LIMIT = "connectionSoftLimit";
 }

@@ -22,6 +22,7 @@ package org.diqube.cluster.connection;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.UUID;
 
 import org.apache.thrift.transport.TTransport;
 import org.diqube.remote.base.thrift.RNodeAddress;
@@ -38,9 +39,13 @@ public class Connection<T> implements Closeable {
   private TTransport transport;
   private RNodeAddress address;
   private ConnectionPool parentPool;
+  private Class<T> serviceClientClass;
+  private UUID executionUuid = null;
 
-  /* package */ Connection(ConnectionPool parentPool, T service, TTransport transport, RNodeAddress address) {
+  /* package */ Connection(ConnectionPool parentPool, Class<T> serviceClientClass, T service, TTransport transport,
+      RNodeAddress address) {
     this.parentPool = parentPool;
+    this.serviceClientClass = serviceClientClass;
     this.service = service;
     this.transport = transport;
     this.address = address;
@@ -59,6 +64,25 @@ public class Connection<T> implements Closeable {
 
   /* package */ RNodeAddress getAddress() {
     return address;
+  }
+
+  /* package */ Class<T> getServiceClientClass() {
+    return serviceClientClass;
+  }
+
+  /**
+   * @return The executionUuid this connection was working for. Can be <code>null</code>.
+   */
+  /* package */UUID getExecutionUuid() {
+    return executionUuid;
+  }
+
+  /**
+   * For {@link ConnectionPool} only: Set the executionUuid this connection is working either when this connection is
+   * being reserved or is being released.
+   */
+  /* package */void setExecutionUuid(UUID executionUuid) {
+    this.executionUuid = executionUuid;
   }
 
   @Override

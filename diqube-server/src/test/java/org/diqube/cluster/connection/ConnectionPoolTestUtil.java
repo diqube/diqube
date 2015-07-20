@@ -36,7 +36,7 @@ public class ConnectionPoolTestUtil {
   }
 
   public static <T> Connection<T> createConnection(ConnectionPool parentPool, Class<T> service) {
-    return new Connection<T>(parentPool, Mockito.mock(service, Mockito.RETURNS_MOCKS),
+    return new Connection<T>(parentPool, service, Mockito.mock(service, Mockito.RETURNS_MOCKS),
         Mockito.mock(TTransport.class, Mockito.RETURNS_MOCKS), null);
   }
 }
