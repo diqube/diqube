@@ -194,6 +194,9 @@ public class ClusterManager implements ServingListener, TableLoadListener {
 
                 for (Entry<RNodeAddress, Map<Long, List<String>>> layoutEntry : newClusterLayout.entrySet()) {
                   // layoutEntry.getValue() is a map containing only a single entry (see .thrift file!).
+                  if (layoutEntry.getKey().equals(ourAddress))
+                    continue;
+
                   long version = layoutEntry.getValue().keySet().iterator().next();
                   List<String> tables = layoutEntry.getValue().get(version);
                   loadNodeInfo(layoutEntry.getKey(), version, tables);
@@ -214,10 +217,10 @@ public class ClusterManager implements ServingListener, TableLoadListener {
                   .warn("I was able to say hello to at least one cluster node, but was unable to retrieve the cluster "
                       + "layout from all of them. I am now not connected to any node.");
             } else {
-              logger.info("Starting to greet all cluster nodes I know.");
+              logger.info("Starting to greet all cluster nodes I didn't greet yet.");
               // say hello to all nodes
               for (NodeAddress remoteAddr : clusterLayout.getNodes()) {
-                if (remoteAddr.equals(ourHostAddr))
+                if (remoteAddr.equals(ourHostAddr) || workingRemoteAddr.contains(remoteAddr))
                   continue;
 
                 try (Connection<ClusterManagementService.Client> conn = reserveConnection(remoteAddr)) {
@@ -284,12 +287,13 @@ public class ClusterManager implements ServingListener, TableLoadListener {
   }
 
   /**
-   * Called when a new cluster node came online.
+   * Called when a new cluster node came online, removes known tables of this node.
    */
   public void newNode(RNodeAddress newNodeAddress) {
     // we might know about that node already, though.
     NodeAddress addr = new NodeAddress(newNodeAddress);
-    if (!clusterLayout.addNode(addr) && !addr.equals(ourHostAddr))
+    clusterLayout.addNode(addr);
+    if (!addr.equals(ourHostAddr))
       logger.info("New cluster node {}", addr);
   }
 

@@ -102,8 +102,13 @@ class DefaultConnectionFactory implements ConnectionFactory {
           throws ConnectionException {
     U client = createProtocolAndClient(newThriftClientClass, newThriftServiceName, oldConnection.getTransport());
 
-    return new Connection<>(connectionPool, newThriftClientClass, client, oldConnection.getTransport(),
+    oldConnection.setEnabled(false);
+
+    Connection<U> res = new Connection<>(connectionPool, newThriftClientClass, client, oldConnection.getTransport(),
         oldConnection.getAddress());
+    res.setTimeout(oldConnection.getTimeout());
+    res.setExecutionUuid(oldConnection.getExecutionUuid());
+    return res;
   }
 
 }

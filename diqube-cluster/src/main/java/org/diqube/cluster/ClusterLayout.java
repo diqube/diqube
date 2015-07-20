@@ -59,12 +59,8 @@ public class ClusterLayout {
     return true;
   }
 
-  /* package */synchronized boolean addNode(NodeAddress addr) {
-    if (tables.containsKey(addr))
-      return true;
-
+  /* package */synchronized void addNode(NodeAddress addr) {
     tables.put(addr, new Pair<>(0L, new ConcurrentSkipListSet<>()));
-    return false;
   }
 
   /* package */ synchronized boolean removeNode(NodeAddress addr) {

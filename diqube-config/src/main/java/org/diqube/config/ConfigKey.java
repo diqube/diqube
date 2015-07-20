@@ -92,4 +92,10 @@ public class ConfigKey {
    * is e.g. to ensure that no deadlocks occur.
    */
   public static final String CONNECTION_SOFT_LIMIT = "connectionSoftLimit";
+
+  /**
+   * The milliseconds a connection may be idle before it is allowed to be closed. Please note that it might take more
+   * time until the connection is actually closed.
+   */
+  public static final String CONNECTION_IDLE_TIME_MS = "connectionIdleTimeMs";
 }

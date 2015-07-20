@@ -23,6 +23,7 @@ package org.diqube.cluster.connection;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.thrift.transport.TTransport;
 import org.diqube.remote.base.thrift.RNodeAddress;
@@ -41,6 +42,8 @@ public class Connection<T> implements Closeable {
   private ConnectionPool parentPool;
   private Class<T> serviceClientClass;
   private UUID executionUuid = null;
+  private boolean enabled = true;
+  private AtomicLong timeout = null;
 
   /* package */ Connection(ConnectionPool parentPool, Class<T> serviceClientClass, T service, TTransport transport,
       RNodeAddress address) {
@@ -53,8 +56,12 @@ public class Connection<T> implements Closeable {
 
   /**
    * @return Easy to use service bean - each method call on the returned object will actually trigger a remote call.
+   * @throws IllegalStateException
+   *           if connection was disabled.
    */
-  public T getService() {
+  public T getService() throws IllegalStateException {
+    if (!enabled)
+      throw new IllegalStateException("Connection disabled!");
     return service;
   }
 
@@ -78,6 +85,19 @@ public class Connection<T> implements Closeable {
   }
 
   /**
+   * @return <code>true</code> if the connection can be used, <code>false</code> if this connection cannot be used any
+   *         more because it was used as "oldConnection" in a call to
+   *         {@link ConnectionFactory#createConnection(Connection, Class, String)} as "old connection".
+   */
+  public boolean isEnabled() {
+    return enabled;
+  }
+
+  /* package */ void setEnabled(boolean enabled) {
+    this.enabled = enabled;
+  }
+
+  /**
    * For {@link ConnectionPool} only: Set the executionUuid this connection is working either when this connection is
    * being reserved or is being released.
    */
@@ -85,8 +105,25 @@ public class Connection<T> implements Closeable {
     this.executionUuid = executionUuid;
   }
 
+  /* package */ Long getTimeout() {
+    return (timeout == null) ? null : timeout.get();
+  }
+
+  /* package */ void setTimeout(Long timeout) {
+    if (timeout == null)
+      this.timeout = null;
+
+    if (this.timeout == null) {
+      this.timeout = new AtomicLong(timeout);
+      return;
+    }
+
+    this.timeout.set(timeout);
+  }
+
   @Override
   public void close() throws IOException {
     parentPool.releaseConnection(this);
   }
+
 }

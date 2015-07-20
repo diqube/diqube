@@ -55,7 +55,8 @@ public interface ConnectionFactory {
    * 
    * @param oldConnection
    *          The {@link Connection} whose socket should be used. Do not use this connection object any more after
-   *          calling this method!
+   *          calling this method! The connection will therefore be disabled and a subsequent call to
+   *          {@link Connection#getService()} will throw an exception.
    * @param newThriftClientClass
    *          The class of the new service.
    * @param newThriftServiceName

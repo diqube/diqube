@@ -80,8 +80,11 @@ public abstract class QueryMasterParallelDiqlExecutionTest<T> extends AbstractRe
       // start execution.
       Future<Void> future = executablePlan.executeAsynchronously(executor);
 
-      QueryResultHandler resultHandler =
-          queryRegistry.getQueryResultHandlers(QueryUuid.getCurrentQueryUuid()).iterator().next();
+      QueryResultHandler resultHandler = null;
+      while (resultHandler == null) {
+        if (queryRegistry.getQueryResultHandlers(QueryUuid.getCurrentQueryUuid()).size() > 0)
+          resultHandler = queryRegistry.getQueryResultHandlers(QueryUuid.getCurrentQueryUuid()).iterator().next();
+      }
 
       String countCol = new FunctionBasedColumnNameBuilder().withFunctionName("count").build();
 
@@ -196,8 +199,11 @@ public abstract class QueryMasterParallelDiqlExecutionTest<T> extends AbstractRe
       // start execution.
       Future<Void> future = executablePlan.executeAsynchronously(executor);
 
-      QueryResultHandler resultHandler =
-          queryRegistry.getQueryResultHandlers(QueryUuid.getCurrentQueryUuid()).iterator().next();
+      QueryResultHandler resultHandler = null;
+      while (resultHandler == null) {
+        if (queryRegistry.getQueryResultHandlers(QueryUuid.getCurrentQueryUuid()).size() > 0)
+          resultHandler = queryRegistry.getQueryResultHandlers(QueryUuid.getCurrentQueryUuid()).iterator().next();
+      }
 
       String countCol = new FunctionBasedColumnNameBuilder().withFunctionName("count").build();
 
