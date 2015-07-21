@@ -40,7 +40,6 @@ import javax.inject.Inject;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
 import org.diqube.cluster.ClusterManager;
-import org.diqube.cluster.NodeAddress;
 import org.diqube.config.Config;
 import org.diqube.config.ConfigKey;
 import org.diqube.context.AutoInstatiate;
@@ -62,6 +61,9 @@ import com.google.common.math.IntMath;
  * behaviour of these listeners. If the connection gets reserved, the {@link DefaultSocketListener} will be set into a
  * mode where it forwards events to the custom specified {@link SocketListener}. When it is not reserved, no events are
  * fowarded.
+ * 
+ * This class is used for connections to the UI, too. That means, it supports {@link RNodeAddress} fully including the
+ * HTTP connections.
  *
  * TODO change this class to use NodeAdress instead of RNodeAddress
  *
@@ -370,7 +372,7 @@ public class ConnectionPool implements ClusterManagerListener {
         defaultSocketListeners.put(res, newDefaultSocketListener);
         logger.debug("Opened new connection {} to {}", System.identityHashCode(res.getTransport()), addr);
       } catch (ConnectionException e) {
-        logger.warn("Could not connect to {}.", new NodeAddress(addr));
+        logger.warn("Could not connect to {}.", addr);
         clusterManager.nodeDied(addr);
         throw new ConnectionException("Error connecting to " + addr, e);
       }
@@ -619,7 +621,7 @@ public class ConnectionPool implements ClusterManagerListener {
 
     @Override
     public void connectionDied() {
-      logger.warn("Connection to {} died unexpectedly.", new NodeAddress(address));
+      logger.warn("Connection to {} died unexpectedly.", address);
       clusterManager.nodeDied(address); // will in turn call ConnectionPool#nodeDied.
 
       // although ConnectionPool#nodeDied was called, we need to cleanup this connection, because
