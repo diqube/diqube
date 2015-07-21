@@ -98,4 +98,12 @@ public class ConfigKey {
    * time until the connection is actually closed.
    */
   public static final String CONNECTION_IDLE_TIME_MS = "connectionIdleTimeMs";
+
+  /**
+   * A percentage (= Double value) of the currently opened connections compared to the {@link #CONNECTION_SOFT_LIMIT}.
+   * 
+   * As soon as the given level of open connections is reached, diqube tries to close currently opened but unused
+   * connections before these reach {@link #CONNECTION_IDLE_TIME_MS}.
+   */
+  public static final String CONNECTION_EARLY_CLOSE_LEVEL = "connectionEarlyCloseLevel";
 }

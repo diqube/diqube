@@ -65,9 +65,6 @@ import com.google.common.math.IntMath;
  *
  * TODO change this class to use NodeAdress instead of RNodeAddress
  *
- * TODO #32: Implement early-closing of connections if new connections are requested, we reached 90% (?) of
- * connectionSoftLimit but there are availableConnections.
- *
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
@@ -85,6 +82,9 @@ public class ConnectionPool implements ClusterManagerListener {
 
   @Config(ConfigKey.CONNECTION_IDLE_TIME_MS)
   private int connectionIdleTimeMs;
+
+  @Config(ConfigKey.CONNECTION_EARLY_CLOSE_LEVEL)
+  private double earlyCloseLevel;
 
   private MaintananceThread maintananceThread = new MaintananceThread();
 
@@ -197,8 +197,28 @@ public class ConnectionPool implements ClusterManagerListener {
     }
 
     if (res == null) {
-      // Check if we reached our soft limit.
-      // In case we did, this while loop will block and re-check if there is an available connection as soon as a
+      // Normal execution path, try to reserve available conns, perhaps free some, block, and then create a new one.
+
+      // Try to reserve an already opened connection
+      res = reserveAvailableConnection(thriftClientClass, thriftServiceName, addr, socketListener);
+
+      // Ok, we were not able to reserve a connection that was already openened to that addr already.
+      // Before we start to block, let's try to eagerly close one connection that would be the next to timeout as soon
+      // as we reached at least "earlyCloseLevel" of the softLimit. This should enable our thread to get a connection
+      // pretty quickly.
+      if (res == null) {
+        if (overallOpenConnections.get() >= Math.round(earlyCloseLevel * connectionSoftLimit)) {
+          Entry<Long, Connection<? extends TServiceClient>> timeoutEntry;
+          while ((timeoutEntry = connectionTimeouts.pollFirstEntry()) != null)
+            if (timeoutCloseConnectionIfViable(timeoutEntry.getKey(), timeoutEntry.getValue()))
+              break;
+        }
+        res = reserveAvailableConnection(thriftClientClass, thriftServiceName, addr, socketListener);
+      }
+
+      // Block if we still got no connection and if we are above the softLimit (which might happen if another thread
+      // picked the slot that we might just have freed).
+      // This while loop will block and re-check if there is an available connection as soon as a
       // connection is released.
       // Note that this is not 100% thread safe, as we might leave the while loop because overallOpenConnections is low
       // enough to not hit the limit, but we were not able to reserve an already opened connection. In that case, we
@@ -211,9 +231,6 @@ public class ConnectionPool implements ClusterManagerListener {
       // to break that possible deadlock by letting the waiting one pass as soon as we know there is another connection
       // for the execution. If the first connection is already returned again, then there cannot be a
       // connection-deadlock for that execution and therefore we can let the second one wait.
-
-      // try to reserve an already opened connection
-      res = reserveAvailableConnection(thriftClientClass, thriftServiceName, addr, socketListener);
       while (res == null && overallOpenConnections.get() >= connectionSoftLimit
           && (executionUuid == null || !openConnectionsByExecutionUuid.containsKey(executionUuid))) {
         logger.debug("Blocking thread as there are no connections available ({}/{}).", overallOpenConnections.get(),
@@ -309,9 +326,7 @@ public class ConnectionPool implements ClusterManagerListener {
             return res;
           } catch (TException e) {
             // swallow. connection is not alive any more. try next one (or open a new one).
-            conn.getTransport().close();
-            defaultSocketListeners.remove(conn);
-            overallOpenConnections.decrementAndGet();
+            cleanupConnection(conn);
           }
         }
       }
@@ -373,8 +388,7 @@ public class ConnectionPool implements ClusterManagerListener {
    *          The connection returned by {@link #reserveConnection(Class, RNodeAddress)}.
    */
   public <T> void releaseConnection(Connection<T> connection) {
-
-    // thread-safe find the deque that contains tha available connections of our address. If there is none, create one!
+    // thread-safe find the deque that contains the available connections of our address. If there is none, create one!
     Deque<Connection<? extends TServiceClient>> availableConnectionsOnAddr =
         availableConnections.get(connection.getAddress());
 
@@ -389,7 +403,8 @@ public class ConnectionPool implements ClusterManagerListener {
     logger.debug("Releasing connection {} to {}", System.identityHashCode(connection.getTransport()),
         connection.getAddress());
 
-    // be aware that changing this procedure here might interfere with the timeout management in MaintananceThread!
+    // be aware that changing this procedure here might interfere with the timeout management in
+    // timeoutCloseConnectionIfViable (called from MaintananceThread)!
     // Be VERY careful!
 
     // manage idle timeout
@@ -402,6 +417,10 @@ public class ConnectionPool implements ClusterManagerListener {
     while (connectionTimeouts.putIfAbsent(timeout, castedConn) != null)
       timeout++;
     connection.setTimeout(timeout);
+    // re-put here, in case the conn was removed from connectionTimeouts in the meantime, when the conn object itself
+    // did not yet have to correct timeout set. If the conn was fully processed already, it will be looked into in the
+    // next run of timeouts again, but that won't matter.
+    connectionTimeouts.put(timeout, castedConn);
 
     // adjust socket listener
     defaultSocketListeners.get(connection).init(null);
@@ -486,7 +505,7 @@ public class ConnectionPool implements ClusterManagerListener {
   }
 
   /**
-   * Cleans up the connection which died/was closed.
+   * Cleans up the connection which died/was closed/should be closed.
    * 
    * @param conn
    *          Must not be available in {@link #availableConnections} any more when calling this method!
@@ -498,6 +517,49 @@ public class ConnectionPool implements ClusterManagerListener {
     overallOpenConnections.decrementAndGet();
     if (conn.getExecutionUuid() != null)
       decreaseOpenConnectionsByExecutionUuid(conn.getExecutionUuid());
+  }
+
+  /**
+   * Check if a given connection that was fetched from {@link #connectionTimeouts} is viable for being closed because of
+   * a timeout. If so, do it and remove the connection from {@link #availableConnections}.
+   * 
+   * Please note that the connection that is passed to this method should already be removed from
+   * {@link #connectionTimeouts}.
+   * 
+   * @param proposedTimeoutTime
+   *          The timeout time the given connection had in {@link #connectionTimeouts}
+   * @param timedOutConn
+   *          The connection that was fetched from {@link #connectionTimeouts}
+   * @return true in case the connection was closed, false if it was not.
+   */
+  private boolean timeoutCloseConnectionIfViable(long proposedTimeoutTime,
+      Connection<? extends TServiceClient> timedOutConn) {
+    if (!timedOutConn.isEnabled())
+      return false;
+
+    Deque<Connection<? extends TServiceClient>> addrConns = availableConnections.get(timedOutConn.getAddress());
+    if (addrConns == null)
+      return false;
+
+    if (addrConns.remove(timedOutConn)) {
+      // we actually removed the connection from availableConnections - if connection is reserved again, this would
+      // not be possible!
+
+      // re-check if connection should be closed
+      if (!timedOutConn.isEnabled() || timedOutConn.getTimeout() != proposedTimeoutTime) {
+        // no, it's not. It was in the process of being released (compare to procedure in releaseConnection, be VERY
+        // careful when changing this!).
+        addrConns.add(timedOutConn);
+        return false;
+      }
+
+      logger.debug("Connection {} to {} was not used in a while. Closing.",
+          System.identityHashCode(timedOutConn.getTransport()), timedOutConn.getAddress());
+
+      cleanupConnection(timedOutConn);
+      return true;
+    }
+    return false;
   }
 
   /** For tests */
@@ -518,6 +580,11 @@ public class ConnectionPool implements ClusterManagerListener {
   /** For tests */
   /* package */ void setClusterManager(ClusterManager clusterManager) {
     this.clusterManager = clusterManager;
+  }
+
+  /** For tests */
+  /* package */ void setEarlyCloseLevel(double earlyCloseLevel) {
+    this.earlyCloseLevel = earlyCloseLevel;
   }
 
   /**
@@ -604,37 +671,10 @@ public class ConnectionPool implements ClusterManagerListener {
     private void executeTimeouts(long curTime) {
       ConcurrentNavigableMap<Long, Connection<? extends TServiceClient>> timedOutMap =
           connectionTimeouts.headMap(curTime, true);
-      for (Connection<? extends TServiceClient> timedOutConn : timedOutMap.values()) {
-        if (!timedOutConn.isEnabled())
-          // connection was morphed to another connection object with a different service. Ignore this object.
-          continue;
+      Entry<Long, Connection<? extends TServiceClient>> timedOutConn;
 
-        Deque<Connection<? extends TServiceClient>> addrConns = availableConnections.get(timedOutConn.getAddress());
-        if (addrConns == null)
-          // no connections for that addr are alive any more.
-          continue;
-
-        if (addrConns.remove(timedOutConn)) {
-          // we actually removed the connection from availableConnections - if connection is reserved again, this would
-          // not be possible!
-
-          // re-check if connection should be closed
-          if (!timedOutConn.isEnabled() || timedOutConn.getTimeout() > curTime) {
-            // no, it's not. It was in the process of being released (compare to procedure in releaseConnection, be VERY
-            // careful when changing this!).
-            addrConns.add(timedOutConn);
-            continue;
-          }
-
-          logger.debug("Connection {} to {} was not used in a while. Closing.",
-              System.identityHashCode(timedOutConn.getTransport()), timedOutConn.getAddress());
-
-          defaultSocketListeners.remove(timedOutConn);
-          timedOutConn.getTransport().close();
-          overallOpenConnections.decrementAndGet();
-        }
-      }
-      timedOutMap.clear();
+      while ((timedOutConn = timedOutMap.pollFirstEntry()) != null)
+        timeoutCloseConnectionIfViable(timedOutConn.getKey(), timedOutConn.getValue());
 
       // search for empty entries in availableConnections and release the resources.
       Iterator<Entry<RNodeAddress, Deque<Connection<? extends TServiceClient>>>> it =
@@ -684,6 +724,11 @@ public class ConnectionPool implements ClusterManagerListener {
 
           defaultSocketListeners.put(keepAliveConn, defaultSocketListeners.get(conn));
           defaultSocketListeners.remove(conn);
+
+          // make sure the connection will be closed on time; we can safely do this here as the timeouts are handled in
+          // the same thread - otherwise we'd need to take care, because the connection is currently not in
+          // availableConnections!
+          connectionTimeouts.put(keepAliveConn.getTimeout(), keepAliveConn);
         }
 
         try {
@@ -691,12 +736,8 @@ public class ConnectionPool implements ClusterManagerListener {
 
           // connection is alive! wohoo!
 
-          defaultSocketListeners.get(keepAliveConn).init(null);
           // mark connection as available.
           availableConnections.get(keepAliveConn.getAddress()).add(keepAliveConn);
-
-          // make sure the connection will be closed on time.
-          connectionTimeouts.put(keepAliveConn.getTimeout(), keepAliveConn);
 
           synchronized (connectionsAvailableWait) {
             connectionsAvailableWait.notifyAll();
@@ -706,9 +747,7 @@ public class ConnectionPool implements ClusterManagerListener {
           // ClusterManager will be informed automatically (DefaultSocketListener does this).
           logger.debug("Could not send keep-alive to connection {} ({}), closing/removing connection.",
               System.identityHashCode(keepAliveConn.getTransport()), keepAliveConn.getAddress());
-          keepAliveConn.getTransport().close();
-          defaultSocketListeners.remove(keepAliveConn);
-          overallOpenConnections.decrementAndGet();
+          cleanupConnection(keepAliveConn);
         }
       }
     }

@@ -23,6 +23,7 @@ package org.diqube.cluster.connection;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
@@ -31,6 +32,7 @@ import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransport;
 import org.diqube.cluster.ClusterManager;
 import org.diqube.cluster.NodeAddress;
+import org.diqube.queries.QueryUuid;
 import org.diqube.remote.base.thrift.RNodeAddress;
 import org.diqube.remote.cluster.thrift.ClusterManagementService;
 import org.diqube.remote.query.thrift.KeepAliveService;
@@ -79,17 +81,18 @@ public class ConnectionPoolTest {
     pool.cleanup();
   }
 
-  private void initPool(int keepAliveMs, int connectionSoftLimit, int connectionIdleTimeMs) {
+  private void initPool(int keepAliveMs, int connectionSoftLimit, int connectionIdleTimeMs, double earlyCloseLevel) {
     pool.setKeepAliveMs(keepAliveMs);
     pool.setConnectionSoftLimit(connectionSoftLimit);
     pool.setConnectionIdleTimeMs(connectionIdleTimeMs);
+    pool.setEarlyCloseLevel(earlyCloseLevel);
     pool.initialize();
     pool.setConnectionFactory(conFac);
   }
 
   @Test
   public void connectionReuse() throws ConnectionException, InterruptedException, IOException {
-    initPool(Integer.MAX_VALUE, 2, Integer.MAX_VALUE);
+    initPool(Integer.MAX_VALUE, 2, Integer.MAX_VALUE, .95);
 
     TestConnection<ClusterManagementService.Client> conn = (TestConnection<ClusterManagementService.Client>) pool
         .reserveConnection(ClusterManagementService.Client.class, null, ADDR1, null);
@@ -110,11 +113,12 @@ public class ConnectionPoolTest {
   }
 
   @Test
-  public void blockTimeoutNewConnection() throws ConnectionException, InterruptedException, IOException {
+  public void blockTimeoutNewConnectionHighEarlyCloseLevel()
+      throws ConnectionException, InterruptedException, IOException {
     initPool(Integer.MAX_VALUE, //
         1, // Only 1 connection simultaneously - we expect to block!
-        3_000 // 3s idle time.
-    );
+        3_000, // 3s idle time.
+        2); // high earlyCloseLevel to force to block
 
     TestConnection<ClusterManagementService.Client> conn = (TestConnection<ClusterManagementService.Client>) pool
         .reserveConnection(ClusterManagementService.Client.class, null, ADDR1, null);
@@ -145,10 +149,43 @@ public class ConnectionPoolTest {
   }
 
   @Test
-  public void blockKeepAliveDeadNewConnection() throws ConnectionException, InterruptedException, IOException {
+  public void earlyCloseOfAvailableConnections() throws ConnectionException, InterruptedException, IOException {
+    initPool(Integer.MAX_VALUE, //
+        1, // Only 1 connection simultaneously
+        Integer.MAX_VALUE, //
+        .95);
+
+    TestConnection<ClusterManagementService.Client> conn = (TestConnection<ClusterManagementService.Client>) pool
+        .reserveConnection(ClusterManagementService.Client.class, null, ADDR1, null);
+
+    int connId = conn.getId();
+    Assert.assertEquals(conn.getServiceClientClass(), ClusterManagementService.Client.class,
+        "Correct service expected");
+    conn.close(); // release connection
+
+    // request a connection to another host (so it won't get re-used), which in our case should NOT be blocked, as the
+    // pool should reach the "early close" level and close the first connection right away without waiting for it to
+    // timeout.
+    TestConnection<ClusterManagementService.Client> conn2 = (TestConnection<ClusterManagementService.Client>) pool
+        .reserveConnection(ClusterManagementService.Client.class, null, ADDR2, null);
+    conn2.close();
+
+    // ensure that the "close" method on the first connection was called
+    Mockito.verify(conn.getTransport()).close();
+
+    Assert.assertNotEquals(conn2.getId(), connId, "Expected that connection was not re-used, as first "
+        + "connection should have been closed before the second was opened");
+    Assert.assertEquals(conn2.getServiceClientClass(), ClusterManagementService.Client.class,
+        "Correct service expected");
+  }
+
+  @Test
+  public void blockKeepAliveDeadNewConnectionHighEarlyCloseLevel()
+      throws ConnectionException, InterruptedException, IOException {
     initPool(1_000, // 1s keep alive - check approx every second for keep alives.
         1, // Only 1 connection simultaneously - we expect to block!
-        Integer.MAX_VALUE);
+        Integer.MAX_VALUE, //
+        2); // high earlyCloseLevel to force to block
 
     TestConnection<ClusterManagementService.Client> conn = (TestConnection<ClusterManagementService.Client>) pool
         .reserveConnection(ClusterManagementService.Client.class, null, ADDR1, null);
@@ -196,7 +233,8 @@ public class ConnectionPoolTest {
   public void reuseDeadNewConnection() throws ConnectionException, InterruptedException, IOException {
     initPool(Integer.MAX_VALUE, // high keep-alive so it won't get in the way...
         1, //
-        Integer.MAX_VALUE);
+        Integer.MAX_VALUE, //
+        .95);
 
     TestConnection<ClusterManagementService.Client> conn = (TestConnection<ClusterManagementService.Client>) pool
         .reserveConnection(ClusterManagementService.Client.class, null, ADDR1, null);
@@ -240,7 +278,8 @@ public class ConnectionPoolTest {
   public void nodeDiedOnConnection() throws ConnectionException, InterruptedException, IOException {
     initPool(Integer.MAX_VALUE, // high keep-alive so it won't get in the way...
         1, //
-        Integer.MAX_VALUE);
+        Integer.MAX_VALUE, //
+        .95);
 
     TestConnection<ClusterManagementService.Client> conn = (TestConnection<ClusterManagementService.Client>) pool
         .reserveConnection(ClusterManagementService.Client.class, null, ADDR1, null);
@@ -265,6 +304,39 @@ public class ConnectionPoolTest {
         "Expected that connection was not re-used, as " + "node died in between");
     Assert.assertEquals(conn2.getServiceClientClass(), ClusterManagementService.Client.class,
         "Correct service expected");
+  }
+
+  @Test
+  public void executionGetsAnotherConn() throws ConnectionException, InterruptedException, IOException {
+    initPool(Integer.MAX_VALUE, // high keep-alive so it won't get in the way...
+        1, // only one node, we don't want to block, though!
+        Integer.MAX_VALUE, //
+        .95);
+
+    try {
+      QueryUuid.setCurrentQueryUuidAndExecutionUuid(UUID.randomUUID(), UUID.randomUUID());
+      TestConnection<ClusterManagementService.Client> conn = (TestConnection<ClusterManagementService.Client>) pool
+          .reserveConnection(ClusterManagementService.Client.class, null, ADDR1, null);
+
+      int connId = conn.getId();
+      Assert.assertEquals(conn.getServiceClientClass(), ClusterManagementService.Client.class,
+          "Correct service expected");
+
+      // request another connection to another node. We would break the limit, though we want that connection for the
+      // same executionUuid, therefore we should get it without blocking.
+      TestConnection<ClusterManagementService.Client> conn2 = (TestConnection<ClusterManagementService.Client>) pool
+          .reserveConnection(ClusterManagementService.Client.class, null, ADDR2, null);
+      conn2.close();
+
+      conn.close();
+
+      Assert.assertNotEquals(conn2.getId(), connId,
+          "Expected that connection was not re-used, as both connections should be open at the same time");
+      Assert.assertEquals(conn2.getServiceClientClass(), ClusterManagementService.Client.class,
+          "Correct service expected");
+    } finally {
+      QueryUuid.clearCurrent();
+    }
   }
 
   /**
