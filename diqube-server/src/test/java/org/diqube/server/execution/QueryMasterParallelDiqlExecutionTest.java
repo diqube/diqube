@@ -112,10 +112,10 @@ public abstract class QueryMasterParallelDiqlExecutionTest<T> extends AbstractRe
       waitUntilOrFail(newOrderedRowIdsNotify, //
           () -> "Not correct ordering value. Was: " + resultOrderRowIds + " Expected: " + expectedRun1.toString(), //
           () -> resultOrderRowIds.equals(expectedRun1));
-      long expectedValueRun1 = 3L;
+      Long expectedValueRun1 = 3L;
       waitUntilOrFail(newValuesNotify, //
           () -> "Not correct value. Was: " + resultValues.get(countCol).get(0L) + " Expected: " + expectedValueRun1, //
-          () -> resultValues.get(countCol) != null && resultValues.get(countCol).get(0L).equals(expectedValueRun1));
+          () -> resultValues.get(countCol) != null && expectedValueRun1.equals(resultValues.get(countCol).get(0L)));
 
       // WHEN second shard found some values
       values.clear();
@@ -140,10 +140,10 @@ public abstract class QueryMasterParallelDiqlExecutionTest<T> extends AbstractRe
       waitUntilOrFail(newOrderedRowIdsNotify, //
           () -> "Not correct ordering value. Was: " + resultOrderRowIds + " Expected: " + expectedRun2.toString(), //
           () -> resultOrderRowIds.equals(expectedRun2));
-      long expectedValueRun2 = 4L;
+      Long expectedValueRun2 = 4L;
       waitUntilOrFail(newValuesNotify, //
           () -> "Not correct value. Was: " + resultValues.get(countCol).get(0L) + " Expected: " + expectedValueRun2, //
-          () -> resultValues.get(countCol) != null && resultValues.get(countCol).get(0L).equals(expectedValueRun2));
+          () -> resultValues.get(countCol) != null && expectedValueRun2.equals(resultValues.get(countCol).get(0L)));
 
       // first shard found some more values.
       resultHandler.newIntermediaryAggregationResult(0L, countCol, intermediary(3), intermediary(4));
@@ -165,10 +165,10 @@ public abstract class QueryMasterParallelDiqlExecutionTest<T> extends AbstractRe
           () -> "Not correct ordering value. Was: " + resultOrderRowIds + " Expected: "
               + expectedOrderingRun3.toString(), //
           () -> resultOrderRowIds.equals(expectedOrderingRun3));
-      long expectedValueRun3 = 6L;
+      Long expectedValueRun3 = 6L;
       waitUntilOrFail(newValuesNotify, //
           () -> "Not correct value. Was: " + resultValues.get(countCol).get(2L) + " Expected: " + expectedValueRun3, //
-          () -> resultValues.get(countCol) != null && resultValues.get(countCol).get(2L).equals(expectedValueRun3));
+          () -> resultValues.get(countCol) != null && expectedValueRun3.equals(resultValues.get(countCol).get(2L)));
 
       resultHandler.oneRemoteDone();
       resultHandler.oneRemoteDone();
@@ -227,10 +227,10 @@ public abstract class QueryMasterParallelDiqlExecutionTest<T> extends AbstractRe
       waitUntilOrFail(newOrderedRowIdsNotify, //
           () -> "Not correct ordering value. Was: " + resultOrderRowIds + " Expected: " + expectedRun1.toString(), //
           () -> resultOrderRowIds.equals(expectedRun1));
-      long expectedValueRun1 = 5L;
+      Long expectedValueRun1 = 5L;
       waitUntilOrFail(newValuesNotify, //
           () -> "Not correct value. Was: " + resultValues.get(countCol).get(0L) + " Expected: " + expectedValueRun1, //
-          () -> resultValues.get(countCol) != null && resultValues.get(countCol).get(0L).equals(expectedValueRun1));
+          () -> resultValues.get(countCol) != null && expectedValueRun1.equals(resultValues.get(countCol).get(0L)));
 
       // WHEN second shard found some values
       values.clear();
@@ -249,10 +249,10 @@ public abstract class QueryMasterParallelDiqlExecutionTest<T> extends AbstractRe
       waitUntilOrFail(newOrderedRowIdsNotify, //
           () -> "Not correct ordering value. Was: " + resultOrderRowIds + " Expected: " + expectedRun2.toString(), //
           () -> resultOrderRowIds.equals(expectedRun2));
-      long expectedValueRun2 = 6L;
+      Long expectedValueRun2 = 6L;
       waitUntilOrFail(newValuesNotify, //
           () -> "Not correct value. Was: " + resultValues.get(countCol).get(0L) + " Expected: " + expectedValueRun2, //
-          () -> resultValues.get(countCol) != null && resultValues.get(countCol).get(0L).equals(expectedValueRun2));
+          () -> resultValues.get(countCol) != null && expectedValueRun2.equals(resultValues.get(countCol).get(0L)));
 
       // first shard found some more values.
       resultHandler.newIntermediaryAggregationResult(0L, countCol, intermediary(5), intermediary(2)); // LOWER!
@@ -272,10 +272,10 @@ public abstract class QueryMasterParallelDiqlExecutionTest<T> extends AbstractRe
           () -> "Not correct ordering value. Was: " + resultOrderRowIds + " Expected: "
               + expectedOrderingRun3.toString(), //
           () -> resultOrderRowIds.equals(expectedOrderingRun3));
-      long expectedValueRun3 = 4L;
+      Long expectedValueRun3 = 4L;
       waitUntilOrFail(newValuesNotify, //
           () -> "Not correct value. Was: " + resultValues.get(countCol).get(1L) + " Expected: " + expectedValueRun3, //
-          () -> resultValues.get(countCol) != null && resultValues.get(countCol).get(1L).equals(expectedValueRun3));
+          () -> resultValues.get(countCol) != null && expectedValueRun3.equals(resultValues.get(countCol).get(1L)));
 
       resultHandler.oneRemoteDone();
       resultHandler.oneRemoteDone();
