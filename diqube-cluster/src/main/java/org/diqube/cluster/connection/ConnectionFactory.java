@@ -51,6 +51,8 @@ public interface ConnectionFactory {
    * Create a new connection object based on an old one, whose socket is still open. The new one will provide a
    * different service than the old one.
    * 
+   * All properties of the old connection will be copied to the new one.
+   * 
    * Be aware that this does not change the {@link SocketListener}!
    * 
    * @param oldConnection

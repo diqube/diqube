@@ -65,6 +65,9 @@ import com.google.common.math.IntMath;
  *
  * TODO change this class to use NodeAdress instead of RNodeAddress
  *
+ * TODO #32: Implement early-closing of connections if new connections are requested, we reached 90% (?) of
+ * connectionSoftLimit but there are availableConnections.
+ *
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
@@ -75,7 +78,7 @@ public class ConnectionPool implements ClusterManagerListener {
   private int socketTimeout;
 
   @Config(ConfigKey.KEEP_ALIVE_MS)
-  private int keepAlive;
+  private int keepAliveMs;
 
   @Config(ConfigKey.CONNECTION_SOFT_LIMIT)
   private int connectionSoftLimit;
@@ -306,7 +309,9 @@ public class ConnectionPool implements ClusterManagerListener {
             return res;
           } catch (TException e) {
             // swallow. connection is not alive any more. try next one (or open a new one).
+            conn.getTransport().close();
             defaultSocketListeners.remove(conn);
+            overallOpenConnections.decrementAndGet();
           }
         }
       }
@@ -490,8 +495,29 @@ public class ConnectionPool implements ClusterManagerListener {
     logger.debug("Cleaning up connection {} to {}", System.identityHashCode(conn.getTransport()), conn.getAddress());
     defaultSocketListeners.remove(conn);
     conn.getTransport().close();
+    overallOpenConnections.decrementAndGet();
     if (conn.getExecutionUuid() != null)
       decreaseOpenConnectionsByExecutionUuid(conn.getExecutionUuid());
+  }
+
+  /** For tests */
+  /* package */void setKeepAliveMs(int keepAliveMs) {
+    this.keepAliveMs = keepAliveMs;
+  }
+
+  /** For tests */
+  /* package */void setConnectionSoftLimit(int connectionSoftLimit) {
+    this.connectionSoftLimit = connectionSoftLimit;
+  }
+
+  /** For tests */
+  /* package */void setConnectionIdleTimeMs(int connectionIdleTimeMs) {
+    this.connectionIdleTimeMs = connectionIdleTimeMs;
+  }
+
+  /** For tests */
+  /* package */ void setClusterManager(ClusterManager clusterManager) {
+    this.clusterManager = clusterManager;
   }
 
   /**
@@ -552,7 +578,7 @@ public class ConnectionPool implements ClusterManagerListener {
 
     @Override
     public void run() {
-      int sleepTime = Math.max(IntMath.gcd(keepAlive, connectionIdleTimeMs), 1000);
+      int sleepTime = Math.max(IntMath.gcd(keepAliveMs, connectionIdleTimeMs), 1000);
 
       while (true) {
         try {
@@ -568,8 +594,8 @@ public class ConnectionPool implements ClusterManagerListener {
 
         executeTimeouts(curTime);
 
-        if (curTime / keepAlive != previousKeepAliveDiv) {
-          previousKeepAliveDiv = curTime / keepAlive;
+        if (curTime / keepAliveMs != previousKeepAliveDiv) {
+          previousKeepAliveDiv = curTime / keepAliveMs;
           executeKeepAlives();
         }
       }
@@ -605,6 +631,7 @@ public class ConnectionPool implements ClusterManagerListener {
 
           defaultSocketListeners.remove(timedOutConn);
           timedOutConn.getTransport().close();
+          overallOpenConnections.decrementAndGet();
         }
       }
       timedOutMap.clear();
@@ -677,7 +704,11 @@ public class ConnectionPool implements ClusterManagerListener {
         } catch (TException e) {
           // connection seems to be dead.
           // ClusterManager will be informed automatically (DefaultSocketListener does this).
+          logger.debug("Could not send keep-alive to connection {} ({}), closing/removing connection.",
+              System.identityHashCode(keepAliveConn.getTransport()), keepAliveConn.getAddress());
+          keepAliveConn.getTransport().close();
           defaultSocketListeners.remove(keepAliveConn);
+          overallOpenConnections.decrementAndGet();
         }
       }
     }
