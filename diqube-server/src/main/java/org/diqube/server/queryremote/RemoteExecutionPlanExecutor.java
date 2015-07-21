@@ -93,7 +93,7 @@ public class RemoteExecutionPlanExecutor {
       @Override
       protected void allSourcesAreDone() {
         columnValuesDone.set(true);
-        if (groupIntermediateDone.get()) {
+        if (groupIntermediateDone.get() && !doneSent) {
           synchronized (doneSync) {
             if (!doneSent) {
               callback.executionDone();
@@ -117,7 +117,7 @@ public class RemoteExecutionPlanExecutor {
           @Override
           protected void allSourcesAreDone() {
             groupIntermediateDone.set(true);
-            if (columnValuesDone.get()) {
+            if (columnValuesDone.get() && !doneSent) {
               synchronized (doneSync) {
                 if (!doneSent) {
                   callback.executionDone();

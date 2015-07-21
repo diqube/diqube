@@ -93,9 +93,9 @@ public class FpcDoubleDictionary implements DoubleDictionary {
     grouped.forEach(new BiConsumer<Entry<Long, FpcPage>, NavigableSet<Long>>() {
       @Override
       public void accept(Entry<Long, FpcPage> t, NavigableSet<Long> u) {
-        double[] pageRes = t.getValue().get((byte) (u.first() - t.getKey()), (byte) (u.last() - t.getKey()));
+        double[] pageRes = t.getValue().get((int) (u.first() - t.getKey()), (int) (u.last() - t.getKey()));
         for (long requestedId : u)
-          resMap.put(requestedId, pageRes[(int) (requestedId - (u.first() - t.getKey()))]);
+          resMap.put(requestedId, pageRes[(int) (requestedId - u.first())]);
       }
     });
 

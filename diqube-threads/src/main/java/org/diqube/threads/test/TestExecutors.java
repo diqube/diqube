@@ -47,14 +47,14 @@ public class TestExecutors {
 
   public ExecutorService newTestExecutor(int numberOfThreads) {
     RuntimeException e = new RuntimeException();
-    String testClass = e.getStackTrace()[1].getClassName();
     String testMethod = e.getStackTrace()[1].getMethodName();
 
-    logger.info("Test {}#{}: Query {}, Execution {}", testClass, testMethod, QueryUuid.getCurrentQueryUuid(),
+    logger.info("Test method {}: Query {}, Execution {}", testMethod, QueryUuid.getCurrentQueryUuid(),
         QueryUuid.getCurrentExecutionUuid());
 
     ExecutorService res = (ExecutorService) executorManager.newQueryFixedThreadPool(numberOfThreads,
-        testClass + "#" + testMethod + "-%d", QueryUuid.getCurrentQueryUuid(), QueryUuid.getCurrentExecutionUuid());
+        QueryUuid.getCurrentQueryUuid() + "#" + QueryUuid.getCurrentExecutionUuid() + "#" + testMethod + "-%d",
+        QueryUuid.getCurrentQueryUuid(), QueryUuid.getCurrentExecutionUuid());
 
     return res;
   }

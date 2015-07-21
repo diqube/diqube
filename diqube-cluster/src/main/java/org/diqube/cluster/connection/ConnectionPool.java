@@ -63,6 +63,8 @@ import com.google.common.math.IntMath;
  * mode where it forwards events to the custom specified {@link SocketListener}. When it is not reserved, no events are
  * fowarded.
  *
+ * TODO change this class to use NodeAdress instead of RNodeAddress
+ *
  * @author Bastian Gloeckle
  */
 @AutoInstatiate

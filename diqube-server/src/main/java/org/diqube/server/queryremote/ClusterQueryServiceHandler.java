@@ -208,6 +208,7 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
           public void newColumnValues(String colName, Map<Long, RValue> values) {
             synchronized (connSync) {
               try {
+                logger.trace("Constructed final column values, sending them now.");
                 resultService.columnValueAvailable(remoteQueryUuid, colName, values);
               } catch (TException e) {
                 logger.error("Could not sent new group intermediaries to client for query {}", queryUuid, e);
@@ -261,6 +262,7 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
   @Override
   public void groupIntermediateAggregationResultAvailable(RUUID remoteQueryUuid, long groupId, String colName,
       ROldNewIntermediateAggregationResult result) throws TException {
+    logger.trace("Received new group intermediary values in service. Constructing final objects to work on...");
 
     IntermediaryResult<Object, Object, Object> oldRes = null;
     if (result.isSetOldResult())
@@ -282,6 +284,7 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
   @Override
   public void columnValueAvailable(RUUID remoteQueryUuid, String colName, Map<Long, RValue> valuesByRowId)
       throws TException {
+    logger.trace("Received new column values in service. Constructing final objects to work on...");
     Map<Long, Object> values = new HashMap<>();
     for (Entry<Long, RValue> remoteEntry : valuesByRowId.entrySet())
       values.put(remoteEntry.getKey(), RValueUtil.createValue(remoteEntry.getValue()));

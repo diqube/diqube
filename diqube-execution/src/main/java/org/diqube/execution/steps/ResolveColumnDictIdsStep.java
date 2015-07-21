@@ -209,7 +209,7 @@ public class ResolveColumnDictIdsStep extends AbstractThreadedExecutablePlanStep
     activeRowIds.addAll(Sets.intersection(curAdjustedRowIds, processedRowIds));
 
     if (activeRowIds.size() > 0) {
-      logger.trace("Resolving column dict IDs of col {} at row IDs (limit) {}", colName,
+      logger.trace("Resolving column dict IDs of col {} at row IDs (limit, {}) {}", colName, activeRowIds.size(),
           Iterables.limit(activeRowIds, 500));
 
       if (env.getColumnShard(colName) instanceof ConstantColumnShard) {
@@ -219,11 +219,14 @@ public class ResolveColumnDictIdsStep extends AbstractThreadedExecutablePlanStep
         Map<Long, Long> rowIdToDictIdMap = new HashMap<>();
         for (Long curRowId : activeRowIds)
           rowIdToDictIdMap.put(curRowId, columnValueId);
+        logger.trace("Resolving column dict IDs of col {} done, was easy as it was a constant col, sending out updates",
+            colName);
         forEachOutputConsumerOfType(ColumnDictIdConsumer.class, c -> c.consume(env, colName, rowIdToDictIdMap));
       } else {
         Map<Long, Long> rowIdToColumnValueId = env.getColumnShard(colName)
             .resolveColumnValueIdsForRows(activeRowIds.toArray(new Long[activeRowIds.size()]));
 
+        logger.trace("Resolving column dict IDs of col {} done, sending out updates", colName);
         forEachOutputConsumerOfType(ColumnDictIdConsumer.class, c -> c.consume(env, colName, rowIdToColumnValueId));
       }
 

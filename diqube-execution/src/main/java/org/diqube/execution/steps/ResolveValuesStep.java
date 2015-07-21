@@ -23,14 +23,18 @@ package org.diqube.execution.steps;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 import org.diqube.execution.consumers.AbstractThreadedColumnDictIdConsumer;
 import org.diqube.execution.consumers.ColumnDictIdConsumer;
@@ -41,6 +45,8 @@ import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.exception.ExecutablePlanBuildException;
 import org.diqube.util.Pair;
 import org.diqube.util.Triple;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A step that takes the output of a {@link ResolveColumnDictIdsStep} and transforms the column value IDs into final
@@ -61,9 +67,13 @@ import org.diqube.util.Triple;
  */
 public class ResolveValuesStep extends AbstractThreadedExecutablePlanStep {
 
+  private static final Logger logger = LoggerFactory.getLogger(ResolveValuesStep.class);
+
   private AtomicBoolean sourcesAreEmpty = new AtomicBoolean(false);
 
   private AbstractThreadedColumnDictIdConsumer columnDictIdConsumer = new AbstractThreadedColumnDictIdConsumer(this) {
+    private Object newEntrySync = new Object();
+
     @Override
     protected void allSourcesAreDone() {
       ResolveValuesStep.this.sourcesAreEmpty.set(true);
@@ -71,48 +81,83 @@ public class ResolveValuesStep extends AbstractThreadedExecutablePlanStep {
 
     @Override
     protected void doConsume(ExecutionEnvironment env, String colName, Map<Long, Long> rowIdToColumnDictId) {
-      for (Entry<Long, Long> entry : rowIdToColumnDictId.entrySet()) {
-        ResolveValuesStep.this.rowIds.add(new Triple<Pair<ExecutionEnvironment, String>, Long, Long>(
-            new Pair<ExecutionEnvironment, String>(env, colName), entry.getKey(), entry.getValue()));
+      Pair<ExecutionEnvironment, String> keyPair = new Pair<>(env, colName);
+      rowIdReadWriteLock.readLock().lock();
+      try {
+        if (!rowIds.containsKey(keyPair)) {
+          synchronized (newEntrySync) {
+            if (!rowIds.containsKey(keyPair))
+              rowIds.put(keyPair, new ConcurrentHashMap<>());
+          }
+        }
+
+        rowIds.get(keyPair).putAll(rowIdToColumnDictId);
+      } finally {
+        rowIdReadWriteLock.readLock().unlock();
       }
     }
   };
 
-  private ConcurrentLinkedDeque<Triple<Pair<ExecutionEnvironment, String>, Long, Long>> rowIds =
-      new ConcurrentLinkedDeque<>();
+  private ConcurrentMap<Pair<ExecutionEnvironment, String>, ConcurrentMap<Long, Long>> rowIds =
+      new ConcurrentHashMap<>();
 
-  public ResolveValuesStep(int stepId) {
+  private ReadWriteLock rowIdReadWriteLock = new ReentrantReadWriteLock();
+
+  public ResolveValuesStep(int stepId)
+
+  {
     super(stepId);
   }
 
   @Override
   public void execute() {
-    List<Triple<Pair<ExecutionEnvironment, String>, Long, Long>> activeColsAndRows = new ArrayList<>();
-    Triple<Pair<ExecutionEnvironment, String>, Long, Long> entry;
-    Set<String> colNames = new HashSet<>();
-    while ((entry = rowIds.poll()) != null) {
-      activeColsAndRows.add(entry);
-      colNames.add(entry.getLeft().getRight());
+    rowIdReadWriteLock.writeLock().lock();
+    ConcurrentMap<Pair<ExecutionEnvironment, String>, ConcurrentMap<Long, Long>> activeColsAndRows;
+    try {
+      activeColsAndRows = rowIds;
+      rowIds = new ConcurrentHashMap<>();
+    } finally {
+      rowIdReadWriteLock.writeLock().unlock();
     }
 
     if (activeColsAndRows.size() > 0) {
-      Map<String, Map<Long, Object>> valuesPerColumn = activeColsAndRows.stream() //
-          .sequential() // make sure this is executed sequential - we want later Triples in input to overwrite values of
-                        // earlier Triples.
-          .map( //
-              new Function<Triple<Pair<ExecutionEnvironment, String>, Long, Long>, Triple<String, Long, Object>>() {
-                // map to triple containing value
+      Map<String, Map<Long, Object>> valuesPerColumn = activeColsAndRows.entrySet().stream() //
+          .parallel().flatMap( //
+              new Function<Entry<Pair<ExecutionEnvironment, String>, ConcurrentMap<Long, Long>>, Stream<Triple<String, Long, Object>>>() {
                 @Override
-                public Triple<String, Long, Object> apply(Triple<Pair<ExecutionEnvironment, String>, Long, Long> t) {
-                  ExecutionEnvironment env = t.getLeft().getLeft();
-                  String colName = t.getLeft().getRight();
-                  Long rowId = t.getMiddle();
-                  Long columnValueId = t.getRight();
+                public Stream<Triple<String, Long, Object>> apply(
+                    Entry<Pair<ExecutionEnvironment, String>, ConcurrentMap<Long, Long>> e) {
+                  ExecutionEnvironment env = e.getKey().getLeft();
+                  String colName = e.getKey().getRight();
 
-                  // TODO #8 decompress multiple values at once
-                  Object value = env.getColumnShard(colName).getColumnShardDictionary().decompressValue(columnValueId);
+                  List<Triple<String, Long, Object>> res = new ArrayList<>();
 
-                  return new Triple<>(colName, rowId, value);
+                  // group columnValueIds, so we do not have to decompress specific colValueIds multiple times
+                  SortedMap<Long, List<Long>> columnValueIdToRowId = new TreeMap<>();
+
+                  for (Entry<Long, Long> rowIdColValueIdEntry : e.getValue().entrySet()) {
+                    Long rowId = rowIdColValueIdEntry.getKey();
+                    Long columnValueId = rowIdColValueIdEntry.getValue();
+                    if (!columnValueIdToRowId.containsKey(columnValueId))
+                      columnValueIdToRowId.put(columnValueId, new ArrayList<>());
+                    columnValueIdToRowId.get(columnValueId).add(rowId);
+                  }
+
+                  Long[] sortedColumnValueIds =
+                      columnValueIdToRowId.keySet().toArray(new Long[columnValueIdToRowId.keySet().size()]);
+
+                  Object[] values =
+                      env.getColumnShard(colName).getColumnShardDictionary().decompressValues(sortedColumnValueIds);
+
+                  for (int i = 0; i < sortedColumnValueIds.length; i++) {
+                    Long columnValueId = sortedColumnValueIds[i];
+                    Object value = values[i];
+
+                    for (Long rowId : columnValueIdToRowId.get(columnValueId))
+                      res.add(new Triple<>(colName, rowId, value));
+                  }
+
+                  return res.stream();
                 }
 
               })
@@ -130,6 +175,8 @@ public class ResolveValuesStep extends AbstractThreadedExecutablePlanStep {
               map1.get(colName).putAll(map2.get(colName));
             }
           });
+
+      logger.trace("Resolved values, sending them out now");
 
       for (String colName : valuesPerColumn.keySet())
         forEachOutputConsumerOfType(ColumnValueConsumer.class, c -> c.consume(colName, valuesPerColumn.get(colName)));

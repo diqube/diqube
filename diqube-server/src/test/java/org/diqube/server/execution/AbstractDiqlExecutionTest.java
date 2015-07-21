@@ -48,6 +48,8 @@ import org.diqube.queries.QueryUuid;
 import org.diqube.threads.ExecutorManager;
 import org.diqube.threads.test.TestExecutors;
 import org.diqube.util.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
@@ -67,6 +69,8 @@ import org.testng.annotations.BeforeMethod;
  * @author Bastian Gloeckle
  */
 public abstract class AbstractDiqlExecutionTest<T> {
+
+  private static final Logger logger = LoggerFactory.getLogger(AbstractDiqlExecutionTest.class);
 
   protected static final String TABLE = "TestTable";
   protected static final long VALUE_LENGTH = ColumnShardBuilder.PROPOSAL_ROWS + 100L;
@@ -200,6 +204,9 @@ public abstract class AbstractDiqlExecutionTest<T> {
     ExecutorManager executorManager = dataContext.getBean(ExecutorManager.class);
     this.executors = new TestExecutors(executorManager);
     QueryUuid.setCurrentQueryUuidAndExecutionUuid(UUID.randomUUID(), UUID.randomUUID());
+
+    logger.info("{}: New queryUuid {} executionUuid {}", this.getClass().getSimpleName(),
+        QueryUuid.getCurrentQueryUuid(), QueryUuid.getCurrentExecutionUuid());
   }
 
   @AfterMethod

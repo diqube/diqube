@@ -20,11 +20,19 @@
  */
 package org.diqube.threads;
 
+import java.io.ByteArrayOutputStream;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A {@link ThreadPoolExecutor} that is aware of the diql Query it is running for.
@@ -32,6 +40,8 @@ import java.util.concurrent.TimeUnit;
  * @author Bastian Gloeckle
  */
 /* package */class DiqubeFixedThreadPoolExecutor extends ThreadPoolExecutor {
+
+  private static final Logger logger = LoggerFactory.getLogger(DiqubeFixedThreadPoolExecutor.class);
 
   private UUID queryUuid;
   private int numberOfThreads;
@@ -56,6 +66,25 @@ import java.util.concurrent.TimeUnit;
   public String toString() {
     return this.getClass().getSimpleName() + "[threads=" + numberOfThreads + ",queryUuid=" + queryUuid + ",nameFormat="
         + ((nameFormat == null) ? "null" : nameFormat) + "]";
+  }
+
+  @Override
+  public List<Runnable> shutdownNow() {
+    if (logger.isTraceEnabled() && this.getActiveCount() > 0) {
+      try {
+        // Log current stack trace - when trace is enabled and we will kill some threads, we want to know who did this!
+        RuntimeException e = new RuntimeException();
+        ByteArrayOutputStream stackTraceStream = new ByteArrayOutputStream();
+        PrintWriter writer = new PrintWriter(new OutputStreamWriter(stackTraceStream, "UTF-8"));
+        e.printStackTrace(writer);
+        writer.flush();
+        String stackTrace = stackTraceStream.toString("UTF-8");
+        logger.trace("Interrupting query {}, stacktrace: {}", queryUuid, stackTrace);
+      } catch (UnsupportedEncodingException e) {
+        logger.trace("Unable to log stack trace of interruption", e);
+      }
+    }
+    return super.shutdownNow();
   }
 
 }
