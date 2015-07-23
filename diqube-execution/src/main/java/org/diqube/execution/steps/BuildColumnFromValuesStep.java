@@ -41,7 +41,6 @@ import org.diqube.execution.consumers.ColumnVersionBuiltConsumer;
 import org.diqube.execution.consumers.GenericConsumer;
 import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.env.VersionedExecutionEnvironment;
-import org.diqube.execution.exception.ExecutablePlanExecutionException;
 import org.diqube.loader.columnshard.ColumnShardBuilderFactory;
 import org.diqube.loader.columnshard.SparseColumnShardBuilder;
 import org.slf4j.Logger;
@@ -140,9 +139,12 @@ public class BuildColumnFromValuesStep extends AbstractThreadedExecutablePlanSte
       atLeastOneInterestingUpdate.set(false);
 
       if (columnValues == null || columnValues.isEmpty()) {
-        if (!intermediateRun)
-          // TODO #10 support queries that do not return any row.
-          throw new ExecutablePlanExecutionException("Cannot build an empty column.");
+        if (!intermediateRun) {
+          // source is done but we did not receive any data. Do not build column, just report "done".
+          forEachOutputConsumerOfType(GenericConsumer.class, c -> c.sourceIsDone());
+          doneProcessing();
+          return;
+        }
         return;
       }
 

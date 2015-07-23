@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.NavigableMap;
 import java.util.Set;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -86,16 +87,26 @@ public class ProjectStep extends AbstractThreadedExecutablePlanStep {
 
   private static final Logger logger = LoggerFactory.getLogger(ProjectStep.class);
 
+  /** true as soon as input ColumnBuiltConsumer has reported "done" */
+  private AtomicBoolean inputSourcesDone = new AtomicBoolean(false);
+
+  /** only important if a ColumnBuiltConsumer is wired, contains those columns that have not yet been built fully. */
+  private Set<String> columnsThatStillNeedToBeBuilt;
+  /** True as soon as all columns that this projectstep relies on are built. */
   private AtomicBoolean allColumnsBuilt = new AtomicBoolean(false);
 
   private AbstractThreadedColumnBuiltConsumer columnBuiltConsumer = new AbstractThreadedColumnBuiltConsumer(this) {
     @Override
     protected void doColumnBuilt(String colName) {
+      columnsThatStillNeedToBeBuilt.remove(colName);
+
+      if (columnsThatStillNeedToBeBuilt.isEmpty())
+        allColumnsBuilt.set(true);
     }
 
     @Override
     protected void allSourcesAreDone() {
-      allColumnsBuilt.set(true);
+      inputSourcesDone.set(true);
     }
   };
 
@@ -181,6 +192,9 @@ public class ProjectStep extends AbstractThreadedExecutablePlanStep {
       if (param.getType().equals(ColumnOrValue.Type.COLUMN))
         inputColNames.add(param.getColumnName());
 
+    columnsThatStillNeedToBeBuilt = new ConcurrentSkipListSet<>(inputColNames);
+    columnsThatStillNeedToBeBuilt.removeAll(defaultEnv.getAllColumnShards().keySet());
+
     columnShardBuilderManagerSupplier = (outputColType) -> {
       LoaderColumnInfo columnInfo = new LoaderColumnInfo(outputColType);
       return columnShardBuilderFactory.createColumnShardBuilderManager(columnInfo, defaultEnv.getFirstRowIdInShard());
@@ -256,6 +270,13 @@ public class ProjectStep extends AbstractThreadedExecutablePlanStep {
       logger.trace("Build standard column {} based on default environment (= last run).", outputColName);
       column = buildColumnBasedProjection(defaultEnv);
       columnFullyBuilt = true;
+    } else if (columnBuiltConsumer.getNumberOfTimesWired() > 0 && inputSourcesDone.get() && !allColumnsBuilt.get()) {
+      // we need to wait for columns to be built, but the columnBuiltConsumer reported to be done, but not all columns
+      // have been built. Therefore we cannot execute the projection, but just report "done".
+      logger.debug("Projection waited for columns to be built, but some won't be built. Skipping.");
+      forEachOutputConsumerOfType(GenericConsumer.class, c -> c.sourceIsDone());
+      doneProcessing();
+      return;
     } else {
       // not all columns are yet fully available. Let's see if we have enough information to at least project some parts
       // for the time being.

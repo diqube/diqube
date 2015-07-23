@@ -29,6 +29,7 @@ import java.util.NavigableSet;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -103,6 +104,12 @@ public class OrderStep extends AbstractThreadedExecutablePlanStep {
 
   private static final Logger logger = LoggerFactory.getLogger(OrderStep.class);
 
+  private AtomicBoolean columnBuiltInputIsDone = new AtomicBoolean(false);
+  /**
+   * Interesting only, if ColumnBuiltConsumer is wired. Then it contains the names of the columns we still wait for to
+   * be fully built.
+   */
+  private Set<String> columnsThatNeedToBeBuilt;
   /**
    * <code>true</code> when all columns this step is waiting for have been built and are available in
    * {@link #defaultEnv} .
@@ -112,11 +119,15 @@ public class OrderStep extends AbstractThreadedExecutablePlanStep {
   private AbstractThreadedColumnBuiltConsumer columnBuiltConsumer = new AbstractThreadedColumnBuiltConsumer(this) {
     @Override
     protected void doColumnBuilt(String colName) {
+      columnsThatNeedToBeBuilt.remove(colName);
+
+      if (columnsThatNeedToBeBuilt.isEmpty())
+        allColumnsBuilt.set(true);
     }
 
     @Override
     protected void allSourcesAreDone() {
-      allColumnsBuilt.set(true);
+      columnBuiltInputIsDone.set(true);
     }
   };
 
@@ -227,6 +238,8 @@ public class OrderStep extends AbstractThreadedExecutablePlanStep {
     }
 
     sortColSet = sortCols.stream().map(p -> p.getLeft()).collect(Collectors.toSet());
+    columnsThatNeedToBeBuilt = new ConcurrentSkipListSet<>(sortColSet);
+    columnsThatNeedToBeBuilt.removeAll(defaultEnv.getAllColumnShards().keySet());
 
     // factory method for comparators based on a specific env.
     headComparatorProvider = (executionEnvironment) -> {
@@ -272,8 +285,14 @@ public class OrderStep extends AbstractThreadedExecutablePlanStep {
   protected void execute() {
     // intermediateRun = true if NOT all final versions of all columns have been built and are available in defaultEnv
     // -> we only have intermediary values!
-    boolean intermediateRun = !(columnBuiltConsumer.getNumberOfTimesWired() == 0 // == 0 should actually never happen
-        || allColumnsBuilt.get());
+    boolean intermediateRun = !(columnBuiltConsumer.getNumberOfTimesWired() == 0 || allColumnsBuilt.get());
+
+    if (columnBuiltConsumer.getNumberOfTimesWired() > 0 && columnBuiltInputIsDone.get() && !allColumnsBuilt.get()) {
+      logger.debug("Ordering needs to wait for a column to be built, but it won't be built. Skipping.");
+      forEachOutputConsumerOfType(GenericConsumer.class, c -> c.sourceIsDone());
+      doneProcessing();
+      return;
+    }
 
     ExecutionEnvironment env;
     if (!intermediateRun) {

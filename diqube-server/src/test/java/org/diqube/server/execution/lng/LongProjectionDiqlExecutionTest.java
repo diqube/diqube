@@ -230,4 +230,28 @@ public class LongProjectionDiqlExecutionTest extends AbstractDiqlExecutionTest<L
     }
   }
 
+  @Test
+  public void emptyProjectionTest() throws InterruptedException, ExecutionException {
+    initializeSimpleTable(COL_A_DEFAULT_VALUES, COL_B_DEFAULT_VALUES);
+    // GIVEN
+    ExecutablePlan executablePlan = buildExecutablePlan("Select add(" + COL_A + ", 1) from " + TABLE + " where add("
+        + COL_B + ", 1) > " + COL_B_DEFAULT_VALUES[COL_B_DEFAULT_VALUES.length - 1] + 1);
+    ExecutorService executor = executors.newTestExecutor(executablePlan.preferredExecutorServiceSize());
+    try {
+      // WHEN
+      // executing it on the sample table
+      Future<Void> future = executablePlan.executeAsynchronously(executor);
+      future.get(); // wait until done.
+
+      // THEN
+      Assert.assertTrue(columnValueConsumerIsDone, "Source should have reported 'done'");
+      Assert.assertTrue(future.isDone(), "Future should report done");
+      Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
+
+      Assert.assertTrue(resultValues.isEmpty(), "Did not expect to have a result");
+    } finally {
+      executor.shutdownNow();
+    }
+  }
+
 }

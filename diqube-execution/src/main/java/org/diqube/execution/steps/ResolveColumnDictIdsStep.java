@@ -91,14 +91,18 @@ public class ResolveColumnDictIdsStep extends AbstractThreadedExecutablePlanStep
   /** Only important if {@link #colBuiltConsumer} is wired */
   private AtomicBoolean sourceColumnIsBuilt = new AtomicBoolean(false);
 
+  private AtomicBoolean colBuiltConsumerIsDone = new AtomicBoolean(false);
+
   private AbstractThreadedColumnBuiltConsumer colBuiltConsumer = new AbstractThreadedColumnBuiltConsumer(this) {
     @Override
     protected void doColumnBuilt(String colName) {
+      if (colName.equals(ResolveColumnDictIdsStep.this.colName))
+        ResolveColumnDictIdsStep.this.sourceColumnIsBuilt.set(true);
     }
 
     @Override
     protected void allSourcesAreDone() {
-      ResolveColumnDictIdsStep.this.sourceColumnIsBuilt.set(true);
+      colBuiltConsumerIsDone.set(true);
     }
   };
 
@@ -160,6 +164,13 @@ public class ResolveColumnDictIdsStep extends AbstractThreadedExecutablePlanStep
   @Override
   public void execute() {
     boolean intermediateRun = !(colBuiltConsumer.getNumberOfTimesWired() == 0 || sourceColumnIsBuilt.get());
+
+    if (colBuiltConsumer.getNumberOfTimesWired() > 0 && colBuiltConsumerIsDone.get() && !sourceColumnIsBuilt.get()) {
+      logger.debug("Waited for column {} to  be built, but it won't be built. Skipping.", colName);
+      forEachOutputConsumerOfType(GenericConsumer.class, c -> c.sourceIsDone());
+      doneProcessing();
+      return;
+    }
 
     NavigableSet<Long> curAdjustedRowIds;
     synchronized (newestSync) {

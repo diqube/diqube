@@ -180,23 +180,26 @@ public class GroupFinalAggregationStep extends AbstractThreadedExecutablePlanSte
 
     // if done, inform other consumers.
     if (sourceIsDone.get() && groupIntermediaryUpdates.isEmpty()) {
-      logger.trace("Creating final grouped column {}", outputColName);
-      if (newCol == null)
-        newCol = createNewColumn(defaultEnv);
+      if (!aggregationFunctions.isEmpty()) { // check if there is any result at all, if not, just report "done" (below).
+        logger.trace("Creating final grouped column {}", outputColName);
+        if (newCol == null)
+          newCol = createNewColumn(defaultEnv);
 
-      switch (newCol.getColumnType()) {
-      case STRING:
-        defaultEnv.storeTemporaryStringColumnShard((StringColumnShard) newCol);
-        break;
-      case LONG:
-        defaultEnv.storeTemporaryLongColumnShard((LongColumnShard) newCol);
-        break;
-      case DOUBLE:
-        defaultEnv.storeTemporaryDoubleColumnShard((DoubleColumnShard) newCol);
-        break;
+        switch (newCol.getColumnType()) {
+        case STRING:
+          defaultEnv.storeTemporaryStringColumnShard((StringColumnShard) newCol);
+          break;
+        case LONG:
+          defaultEnv.storeTemporaryLongColumnShard((LongColumnShard) newCol);
+          break;
+        case DOUBLE:
+          defaultEnv.storeTemporaryDoubleColumnShard((DoubleColumnShard) newCol);
+          break;
+        }
+
+        forEachOutputConsumerOfType(ColumnBuiltConsumer.class, c -> c.columnBuilt(outputColName));
       }
 
-      forEachOutputConsumerOfType(ColumnBuiltConsumer.class, c -> c.columnBuilt(outputColName));
       forEachOutputConsumerOfType(GenericConsumer.class, c -> c.sourceIsDone());
       doneProcessing();
     }

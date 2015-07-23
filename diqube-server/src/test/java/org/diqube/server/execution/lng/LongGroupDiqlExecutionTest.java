@@ -338,4 +338,81 @@ public class LongGroupDiqlExecutionTest extends GroupDiqlExecutionTest<Long> {
     }
   }
 
+  @Test
+  public void emptyAggregation1Test() throws InterruptedException, ExecutionException {
+    Object[] colAValues = dp.a(1, 5, 100, 1, 99, 1);
+    Object[] colBValues = dp.a(0, 0, 0, 0, 0, 0);
+    initializeSimpleTable(colAValues, colBValues);
+    // GIVEN
+    ExecutablePlan executablePlan = buildExecutablePlan(
+        "Select " + COL_A + ", count() from " + TABLE + " where " + COL_A + " > 100 group by " + COL_A);
+    ExecutorService executor = executors.newTestExecutor(executablePlan.preferredExecutorServiceSize());
+    try {
+      // WHEN
+      // executing it on the sample table
+      Future<Void> future = executablePlan.executeAsynchronously(executor);
+      future.get(); // wait until done.
+
+      // THEN
+      Assert.assertTrue(columnValueConsumerIsDone, "Source should have reported 'done'");
+      Assert.assertTrue(future.isDone(), "Future should report done");
+      Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
+
+      Assert.assertTrue(resultValues.isEmpty(), "Expected no results.");
+    } finally {
+      executor.shutdownNow();
+    }
+  }
+
+  @Test
+  public void emptyAggregation2Test() throws InterruptedException, ExecutionException {
+    Object[] colAValues = dp.a(1, 5, 100, 1, 99, 1);
+    Object[] colBValues = dp.a(0, 0, 0, 0, 0, 0);
+    initializeSimpleTable(colAValues, colBValues);
+    // GIVEN
+    ExecutablePlan executablePlan = buildExecutablePlan(
+        "Select " + COL_A + ", add(count(), 1) from " + TABLE + " where " + COL_A + " > 100 group by " + COL_A);
+    ExecutorService executor = executors.newTestExecutor(executablePlan.preferredExecutorServiceSize());
+    try {
+      // WHEN
+      // executing it on the sample table
+      Future<Void> future = executablePlan.executeAsynchronously(executor);
+      future.get(); // wait until done.
+
+      // THEN
+      Assert.assertTrue(columnValueConsumerIsDone, "Source should have reported 'done'");
+      Assert.assertTrue(future.isDone(), "Future should report done");
+      Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
+
+      Assert.assertTrue(resultValues.isEmpty(), "Expected no results.");
+    } finally {
+      executor.shutdownNow();
+    }
+  }
+
+  @Test
+  public void emptyAggregation3Test() throws InterruptedException, ExecutionException {
+    Object[] colAValues = dp.a(1, 5, 100, 1, 99, 1);
+    Object[] colBValues = dp.a(0, 0, 0, 0, 0, 0);
+    initializeSimpleTable(colAValues, colBValues);
+    // GIVEN
+    ExecutablePlan executablePlan = buildExecutablePlan(
+        "Select " + COL_A + " from " + TABLE + " where " + COL_A + " > 100 group by " + COL_A + " order by count()");
+    ExecutorService executor = executors.newTestExecutor(executablePlan.preferredExecutorServiceSize());
+    try {
+      // WHEN
+      // executing it on the sample table
+      Future<Void> future = executablePlan.executeAsynchronously(executor);
+      future.get(); // wait until done.
+
+      // THEN
+      Assert.assertTrue(columnValueConsumerIsDone, "Source should have reported 'done'");
+      Assert.assertTrue(future.isDone(), "Future should report done");
+      Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
+
+      Assert.assertTrue(resultValues.isEmpty(), "Expected no results.");
+    } finally {
+      executor.shutdownNow();
+    }
+  }
 }
