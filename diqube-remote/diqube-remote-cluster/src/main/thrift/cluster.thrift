@@ -41,9 +41,10 @@ enum RColumnType {
 
 struct RIntermediateAggregationResult {
   1: RColumnType inputColumnType,
-  2: base.RValue value1,
-  3: optional base.RValue value2,
-  4: optional base.RValue value3
+  2: string outputColName,
+  3: base.RValue value1,
+  4: optional base.RValue value2,
+  5: optional base.RValue value3
 }
 
 struct ROldNewIntermediateAggregationResult {

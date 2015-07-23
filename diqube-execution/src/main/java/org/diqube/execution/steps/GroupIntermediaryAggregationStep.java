@@ -155,6 +155,7 @@ public class GroupIntermediaryAggregationStep extends AbstractThreadedExecutable
 
         IntermediaryResult<Object, Object, Object> oldIntermediary =
             aggregationFunctions.get(groupId).calculateIntermediary();
+        oldIntermediary.setOutputColName(outputColName);
 
         // update AggregationFunction object with new values.
         aggregationFunctions.get(groupId).addValues(new ValueProvider<Object>() {
@@ -178,6 +179,7 @@ public class GroupIntermediaryAggregationStep extends AbstractThreadedExecutable
 
         IntermediaryResult<Object, Object, Object> newIntermediary =
             aggregationFunctions.get(groupId).calculateIntermediary();
+        newIntermediary.setOutputColName(outputColName);
 
         logger.trace("New intermediary for group {} in col {}: new {}, old: {}", groupId, outputColName,
             newIntermediary, oldIntermediary);

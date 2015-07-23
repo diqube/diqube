@@ -35,6 +35,8 @@ public class IntermediaryResult<X, Y, Z> extends Triple<X, Y, Z> {
 
   private ColumnType inputColumnType;
 
+  private String outputColName;
+
   public IntermediaryResult(X left, Y middle, Z right, ColumnType inputColumnType) {
     super(left, middle, right);
     this.inputColumnType = inputColumnType;
@@ -48,4 +50,29 @@ public class IntermediaryResult<X, Y, Z> extends Triple<X, Y, Z> {
   public ColumnType getInputColumnType() {
     return inputColumnType;
   }
+
+  /**
+   * This is an intermediary result that is needed to calculate the given output column.
+   */
+  public String getOutputColName() {
+    return outputColName;
+  }
+
+  public void setOutputColName(String outputColName) {
+    this.outputColName = outputColName;
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append("[");
+    sb.append(super.toString());
+    sb.append(",outputCol=");
+    sb.append(outputColName);
+    sb.append(",inputColType=");
+    sb.append(inputColumnType);
+    sb.append("]");
+    return sb.toString();
+  }
+
 }

@@ -98,9 +98,12 @@ public abstract class QueryMasterParallelDiqlExecutionTest<T> extends AbstractRe
       values.put(1L, groupByValue2);
       values.put(2L, groupByValue3);
       resultHandler.newColumnValues(COL_A, values);
-      resultHandler.newIntermediaryAggregationResult(0L, countCol, intermediary(0), intermediary(3));
-      resultHandler.newIntermediaryAggregationResult(1L, countCol, intermediary(0), intermediary(1));
-      resultHandler.newIntermediaryAggregationResult(2L, countCol, intermediary(0), intermediary(1));
+      resultHandler.newIntermediaryAggregationResult(0L, countCol, intermediary(countCol, 0),
+          intermediary(countCol, 3));
+      resultHandler.newIntermediaryAggregationResult(1L, countCol, intermediary(countCol, 0),
+          intermediary(countCol, 1));
+      resultHandler.newIntermediaryAggregationResult(2L, countCol, intermediary(countCol, 0),
+          intermediary(countCol, 1));
 
       // now:
       // Group 0: value 3
@@ -123,9 +126,12 @@ public abstract class QueryMasterParallelDiqlExecutionTest<T> extends AbstractRe
       values.put(4L, groupByValue2);
       values.put(5L, groupByValue3);
       resultHandler.newColumnValues(COL_A, values);
-      resultHandler.newIntermediaryAggregationResult(3L, countCol, intermediary(0), intermediary(1));
-      resultHandler.newIntermediaryAggregationResult(4L, countCol, intermediary(0), intermediary(2));
-      resultHandler.newIntermediaryAggregationResult(5L, countCol, intermediary(0), intermediary(1));
+      resultHandler.newIntermediaryAggregationResult(3L, countCol, intermediary(countCol, 0),
+          intermediary(countCol, 1));
+      resultHandler.newIntermediaryAggregationResult(4L, countCol, intermediary(countCol, 0),
+          intermediary(countCol, 2));
+      resultHandler.newIntermediaryAggregationResult(5L, countCol, intermediary(countCol, 0),
+          intermediary(countCol, 1));
 
       // now:
       // Group 3 matched to group 0, new value: 4
@@ -146,9 +152,12 @@ public abstract class QueryMasterParallelDiqlExecutionTest<T> extends AbstractRe
           () -> resultValues.get(countCol) != null && expectedValueRun2.equals(resultValues.get(countCol).get(0L)));
 
       // first shard found some more values.
-      resultHandler.newIntermediaryAggregationResult(0L, countCol, intermediary(3), intermediary(4));
-      resultHandler.newIntermediaryAggregationResult(1L, countCol, intermediary(1), intermediary(2));
-      resultHandler.newIntermediaryAggregationResult(2L, countCol, intermediary(1), intermediary(5));
+      resultHandler.newIntermediaryAggregationResult(0L, countCol, intermediary(countCol, 3),
+          intermediary(countCol, 4));
+      resultHandler.newIntermediaryAggregationResult(1L, countCol, intermediary(countCol, 1),
+          intermediary(countCol, 2));
+      resultHandler.newIntermediaryAggregationResult(2L, countCol, intermediary(countCol, 1),
+          intermediary(countCol, 5));
 
       // now: (these values are only correct, if orderStep did NOT cut off group 1L in last execution, otherwise 1L is
       // the only group left!)
@@ -215,8 +224,10 @@ public abstract class QueryMasterParallelDiqlExecutionTest<T> extends AbstractRe
       values.put(0L, groupByValue1);
       values.put(1L, groupByValue2);
       resultHandler.newColumnValues(COL_A, values);
-      resultHandler.newIntermediaryAggregationResult(0L, countCol, intermediary(0), intermediary(5));
-      resultHandler.newIntermediaryAggregationResult(1L, countCol, intermediary(0), intermediary(1));
+      resultHandler.newIntermediaryAggregationResult(0L, countCol, intermediary(countCol, 0),
+          intermediary(countCol, 5));
+      resultHandler.newIntermediaryAggregationResult(1L, countCol, intermediary(countCol, 0),
+          intermediary(countCol, 1));
 
       // now:
       // Group 0: value 5
@@ -237,8 +248,10 @@ public abstract class QueryMasterParallelDiqlExecutionTest<T> extends AbstractRe
       values.put(3L, groupByValue1);
       values.put(4L, groupByValue2);
       resultHandler.newColumnValues(COL_A, values);
-      resultHandler.newIntermediaryAggregationResult(3L, countCol, intermediary(0), intermediary(1));
-      resultHandler.newIntermediaryAggregationResult(4L, countCol, intermediary(0), intermediary(2));
+      resultHandler.newIntermediaryAggregationResult(3L, countCol, intermediary(countCol, 0),
+          intermediary(countCol, 1));
+      resultHandler.newIntermediaryAggregationResult(4L, countCol, intermediary(countCol, 0),
+          intermediary(countCol, 2));
 
       // now:
       // Group 3 matched to group 0, new value: 6
@@ -255,8 +268,10 @@ public abstract class QueryMasterParallelDiqlExecutionTest<T> extends AbstractRe
           () -> resultValues.get(countCol) != null && expectedValueRun2.equals(resultValues.get(countCol).get(0L)));
 
       // first shard found some more values.
-      resultHandler.newIntermediaryAggregationResult(0L, countCol, intermediary(5), intermediary(2)); // LOWER!
-      resultHandler.newIntermediaryAggregationResult(1L, countCol, intermediary(1), intermediary(2));
+      resultHandler.newIntermediaryAggregationResult(0L, countCol, intermediary(countCol, 5),
+          intermediary(countCol, 2)); // LOWER!
+      resultHandler.newIntermediaryAggregationResult(1L, countCol, intermediary(countCol, 1),
+          intermediary(countCol, 2));
 
       // now: (these values are only correct, if orderStep did NOT cut off group 1L in last execution, otherwise 1L is
       // the only group left!)
@@ -291,7 +306,7 @@ public abstract class QueryMasterParallelDiqlExecutionTest<T> extends AbstractRe
   }
 
   @SuppressWarnings({ "unchecked", "rawtypes" })
-  private IntermediaryResult<Object, Object, Object> intermediary(int count) {
+  private IntermediaryResult<Object, Object, Object> intermediary(String outputColName, int count) {
     CountFunction fn = new CountFunction();
     fn.addValues(new ValueProvider<Object>() {
 
@@ -311,6 +326,8 @@ public abstract class QueryMasterParallelDiqlExecutionTest<T> extends AbstractRe
       }
     });
 
-    return (IntermediaryResult) fn.calculateIntermediary();
+    IntermediaryResult<Object, Object, Object> res = (IntermediaryResult) fn.calculateIntermediary();
+    res.setOutputColName(outputColName);
+    return res;
   }
 }

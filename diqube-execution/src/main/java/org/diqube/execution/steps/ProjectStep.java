@@ -349,11 +349,15 @@ public class ProjectStep extends AbstractThreadedExecutablePlanStep {
     ConstantColumnShard[] resultConstantColumn = new ConstantColumnShard[1];
     resultConstantColumn[0] = null;
 
-    ColumnShardBuilderManager columnShardBuilderManager = columnShardBuilderManagerSupplier.apply(inputColumnType);
+    ProjectionFunction<?, ?> tmpProjectionFunction =
+        functionFactory.createProjectionFunction(functionNameLowerCase, inputColumnType);
 
-    if (functionFactory.createProjectionFunction(functionNameLowerCase, inputColumnType) == null)
+    if (tmpProjectionFunction == null)
       throw new ExecutablePlanExecutionException(
           "Cannot find function '" + functionNameLowerCase + "' with input data type " + inputColumnType);
+
+    ColumnShardBuilderManager columnShardBuilderManager =
+        columnShardBuilderManagerSupplier.apply(tmpProjectionFunction.getOutputType());
 
     // execute ProjectionFunctions based on buckets of rowIds.
     rowIdBucketsToProcess.forEach(new Consumer<Pair<Long, Integer>>() {

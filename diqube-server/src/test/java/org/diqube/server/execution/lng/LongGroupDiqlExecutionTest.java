@@ -33,6 +33,7 @@ import org.diqube.execution.ExecutablePlan;
 import org.diqube.plan.util.FunctionBasedColumnNameBuilder;
 import org.diqube.server.execution.GroupDiqlExecutionTest;
 import org.diqube.util.Pair;
+import org.diqube.util.Triple;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -266,6 +267,65 @@ public class LongGroupDiqlExecutionTest extends GroupDiqlExecutionTest<Long> {
         Object countValue = resultValues.get(resColName).get(rowId);
 
         Pair<Object, Object> actualValue = new Pair<>(colAValue, countValue);
+
+        Assert.assertEquals(actualValue, expectedResult.get(orderedRowId),
+            "Expected correct result at ordered index " + orderedRowId + " (" + rowId + ")");
+      }
+
+      Assert.assertEquals(resultOrderRowIds.size(), expectedResult.size(),
+          "Expected to receive correct number of rows");
+    } finally {
+      executor.shutdownNow();
+    }
+  }
+
+  @Test
+  public void twoAggregationsTest() throws InterruptedException, ExecutionException {
+    Object[] colAValues = dp.a(1, 2, 1, 2, 1, 2);
+    Object[] colBValues = dp.a(10, 20, 10, 20, 10, 20);
+    initializeSimpleTable(colAValues, colBValues);
+    // GIVEN
+    ExecutablePlan executablePlan =
+        buildExecutablePlan("Select " + COL_A + ", count(), round(avg(" + COL_B + ")) from " + TABLE + //
+            " group by " + COL_A + //
+            " order by avg(" + COL_B + ") desc");
+    ExecutorService executor = executors.newTestExecutor(executablePlan.preferredExecutorServiceSize());
+    try {
+      // WHEN
+      // executing it on the sample table
+      Future<Void> future = executablePlan.executeAsynchronously(executor);
+      future.get(); // wait until done.
+
+      // THEN
+      Assert.assertTrue(columnValueConsumerIsDone, "Source should have reported 'done'");
+      Assert.assertTrue(future.isDone(), "Future should report done");
+      Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
+
+      Assert.assertTrue(resultValues.containsKey(COL_A), "Result values should be available for result column A");
+      String resCountColName = new FunctionBasedColumnNameBuilder().withFunctionName("count").build();
+      String resAvgColName = new FunctionBasedColumnNameBuilder().withFunctionName("round")
+          .addParameterColumnName(
+              new FunctionBasedColumnNameBuilder().withFunctionName("avg").addParameterColumnName(COL_B).build())
+          .build();
+      Assert.assertTrue(resultValues.containsKey(resCountColName),
+          "Result values should be available for result count col");
+      Assert.assertTrue(resultValues.containsKey(resAvgColName),
+          "Result values should be available for result avg col");
+      Assert.assertEquals(resultValues.size(), 3, "Result values should be available for specific amount of cols only");
+
+      List<Triple<Object, Long, Long>> expectedResult = new ArrayList<>();
+      // ColA: 2L, count: 3L, avg: 20L
+      expectedResult.add(new Triple<>(dp.v(2), 3L, 20L));
+      // ColA: 1L, count: 3L, avg: 10L
+      expectedResult.add(new Triple<>(dp.v(1), 3L, 10L));
+
+      for (int orderedRowId = 0; orderedRowId < expectedResult.size(); orderedRowId++) {
+        long rowId = resultOrderRowIds.get(orderedRowId);
+        Object colAValue = resultValues.get(COL_A).get(rowId);
+        Long countValue = resultValues.get(resCountColName).get(rowId);
+        Long avgValue = resultValues.get(resAvgColName).get(rowId);
+
+        Triple<Object, Long, Long> actualValue = new Triple<>(colAValue, countValue, avgValue);
 
         Assert.assertEquals(actualValue, expectedResult.get(orderedRowId),
             "Expected correct result at ordered index " + orderedRowId + " (" + rowId + ")");

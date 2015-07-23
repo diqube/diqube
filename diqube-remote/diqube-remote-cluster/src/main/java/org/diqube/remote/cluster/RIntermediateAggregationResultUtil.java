@@ -59,12 +59,14 @@ public class RIntermediateAggregationResultUtil {
 
     IntermediaryResult<Object, Object, Object> res =
         new IntermediaryResult<Object, Object, Object>(left, middle, right, type);
+    res.setOutputColName(input.getOutputColName());
     return res;
   }
 
   public static RIntermediateAggregationResult buildRIntermediateAggregationResult(
       IntermediaryResult<Object, Object, Object> input) {
     RIntermediateAggregationResult res = new RIntermediateAggregationResult();
+    res.setOutputColName(input.getOutputColName());
     res.setValue1(RValueUtil.createRValue(input.getLeft()));
     if (input.getMiddle() != null)
       res.setValue2(RValueUtil.createRValue(input.getMiddle()));

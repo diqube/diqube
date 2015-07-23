@@ -85,7 +85,8 @@ public class GroupFinalAggregationStep extends AbstractThreadedExecutablePlanSte
         protected void doConsumeIntermediaryAggregationResult(long groupId, String colName,
             IntermediaryResult<Object, Object, Object> oldIntermediaryResult,
             IntermediaryResult<Object, Object, Object> newIntermediaryResult) {
-          groupIntermediaryUpdates.add(new Triple<>(groupId, oldIntermediaryResult, newIntermediaryResult));
+          if (newIntermediaryResult.getOutputColName().equals(outputColName))
+            groupIntermediaryUpdates.add(new Triple<>(groupId, oldIntermediaryResult, newIntermediaryResult));
         }
       };
 
