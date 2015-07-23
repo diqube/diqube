@@ -38,14 +38,13 @@ After everything is prepared, execute the build using
 
 ##Starting diqube##
 
-Currently there is no ready-to-be-used binary built, but you can start the server using Maven on the command line.
 Execute the following after building:
 
     $ cd diqube-server
-    $ mvn exec:java -Dexec.mainClass=org.diqube.server.Server
+    $ java -jar target/diqube-server-1-SNAPSHOT.jar
 
 The server will then start and watch the 'data' directory inside diqube-server for any new data to be loaded (.control
-files). There is some sample data already provided.
+files). There is some sample data already provided. For more information see [Operating a cluster](/docs/OperatingCluster.md).
 
 The diqube server itself does not contain the diqube UI (will be implemented soon, currently you need to watch the log
 output!). The UI is available as standard web archive (.war file) which can be deployed e.g. to a standard 
