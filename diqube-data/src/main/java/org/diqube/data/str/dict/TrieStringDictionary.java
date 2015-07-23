@@ -101,6 +101,11 @@ public class TrieStringDictionary implements StringDictionary {
   }
 
   @Override
+  public Long getMaxId() {
+    return lastId;
+  }
+
+  @Override
   public String decompressValue(long id) throws IllegalArgumentException {
     List<char[]> traversedCharSequences = new LinkedList<>();
 

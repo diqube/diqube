@@ -42,6 +42,11 @@ public class ConstantStringDictionary implements StringDictionary {
   }
 
   @Override
+  public Long getMaxId() {
+    return id;
+  }
+
+  @Override
   public String decompressValue(long id) throws IllegalArgumentException {
     if (id != this.id)
       throw new IllegalArgumentException("Id available: " + this.id + " but queried: " + id);

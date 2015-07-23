@@ -26,11 +26,18 @@ import java.util.Set;
 /**
  * An arbitrary dictionary, mapping values to long IDs.
  * 
+ * The first ID to be used is always 0L.
+ * 
  * See sub-interfaces.
  *
  * @author Bastian Gloeckle
  */
 public interface Dictionary<T> {
+  /**
+   * The maximum ID of the values in this dictionary or <code>null</code> if there are no entries at all.
+   */
+  public Long getMaxId();
+
   /**
    * Return the value of a specific ID.
    * 

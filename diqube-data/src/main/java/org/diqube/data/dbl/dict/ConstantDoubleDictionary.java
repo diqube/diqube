@@ -197,4 +197,9 @@ public class ConstantDoubleDictionary implements DoubleDictionary {
     return id;
   }
 
+  @Override
+  public Long getMaxId() {
+    return id;
+  }
+
 }

@@ -29,7 +29,6 @@ import org.diqube.execution.consumers.RowIdConsumer;
 import org.diqube.plan.RemoteExecutionPlanFactory;
 import org.diqube.plan.request.ComparisonRequest;
 import org.diqube.plan.request.ComparisonRequest.And;
-import org.diqube.plan.request.ComparisonRequest.DelegateComparisonRequest;
 import org.diqube.plan.request.ComparisonRequest.Leaf;
 import org.diqube.plan.request.ComparisonRequest.Not;
 import org.diqube.plan.request.ComparisonRequest.Or;
@@ -62,7 +61,7 @@ public class WhereBuilder implements ComparisonRequestBuilder<RExecutionPlanStep
   @Override
   public Pair<RExecutionPlanStep, List<RExecutionPlanStep>> build(ComparisonRequest comparisonRoot) {
     List<RExecutionPlanStep> allWhereSteps = new ArrayList<>();
-    RExecutionPlanStep whereRootStep = walkComparisonTreeAndCreate(comparisonRoot,
+    RExecutionPlanStep whereRootStep = ComparisonRequestUtil.walkComparisonTreeAndCreate(comparisonRoot,
         new Function<Triple<ComparisonRequest, RExecutionPlanStep, RExecutionPlanStep>, RExecutionPlanStep>() {
           @Override
           public RExecutionPlanStep apply(Triple<ComparisonRequest, RExecutionPlanStep, RExecutionPlanStep> t) {
@@ -94,8 +93,7 @@ public class WhereBuilder implements ComparisonRequestBuilder<RExecutionPlanStep
               // cannot contain aggregate functions, these columns that need to be created need to be
               // projections!), we need to wait for their creation. Wire accordingly.
 
-              if (leaf.getLeft().getType().equals(ColumnOrValue.Type.COLUMN))
-                columnManager.wireOutputOfColumnIfAvailable(leaf.getLeft().getColumnName(), res);
+              columnManager.wireOutputOfColumnIfAvailable(leaf.getLeftColumnName(), res);
 
               if (leaf.getRight().getType().equals(ColumnOrValue.Type.COLUMN))
                 columnManager.wireOutputOfColumnIfAvailable(leaf.getRight().getColumnName(), res);
@@ -125,21 +123,6 @@ public class WhereBuilder implements ComparisonRequestBuilder<RExecutionPlanStep
           }
         });
     return new Pair<>(whereRootStep, allWhereSteps);
-  }
-
-  private <O> O walkComparisonTreeAndCreate(ComparisonRequest node,
-      Function<Triple<ComparisonRequest, O, O>, O> processNode) {
-    if (node instanceof Leaf) {
-      return processNode.apply(new Triple<>(node, null, null));
-    } else if (node instanceof Not) {
-      O child = walkComparisonTreeAndCreate(((Not) node).getChild(), processNode);
-      return processNode.apply(new Triple<ComparisonRequest, O, O>(node, child, null));
-    } else {
-      DelegateComparisonRequest del = (DelegateComparisonRequest) node;
-      O left = walkComparisonTreeAndCreate(del.getLeft(), processNode);
-      O right = walkComparisonTreeAndCreate(del.getRight(), processNode);
-      return processNode.apply(new Triple<>(node, left, right));
-    }
   }
 
 }

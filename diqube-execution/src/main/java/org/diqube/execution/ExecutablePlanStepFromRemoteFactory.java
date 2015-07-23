@@ -119,7 +119,7 @@ public class ExecutablePlanStepFromRemoteFactory {
     if (details.isSetOtherColumn()) {
       // Comapre col vs. col
       String otherColName = details.getOtherColumn().getColName();
-      return new RowIdInequalStep(remoteStep.getStepId(), defaultEnv, colName, otherColName, comparator);
+      return new RowIdInequalStep(remoteStep.getStepId(), defaultEnv, colName, otherColName, comparator, true);
     } else {
       // Compare col vs. constant
       Object value;

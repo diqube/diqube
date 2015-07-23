@@ -53,6 +53,11 @@ public class ArrayCompressedLongDictionary implements LongDictionary {
   }
 
   @Override
+  public Long getMaxId() {
+    return (long) (sortedValues.size() - 1);
+  }
+
+  @Override
   public Long decompressValue(long id) throws IllegalArgumentException {
     if (id < 0 || id >= sortedValues.size())
       throw new IllegalArgumentException("ID out of range to access dictionary.");
@@ -469,4 +474,5 @@ public class ArrayCompressedLongDictionary implements LongDictionary {
 
     return res;
   }
+
 }

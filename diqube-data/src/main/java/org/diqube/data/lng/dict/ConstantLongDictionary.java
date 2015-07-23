@@ -187,4 +187,9 @@ public class ConstantLongDictionary implements LongDictionary {
     return id;
   }
 
+  @Override
+  public Long getMaxId() {
+    return id;
+  }
+
 }

@@ -81,4 +81,8 @@ public interface ExecutionEnvironment {
 
   public long getFirstRowIdInShard();
 
+  /**
+   * @return -1 if unknown.
+   */
+  public long getLastRowIdInShard();
 }

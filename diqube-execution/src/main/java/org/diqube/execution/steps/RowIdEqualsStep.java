@@ -33,6 +33,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -46,10 +47,15 @@ import org.diqube.data.dbl.dict.DoubleDictionary;
 import org.diqube.data.lng.dict.LongDictionary;
 import org.diqube.data.str.dict.StringDictionary;
 import org.diqube.execution.consumers.AbstractThreadedColumnBuiltConsumer;
+import org.diqube.execution.consumers.AbstractThreadedColumnVersionBuiltConsumer;
 import org.diqube.execution.consumers.AbstractThreadedRowIdConsumer;
+import org.diqube.execution.consumers.ColumnBuiltConsumer;
+import org.diqube.execution.consumers.ColumnVersionBuiltConsumer;
 import org.diqube.execution.consumers.GenericConsumer;
+import org.diqube.execution.consumers.OverwritingRowIdConsumer;
 import org.diqube.execution.consumers.RowIdConsumer;
 import org.diqube.execution.env.ExecutionEnvironment;
+import org.diqube.execution.env.VersionedExecutionEnvironment;
 import org.diqube.execution.exception.ExecutablePlanBuildException;
 import org.diqube.execution.exception.ExecutablePlanExecutionException;
 import org.diqube.util.DiqubeCollectors;
@@ -64,8 +70,8 @@ import org.slf4j.LoggerFactory;
  * 
  * <p>
  * This step can optionally be executed on a column that still needs to be constructed. In that case, a
- * {@link ColumnPageConsumer} input needs to be specified which keeps this step up to date with the construction of that
- * column. If no {@link ColumnPageConsumer} is specified, then simply the full column is searched.
+ * {@link ColumnBuiltConsumer} input needs to be specified which keeps this step up to date with the construction of
+ * that column. If no {@link ColumnBuiltConsumer} is specified, then simply the full column is searched.
  * 
  * <p>
  * Additionally, this step can be wired to the output of another {@link RowIdConsumer} which will force this instance to
@@ -75,11 +81,20 @@ import org.slf4j.LoggerFactory;
  * used.
  * 
  * <p>
+ * This step can be used in the non-default execution by wiring an input {@link ColumnVersionBuiltConsumer}. It will
+ * then not run once-off, but continuously will run completely again based on a new
+ * {@link VersionedExecutionEnvironment}. The output in that case will not be the default {@link RowIdConsumer}, but an
+ * {@link OverwritingRowIdConsumer}. If no {@link ColumnVersionBuiltConsumer} is wired as input, the result will be a
+ * {@link RowIdConsumer}.
+ * 
+ * <p>
  * Only {@link StandardColumnShard} supported.
  * 
  * <p>
- * Input: 1 optional {@link ColumnPageConsumer}, 1 optional {@link RowIdConsumer} <br>
- * Output: {@link RowIdConsumer}s.
+ * Input: 1 optional {@link ColumnBuiltConsumer}, 1 optional {@link ColumnVersionBuiltConsumer}, 1 optional
+ * {@link RowIdConsumer} <br>
+ * Output: {@link RowIdConsumer}s <b>or</b> {@link OverwritingRowIdConsumer}s. The latter in case a
+ * {@link ColumnVersionBuiltConsumer} is wired as input, the first otherwise.
  *
  * @author Bastian Gloeckle
  */
@@ -87,28 +102,51 @@ public class RowIdEqualsStep extends AbstractThreadedExecutablePlanStep {
 
   private static final Logger logger = LoggerFactory.getLogger(RowIdEqualsStep.class);
 
-  /** Only important if {@link #colBuiltConsumerIsWired} == true */
-  private AtomicBoolean columnIsBuilt = new AtomicBoolean(false);
+  private AtomicInteger columnsBuilt = new AtomicInteger(0);
 
   private AbstractThreadedColumnBuiltConsumer colBuiltConsumer = new AbstractThreadedColumnBuiltConsumer(this) {
 
     @Override
     protected void doColumnBuilt(String colName) {
+      if (RowIdEqualsStep.this.colName.equals(colName)
+          || (RowIdEqualsStep.this.otherColName != null && RowIdEqualsStep.this.otherColName.equals(colName)))
+        columnsBuilt.incrementAndGet();
     }
 
     @Override
     protected void allSourcesAreDone() {
-      RowIdEqualsStep.this.columnIsBuilt.set(true);
     }
   };
 
-  private AtomicBoolean rowIdSourceIsEmpty = new AtomicBoolean(false);
+  private VersionedExecutionEnvironment newestVersionedEnvironment = null;
+  private Object newestVersionedEnvironmentSync = new Object();
+
+  private AbstractThreadedColumnVersionBuiltConsumer columnVersionBuiltConsumer =
+      new AbstractThreadedColumnVersionBuiltConsumer(this) {
+
+        @Override
+        protected void allSourcesAreDone() {
+        }
+
+        @Override
+        protected void doColumnBuilt(VersionedExecutionEnvironment env, String colName, Set<Long> adjustedRowIds) {
+          if (RowIdEqualsStep.this.colName.equals(colName)
+              || (RowIdEqualsStep.this.otherColName != null && RowIdEqualsStep.this.otherColName.equals(colName))) {
+            synchronized (newestVersionedEnvironmentSync) {
+              if (newestVersionedEnvironment == null || env.getVersion() > newestVersionedEnvironment.getVersion())
+                newestVersionedEnvironment = env;
+            }
+          }
+        }
+      };
+
+  private AtomicBoolean rowIdSourceIsDone = new AtomicBoolean(false);
   private ConcurrentLinkedDeque<Long> inputRowIds = new ConcurrentLinkedDeque<>();
 
   private AbstractThreadedRowIdConsumer rowIdConsumer = new AbstractThreadedRowIdConsumer(this) {
     @Override
     public void allSourcesAreDone() {
-      RowIdEqualsStep.this.rowIdSourceIsEmpty.set(true);
+      RowIdEqualsStep.this.rowIdSourceIsDone.set(true);
     }
 
     @Override
@@ -118,7 +156,7 @@ public class RowIdEqualsStep extends AbstractThreadedExecutablePlanStep {
     }
   };
 
-  private ExecutionEnvironment env;
+  private ExecutionEnvironment defaultEnv;
   /** name of the column to search the values in */
   private String colName;
   /** Sorted values to search for. If <code>null</code>, see {@link #otherColName}. */
@@ -138,12 +176,18 @@ public class RowIdEqualsStep extends AbstractThreadedExecutablePlanStep {
   private String otherColName;
 
   /**
+   * rowIds that have been reported to the {@link #rowIdConsumer} as input before. This is only maintained if
+   * {@link #columnVersionBuiltConsumer} is wired (and we therefore provide {@link OverwritingRowIdConsumer} output).
+   */
+  private NavigableSet<Long> cachedActiveRowIds = new TreeSet<>();
+
+  /**
    * @param sortedValues
    *          Expected to be sorted!
    */
-  public RowIdEqualsStep(int stepId, ExecutionEnvironment env, String colName, Object[] sortedValues) {
+  public RowIdEqualsStep(int stepId, ExecutionEnvironment defaultEnv, String colName, Object[] sortedValues) {
     super(stepId);
-    this.env = env;
+    this.defaultEnv = defaultEnv;
     this.colName = colName;
     this.values = sortedValues;
     this.otherColName = null;
@@ -151,9 +195,9 @@ public class RowIdEqualsStep extends AbstractThreadedExecutablePlanStep {
 
   /**
    */
-  public RowIdEqualsStep(int stepId, ExecutionEnvironment env, String colName, String otherColName) {
+  public RowIdEqualsStep(int stepId, ExecutionEnvironment defaultEnv, String colName, String otherColName) {
     super(stepId);
-    this.env = env;
+    this.defaultEnv = defaultEnv;
     this.colName = colName;
     this.otherColName = otherColName;
     this.values = null;
@@ -161,38 +205,61 @@ public class RowIdEqualsStep extends AbstractThreadedExecutablePlanStep {
 
   @Override
   public void execute() {
-    if (colBuiltConsumer.getNumberOfTimesWired() > 0 && !columnIsBuilt.get())
+    ExecutionEnvironment curEnv;
+    synchronized (newestVersionedEnvironmentSync) {
+      curEnv = newestVersionedEnvironment;
+    }
+    boolean allInputColumnsFullyBuilt = (otherColName == null) ? columnsBuilt.get() == 1 : columnsBuilt.get() == 2;
+    if ((colBuiltConsumer.getNumberOfTimesWired() > 0 && columnVersionBuiltConsumer.getNumberOfTimesWired() > 0
+        && !allInputColumnsFullyBuilt && curEnv == null) || // both column consumer are wired, none has updates
+        (colBuiltConsumer.getNumberOfTimesWired() > 0 && columnVersionBuiltConsumer.getNumberOfTimesWired() == 0
+            && !allInputColumnsFullyBuilt)) // only the ColumnVersionBuilt is wired and has no updates
       // we need to wait for a column to be built but it is not yet built.
       return;
 
+    if (curEnv == null || allInputColumnsFullyBuilt)
+      curEnv = defaultEnv;
+    else {
+      // using a VersionedExecutionEnvironment. Check if all needed cols are available already.
+      if (otherColName == null && curEnv.getColumnShard(colName) == null || //
+          (otherColName != null
+              && (curEnv.getColumnShard(colName) == null || curEnv.getColumnShard(otherColName) == null)))
+        // at least one of the required columns is not yet available in curEnv
+        return;
+    }
+
     NavigableSet<Long> activeRowIds = null;
     if (rowIdConsumer.getNumberOfTimesWired() > 0) {
-      activeRowIds = new TreeSet<>();
+      activeRowIds = new TreeSet<>(cachedActiveRowIds);
       Long rowId;
       while ((rowId = inputRowIds.poll()) != null)
         activeRowIds.add(rowId);
 
       if (activeRowIds.isEmpty()) {
-        if (rowIdSourceIsEmpty.get() && inputRowIds.isEmpty()) {
+        if (rowIdSourceIsDone.get() && inputRowIds.isEmpty()) {
           forEachOutputConsumerOfType(GenericConsumer.class, c -> c.sourceIsDone());
           doneProcessing();
           return;
         }
       }
+
+      if (columnVersionBuiltConsumer.getNumberOfTimesWired() > 0)
+        cachedActiveRowIds = activeRowIds;
     }
 
-    if (env.getColumnShard(colName) == null)
+    if (curEnv.getColumnShard(colName) == null)
       throw new ExecutablePlanExecutionException("Could not find column " + colName);
 
-    Dictionary<?> columnShardDictionary = env.getColumnShard(colName).getColumnShardDictionary();
-    Collection<ColumnPage> pages = ((StandardColumnShard) env.getColumnShard(colName)).getPages().values();
+    Dictionary<?> columnShardDictionary = curEnv.getColumnShard(colName).getColumnShardDictionary();
+    Collection<ColumnPage> pages = ((StandardColumnShard) curEnv.getColumnShard(colName)).getPages().values();
 
     if (pages.size() > 0) {
       if (values != null) {
         // we're supposed to compare one column to constant values.
 
-        if (columnValueIdsOfSearchedValues == null) {
-          switch (env.getColumnType(colName)) {
+        // we cache the column Value IDs in case we're not operating on different Envs each time.
+        if (columnValueIdsOfSearchedValues == null || columnVersionBuiltConsumer.getNumberOfTimesWired() > 0) {
+          switch (curEnv.getColumnType(colName)) {
           case LONG:
             if (!(values instanceof Long[]))
               throw new ExecutablePlanExecutionException(
@@ -216,29 +283,31 @@ public class RowIdEqualsStep extends AbstractThreadedExecutablePlanStep {
           }
         }
 
-        rowIdEqualsConstants(columnValueIdsOfSearchedValues, pages, activeRowIds);
+        rowIdEqualsConstants(curEnv, columnValueIdsOfSearchedValues, pages, activeRowIds);
       } else {
         // we're supposed to compare to cols to each other.
-        if (env.getColumnShard(otherColName) == null)
+        if (curEnv.getColumnShard(otherColName) == null)
           throw new ExecutablePlanExecutionException("Could not find column " + otherColName);
 
-        if (!env.getColumnType(colName).equals(env.getColumnType(otherColName)))
+        if (!curEnv.getColumnType(colName).equals(curEnv.getColumnType(otherColName)))
           throw new ExecutablePlanExecutionException("Cannot compare column " + colName + " to column " + otherColName
               + " as they have different data types.");
 
-        Collection<ColumnPage> pages2 = ((StandardColumnShard) env.getColumnShard(otherColName)).getPages().values();
+        Collection<ColumnPage> pages2 = ((StandardColumnShard) curEnv.getColumnShard(otherColName)).getPages().values();
 
         if (pages.size() > 0 && pages2.size() > 0) {
           NavigableMap<Long, Long> equalColumnValueIds =
-              findEqualIds(env.getColumnShard(colName), env.getColumnShard(otherColName));
+              findEqualIds(curEnv.getColumnShard(colName), curEnv.getColumnShard(otherColName));
 
-          rowIdEqualsOtherColLong(pages, pages2, equalColumnValueIds, activeRowIds);
+          rowIdEqualsOtherCol(curEnv, pages, pages2, equalColumnValueIds, activeRowIds);
         }
       }
     }
 
-    forEachOutputConsumerOfType(GenericConsumer.class, c -> c.sourceIsDone());
-    doneProcessing();
+    if (columnVersionBuiltConsumer.getNumberOfTimesWired() == 0 || allInputColumnsFullyBuilt) {
+      forEachOutputConsumerOfType(GenericConsumer.class, c -> c.sourceIsDone());
+      doneProcessing();
+    }
   }
 
   @SuppressWarnings("unchecked")
@@ -247,15 +316,15 @@ public class RowIdEqualsStep extends AbstractThreadedExecutablePlanStep {
         .findEqualIds((Dictionary<T>) shard2.getColumnShardDictionary());
   }
 
-  private void rowIdEqualsConstants(Long[] columnValueIdsOfSearchedValues, Collection<ColumnPage> pages,
-      NavigableSet<Long> activeRowIds) {
-    sendRowIds(rowIdEqualsStream(columnValueIdsOfSearchedValues, pages, activeRowIds));
+  private void rowIdEqualsConstants(ExecutionEnvironment curEnv, Long[] columnValueIdsOfSearchedValues,
+      Collection<ColumnPage> pages, NavigableSet<Long> activeRowIds) {
+    sendRowIds(curEnv, rowIdEqualsStream(columnValueIdsOfSearchedValues, pages, activeRowIds));
   }
 
   /**
    * Executes a terminal operation on the given stream that will send the row IDs to all output {@link RowIdConsumer}s.
    */
-  private void sendRowIds(Stream<Long> rowIdStream) {
+  private void sendRowIds(ExecutionEnvironment curEnv, Stream<Long> rowIdStream) {
     rowIdStream. //
         collect(new HashingBatchCollector<Long>( // RowIds are unique, so using BatchCollector is ok.
             100, // Batch size
@@ -263,7 +332,10 @@ public class RowIdEqualsStep extends AbstractThreadedExecutablePlanStep {
             new Consumer<Long[]>() { // Batch-collect the row IDs
               @Override
               public void accept(Long[] t) {
-                forEachOutputConsumerOfType(RowIdConsumer.class, c -> c.consume(t));
+                if (columnVersionBuiltConsumer.getNumberOfTimesWired() == 0)
+                  forEachOutputConsumerOfType(RowIdConsumer.class, c -> c.consume(t));
+                else
+                  forEachOutputConsumerOfType(OverwritingRowIdConsumer.class, c -> c.consume(curEnv, t));
               }
             }));
   }
@@ -350,8 +422,8 @@ public class RowIdEqualsStep extends AbstractThreadedExecutablePlanStep {
    * @param activeRowIds
    *          If there are any, the set of row IDs that should be inspected at most.
    */
-  private void rowIdEqualsOtherColLong(Collection<ColumnPage> pages1, Collection<ColumnPage> pages2,
-      NavigableMap<Long, Long> equalColumnValueIds, NavigableSet<Long> activeRowIds) {
+  private void rowIdEqualsOtherCol(ExecutionEnvironment curEnv, Collection<ColumnPage> pages1,
+      Collection<ColumnPage> pages2, NavigableMap<Long, Long> equalColumnValueIds, NavigableSet<Long> activeRowIds) {
     Long[] columnValueIds1 = equalColumnValueIds.keySet().stream().toArray((l) -> new Long[l]);
     Long[] columnValueIds2 = equalColumnValueIds.values().stream().sorted().toArray((l) -> new Long[l]);
 
@@ -364,23 +436,33 @@ public class RowIdEqualsStep extends AbstractThreadedExecutablePlanStep {
     Stream<Long> equalRowIds =
         rowIdEqualsStream(columnValueIds2, pages2, stillActiveRowIds.collect(DiqubeCollectors.toNavigableSet()));
 
-    sendRowIds(equalRowIds);
+    sendRowIds(curEnv, equalRowIds);
   }
 
   @Override
   public List<GenericConsumer> inputConsumers() {
-    return new ArrayList<>(Arrays.asList(new GenericConsumer[] { colBuiltConsumer, rowIdConsumer }));
+    return new ArrayList<>(
+        Arrays.asList(new GenericConsumer[] { colBuiltConsumer, rowIdConsumer, columnVersionBuiltConsumer }));
   }
 
   @Override
   protected void validateOutputConsumer(GenericConsumer consumer) throws IllegalArgumentException {
-    if (!(consumer instanceof RowIdConsumer))
-      throw new IllegalArgumentException("Only RowId consumers accepted!");
+    if (!(consumer instanceof RowIdConsumer) && !(consumer instanceof OverwritingRowIdConsumer))
+      throw new IllegalArgumentException("Only RowIdConsumers and OverwritingRowIdConsumer accepted!");
   }
 
   @Override
   protected void validateWiredStatus() throws ExecutablePlanBuildException {
-    // noop. If the input is wired it's fine, but if it isn't, it's fine, too.
+    boolean outputContainsDefault = outputConsumers.stream().anyMatch(c -> c instanceof RowIdConsumer);
+    boolean outputContainsOverwriting = outputConsumers.stream().anyMatch(c -> c instanceof OverwritingRowIdConsumer);
+    if (outputContainsDefault && outputContainsOverwriting)
+      throw new ExecutablePlanBuildException(
+          "Only either a RowIdConsumer or a OverwritingRowIdConsumer can be wired " + "as output!");
+    if (columnVersionBuiltConsumer.getNumberOfTimesWired() > 0 && !outputContainsOverwriting
+        || columnVersionBuiltConsumer.getNumberOfTimesWired() == 0 && !outputContainsDefault)
+      throw new ExecutablePlanBuildException("If ColumnVersionBuiltConsumer is wired, the overwriting output "
+          + "consumer needs to be wired, if no ColumnVersionBuiltConsumer is wired then the RowIdConsumer output "
+          + "needs to be wired.");
   }
 
   @Override

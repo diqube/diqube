@@ -62,6 +62,14 @@ public class DefaultExecutionEnvironment extends AbstractExecutionEnvironment {
   }
 
   @Override
+  public long getLastRowIdInShard() {
+    if (tableShard != null)
+      return tableShard.getLowestRowId() + tableShard.getNumberOfRowsInShard() - 1;
+
+    return -1;
+  }
+
+  @Override
   protected LongColumnShard delegateGetLongColumnShard(String name) {
     if (tableShard != null)
       return tableShard.getLongColumns().get(name);
@@ -99,4 +107,5 @@ public class DefaultExecutionEnvironment extends AbstractExecutionEnvironment {
     return this.getClass().getSimpleName() + "[tableShard=" + ((tableShard == null) ? "null" : tableShard.toString())
         + "]";
   }
+
 }

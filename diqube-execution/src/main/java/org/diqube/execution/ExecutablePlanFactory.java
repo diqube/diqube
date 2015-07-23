@@ -36,10 +36,17 @@ import org.diqube.execution.steps.ExecuteRemotePlanOnShardsStep;
 import org.diqube.execution.steps.FilterRequestedColumnsAndActiveRowIdsStep;
 import org.diqube.execution.steps.GroupFinalAggregationStep;
 import org.diqube.execution.steps.GroupIdAdjustingStep;
+import org.diqube.execution.steps.HavingResultStep;
 import org.diqube.execution.steps.OrderStep;
+import org.diqube.execution.steps.OverwritingRowIdAndStep;
+import org.diqube.execution.steps.OverwritingRowIdNotStep;
+import org.diqube.execution.steps.OverwritingRowIdOrStep;
 import org.diqube.execution.steps.ProjectStep;
 import org.diqube.execution.steps.ResolveColumnDictIdsStep;
 import org.diqube.execution.steps.ResolveValuesStep;
+import org.diqube.execution.steps.RowIdEqualsStep;
+import org.diqube.execution.steps.RowIdInequalStep;
+import org.diqube.execution.steps.RowIdInequalStep.RowIdComparator;
 import org.diqube.function.FunctionFactory;
 import org.diqube.loader.columnshard.ColumnShardBuilderFactory;
 import org.diqube.queries.QueryRegistry;
@@ -102,8 +109,8 @@ public class ExecutablePlanFactory {
   }
 
   public ExecutablePlanInfo createExecutablePlanInfo(List<String> selectedColumnNames, boolean isOrdered,
-      boolean isGrouped) {
-    return new ExecutablePlanInfo(selectedColumnNames, isOrdered, isGrouped);
+      boolean isGrouped, boolean having) {
+    return new ExecutablePlanInfo(selectedColumnNames, isOrdered, isGrouped, having);
   }
 
   public ExecuteRemotePlanOnShardsStep createExecuteRemotePlanStep(int stepId, ExecutionEnvironment env,
@@ -129,6 +136,42 @@ public class ExecutablePlanFactory {
 
   public GroupIdAdjustingStep createGroupIdAdjustingStep(int stepId, Set<String> groupedColNames) {
     return new GroupIdAdjustingStep(stepId, groupedColNames);
+  }
+
+  public RowIdEqualsStep createRowIdEqualsStep(int stepId, ExecutionEnvironment env, String colName,
+      Object[] sortedValues) {
+    return new RowIdEqualsStep(stepId, env, colName, sortedValues);
+  }
+
+  public RowIdEqualsStep createRowIdEqualsStep(int stepId, ExecutionEnvironment env, String colName,
+      String otherColName) {
+    return new RowIdEqualsStep(stepId, env, colName, otherColName);
+  }
+
+  public RowIdInequalStep createRowIdInequalStep(int stepId, ExecutionEnvironment env, String colName, Object value,
+      RowIdComparator comparator) {
+    return new RowIdInequalStep(stepId, env, colName, value, comparator);
+  }
+
+  public RowIdInequalStep createRowIdInequalStep2Cols(int stepId, ExecutionEnvironment env, String colName,
+      String otherColName, RowIdComparator comparator) {
+    return new RowIdInequalStep(stepId, env, colName, otherColName, comparator, true);
+  }
+
+  public OverwritingRowIdAndStep createOverwritingRowIdAndStep(int stepId) {
+    return new OverwritingRowIdAndStep(stepId);
+  }
+
+  public OverwritingRowIdOrStep createOverwritingRowIdOrStep(int stepId) {
+    return new OverwritingRowIdOrStep(stepId);
+  }
+
+  public OverwritingRowIdNotStep createOverwritingRowIdNotStep(int stepId) {
+    return new OverwritingRowIdNotStep(stepId);
+  }
+
+  public HavingResultStep createHavingResultStep(int stepId) {
+    return new HavingResultStep(stepId);
   }
 
 }

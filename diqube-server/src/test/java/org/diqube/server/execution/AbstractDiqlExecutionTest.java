@@ -37,7 +37,9 @@ import org.diqube.execution.ExecutablePlan;
 import org.diqube.execution.TableRegistry;
 import org.diqube.execution.consumers.AbstractThreadedColumnValueConsumer;
 import org.diqube.execution.consumers.AbstractThreadedOrderedRowIdConsumer;
+import org.diqube.execution.consumers.AbstractThreadedOverwritingRowIdConsumer;
 import org.diqube.execution.consumers.ColumnValueConsumer;
+import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.loader.LoaderColumnInfo;
 import org.diqube.loader.columnshard.ColumnShardBuilder;
 import org.diqube.loader.columnshard.ColumnShardBuilderFactory;
@@ -94,6 +96,8 @@ public abstract class AbstractDiqlExecutionTest<T> {
   protected Map<String, Map<Long, T>> resultValues;
   /** Result of the final ordering is there was one. This contains ordered list of row IDs. */
   protected List<Long> resultOrderRowIds;
+
+  protected Long[] resultHavingRowIds;
 
   /**
    * {@link Object#notifyAll()} will be called on this object as soon as new data is available in {@link #resultValues}
@@ -153,6 +157,7 @@ public abstract class AbstractDiqlExecutionTest<T> {
     columnValueConsumerIsDone = false;
     resultValues = new ConcurrentHashMap<>();
 
+    resultHavingRowIds = null;
     resultOrderRowIds = null;
     newValuesNotify = new Object();
     newOrderedRowIdsNotify = new Object();
@@ -191,6 +196,16 @@ public abstract class AbstractDiqlExecutionTest<T> {
             synchronized (newOrderedRowIdsNotify) {
               newOrderedRowIdsNotify.notifyAll();
             }
+          }
+        }).withHavingResultConsumer(new AbstractThreadedOverwritingRowIdConsumer(null) {
+
+          @Override
+          protected void allSourcesAreDone() {
+          }
+
+          @Override
+          protected void doConsume(ExecutionEnvironment env, Long[] rowIds) {
+            resultHavingRowIds = rowIds;
           }
         });
 

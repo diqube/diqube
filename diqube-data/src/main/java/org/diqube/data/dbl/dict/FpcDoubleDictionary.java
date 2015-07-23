@@ -70,6 +70,16 @@ public class FpcDoubleDictionary implements DoubleDictionary {
   }
 
   @Override
+  public Long getMaxId() {
+    Entry<Long, FpcPage> last = pages.lastEntry();
+
+    if (last == null)
+      return null;
+
+    return last.getKey() + last.getValue().getSize() - 1;
+  }
+
+  @Override
   public Double decompressValue(long id) throws IllegalArgumentException {
     if (id < 0 || id > highestId)
       throw new IllegalArgumentException("Id out of range. Requested " + id + " but available are " + highestId);

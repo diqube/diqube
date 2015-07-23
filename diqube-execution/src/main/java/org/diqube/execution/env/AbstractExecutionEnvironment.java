@@ -21,7 +21,9 @@
 package org.diqube.execution.env;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.diqube.data.ColumnType;
@@ -127,4 +129,12 @@ public abstract class AbstractExecutionEnvironment implements ExecutionEnvironme
   }
 
   abstract protected Map<String, ColumnShard> delegateGetAllColumnShards();
+
+  protected Set<String> getAllColumnNamesDefinedInThisEnv() {
+    Set<String> res = new HashSet<>();
+    res.addAll(tempDoubleColumns.keySet());
+    res.addAll(tempLongColumns.keySet());
+    res.addAll(tempStringColumns.keySet());
+    return res;
+  }
 }

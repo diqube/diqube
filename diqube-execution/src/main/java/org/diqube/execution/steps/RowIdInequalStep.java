@@ -35,6 +35,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -45,11 +46,15 @@ import org.diqube.data.colshard.ColumnPage;
 import org.diqube.data.colshard.ColumnShard;
 import org.diqube.data.colshard.StandardColumnShard;
 import org.diqube.execution.consumers.AbstractThreadedColumnBuiltConsumer;
+import org.diqube.execution.consumers.AbstractThreadedColumnVersionBuiltConsumer;
 import org.diqube.execution.consumers.AbstractThreadedRowIdConsumer;
 import org.diqube.execution.consumers.ColumnBuiltConsumer;
+import org.diqube.execution.consumers.ColumnVersionBuiltConsumer;
 import org.diqube.execution.consumers.GenericConsumer;
+import org.diqube.execution.consumers.OverwritingRowIdConsumer;
 import org.diqube.execution.consumers.RowIdConsumer;
 import org.diqube.execution.env.ExecutionEnvironment;
+import org.diqube.execution.env.VersionedExecutionEnvironment;
 import org.diqube.execution.exception.ExecutablePlanBuildException;
 import org.diqube.execution.exception.ExecutablePlanExecutionException;
 import org.diqube.util.HashingBatchCollector;
@@ -73,10 +78,16 @@ import org.slf4j.LoggerFactory;
  * are connected that way would be executed after each other, not parallel to each other. Therefore, usually a
  * {@link RowIdAndStep} is used.
  * 
+ * <p> This step can be used in the non-default execution by wiring an input {@link ColumnVersionBuiltConsumer}. It will
+ * then not run once-off, but continuously will run completely again based on a new
+ * {@link VersionedExecutionEnvironment}. The output in that case will not be the default {@link RowIdConsumer}, but an
+ * {@link OverwritingRowIdConsumer}. If no {@link ColumnVersionBuiltConsumer} is wired as input, the result will be a
+ * {@link RowIdConsumer}.
+ * 
  * <p> Only {@link StandardColumnShard}s supported.
  * 
- * <p> Input: 1 optional {@link ColumnPageConsumer}, 1 optional {@link RowIdConsumer} <br> Output: {@link RowIdConsumer}
- * s.
+ * <p> Input: 1 optional {@link ColumnBuiltConsumer}, 1 optional {@link ColumnVersionBuiltConsumer}, 1 optional
+ * {@link RowIdConsumer} <br> Output: {@link RowIdConsumer}s or {@link OverwritingRowIdConsumer}s (see above).
  *
  * @author Bastian Gloeckle
  */
@@ -84,28 +95,51 @@ public class RowIdInequalStep extends AbstractThreadedExecutablePlanStep {
 
   private static final Logger logger = LoggerFactory.getLogger(RowIdInequalStep.class);
 
-  /** Only important if {@link #colBuiltConsumerIsWired} == true */
-  private AtomicBoolean columnIsBuilt = new AtomicBoolean(false);
+  private AtomicInteger columnsBuilt = new AtomicInteger(0);
 
   private AbstractThreadedColumnBuiltConsumer colBuiltConsumer = new AbstractThreadedColumnBuiltConsumer(this) {
 
     @Override
     protected void doColumnBuilt(String colName) {
+      if (RowIdInequalStep.this.colName.equals(colName)
+          || (RowIdInequalStep.this.otherColName != null && RowIdInequalStep.this.otherColName.equals(colName)))
+        columnsBuilt.incrementAndGet();
     }
 
     @Override
     protected void allSourcesAreDone() {
-      RowIdInequalStep.this.columnIsBuilt.set(true);
     }
   };
 
-  private AtomicBoolean rowIdSourceIsEmpty = new AtomicBoolean(false);
+  private VersionedExecutionEnvironment newestVersionedEnvironment = null;
+  private Object newestVersionedEnvironmentSync = new Object();
+
+  private AbstractThreadedColumnVersionBuiltConsumer columnVersionBuiltConsumer =
+      new AbstractThreadedColumnVersionBuiltConsumer(this) {
+
+        @Override
+        protected void allSourcesAreDone() {
+        }
+
+        @Override
+        protected void doColumnBuilt(VersionedExecutionEnvironment env, String colName, Set<Long> adjustedRowIds) {
+          if (RowIdInequalStep.this.colName.equals(colName)
+              || (RowIdInequalStep.this.otherColName != null && RowIdInequalStep.this.otherColName.equals(colName))) {
+            synchronized (newestVersionedEnvironmentSync) {
+              if (newestVersionedEnvironment == null || env.getVersion() > newestVersionedEnvironment.getVersion())
+                newestVersionedEnvironment = env;
+            }
+          }
+        }
+      };
+
+  private AtomicBoolean rowIdSourceIsDone = new AtomicBoolean(false);
   private ConcurrentLinkedDeque<Long> inputRowIds = new ConcurrentLinkedDeque<>();
 
   private AbstractThreadedRowIdConsumer rowIdConsumer = new AbstractThreadedRowIdConsumer(this) {
     @Override
     public void allSourcesAreDone() {
-      RowIdInequalStep.this.rowIdSourceIsEmpty.set(true);
+      RowIdInequalStep.this.rowIdSourceIsDone.set(true);
     }
 
     @Override
@@ -137,6 +171,12 @@ public class RowIdInequalStep extends AbstractThreadedExecutablePlanStep {
   private RowIdComparator comparator;
 
   /**
+   * rowIds that have been reported to the {@link #rowIdConsumer} as input before. This is only maintained if
+   * {@link #columnVersionBuiltConsumer} is wired (and we therefore provide {@link OverwritingRowIdConsumer} output).
+   */
+  private NavigableSet<Long> cachedActiveRowIds = new TreeSet<>();
+
+  /**
    * The left operand to the comparison will always be the column, the right operand the constant.
    * 
    * @param value
@@ -162,9 +202,11 @@ public class RowIdInequalStep extends AbstractThreadedExecutablePlanStep {
    *          Freshly created instance of an implementation of {@link RowIdComparator}. If this step should compare with
    *          > {@link GtRowIdComparator}, if >= then {@link GtEqRowIdComparator}, if < {@link LtRowIdComparator}, if <=
    *          {@link LtEqRowIdComparator}.
+   * @param otherColNameUsed
+   *          provide true always. Needed because constructor is overloaded.
    */
   public RowIdInequalStep(int stepId, ExecutionEnvironment env, String colName, String otherColName,
-      RowIdComparator comparator) {
+      RowIdComparator comparator, boolean otherColNameUsed) {
     super(stepId);
     this.defaultEnv = env;
     this.colName = colName;
@@ -175,55 +217,79 @@ public class RowIdInequalStep extends AbstractThreadedExecutablePlanStep {
 
   @Override
   public void execute() {
-    if (colBuiltConsumer.getNumberOfTimesWired() > 0 && !columnIsBuilt.get())
+    ExecutionEnvironment curEnv;
+    synchronized (newestVersionedEnvironmentSync) {
+      curEnv = newestVersionedEnvironment;
+    }
+    boolean allInputColumnsFullyBuilt = (otherColName == null) ? columnsBuilt.get() == 1 : columnsBuilt.get() == 2;
+    if ((colBuiltConsumer.getNumberOfTimesWired() > 0 && columnVersionBuiltConsumer.getNumberOfTimesWired() > 0
+        && !allInputColumnsFullyBuilt && curEnv == null) || // both column consumer are wired, none has updates
+        (colBuiltConsumer.getNumberOfTimesWired() > 0 && columnVersionBuiltConsumer.getNumberOfTimesWired() == 0
+            && !allInputColumnsFullyBuilt)) // only the ColumnVersionBuilt is wired and has no updates
       // we need to wait for a column to be built but it is not yet built.
       return;
 
+    if (curEnv == null || allInputColumnsFullyBuilt)
+      curEnv = defaultEnv;
+    else {
+      // using a VersionedExecutionEnvironment. Check if all needed cols are available already.
+      if (otherColName == null && curEnv.getColumnShard(colName) == null || //
+          (otherColName != null
+              && (curEnv.getColumnShard(colName) == null || curEnv.getColumnShard(otherColName) == null)))
+        // at least one of the required columns is not yet available in curEnv
+        return;
+    }
+
     NavigableSet<Long> activeRowIds = null;
     if (rowIdConsumer.getNumberOfTimesWired() > 0) {
-      activeRowIds = new TreeSet<>();
+      activeRowIds = new TreeSet<>(cachedActiveRowIds);
       Long rowId;
       while ((rowId = inputRowIds.poll()) != null)
         activeRowIds.add(rowId);
 
       if (activeRowIds.isEmpty()) {
-        if (rowIdSourceIsEmpty.get() && inputRowIds.isEmpty()) {
+        if (rowIdSourceIsDone.get() && inputRowIds.isEmpty()) {
           forEachOutputConsumerOfType(GenericConsumer.class, c -> c.sourceIsDone());
           doneProcessing();
           return;
         }
       }
+
+      if (columnVersionBuiltConsumer.getNumberOfTimesWired() > 0)
+        cachedActiveRowIds = activeRowIds;
     }
 
-    if (defaultEnv.getColumnShard(colName) == null)
+    if (curEnv.getColumnShard(colName) == null)
       throw new ExecutablePlanExecutionException("Could not find column " + colName);
 
-    StandardColumnShard columnShard = (StandardColumnShard) defaultEnv.getColumnShard(colName);
+    StandardColumnShard columnShard = (StandardColumnShard) curEnv.getColumnShard(colName);
     NavigableMap<Long, ColumnPage> pages = columnShard.getPages();
 
     if (pages.size() > 0) {
       if (value != null) {
         // we're supposed to compare one column to constant values.
 
-        compareToConstant(value, columnShard, activeRowIds, comparator);
+        compareToConstant(curEnv, value, columnShard, activeRowIds, comparator);
       } else {
         // we're supposed to compare to cols to each other.
-        if (defaultEnv.getColumnShard(otherColName) == null)
+        if (curEnv.getColumnShard(otherColName) == null)
           throw new ExecutablePlanExecutionException("Could not find column " + otherColName);
 
-        if (!defaultEnv.getColumnType(colName).equals(defaultEnv.getColumnType(otherColName)))
+        if (!curEnv.getColumnType(colName).equals(curEnv.getColumnType(otherColName)))
           throw new ExecutablePlanExecutionException("Cannot compare column " + colName + " to column " + otherColName
               + " as they have different data types.");
 
-        StandardColumnShard otherColumnShard = (StandardColumnShard) defaultEnv.getColumnShard(otherColName);
+        StandardColumnShard otherColumnShard = (StandardColumnShard) curEnv.getColumnShard(otherColName);
 
         if (otherColumnShard.getPages().size() > 0)
-          executeOnOtherCol(columnShard, otherColumnShard, activeRowIds, comparator);
+          executeOnOtherCol(curEnv, columnShard, otherColumnShard, activeRowIds, comparator);
       }
     }
 
-    forEachOutputConsumerOfType(GenericConsumer.class, c -> c.sourceIsDone());
-    doneProcessing();
+    if (columnVersionBuiltConsumer.getNumberOfTimesWired() == 0 || allInputColumnsFullyBuilt) {
+      forEachOutputConsumerOfType(GenericConsumer.class, c -> c.sourceIsDone());
+      doneProcessing();
+    }
   }
 
   /**
@@ -240,15 +306,15 @@ public class RowIdInequalStep extends AbstractThreadedExecutablePlanStep {
    * @param comparator
    *          The comparator implementing >, >=, < and <=.
    */
-  private void compareToConstant(Object constantValue, StandardColumnShard column, NavigableSet<Long> activeRowIds,
-      RowIdComparator comparator) {
-    sendRowIds(rowIdStreamOfConstant(column, constantValue, activeRowIds, comparator));
+  private void compareToConstant(ExecutionEnvironment curEnv, Object constantValue, StandardColumnShard column,
+      NavigableSet<Long> activeRowIds, RowIdComparator comparator) {
+    sendRowIds(curEnv, rowIdStreamOfConstant(column, constantValue, activeRowIds, comparator));
   }
 
   /**
    * Executes a terminal operation on the given stream that will send the row IDs to all output {@link RowIdConsumer}s.
    */
-  private void sendRowIds(Stream<Long> rowIdStream) {
+  private void sendRowIds(ExecutionEnvironment curEnv, Stream<Long> rowIdStream) {
     rowIdStream. //
         collect(new HashingBatchCollector<Long>( // RowIds are unique, so using BatchCollector is ok.
             100, // Batch size
@@ -256,7 +322,10 @@ public class RowIdInequalStep extends AbstractThreadedExecutablePlanStep {
             new Consumer<Long[]>() { // Batch-collect the row IDs
               @Override
               public void accept(Long[] t) {
-                forEachOutputConsumerOfType(RowIdConsumer.class, c -> c.consume(t));
+                if (columnVersionBuiltConsumer.getNumberOfTimesWired() == 0)
+                  forEachOutputConsumerOfType(RowIdConsumer.class, c -> c.consume(t));
+                else
+                  forEachOutputConsumerOfType(OverwritingRowIdConsumer.class, c -> c.consume(curEnv, t));
               }
             }));
   }
@@ -273,7 +342,11 @@ public class RowIdInequalStep extends AbstractThreadedExecutablePlanStep {
    */
   private Stream<Long> rowIdStreamOfConstant(StandardColumnShard column, Object constantValue,
       NavigableSet<Long> activeRowIds, RowIdComparator comparator) {
-    long referenceColumnValueId = comparator.findReferenceColumnValueId(column, constantValue);
+    Long referenceColumnValueId = comparator.findReferenceColumnValueId(column, constantValue);
+
+    if (referenceColumnValueId == null)
+      // no entry matches, return empty stream.
+      return new ArrayList<Long>().stream();
 
     return column.getPages().values().stream().parallel(). // stream all Pages in parallel
         filter(new Predicate<ColumnPage>() { // filter out inactive Pages
@@ -339,8 +412,8 @@ public class RowIdInequalStep extends AbstractThreadedExecutablePlanStep {
    * @param comparator
    *          The comparator implementing >, >=, < or <=.
    */
-  private void executeOnOtherCol(StandardColumnShard leftColumn, StandardColumnShard rightColumn,
-      NavigableSet<Long> activeRowIds, RowIdComparator comparator) {
+  private void executeOnOtherCol(ExecutionEnvironment curEnv, StandardColumnShard leftColumn,
+      StandardColumnShard rightColumn, NavigableSet<Long> activeRowIds, RowIdComparator comparator) {
 
     NavigableMap<Long, Long> comparisonMap = comparator.calculateComparisonMap(leftColumn, rightColumn);
 
@@ -399,23 +472,33 @@ public class RowIdInequalStep extends AbstractThreadedExecutablePlanStep {
 
     });
 
-    sendRowIds(resultRowIdStream);
+    sendRowIds(curEnv, resultRowIdStream);
   }
 
   @Override
   public List<GenericConsumer> inputConsumers() {
-    return new ArrayList<>(Arrays.asList(new GenericConsumer[] { colBuiltConsumer, rowIdConsumer }));
+    return new ArrayList<>(
+        Arrays.asList(new GenericConsumer[] { colBuiltConsumer, rowIdConsumer, columnVersionBuiltConsumer }));
   }
 
   @Override
   protected void validateOutputConsumer(GenericConsumer consumer) throws IllegalArgumentException {
-    if (!(consumer instanceof RowIdConsumer))
-      throw new IllegalArgumentException("Only RowId consumers accepted!");
+    if (!(consumer instanceof RowIdConsumer) && !(consumer instanceof OverwritingRowIdConsumer))
+      throw new IllegalArgumentException("Only RowIdConsumers and OverwritingRowIdConsumer accepted!");
   }
 
   @Override
   protected void validateWiredStatus() throws ExecutablePlanBuildException {
-    // noop. If the input is wired it's fine, but if it isn't, it's fine, too.
+    boolean outputContainsDefault = outputConsumers.stream().anyMatch(c -> c instanceof RowIdConsumer);
+    boolean outputContainsOverwriting = outputConsumers.stream().anyMatch(c -> c instanceof OverwritingRowIdConsumer);
+    if (outputContainsDefault && outputContainsOverwriting)
+      throw new ExecutablePlanBuildException(
+          "Only either a RowIdConsumer or a OverwritingRowIdConsumer can be wired " + "as output!");
+    if (columnVersionBuiltConsumer.getNumberOfTimesWired() > 0 && !outputContainsOverwriting
+        || columnVersionBuiltConsumer.getNumberOfTimesWired() == 0 && !outputContainsDefault)
+      throw new ExecutablePlanBuildException("If ColumnVersionBuiltConsumer is wired, the overwriting output "
+          + "consumer needs to be wired, if no ColumnVersionBuiltConsumer is wired then the RowIdConsumer output "
+          + "needs to be wired.");
   }
 
   @Override
@@ -438,8 +521,10 @@ public class RowIdInequalStep extends AbstractThreadedExecutablePlanStep {
      * 
      * <p>
      * This method is called if a column is compared to a constant value.
+     * 
+     * @return <code>null</code> in case the column does not contain /any/ element that matches the comparator.
      */
-    public <T> long findReferenceColumnValueId(ColumnShard column, Object value);
+    public <T> Long findReferenceColumnValueId(ColumnShard column, Object value);
 
     /**
      * Quickly validates if a page contains any interesting rows when comparing to the given reference column value ID.
@@ -508,8 +593,8 @@ public class RowIdInequalStep extends AbstractThreadedExecutablePlanStep {
 
     @Override
     @SuppressWarnings("unchecked")
-    public <T> long findReferenceColumnValueId(ColumnShard column, Object value) {
-      long grEqId;
+    public <T> Long findReferenceColumnValueId(ColumnShard column, Object value) {
+      Long grEqId;
 
       try {
         grEqId = ((Dictionary<T>) column.getColumnShardDictionary()).findGtEqIdOfValue((T) value);
@@ -517,6 +602,9 @@ public class RowIdInequalStep extends AbstractThreadedExecutablePlanStep {
         throw new ExecutablePlanExecutionException(
             "Cannot compare column " + column.getName() + " with value of type " + value.getClass().getSimpleName());
       }
+      if (grEqId == null)
+        return null;
+
       // ignore positive/negative encoding
       if (grEqId < 0)
         grEqId = -(grEqId + 1);
@@ -561,15 +649,20 @@ public class RowIdInequalStep extends AbstractThreadedExecutablePlanStep {
 
     @SuppressWarnings("unchecked")
     @Override
-    public <T> long findReferenceColumnValueId(ColumnShard column, Object value) {
+    public <T> Long findReferenceColumnValueId(ColumnShard column, Object value) {
       // search less than or equal ID, when doing a > search later, this will find us the right results.
-      long ltEqId;
+      Long ltEqId;
       try {
         ltEqId = ((Dictionary<T>) column.getColumnShardDictionary()).findLtEqIdOfValue((T) value);
       } catch (ClassCastException e) {
         throw new ExecutablePlanExecutionException(
             "Cannot compare column " + column.getName() + " with value of type " + value.getClass().getSimpleName());
       }
+
+      if (ltEqId == null)
+        // no value <= our searched value, therefore /all/ values are valid. As we compare with "gt" later, lets use -1
+        // here.
+        return -1L;
 
       // ignore positive/negative encoding
       if (ltEqId < 0)
@@ -623,14 +716,16 @@ public class RowIdInequalStep extends AbstractThreadedExecutablePlanStep {
 
     @Override
     @SuppressWarnings("unchecked")
-    public <T> long findReferenceColumnValueId(ColumnShard column, Object value) {
-      long ltEq;
+    public <T> Long findReferenceColumnValueId(ColumnShard column, Object value) {
+      Long ltEq;
       try {
         ltEq = ((Dictionary<T>) column.getColumnShardDictionary()).findLtEqIdOfValue((T) value);
       } catch (ClassCastException e) {
         throw new ExecutablePlanExecutionException(
             "Cannot compare column " + column.getName() + " with value of type " + value.getClass().getSimpleName());
       }
+      if (ltEq == null)
+        return null;
 
       // ignore positive/negative encoding.
       if (ltEq < 0)
@@ -675,15 +770,24 @@ public class RowIdInequalStep extends AbstractThreadedExecutablePlanStep {
 
     @Override
     @SuppressWarnings("unchecked")
-    public <T> long findReferenceColumnValueId(ColumnShard column, Object value) {
+    public <T> Long findReferenceColumnValueId(ColumnShard column, Object value) {
       // find the ID of the next >= value compared to the requested one. When executing a strong < comparison later,
       // this will return the correct results.
-      long grEqId;
+      Long grEqId;
       try {
         grEqId = ((Dictionary<T>) column.getColumnShardDictionary()).findGtEqIdOfValue((T) value);
       } catch (ClassCastException e) {
         throw new ExecutablePlanExecutionException(
             "Cannot compare column " + column.getName() + " with value of type " + value.getClass().getSimpleName());
+      }
+      if (grEqId == null) {
+        Long maxId = column.getColumnShardDictionary().getMaxId();
+        if (maxId == null)
+          // shard dict is empty!
+          return null;
+
+        // return maxId + 1, as we compare using Lt later. That will give the correct results.
+        return maxId + 1;
       }
 
       // ignore positive/negative result encoding.

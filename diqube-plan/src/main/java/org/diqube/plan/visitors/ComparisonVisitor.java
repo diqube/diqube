@@ -109,7 +109,7 @@ public class ComparisonVisitor extends DiqlBaseVisitor<ComparisonRequest> {
       operator = exchangeOperandOperators.get(operator);
     }
 
-    res.setLeft(firstOperand);
+    res.setLeftColumnName(firstOperand.getColumnName());
     res.setRight(secondOperand);
     res.setOp(operator);
 

@@ -34,10 +34,14 @@ public class ExecutablePlanInfo {
 
   private boolean isGrouped;
 
-  /* package */ ExecutablePlanInfo(List<String> selectedColumnNames, boolean isOrdered, boolean isGrouped) {
+  private boolean having;
+
+  /* package */ ExecutablePlanInfo(List<String> selectedColumnNames, boolean isOrdered, boolean isGrouped,
+      boolean having) {
     this.selectedColumnNames = selectedColumnNames;
     this.isOrdered = isOrdered;
     this.isGrouped = isGrouped;
+    this.having = having;
   }
 
   /**
@@ -53,5 +57,12 @@ public class ExecutablePlanInfo {
 
   public boolean isGrouped() {
     return isGrouped;
+  }
+
+  /**
+   * @return <code>true</code> if executable plan executes a HAVING statement (can only be true on query master)
+   */
+  public boolean isHaving() {
+    return having;
   }
 }

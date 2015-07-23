@@ -55,15 +55,15 @@ public abstract class ComparisonRequest {
 
   public static class Leaf extends ComparisonRequest {
     private Operator op;
-    private ColumnOrValue left;
+    private String leftColumnName;
     private ColumnOrValue right;
 
-    public ColumnOrValue getLeft() {
-      return left;
+    public String getLeftColumnName() {
+      return leftColumnName;
     }
 
-    public void setLeft(ColumnOrValue left) {
-      this.left = left;
+    public void setLeftColumnName(String leftColumnName) {
+      this.leftColumnName = leftColumnName;
     }
 
     public Operator getOp() {
@@ -93,7 +93,7 @@ public abstract class ComparisonRequest {
 
     @Override
     public String toString() {
-      return "[" + getLeft().toString() + " " + op.toString() + " " + getRight().toString() + "]";
+      return "[" + getLeftColumnName().toString() + " " + op.toString() + " " + getRight().toString() + "]";
     }
   }
 

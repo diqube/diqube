@@ -28,7 +28,6 @@ import org.diqube.plan.exception.ValidationException;
 import org.diqube.plan.request.ComparisonRequest.Leaf;
 import org.diqube.plan.request.ExecutionRequest;
 import org.diqube.plan.request.FunctionRequest;
-import org.diqube.util.ColumnOrValue;
 import org.diqube.util.ColumnOrValue.Type;
 import org.diqube.util.Pair;
 
@@ -42,6 +41,7 @@ public class ExecutionPlanValidator {
       throws ValidationException {
 
     validateWhere(executionRequest, colInfos);
+    validateHaving(executionRequest, colInfos);
 
     noAggregationOnAggregation(colInfos);
 
@@ -125,21 +125,43 @@ public class ExecutionPlanValidator {
   private void validateWhere(ExecutionRequest executionRequest, Map<String, PlannerColumnInfo> colInfos) {
     if (executionRequest.getWhere() != null) {
       Collection<Leaf> leafs = executionRequest.getWhere().findRecursivelyAllOfType(Leaf.class);
-      Consumer<ColumnOrValue> validateCol = col -> {
-        if (colInfos.containsKey(col.getColumnName()) // could be that there is no colInfo if it's no generated
-                                                      // column.
-            && colInfos.get(col.getColumnName()).isTransitivelyDependsOnAggregation())
+      Consumer<String> validateCol = colName -> {
+        if (colInfos.containsKey(colName) // could be that there is no colInfo if it's no generated
+                                          // column.
+            && (colInfos.get(colName).isTransitivelyDependsOnAggregation()
+                || colInfos.get(colName).getType().equals(FunctionRequest.Type.AGGREGATION)))
           throw new ValidationException(
-              "Function '" + colInfos.get(col.getColumnName()).getProvidedByFunctionRequest().getFunctionName()
+              "Function '" + colInfos.get(colName).getProvidedByFunctionRequest().getFunctionName()
                   + "' is in WHERE clause and either is an aggregation function or relies on the "
                   + "result of an aggregation function. Aggregation functions can only be used in a HAVING clause.");
       };
 
       for (Leaf leaf : leafs) {
-        if (leaf.getLeft().getType().equals(Type.COLUMN))
-          validateCol.accept(leaf.getLeft());
+        validateCol.accept(leaf.getLeftColumnName());
         if (leaf.getRight().getType().equals(Type.COLUMN))
-          validateCol.accept(leaf.getRight());
+          validateCol.accept(leaf.getRight().getColumnName());
+      }
+    }
+  }
+
+  private void validateHaving(ExecutionRequest executionRequest, Map<String, PlannerColumnInfo> colInfos) {
+    if (executionRequest.getHaving() != null) {
+      Collection<Leaf> leafs = executionRequest.getHaving().findRecursivelyAllOfType(Leaf.class);
+      Consumer<String> validateCol = colName -> {
+        if (!colInfos.containsKey(colName) // could be that there is no colInfo if it's no generated
+                                           // column.
+            || (!colInfos.get(colName).isTransitivelyDependsOnAggregation()
+                && !colInfos.get(colName).getType().equals(FunctionRequest.Type.AGGREGATION)))
+          throw new ValidationException(
+              "Function '" + colInfos.get(colName).getProvidedByFunctionRequest().getFunctionName()
+                  + "' is in HAVING clause but it is not depending on the result of an aggregation. For performance "
+                  + "reasons, this restriction has to be used in a WHERE clause.");
+      };
+
+      for (Leaf leaf : leafs) {
+        validateCol.accept(leaf.getLeftColumnName());
+        if (leaf.getRight().getType().equals(Type.COLUMN))
+          validateCol.accept(leaf.getRight().getColumnName());
       }
     }
   }

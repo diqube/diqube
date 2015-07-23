@@ -31,9 +31,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.diqube.plan.request.ComparisonRequest.Leaf;
 import org.diqube.plan.request.ExecutionRequest;
 import org.diqube.plan.request.FunctionRequest;
-import org.diqube.plan.request.ComparisonRequest.Leaf;
 import org.diqube.plan.request.FunctionRequest.Type;
 import org.diqube.util.ColumnOrValue;
 
@@ -69,8 +69,7 @@ public class PlannerColumnInfoBuilder {
     if (executionRequest.getHaving() != null) {
       Collection<Leaf> leafs = executionRequest.getHaving().findRecursivelyAllOfType(Leaf.class);
       for (Leaf leaf : leafs) {
-        if (leaf.getLeft().getType().equals(ColumnOrValue.Type.COLUMN))
-          columnNamesUsedInHaving.add(leaf.getLeft().getColumnName());
+        columnNamesUsedInHaving.add(leaf.getLeftColumnName());
         if (leaf.getRight().getType().equals(ColumnOrValue.Type.COLUMN))
           columnNamesUsedInHaving.add(leaf.getRight().getColumnName());
       }

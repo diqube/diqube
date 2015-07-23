@@ -127,4 +127,9 @@ public class EmptyLongDictionary implements LongDictionary {
     return new TreeMap<>();
   }
 
+  @Override
+  public Long getMaxId() {
+    return null;
+  }
+
 }

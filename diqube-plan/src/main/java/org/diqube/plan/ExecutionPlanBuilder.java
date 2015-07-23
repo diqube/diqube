@@ -35,10 +35,12 @@ import org.diqube.execution.ExecutablePlanStep;
 import org.diqube.execution.consumers.ColumnValueConsumer;
 import org.diqube.execution.consumers.GroupFinalAggregationConsumer;
 import org.diqube.execution.consumers.OrderedRowIdConsumer;
+import org.diqube.execution.consumers.OverwritingRowIdConsumer;
 import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.env.ExecutionEnvironmentFactory;
 import org.diqube.execution.steps.FilterRequestedColumnsAndActiveRowIdsStep;
 import org.diqube.execution.steps.GroupFinalAggregationStep;
+import org.diqube.execution.steps.HavingResultStep;
 import org.diqube.execution.steps.OrderStep;
 import org.diqube.plan.exception.ParseException;
 import org.diqube.plan.exception.ValidationException;
@@ -64,6 +66,8 @@ public class ExecutionPlanBuilder {
 
   private ExecutionEnvironmentFactory executionEnvironmentFactory;
 
+  private OverwritingRowIdConsumer havingResultsConsumer;
+
   public ExecutionPlanBuilder(ExecutionPlannerFactory executionPlannerFactory,
       ExecutionEnvironmentFactory executionEnvironmentFactory) {
     this.executionPlannerFactory = executionPlannerFactory;
@@ -88,6 +92,11 @@ public class ExecutionPlanBuilder {
   public ExecutionPlanBuilder withFinalGroupFinalAggregationConsumer(
       GroupFinalAggregationConsumer finalGroupFinalAggregationConsumer) {
     this.finalGroupFinalAggregationConsumer = finalGroupFinalAggregationConsumer;
+    return this;
+  }
+
+  public ExecutionPlanBuilder withHavingResultConsumer(OverwritingRowIdConsumer havingResultsConsumer) {
+    this.havingResultsConsumer = havingResultsConsumer;
     return this;
   }
 
@@ -121,6 +130,9 @@ public class ExecutionPlanBuilder {
 
       if (finalGroupFinalAggregationConsumer != null && (step instanceof GroupFinalAggregationStep))
         step.addOutputConsumer(finalGroupFinalAggregationConsumer);
+
+      if (havingResultsConsumer != null && (step instanceof HavingResultStep))
+        step.addOutputConsumer(havingResultsConsumer);
     }
 
     return plan;

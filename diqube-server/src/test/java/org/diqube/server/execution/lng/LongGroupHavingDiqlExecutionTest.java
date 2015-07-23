@@ -18,26 +18,21 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.plan.planner;
+package org.diqube.server.execution.lng;
 
-import java.util.List;
-
-import org.diqube.plan.request.ComparisonRequest;
-import org.diqube.util.Pair;
+import org.diqube.data.ColumnType;
+import org.diqube.server.execution.GroupHavingDiqlExecutionTest;
+import org.testng.annotations.Test;
 
 /**
- * A {@link ComparisonRequestBuilder} builds steps for executing any comparisons of a query. A comparison can either
- * happen in a WHERE clause or in a HAVING clause.
+ * {@link GroupHavingDiqlExecutionTest} for long columns.
  *
  * @author Bastian Gloeckle
  */
-public interface ComparisonRequestBuilder<T> {
-  /**
-   * Inspect the {@link ComparisonRequest} and build the steps needed.
-   * 
-   * @return a Pair containign (1) the resulting root step which can be used to represent the whole comparison and which
-   *         internally links to all other steps. And (2) All comparison steps in a flat list.
-   */
-  public Pair<T, List<T>> build(ComparisonRequest comparisonRoot);
+@Test
+public class LongGroupHavingDiqlExecutionTest extends GroupHavingDiqlExecutionTest<Long> {
+  public LongGroupHavingDiqlExecutionTest() {
+    super(ColumnType.LONG, new LongTestDataProvider());
+  }
 
 }

@@ -37,9 +37,11 @@ import org.diqube.execution.ExecutablePlanInfo;
 import org.diqube.execution.ExecutablePlanStep;
 import org.diqube.execution.consumers.ColumnValueConsumer;
 import org.diqube.execution.consumers.GroupIntermediaryAggregationConsumer;
+import org.diqube.execution.consumers.OverwritingRowIdConsumer;
 import org.diqube.execution.consumers.RowIdConsumer;
 import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.steps.ExecuteRemotePlanOnShardsStep;
+import org.diqube.execution.steps.HavingResultStep;
 import org.diqube.plan.PlannerColumnInfo;
 import org.diqube.plan.PlannerColumnInfoBuilder;
 import org.diqube.plan.RemoteExecutionPlanFactory;
@@ -186,8 +188,6 @@ public class ExecutionPlanner {
 
       // TODO #24 we should make sure that results form GroupIntermediateAggregate steps are piped through an order step
       // in order to do a row-id cut-off.
-
-      // TODO #18 add HAVING
     }
 
     ExecutablePlanStep masterRowIdSourceStep = null;
@@ -300,6 +300,20 @@ public class ExecutionPlanner {
       // on the query master.
       masterColManager.wireGroupInput(groupIdAdjustStep);
 
+      if (executionRequest.getHaving() != null) {
+        HavingBuilder havingBuilder = new HavingBuilder(executablePlanFactory, nextMasterIdSupplier, masterColManager,
+            masterDefaultExecutionEnv, masterWireManager);
+
+        Pair<ExecutablePlanStep, List<ExecutablePlanStep>> p = havingBuilder.build(executionRequest.getHaving());
+
+        HavingResultStep havingResultStep = executablePlanFactory.createHavingResultStep(nextMasterIdSupplier.get());
+
+        masterWireManager.wire(OverwritingRowIdConsumer.class, p.getLeft(), havingResultStep);
+
+        allMasterSteps.addAll(p.getRight());
+        allMasterSteps.add(havingResultStep);
+      }
+
       if (masterRowIdStartStep != null) {
         masterWireManager.wire(RowIdConsumer.class, groupIdAdjustStep, masterRowIdStartStep);
         masterRowIdStartStep = groupIdAdjustStep;
@@ -354,7 +368,8 @@ public class ExecutionPlanner {
 
     boolean isOrdered = executionRequest.getOrder() != null;
     boolean isGrouped = executionRequest.getGroup() != null;
+    boolean having = executionRequest.getHaving() != null;
 
-    return executablePlanFactory.createExecutablePlanInfo(selectedCols, isOrdered, isGrouped);
+    return executablePlanFactory.createExecutablePlanInfo(selectedCols, isOrdered, isGrouped, having);
   }
 }

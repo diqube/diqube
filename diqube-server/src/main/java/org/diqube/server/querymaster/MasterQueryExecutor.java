@@ -21,7 +21,9 @@
 package org.diqube.server.querymaster;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -39,6 +41,8 @@ import org.diqube.execution.ExecutablePlanStep;
 import org.diqube.execution.consumers.AbstractThreadedColumnValueConsumer;
 import org.diqube.execution.consumers.AbstractThreadedGroupFinalAggregationConsumer;
 import org.diqube.execution.consumers.AbstractThreadedOrderedRowIdConsumer;
+import org.diqube.execution.consumers.AbstractThreadedOverwritingRowIdConsumer;
+import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.steps.ExecuteRemotePlanOnShardsStep;
 import org.diqube.plan.ExecutionPlanBuilder;
 import org.diqube.plan.ExecutionPlanBuilderFactory;
@@ -71,12 +75,16 @@ class MasterQueryExecutor {
   private volatile Map<Long, Map<String, Object>> valuesByRow = new ConcurrentHashMap<>();
   private List<Long> orderedRowIds;
   private Object orderedSync = new Object();
+  /** Row IDs reported by a HAVING clause. These rowIDs restrict the rowIds reported by other consumers! */
+  private Long[] havingRowIds;
+  private Object havingRowIdsSync = new Object();
 
   private Object waiter = new Object();
 
   private AtomicBoolean valuesDone = new AtomicBoolean(false);
   private AtomicBoolean groupsDone = new AtomicBoolean(false);
   private AtomicBoolean orderedDone = new AtomicBoolean(false);
+  private AtomicBoolean havingDone = new AtomicBoolean(false);
   private AtomicInteger updatesWaiting = new AtomicInteger(0);
   private Set<String> selectedColumnsSet;
   private boolean isGrouped;
@@ -85,6 +93,8 @@ class MasterQueryExecutor {
   private boolean createIntermediaryUpdates;
 
   private ExecutorManager executorManager;
+
+  private boolean isHaving;
 
   public MasterQueryExecutor(ExecutorManager executorManager, ExecutionPlanBuilderFactory executionPlanBuildeFactory,
       MasterQueryExecutor.QueryExecutorCallback callback, boolean createIntermediaryUpdates) {
@@ -176,15 +186,34 @@ class MasterQueryExecutor {
       }
     });
 
+    planBuilder.withHavingResultConsumer(new AbstractThreadedOverwritingRowIdConsumer(null) {
+      @Override
+      protected void allSourcesAreDone() {
+        havingDone.set(true);
+        scheduleUpdate();
+      }
+
+      @Override
+      protected void doConsume(ExecutionEnvironment env, Long[] rowIds) {
+        synchronized (havingRowIdsSync) {
+          havingRowIds = rowIds;
+        }
+        scheduleUpdate();
+      }
+    });
+
     ExecutablePlan plan = planBuilder.build();
     selectedColumnsSet = new HashSet<>(plan.getInfo().getSelectedColumnNames());
     selectedColumns = plan.getInfo().getSelectedColumnNames();
     isGrouped = plan.getInfo().isGrouped();
     isOrdered = plan.getInfo().isOrdered();
+    isHaving = plan.getInfo().isHaving();
     if (!isGrouped)
       groupsDone.set(true);
     if (!isOrdered)
       orderedDone.set(true);
+    if (!isHaving)
+      havingDone.set(true);
 
     Runnable r = new Runnable() {
       @Override
@@ -236,7 +265,7 @@ class MasterQueryExecutor {
         return;
       }
 
-      if (valuesDone.get() && orderedDone.get() && groupsDone.get() && planFuture.isDone()) {
+      if (valuesDone.get() && orderedDone.get() && groupsDone.get() && havingDone.get() && planFuture.isDone()) {
         callback.finalResultTableAvailable(createRResultTableFromCurrentValues());
         return;
       }
@@ -278,6 +307,21 @@ class MasterQueryExecutor {
 
     if (rowIds == null || rowIds.isEmpty())
       rowIds = new ArrayList<>(valuesByRow.keySet()); // TODO lines will jump?
+
+    if (isHaving) {
+      // if we have a rowId list from the HAVING execution, remove the row IDs that are not contained in that list!
+      Long[] activeHavingRowIds;
+      synchronized (havingRowIdsSync) {
+        activeHavingRowIds = havingRowIds;
+      }
+      Set<Long> havingRowIds = new HashSet<>(Arrays.asList(activeHavingRowIds));
+
+      for (Iterator<Long> rowIdIt = rowIds.iterator(); rowIdIt.hasNext();) {
+        Long rowId = rowIdIt.next();
+        if (!havingRowIds.contains(rowId))
+          rowIdIt.remove();
+      }
+    }
 
     List<List<RValue>> rows = new ArrayList<>();
     for (Long rowId : rowIds) {

@@ -102,16 +102,10 @@ public class RemoteExecutionPlanFactory {
     step.setStepId(stepId);
     step.setType(type);
     step.setDetailsRowId(new RExecutionPlanStepDetailsRowId());
-    ColumnOrValue left = comparisonLeaf.getLeft();
+    String leftColName = comparisonLeaf.getLeftColumnName();
     ColumnOrValue right = comparisonLeaf.getRight();
-    if (left.getType().equals(Type.LITERAL)) {
-      // at least one is column. make sure 'left' contains a col.
-      ColumnOrValue tmp = left;
-      left = right;
-      right = tmp;
-    }
 
-    step.getDetailsRowId().setColumn(new RCol(RCol._Fields.COL_NAME, left.getColumnName()));
+    step.getDetailsRowId().setColumn(new RCol(RCol._Fields.COL_NAME, leftColName));
     if (right.getType().equals(Type.COLUMN))
       step.getDetailsRowId().setOtherColumn(new RCol(RCol._Fields.COL_NAME, right.getColumnName()));
     else

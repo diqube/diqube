@@ -24,6 +24,7 @@ import java.util.Map;
 
 import org.diqube.data.TableShard;
 import org.diqube.data.colshard.ColumnShard;
+import org.diqube.data.colshard.StandardColumnShard;
 import org.diqube.data.dbl.DoubleColumnShard;
 import org.diqube.data.lng.LongColumnShard;
 import org.diqube.data.str.StringColumnShard;
@@ -54,6 +55,25 @@ public class DelegatingExecutionEnvironment extends AbstractExecutionEnvironment
   @Override
   public long getFirstRowIdInShard() {
     return delegate.getFirstRowIdInShard();
+  }
+
+  @Override
+  public long getLastRowIdInShard() {
+    long lastRowIdInTableShard = delegate.getLastRowIdInShard();
+
+    for (String colName : getAllColumnNamesDefinedInThisEnv()) {
+      ColumnShard colShard = getColumnShard(colName);
+      if (colShard instanceof StandardColumnShard) {
+        long lastRowInColShard =
+            colShard.getFirstRowId() + ((StandardColumnShard) colShard).getNumberOfRowsInColumnShard() - 1;
+        lastRowIdInTableShard = Math.max(lastRowIdInTableShard, lastRowInColShard);
+      }
+    }
+
+    if (lastRowIdInTableShard == -1 && !getAllColumnNamesDefinedInThisEnv().isEmpty())
+      return getFirstRowIdInShard(); // 1 row only
+
+    return lastRowIdInTableShard;
   }
 
   @Override

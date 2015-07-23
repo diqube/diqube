@@ -20,23 +20,30 @@
  */
 package org.diqube.execution.consumers;
 
-import org.diqube.execution.consumers.GenericConsumer.IdentifyingConsumerClass;
+import org.diqube.execution.ExecutablePlanStep;
+import org.diqube.execution.env.ExecutionEnvironment;
+import org.diqube.execution.steps.AbstractThreadedExecutablePlanStep;
 
 /**
- * A {@link ContinuousConsumer} that accepts Row IDs.
- *
- * This is similar to {@link OverwritingRowIdConsumer}, but this is a {@link ContinuousConsumer}, i.e. with each call to
- * the {@link #consume(Long[])} method there are a few new rowIds provided which are as valid as rowIds provided in
- * earlier calls: The new ones extend the set of the valid rowIds.
+ * Abstract base class of {@link OverwritingRowIdConsumer}s that handles calling the {@link ExecutablePlanStep}
+ * correctly when there is new data.
  *
  * @author Bastian Gloeckle
  */
-@IdentifyingConsumerClass(RowIdConsumer.class)
-public interface RowIdConsumer extends ContinuousConsumer {
-  /**
-   * Called when there are a few new row IDs available in the source, which extend the set of valid rowIds.
-   * 
-   * TODO #8 check if the param should be a List<>
-   */
-  public void consume(Long[] rowIds);
+public abstract class AbstractThreadedOverwritingRowIdConsumer extends AbstractPlanStepBasedGenericConsumer
+    implements OverwritingRowIdConsumer {
+
+  public AbstractThreadedOverwritingRowIdConsumer(AbstractThreadedExecutablePlanStep planStep) {
+    super(planStep);
+  }
+
+  @Override
+  public void consume(ExecutionEnvironment env, Long[] rowIds) {
+    doConsume(env, rowIds);
+    if (planStep != null)
+      planStep.continueProcessing();
+  }
+
+  abstract protected void doConsume(ExecutionEnvironment env, Long[] rowIds);
+
 }

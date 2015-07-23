@@ -21,22 +21,26 @@
 package org.diqube.execution.consumers;
 
 import org.diqube.execution.consumers.GenericConsumer.IdentifyingConsumerClass;
+import org.diqube.execution.env.ExecutionEnvironment;
 
 /**
- * A {@link ContinuousConsumer} that accepts Row IDs.
- *
- * This is similar to {@link OverwritingRowIdConsumer}, but this is a {@link ContinuousConsumer}, i.e. with each call to
- * the {@link #consume(Long[])} method there are a few new rowIds provided which are as valid as rowIds provided in
- * earlier calls: The new ones extend the set of the valid rowIds.
+ * A consumer that cosnumes row IDs, but in contrast to the usual {@link RowIdConsumer}, this is an
+ * {@link OverwritingConsumer}.
+ * 
+ * This means that which each call to {@link #consume(ExecutionEnvironment, Long[])} the rowIds provided by previous
+ * calls are invalid.
  *
  * @author Bastian Gloeckle
  */
-@IdentifyingConsumerClass(RowIdConsumer.class)
-public interface RowIdConsumer extends ContinuousConsumer {
+@IdentifyingConsumerClass(OverwritingRowIdConsumer.class)
+public interface OverwritingRowIdConsumer extends OverwritingConsumer {
   /**
-   * Called when there are a few new row IDs available in the source, which extend the set of valid rowIds.
+   * Called when there is a new finite set of row IDs available in the source.
    * 
-   * TODO #8 check if the param should be a List<>
+   * @param env
+   *          The {@link ExecutionEnvironment} on whichs base the given rowIds were calculated.
+   * @param rowIds
+   *          The rowIds that are active.
    */
-  public void consume(Long[] rowIds);
+  public void consume(ExecutionEnvironment env, Long[] rowIds);
 }
