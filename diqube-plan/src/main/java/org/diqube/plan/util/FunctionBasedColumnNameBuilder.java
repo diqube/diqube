@@ -70,6 +70,7 @@ public class FunctionBasedColumnNameBuilder {
     // TODO #26 if function does not care about order of parameters, we should create a standardized name (enables
     // better caching)
     // TODO #26 for caching of aggregate functions, we need to have the group-by cols in the name, too.
+    // TODO #43 Use exchangeableParameterIndices in order to not do too much work.
     for (String paramName : parameterNames) {
       sb.append(paramName);
       sb.append(",");

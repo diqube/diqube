@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
@@ -39,12 +40,15 @@ import org.diqube.data.TableShard;
 import org.diqube.data.colshard.ColumnPage;
 import org.diqube.data.colshard.ColumnShard;
 import org.diqube.data.colshard.StandardColumnShard;
+import org.diqube.execution.consumers.AbstractThreadedColumnBuiltConsumer;
 import org.diqube.execution.consumers.AbstractThreadedRowIdConsumer;
+import org.diqube.execution.consumers.ColumnBuiltConsumer;
 import org.diqube.execution.consumers.GenericConsumer;
 import org.diqube.execution.consumers.GroupConsumer;
 import org.diqube.execution.consumers.GroupDeltaConsumer;
 import org.diqube.execution.consumers.RowIdConsumer;
 import org.diqube.execution.env.ExecutionEnvironment;
+import org.diqube.execution.exception.ExecutablePlanBuildException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,16 +72,29 @@ import com.google.common.collect.Sets;
  * The columns which should be grouped by are expected to be {@link StandardColumnShard}s.
  * 
  * <p>
- * Input: 1 {@link RowIdConsumer}<br>
+ * Input: 1 {@link RowIdConsumer}, 1 optional {@link ColumnBuiltConsumer} <br>
  * Output: {@link RowIdConsumer} and/or {@link GroupConsumer} and/or {@link GroupDeltaConsumer}.
  *
- * <p>
- * TODO #9 support grouping on projected columns. This would lead to having a ColumnBuiltConsumer as input
- * 
  * @author Bastian Gloeckle
  */
 public class GroupStep extends AbstractThreadedExecutablePlanStep {
   private static final Logger logger = LoggerFactory.getLogger(GroupStep.class);
+
+  private AtomicBoolean allColumnsBuilt = new AtomicBoolean(false);
+  private Set<String> columnsThatNeedToBeBuilt;
+  private AbstractThreadedColumnBuiltConsumer columnBuiltConsumer = new AbstractThreadedColumnBuiltConsumer(this) {
+    @Override
+    protected void allSourcesAreDone() {
+    }
+
+    @Override
+    protected void doColumnBuilt(String colName) {
+      columnsThatNeedToBeBuilt.remove(colName);
+
+      if (columnsThatNeedToBeBuilt.isEmpty())
+        allColumnsBuilt.set(true);
+    }
+  };
 
   private AtomicBoolean sourceIsEmpty = new AtomicBoolean(false);
   private ConcurrentLinkedDeque<Long> rowIds = new ConcurrentLinkedDeque<>();
@@ -104,20 +121,15 @@ public class GroupStep extends AbstractThreadedExecutablePlanStep {
   private Map<Long, List<Long>> groups = new HashMap<>();
   private List<String> colNamesToGroupBy;
 
+  private ExecutionEnvironment defaultEnv;
+
   public GroupStep(int stepId, ExecutionEnvironment env, List<String> colNamesToGroupBy) {
     super(stepId);
+    this.defaultEnv = env;
     this.colNamesToGroupBy = colNamesToGroupBy;
 
-    // resolve to column shard objects
-    List<ColumnShard> columnsToGroupBy = colNamesToGroupBy.stream().map(new Function<String, ColumnShard>() {
-      @Override
-      public ColumnShard apply(String colName) {
-        return env.getColumnShard(colName);
-      }
-    }).collect(Collectors.toList());
-
-    // create groupers.
-    headGrouper = createGroupers(columnsToGroupBy, 0).get();
+    columnsThatNeedToBeBuilt = new ConcurrentSkipListSet<>(colNamesToGroupBy);
+    columnsThatNeedToBeBuilt.removeAll(env.getAllColumnShards().keySet());
   }
 
   /**
@@ -125,18 +137,27 @@ public class GroupStep extends AbstractThreadedExecutablePlanStep {
    * the resulting Supplier will supply a new {@link Grouper} instance that will group by all column in columnsToGroupBy
    * with index starting from the provided one.
    */
-  private Supplier<Grouper> createGroupers(List<ColumnShard> columnsToGroupBy, int index) {
+  private Supplier<Grouper> createGroupers(List<String> columnsToGroupBy, int index) {
     return () -> {
       if (index == columnsToGroupBy.size())
         // Use a Leaf grouper after the last Non-lead grouper.
         return new Grouper();
 
-      return new Grouper(columnsToGroupBy.get(index), createGroupers(columnsToGroupBy, index + 1));
+      ColumnShard shard = defaultEnv.getColumnShard(columnsToGroupBy.get(index));
+      return new Grouper(shard, createGroupers(columnsToGroupBy, index + 1));
     };
   }
 
   @Override
   protected void execute() {
+    if (columnBuiltConsumer.getNumberOfTimesWired() > 0 && !allColumnsBuilt.get())
+      // we wait until our columns are all built.
+      return;
+
+    if (headGrouper == null)
+      // create groupers. Do this just now, as we know that now really all columns are available!
+      headGrouper = createGroupers(colNamesToGroupBy, 0).get();
+
     List<Long> activeRowIds = new ArrayList<>();
     Long newRowId;
     while ((newRowId = rowIds.poll()) != null)
@@ -178,6 +199,13 @@ public class GroupStep extends AbstractThreadedExecutablePlanStep {
   }
 
   @Override
+  protected void validateWiredStatus() throws ExecutablePlanBuildException {
+    if (rowIdConsumer.getNumberOfTimesWired() == 0)
+      throw new ExecutablePlanBuildException("RowId input not wired.");
+    // ColumnBuiltConsumer does not have to be wired.
+  }
+
+  @Override
   protected void validateOutputConsumer(GenericConsumer consumer) throws IllegalArgumentException {
     if (!(consumer instanceof RowIdConsumer) && !(consumer instanceof GroupConsumer)
         && !(consumer instanceof GroupDeltaConsumer))
@@ -186,7 +214,7 @@ public class GroupStep extends AbstractThreadedExecutablePlanStep {
 
   @Override
   protected List<GenericConsumer> inputConsumers() {
-    return Arrays.asList(new GenericConsumer[] { rowIdConsumer });
+    return Arrays.asList(new GenericConsumer[] { rowIdConsumer, columnBuiltConsumer });
   }
 
   /**
@@ -281,4 +309,5 @@ public class GroupStep extends AbstractThreadedExecutablePlanStep {
   protected String getAdditionalToStringDetails() {
     return "colsToGroupBy=" + colNamesToGroupBy;
   }
+
 }

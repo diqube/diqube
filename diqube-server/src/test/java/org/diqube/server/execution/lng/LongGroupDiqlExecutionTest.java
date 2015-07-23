@@ -30,6 +30,7 @@ import java.util.concurrent.Future;
 
 import org.diqube.data.ColumnType;
 import org.diqube.execution.ExecutablePlan;
+import org.diqube.plan.exception.ValidationException;
 import org.diqube.plan.util.FunctionBasedColumnNameBuilder;
 import org.diqube.server.execution.GroupDiqlExecutionTest;
 import org.diqube.util.Pair;
@@ -414,5 +415,74 @@ public class LongGroupDiqlExecutionTest extends GroupDiqlExecutionTest<Long> {
     } finally {
       executor.shutdownNow();
     }
+  }
+
+  @Test
+  public void groupOnProjection1Test() throws InterruptedException, ExecutionException {
+    Object[] colAValues = dp.a(97, 5, 100, 1, 99, 1);
+    Object[] colBValues = dp.a(2, 1, 0, 5, 0, 5);
+    initializeSimpleTable(colAValues, colBValues);
+    // GIVEN
+    ExecutablePlan executablePlan = buildExecutablePlan("Select add(" + COL_B + ", " + COL_A + "), count() from "
+        + TABLE + " group by add(" + COL_A + ", " + COL_B + ") order by count() desc");
+    ExecutorService executor = executors.newTestExecutor(executablePlan.preferredExecutorServiceSize());
+    try {
+      // WHEN
+      // executing it on the sample table
+      Future<Void> future = executablePlan.executeAsynchronously(executor);
+      future.get(); // wait until done.
+
+      // THEN
+      Assert.assertTrue(columnValueConsumerIsDone, "Source should have reported 'done'");
+      Assert.assertTrue(future.isDone(), "Future should report done");
+      Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
+
+      String resAddColName = new FunctionBasedColumnNameBuilder().withFunctionName("add").addParameterColumnName(COL_B)
+          .addParameterColumnName(COL_A).build();
+      String resCountColName = new FunctionBasedColumnNameBuilder().withFunctionName("count").build();
+
+      Assert.assertTrue(resultValues.containsKey(resAddColName), "Expected results for add col");
+      Assert.assertTrue(resultValues.containsKey(resCountColName), "Expected results for count col");
+      Assert.assertEquals(resultValues.keySet().size(), 2, "Expected to have correct amount of result cols");
+
+      List<Pair<Long, Long>> expectedResult = new ArrayList<>();
+      expectedResult.add(new Pair<>(6L, 3L));
+      expectedResult.add(new Pair<>(99L, 2L));
+      expectedResult.add(new Pair<>(100L, 1L));
+
+      for (int orderedRowId = 0; orderedRowId < expectedResult.size(); orderedRowId++) {
+        long rowId = resultOrderRowIds.get(orderedRowId);
+        Long addValue = resultValues.get(resAddColName).get(rowId);
+        Long countValue = resultValues.get(resCountColName).get(rowId);
+
+        Pair<Long, Long> actualValue = new Pair<>(addValue, countValue);
+
+        Assert.assertEquals(actualValue, expectedResult.get(orderedRowId),
+            "Expected correct result at ordered index " + orderedRowId + " (" + rowId + ")");
+      }
+
+    } finally {
+      executor.shutdownNow();
+    }
+  }
+
+  @Test(expectedExceptions = ValidationException.class)
+  public void groupOnAggregationTest() throws InterruptedException, ExecutionException {
+    Object[] colAValues = dp.a(97, 5, 100, 1, 99, 1);
+    Object[] colBValues = dp.a(2, 1, 0, 5, 0, 5);
+    initializeSimpleTable(colAValues, colBValues);
+    // GIVEN WHEN
+    buildExecutablePlan("Select " + COL_A + ", count() from " + TABLE + " group by add(" + COL_A + ", count())");
+    // THEN: exception.
+  }
+
+  @Test(expectedExceptions = ValidationException.class)
+  public void groupOnContantTest() throws InterruptedException, ExecutionException {
+    Object[] colAValues = dp.a(97, 5, 100, 1, 99, 1);
+    Object[] colBValues = dp.a(2, 1, 0, 5, 0, 5);
+    initializeSimpleTable(colAValues, colBValues);
+    // GIVEN WHEN
+    buildExecutablePlan("Select " + COL_A + ", count() from " + TABLE + " group by id(1)");
+    // THEN: exception.
   }
 }

@@ -176,6 +176,17 @@ public class ExecutionPlanner {
     if (executionRequest.getGroup() != null) {
       RExecutionPlanStep groupStep =
           remoteExecutionPlanFactory.createGroup(executionRequest.getGroup(), nextRemoteIdSupplier.get());
+
+      for (String groupByCol : executionRequest.getGroup().getGroupColumns()) {
+        // (1) make sure the columnBuiltConsumer is wired to the group step so the latter does not start too early
+        remoteColManager.wireOutputOfColumnIfAvailable(groupByCol, groupStep);
+
+        // (2) make sure that the values of the group by columns are sent to the master - these are needed for the
+        // group ID adjustment step! We do not need to build a column for that (the GroupIdAdjust step just consumes the
+        // values), but we definitely need to send the values!
+        remoteResolveManager.resolveValuesOfColumn(groupByCol);
+      }
+
       // group step consumes rowIDs provided by previous RowID consumer and provides the RowIDs for every future step
       // (because it will drastically reduce number of rowIds, because it merges multiple rows into groups -> groupIds
       // are rowIds).

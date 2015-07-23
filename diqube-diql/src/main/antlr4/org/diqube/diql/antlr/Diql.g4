@@ -74,7 +74,7 @@ resultValue
  ;
 
 groupByClause
- : K_GROUP K_BY columnName ( ',' columnName )* ( K_HAVING comparison )?
+ : K_GROUP K_BY anyValue ( ',' anyValue )* ( K_HAVING comparison )?
  ;
 
 literalValue

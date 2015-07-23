@@ -23,12 +23,13 @@ package org.diqube.plan.visitors;
 import java.util.ArrayList;
 
 import org.antlr.v4.runtime.ParserRuleContext;
+import org.apache.http.ParseException;
 import org.diqube.diql.antlr.DiqlBaseVisitor;
-import org.diqube.diql.antlr.DiqlParser.AnyNameContext;
-import org.diqube.diql.antlr.DiqlParser.ColumnNameContext;
+import org.diqube.diql.antlr.DiqlParser.AnyValueContext;
 import org.diqube.diql.antlr.DiqlParser.GroupByClauseContext;
 import org.diqube.plan.request.ComparisonRequest;
 import org.diqube.plan.request.GroupRequest;
+import org.diqube.util.ColumnOrValue;
 import org.diqube.util.Pair;
 
 /**
@@ -53,13 +54,15 @@ public class GroupByVisitor extends DiqlBaseVisitor<Pair<GroupRequest, Compariso
 
     GroupRequest groupRequestRes = new GroupRequest();
 
-    int columnNameCnt = 0;
-    ColumnNameContext columnNameCtx;
-    // TODO #9 support projected columns
-    while ((columnNameCtx = groupByCtx.getChild(ColumnNameContext.class, columnNameCnt++)) != null) {
-      String colName = columnNameCtx.getChild(AnyNameContext.class, 0).getText();
+    int anyValueCnt = 0;
+    AnyValueContext anyValueCtx;
+    while ((anyValueCtx = groupByCtx.getChild(AnyValueContext.class, anyValueCnt++)) != null) {
+      ColumnOrValue groupBy = anyValueCtx.accept(new AnyValueVisitor(env));
 
-      groupRequestRes.getGroupColumns().add(colName);
+      if (!groupBy.getType().equals(ColumnOrValue.Type.COLUMN))
+        throw new ParseException("Can only group on columns.");
+
+      groupRequestRes.getGroupColumns().add(groupBy.getColumnName());
     }
 
     ComparisonRequest havingRequestRes =

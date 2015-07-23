@@ -55,6 +55,8 @@ public class ExecutionPlanValidator {
 
     orderByColumnsOnly(executionRequest, colInfos);
 
+    validateGroupBy(executionRequest, colInfos);
+
     // TODO #23 validate if functions are used correctly (= correct number of params, correct types)
 
   }
@@ -162,6 +164,22 @@ public class ExecutionPlanValidator {
         validateCol.accept(leaf.getLeftColumnName());
         if (leaf.getRight().getType().equals(Type.COLUMN))
           validateCol.accept(leaf.getRight().getColumnName());
+      }
+    }
+  }
+
+  private void validateGroupBy(ExecutionRequest executionRequest, Map<String, PlannerColumnInfo> colInfos) {
+    if (executionRequest.getGroup() != null) {
+      for (String groupByCol : executionRequest.getGroup().getGroupColumns()) {
+        if (!colInfos.containsKey(groupByCol))
+          continue;
+
+        if (colInfos.get(groupByCol).isTransitivelyDependsOnAggregation()
+            || colInfos.get(groupByCol).getType().equals(FunctionRequest.Type.AGGREGATION))
+          throw new ValidationException("Cannot group on aggregation functions.");
+
+        if (colInfos.get(groupByCol).isTransitivelyDependsOnLiteralsOnly())
+          throw new ValidationException("Cannot group on projections that are based on constants only.");
       }
     }
   }
