@@ -51,6 +51,10 @@ The diqube server itself does not contain the diqube UI (will be implemented soo
 output!). The UI is available as standard web archive (.war file) which can be deployed e.g. to a standard 
 [Apache Tomcat][3]. You can find the .war in diqube-ui/target after building.
 
+##Documentation##
+
+See the  [`docs`](/docs) directory for some documentation.
+
 ##License##
 
 diqube is distributed under the terms of the [GNU Affero General Public License 3][4].
