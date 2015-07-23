@@ -33,13 +33,11 @@ import org.diqube.diql.antlr.DiqlParser.DiqlStmtContext;
 import org.diqube.execution.ExecutablePlan;
 import org.diqube.execution.ExecutablePlanStep;
 import org.diqube.execution.consumers.ColumnValueConsumer;
-import org.diqube.execution.consumers.GroupFinalAggregationConsumer;
 import org.diqube.execution.consumers.OrderedRowIdConsumer;
 import org.diqube.execution.consumers.OverwritingRowIdConsumer;
 import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.env.ExecutionEnvironmentFactory;
 import org.diqube.execution.steps.FilterRequestedColumnsAndActiveRowIdsStep;
-import org.diqube.execution.steps.GroupFinalAggregationStep;
 import org.diqube.execution.steps.HavingResultStep;
 import org.diqube.execution.steps.OrderStep;
 import org.diqube.plan.exception.ParseException;
@@ -61,8 +59,6 @@ public class ExecutionPlanBuilder {
   private ColumnValueConsumer finalColumnValueConsumer;
 
   private OrderedRowIdConsumer finalOrderedRowIdConsumer;
-
-  private GroupFinalAggregationConsumer finalGroupFinalAggregationConsumer;
 
   private ExecutionEnvironmentFactory executionEnvironmentFactory;
 
@@ -86,12 +82,6 @@ public class ExecutionPlanBuilder {
 
   public ExecutionPlanBuilder withFinalOrderedRowIdConsumer(OrderedRowIdConsumer finalOrderedRowIdConsumer) {
     this.finalOrderedRowIdConsumer = finalOrderedRowIdConsumer;
-    return this;
-  }
-
-  public ExecutionPlanBuilder withFinalGroupFinalAggregationConsumer(
-      GroupFinalAggregationConsumer finalGroupFinalAggregationConsumer) {
-    this.finalGroupFinalAggregationConsumer = finalGroupFinalAggregationConsumer;
     return this;
   }
 
@@ -127,9 +117,6 @@ public class ExecutionPlanBuilder {
 
       if (finalOrderedRowIdConsumer != null && (step instanceof OrderStep))
         step.addOutputConsumer(finalOrderedRowIdConsumer);
-
-      if (finalGroupFinalAggregationConsumer != null && (step instanceof GroupFinalAggregationStep))
-        step.addOutputConsumer(finalGroupFinalAggregationConsumer);
 
       if (havingResultsConsumer != null && (step instanceof HavingResultStep))
         step.addOutputConsumer(havingResultsConsumer);
@@ -178,9 +165,5 @@ public class ExecutionPlanBuilder {
 
   public OrderedRowIdConsumer getFinalOrderedRowIdConsumer() {
     return finalOrderedRowIdConsumer;
-  }
-
-  public GroupFinalAggregationConsumer getFinalGroupFinalAggregationConsumer() {
-    return finalGroupFinalAggregationConsumer;
   }
 }

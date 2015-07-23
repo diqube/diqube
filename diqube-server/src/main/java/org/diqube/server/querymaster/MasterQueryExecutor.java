@@ -39,7 +39,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.diqube.execution.ExecutablePlan;
 import org.diqube.execution.ExecutablePlanStep;
 import org.diqube.execution.consumers.AbstractThreadedColumnValueConsumer;
-import org.diqube.execution.consumers.AbstractThreadedGroupFinalAggregationConsumer;
 import org.diqube.execution.consumers.AbstractThreadedOrderedRowIdConsumer;
 import org.diqube.execution.consumers.AbstractThreadedOverwritingRowIdConsumer;
 import org.diqube.execution.env.ExecutionEnvironment;
@@ -82,12 +81,10 @@ class MasterQueryExecutor {
   private Object waiter = new Object();
 
   private AtomicBoolean valuesDone = new AtomicBoolean(false);
-  private AtomicBoolean groupsDone = new AtomicBoolean(false);
   private AtomicBoolean orderedDone = new AtomicBoolean(false);
   private AtomicBoolean havingDone = new AtomicBoolean(false);
   private AtomicInteger updatesWaiting = new AtomicInteger(0);
   private Set<String> selectedColumnsSet;
-  private boolean isGrouped;
   private boolean isOrdered;
   private List<String> selectedColumns;
   private boolean createIntermediaryUpdates;
@@ -146,29 +143,6 @@ class MasterQueryExecutor {
       }
     });
 
-    planBuilder.withFinalGroupFinalAggregationConsumer(new AbstractThreadedGroupFinalAggregationConsumer(null) {
-
-      @Override
-      protected void allSourcesAreDone() {
-        groupsDone.set(true);
-        scheduleUpdate();
-      }
-
-      @Override
-      protected void doConsumeAggregationResult(long groupId, String colName, Object result) {
-        if (!valuesByRow.containsKey(groupId)) {
-          synchronized (valuesByRow) {
-            if (!valuesByRow.containsKey(groupId)) {
-              valuesByRow.put(groupId, new ConcurrentHashMap<>());
-            }
-          }
-        }
-
-        valuesByRow.get(groupId).put(colName, result);
-        scheduleUpdate();
-      }
-    });
-
     planBuilder.withFinalOrderedRowIdConsumer(new AbstractThreadedOrderedRowIdConsumer(null) {
 
       @Override
@@ -205,11 +179,8 @@ class MasterQueryExecutor {
     ExecutablePlan plan = planBuilder.build();
     selectedColumnsSet = new HashSet<>(plan.getInfo().getSelectedColumnNames());
     selectedColumns = plan.getInfo().getSelectedColumnNames();
-    isGrouped = plan.getInfo().isGrouped();
     isOrdered = plan.getInfo().isOrdered();
     isHaving = plan.getInfo().isHaving();
-    if (!isGrouped)
-      groupsDone.set(true);
     if (!isOrdered)
       orderedDone.set(true);
     if (!isHaving)
@@ -265,7 +236,7 @@ class MasterQueryExecutor {
         return;
       }
 
-      if (valuesDone.get() && orderedDone.get() && groupsDone.get() && havingDone.get() && planFuture.isDone()) {
+      if (valuesDone.get() && orderedDone.get() && havingDone.get() && planFuture.isDone()) {
         callback.finalResultTableAvailable(createRResultTableFromCurrentValues());
         return;
       }
