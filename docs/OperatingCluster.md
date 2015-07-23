@@ -79,6 +79,10 @@ After doing this, there should be some information in the server log that new da
 
 To load the sample data in a cluster environment, you need to specify a different `firstRowId` on each diqube server. The sample data currently contains 100 rows - that means that one server should specify `firstRowId=0`, the next should specify `firstRowId=100` etc. in their respective .control files: Row id 0 and 100 will then contain the same data etc. (because both .control files point to the same JSON file).
 
+##Ovedrriding loglevels##
+
+This can be done by providing a different logging configuration. diqube uses [logback](http://logback.qos.ch/manual/configuration.html), therefore the system property `logback.configurationFile` can be used to point to an alternative logging configuration.
+
 ##The User Interface##
 
 .. is currently practically non-existent.
