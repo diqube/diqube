@@ -28,6 +28,7 @@ import java.util.Set;
 import org.diqube.data.ColumnType;
 import org.diqube.data.TableShard;
 import org.diqube.data.lng.LongStandardColumnShard;
+import org.diqube.data.util.RepeatedColumnNameGenerator;
 import org.diqube.util.BigByteBuffer;
 import org.diqube.util.Pair;
 import org.diqube.util.Triple;
@@ -49,11 +50,15 @@ public class JsonLoaderTest {
 
   private AnnotationConfigApplicationContext dataContext;
 
+  private RepeatedColumnNameGenerator repeatedColNames;
+
   @BeforeMethod
   public void before() {
     dataContext = new AnnotationConfigApplicationContext();
     dataContext.scan("org.diqube");
     dataContext.refresh();
+
+    repeatedColNames = dataContext.getBean(RepeatedColumnNameGenerator.class);
 
     loader = dataContext.getBean(JsonLoader.class);
     colInfo = new LoaderColumnInfo(ColumnType.STRING);
@@ -96,7 +101,7 @@ public class JsonLoaderTest {
     TableShard tableShard = loader.load(0L, new BigByteBuffer(json.getBytes()), TABLE, colInfo);
 
     // THEN
-    Assert.assertEquals(tableShard.getLongColumns().size(), 5, "Expected all long columns to be available");
+    Assert.assertEquals(tableShard.getLongColumns().size(), 6, "Expected all long columns to be available");
 
     Set<Triple<Long, Long, List<Long>>> expectedValues = new HashSet<>();
     expectedValues.add(new Triple<>(1L, 1L, Arrays.asList(new Long[] { 4L, 5L, 6L })));
@@ -105,9 +110,10 @@ public class JsonLoaderTest {
     Set<Triple<Long, Long, List<Long>>> actualValues = new HashSet<>();
     LongStandardColumnShard colA = tableShard.getLongColumns().get("a");
     LongStandardColumnShard colB = tableShard.getLongColumns().get("b");
-    LongStandardColumnShard colC0 = tableShard.getLongColumns().get("c[0]");
-    LongStandardColumnShard colC1 = tableShard.getLongColumns().get("c[1]");
-    LongStandardColumnShard colC2 = tableShard.getLongColumns().get("c[2]");
+    LongStandardColumnShard colC0 = tableShard.getLongColumns().get(repeatedColNames.repeatedAtIndex("c", 0));
+    LongStandardColumnShard colC1 = tableShard.getLongColumns().get(repeatedColNames.repeatedAtIndex("c", 1));
+    LongStandardColumnShard colC2 = tableShard.getLongColumns().get(repeatedColNames.repeatedAtIndex("c", 2));
+    LongStandardColumnShard colCLength = tableShard.getLongColumns().get(repeatedColNames.repeatedLength("c"));
     for (long i = tableShard.getLowestRowId(); i < tableShard.getLowestRowId()
         + tableShard.getNumberOfRowsInShard(); i++) {
       Long valueA = resolveSingleRowValue(colA, i);
@@ -116,6 +122,8 @@ public class JsonLoaderTest {
       Long valueC1 = resolveSingleRowValue(colC1, i);
       Long valueC2 = resolveSingleRowValue(colC2, i);
       actualValues.add(new Triple<>(valueA, valueB, Arrays.asList(new Long[] { valueC0, valueC1, valueC2 })));
+      Assert.assertEquals((long) resolveSingleRowValue(colCLength, i), 3L,
+          "Correct value of length col expected for row " + i);
     }
 
     Assert.assertEquals(actualValues, expectedValues, "Expected correct values to be encoded");
@@ -131,7 +139,7 @@ public class JsonLoaderTest {
     TableShard tableShard = loader.load(0L, new BigByteBuffer(json.getBytes()), TABLE, colInfo);
 
     // THEN
-    Assert.assertEquals(tableShard.getLongColumns().size(), 5, "Expected all long columns to be available");
+    Assert.assertEquals(tableShard.getLongColumns().size(), 6, "Expected all long columns to be available");
 
     Set<Triple<Long, List<Long>, List<Long>>> expectedValues = new HashSet<>();
     expectedValues.add(new Triple<>(1L, Arrays.asList(new Long[] { 4L, 5L }), Arrays.asList(new Long[] { 4L, 5L })));
@@ -139,10 +147,11 @@ public class JsonLoaderTest {
 
     Set<Triple<Long, List<Long>, List<Long>>> actualValues = new HashSet<>();
     LongStandardColumnShard colA = tableShard.getLongColumns().get("a");
-    LongStandardColumnShard colC0D = tableShard.getLongColumns().get("c[0].d");
-    LongStandardColumnShard colC1D = tableShard.getLongColumns().get("c[1].d");
-    LongStandardColumnShard colC0E = tableShard.getLongColumns().get("c[0].e");
-    LongStandardColumnShard colC1E = tableShard.getLongColumns().get("c[1].e");
+    LongStandardColumnShard colC0D = tableShard.getLongColumns().get(repeatedColNames.repeatedAtIndex("c", 0) + ".d");
+    LongStandardColumnShard colC1D = tableShard.getLongColumns().get(repeatedColNames.repeatedAtIndex("c", 1) + ".d");
+    LongStandardColumnShard colC0E = tableShard.getLongColumns().get(repeatedColNames.repeatedAtIndex("c", 0) + ".e");
+    LongStandardColumnShard colC1E = tableShard.getLongColumns().get(repeatedColNames.repeatedAtIndex("c", 1) + ".e");
+    LongStandardColumnShard colCLength = tableShard.getLongColumns().get(repeatedColNames.repeatedLength("c"));
     for (long i = tableShard.getLowestRowId(); i < tableShard.getLowestRowId()
         + tableShard.getNumberOfRowsInShard(); i++) {
       Long valueA = resolveSingleRowValue(colA, i);
@@ -152,6 +161,8 @@ public class JsonLoaderTest {
       Long valueC1E = resolveSingleRowValue(colC1E, i);
       actualValues.add(new Triple<>(valueA, Arrays.asList(new Long[] { valueC0D, valueC1D }),
           Arrays.asList(new Long[] { valueC0E, valueC1E })));
+      Assert.assertEquals((long) resolveSingleRowValue(colCLength, i), 2L,
+          "Correct value of length col expected for row " + i);
     }
 
     Assert.assertEquals(actualValues, expectedValues, "Expected correct values to be encoded");

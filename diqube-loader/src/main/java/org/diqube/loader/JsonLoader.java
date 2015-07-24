@@ -50,6 +50,7 @@ import org.diqube.data.ColumnType;
 import org.diqube.data.TableFactory;
 import org.diqube.data.TableShard;
 import org.diqube.data.colshard.StandardColumnShard;
+import org.diqube.data.util.RepeatedColumnNameGenerator;
 import org.diqube.loader.JsonLoader.Parser.Handler;
 import org.diqube.loader.columnshard.ColumnShardBuilderFactory;
 import org.diqube.loader.columnshard.ColumnShardBuilderManager;
@@ -95,6 +96,9 @@ public class JsonLoader implements Loader {
 
   @Inject
   private ExecutorManager executorManager;
+
+  @Inject
+  private RepeatedColumnNameGenerator repeatedColNames;
 
   @Override
   public TableShard load(long firstRowId, String filename, String tableName, LoaderColumnInfo columnInfo)
@@ -142,6 +146,7 @@ public class JsonLoader implements Loader {
     Stream<Parser> stream = StreamSupport.stream(
         new JsonSpliterator(objectLocations, //
             factory, //
+            repeatedColNames, //
             jsonBuffer, //
             objectLocations.firstKey(), //
             objectLocations.lastEntry().getValue() + 1), //
@@ -254,6 +259,12 @@ public class JsonLoader implements Loader {
           throw new LoadException("Could not parse value of column " + colName + ": " + e.getMessage(), e);
         }
       }
+
+      @Override
+      public void endArray(String colName, int length) throws LoadException {
+        String lengthCol = repeatedColNames.repeatedLength(colName);
+        res[colToColIndex.get(lengthCol)] = Integer.toString(length);
+      }
     });
     return res;
   }
@@ -279,7 +290,7 @@ public class JsonLoader implements Loader {
    */
   private void findColumnInfo(JsonFactory factory, BigByteBuffer jsonBuffer, Map<String, ColumnType> resColumnTypes,
       Set<String> resRepeatedCols, NavigableMap<Long, Long> resObjectPositions) throws LoadException {
-    new Parser(factory, jsonBuffer.createInputStream()).parse(new Handler() {
+    new Parser(factory, repeatedColNames, jsonBuffer.createInputStream()).parse(new Handler() {
       @Override
       public boolean isArray(String colName) {
         return resRepeatedCols.contains(colName);
@@ -288,6 +299,8 @@ public class JsonLoader implements Loader {
       @Override
       public void startArray(String colName) {
         resRepeatedCols.add(colName);
+        // length column.
+        resColumnTypes.put(repeatedColNames.repeatedLength(colName), ColumnType.LONG);
       }
 
       @Override
@@ -325,9 +338,11 @@ public class JsonLoader implements Loader {
   public static class Parser {
     private JsonFactory factory;
     private InputStream jsonStream;
+    private RepeatedColumnNameGenerator repeatedColNames;
 
-    public Parser(JsonFactory factory, InputStream jsonStream) {
+    public Parser(JsonFactory factory, RepeatedColumnNameGenerator repeatedColNames, InputStream jsonStream) {
       this.factory = factory;
+      this.repeatedColNames = repeatedColNames;
       this.jsonStream = jsonStream;
     }
 
@@ -340,7 +355,7 @@ public class JsonLoader implements Loader {
 
         Deque<String> colNameStack = new LinkedList<>();
         boolean directlyInArray = false;
-        Deque<Integer> arrayIndexStack = new LinkedList<>();
+        Deque<Integer> nextArrayIndexStack = new LinkedList<>();
 
         JsonToken token;
         while ((token = parser.nextToken()) != null) {
@@ -350,20 +365,24 @@ public class JsonLoader implements Loader {
               throw new LoadException("Cannot load JSON because it contains a multi-dimensional array.");
             if (!colNameStack.isEmpty()) {
               directlyInArray = true;
-              arrayIndexStack.add(0); // first index in array is 0
+              nextArrayIndexStack.add(0); // first index in array is 0
               handler.startArray(colNameStack.getLast());
             }
             break;
           case END_ARRAY:
-            arrayIndexStack.pollLast();
+            Integer length = nextArrayIndexStack.pollLast();
             directlyInArray = false; // no multi-dimensional arrays, therefore we are not in an array any more.
-            colNameStack.pollLast(); // was pushed by FIELD_NAME. in the non-array case this is polled by VALUE_*.
+            String arrayName = colNameStack.pollLast(); // was pushed by FIELD_NAME. in the non-array case this is
+                                                        // polled by VALUE_*.
+            if (arrayName != null && !arrayName.equals(""))
+              handler.endArray(arrayName, length);
             break;
           case START_OBJECT:
             if (directlyInArray) {
-              int idx = arrayIndexStack.pollLast();
-              colNameStack.add(colNameStack.getLast() + "[" + idx + "]");
-              arrayIndexStack.add(idx + 1);
+              int idx = nextArrayIndexStack.pollLast();
+              String colName = repeatedColNames.repeatedAtIndex(colNameStack.getLast(), idx);
+              colNameStack.add(colName);
+              nextArrayIndexStack.add(idx + 1);
               directlyInArray = false;
             }
             if (colNameStack.isEmpty())
@@ -393,9 +412,10 @@ public class JsonLoader implements Loader {
             if (colNameStack.isEmpty())
               throw new LoadException("Ensure that the outer array contains JSON objects and not values directly.");
             if (directlyInArray) {
-              int idx = arrayIndexStack.pollLast();
-              handler.valueString(colNameStack.getLast() + "[" + idx + "]", parser);
-              arrayIndexStack.add(idx + 1);
+              int idx = nextArrayIndexStack.pollLast();
+              String colName = repeatedColNames.repeatedAtIndex(colNameStack.getLast(), idx);
+              handler.valueString(colName, parser);
+              nextArrayIndexStack.add(idx + 1);
             } else
               handler.valueString(colNameStack.pollLast(), parser);
             break;
@@ -403,9 +423,10 @@ public class JsonLoader implements Loader {
             if (colNameStack.isEmpty())
               throw new LoadException("Ensure that the outer array contains JSON objects and not values directly.");
             if (directlyInArray) {
-              int idx = arrayIndexStack.pollLast();
-              handler.valueLong(colNameStack.getLast() + "[" + idx + "]", parser);
-              arrayIndexStack.add(idx + 1);
+              int idx = nextArrayIndexStack.pollLast();
+              String colName = repeatedColNames.repeatedAtIndex(colNameStack.getLast(), idx);
+              handler.valueLong(colName, parser);
+              nextArrayIndexStack.add(idx + 1);
             } else
               handler.valueLong(colNameStack.pollLast(), parser);
             break;
@@ -413,9 +434,10 @@ public class JsonLoader implements Loader {
             if (colNameStack.isEmpty())
               throw new LoadException("Ensure that the outer array contains JSON objects and not values directly.");
             if (directlyInArray) {
-              int idx = arrayIndexStack.pollLast();
-              handler.valueDouble(colNameStack.getLast() + "[" + idx + "]", parser);
-              arrayIndexStack.add(idx + 1);
+              int idx = nextArrayIndexStack.pollLast();
+              String colName = repeatedColNames.repeatedAtIndex(colNameStack.getLast(), idx);
+              handler.valueDouble(colName, parser);
+              nextArrayIndexStack.add(idx + 1);
             } else
               handler.valueDouble(colNameStack.pollLast(), parser);
             break;
@@ -424,9 +446,10 @@ public class JsonLoader implements Loader {
             if (colNameStack.isEmpty())
               throw new LoadException("Ensure that the outer array contains JSON objects and not values directly.");
             if (directlyInArray) {
-              int idx = arrayIndexStack.pollLast();
-              handler.valueLong(colNameStack.getLast() + "[" + idx + "]", parser);
-              arrayIndexStack.add(idx + 1);
+              int idx = nextArrayIndexStack.pollLast();
+              String colName = repeatedColNames.repeatedAtIndex(colNameStack.getLast(), idx);
+              handler.valueLong(colName, parser);
+              nextArrayIndexStack.add(idx + 1);
             } else
               handler.valueLong(colNameStack.pollLast(), parser);
             break;
@@ -462,6 +485,12 @@ public class JsonLoader implements Loader {
        * This will not be called for the outermost array, as that isn't of interest to us.
        */
       public void startArray(String colName) throws LoadException {
+      }
+
+      /**
+       * The end of an array including the number of elements that were identified.
+       */
+      public void endArray(String colName, int length) throws LoadException {
       }
 
       /**
@@ -515,6 +544,7 @@ public class JsonLoader implements Loader {
     private Long endPosExclusive;
     private JsonFactory factory;
     private BigByteBuffer jsonBuffer;
+    private RepeatedColumnNameGenerator repeatedColNames;
 
     /**
      * 
@@ -534,9 +564,11 @@ public class JsonLoader implements Loader {
      * @param endPosExclusive
      *          An index in the buffer that is the first one that this spliterator should not cover any more.
      */
-    public JsonSpliterator(NavigableMap<Long, Long> objectLocations, JsonFactory factory, BigByteBuffer jsonBuffer,
-        Long startPosInclusive, Long endPosExclusive) {
+    public JsonSpliterator(NavigableMap<Long, Long> objectLocations, JsonFactory factory,
+        RepeatedColumnNameGenerator repeatedColNames, BigByteBuffer jsonBuffer, Long startPosInclusive,
+        Long endPosExclusive) {
       this.objectLocations = objectLocations;
+      this.repeatedColNames = repeatedColNames;
       this.startPosInclusive = startPosInclusive;
       this.endPosExclusive = endPosExclusive;
       this.factory = factory;
@@ -551,7 +583,8 @@ public class JsonLoader implements Loader {
       long topLevelObjectStart = startPosInclusive;
       long topLevelObjectEnd = objectLocations.get(startPosInclusive);
 
-      action.accept(new Parser(factory, jsonBuffer.createPartialInputStream(topLevelObjectStart, topLevelObjectEnd)));
+      action.accept(new Parser(factory, repeatedColNames,
+          jsonBuffer.createPartialInputStream(topLevelObjectStart, topLevelObjectEnd)));
 
       startPosInclusive = objectLocations.ceilingKey(startPosInclusive + 1);
       if (startPosInclusive == null)
@@ -576,7 +609,8 @@ public class JsonLoader implements Loader {
       if (objectLocations.subMap(middleKey, endPosExclusive).isEmpty())
         return null;
 
-      JsonSpliterator newSplit = new JsonSpliterator(objectLocations, factory, jsonBuffer, middleKey, endPosExclusive);
+      JsonSpliterator newSplit =
+          new JsonSpliterator(objectLocations, factory, repeatedColNames, jsonBuffer, middleKey, endPosExclusive);
       endPosExclusive = middleKey;
 
       return newSplit;
