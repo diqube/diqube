@@ -20,6 +20,7 @@
  */
 package org.diqube.threads.test;
 
+import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 
@@ -49,12 +50,28 @@ public class TestExecutors {
     RuntimeException e = new RuntimeException();
     String testMethod = e.getStackTrace()[1].getMethodName();
 
-    logger.info("Test method {}: Query {}, Execution {}", testMethod, QueryUuid.getCurrentQueryUuid(),
-        QueryUuid.getCurrentExecutionUuid());
+    UUID queryUuid = QueryUuid.getCurrentQueryUuid();
+    UUID executionUuid = QueryUuid.getCurrentExecutionUuid();
 
-    ExecutorService res = (ExecutorService) executorManager.newQueryFixedThreadPool(numberOfThreads,
-        QueryUuid.getCurrentQueryUuid() + "#" + QueryUuid.getCurrentExecutionUuid() + "#" + testMethod + "-%d",
-        QueryUuid.getCurrentQueryUuid(), QueryUuid.getCurrentExecutionUuid());
+    logger.info("Test method {}: Query {}, Execution {}", testMethod, queryUuid, executionUuid);
+
+    ExecutorService res = (ExecutorService) executorManager.newQueryFixedThreadPool(numberOfThreads + 1,
+        queryUuid + "#" + executionUuid + "#" + testMethod + "-%d", queryUuid, executionUuid);
+
+    res.execute(new Runnable() {
+      @Override
+      public void run() {
+        try {
+          Thread.sleep(60000);
+        } catch (InterruptedException e) {
+          return;
+        }
+
+        logger.error("Killing test after 60s: query {} execution {}", queryUuid, executionUuid);
+
+        res.shutdownNow();
+      }
+    });
 
     return res;
   }
