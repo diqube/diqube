@@ -133,19 +133,23 @@ public class ExecutionPlanner {
         continue;
       columnNamesWorkedOn.add(fnReq.getOutputColumn());
 
-      if (columnInfo.get(fnReq.getOutputColumn()).isTransitivelyDependsOnAggregation()) {
-        if (fnReq.getType().equals(Type.AGGREGATION))
-          // Validator should break execution before this point already.
-          throw new PlanBuildException("Aggregation on already aggregated value.");
+      if (columnInfo.get(fnReq.getOutputColumn()).isTransitivelyDependsOnRowAggregation()) {
+        // the resulting col depends on a row that will be created by a row aggregation (GROUP BY). As the final values
+        // of the group by is available only on the query master, we need to produce that new column only there, too.
+
+        // Not that the validator made sure that this new Fn is not again a row Agg function or a col Agg function.
 
         masterColManager.produceColumn(fnReq);
       } else {
-        if (fnReq.getType().equals(Type.AGGREGATION)) {
+        if (fnReq.getType().equals(Type.AGGREGATION_ROW)) {
+          // A row aggregation (GROUP BY aggregation). Both, remote and master need to do something:
           // Intermediate part of aggregation will be executed on cluster nodes, final part will be executed on query
           // master.
           remoteColManager.produceColumn(fnReq);
           masterColManager.produceColumn(fnReq);
         } else {
+          // simple PROJECTION that is not based on a row Agg, or a column aggregtation - both of these can be executed
+          // on the remotes.
           remoteColManager.produceColumn(fnReq);
         }
       }
@@ -289,9 +293,9 @@ public class ExecutionPlanner {
     allMasterSteps.add(executeRemoteStep);
 
     // ==== Handle a GROUP and aggregation functions on master
-    boolean aggregateFunctionsAvailable =
-        columnInfo.values().stream().anyMatch(colInfo -> colInfo.getType().equals(FunctionRequest.Type.AGGREGATION));
-    if (executionRequest.getGroup() != null && aggregateFunctionsAvailable) {
+    boolean rowAggregateFunctionsAvailable = columnInfo.values().stream()
+        .anyMatch(colInfo -> colInfo.getType().equals(FunctionRequest.Type.AGGREGATION_ROW));
+    if (executionRequest.getGroup() != null && rowAggregateFunctionsAvailable) {
       // We are grouping and executing aggregation functions, that means that cluster nodes will reply with group
       // intermediary updates to the query master.
       // The groupIds used by the cluster nodes though are the row IDs of one of the rows contained in a group - which

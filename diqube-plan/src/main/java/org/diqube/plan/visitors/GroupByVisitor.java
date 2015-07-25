@@ -24,6 +24,7 @@ import java.util.ArrayList;
 
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.apache.http.ParseException;
+import org.diqube.data.util.RepeatedColumnNameGenerator;
 import org.diqube.diql.antlr.DiqlBaseVisitor;
 import org.diqube.diql.antlr.DiqlParser.AnyValueContext;
 import org.diqube.diql.antlr.DiqlParser.GroupByClauseContext;
@@ -45,8 +46,11 @@ public class GroupByVisitor extends DiqlBaseVisitor<Pair<GroupRequest, Compariso
 
   private ExecutionRequestVisitorEnvironment env;
 
-  public GroupByVisitor(ExecutionRequestVisitorEnvironment env) {
+  private RepeatedColumnNameGenerator repeatedColNames;
+
+  public GroupByVisitor(ExecutionRequestVisitorEnvironment env, RepeatedColumnNameGenerator repeatedColNames) {
     this.env = env;
+    this.repeatedColNames = repeatedColNames;
   }
 
   @Override
@@ -57,7 +61,7 @@ public class GroupByVisitor extends DiqlBaseVisitor<Pair<GroupRequest, Compariso
     int anyValueCnt = 0;
     AnyValueContext anyValueCtx;
     while ((anyValueCtx = groupByCtx.getChild(AnyValueContext.class, anyValueCnt++)) != null) {
-      ColumnOrValue groupBy = anyValueCtx.accept(new AnyValueVisitor(env));
+      ColumnOrValue groupBy = anyValueCtx.accept(new AnyValueVisitor(env, repeatedColNames));
 
       if (!groupBy.getType().equals(ColumnOrValue.Type.COLUMN))
         throw new ParseException("Can only group on columns.");
@@ -65,8 +69,8 @@ public class GroupByVisitor extends DiqlBaseVisitor<Pair<GroupRequest, Compariso
       groupRequestRes.getGroupColumns().add(groupBy.getColumnName());
     }
 
-    ComparisonRequest havingRequestRes =
-        groupByCtx.accept(new ComparisonVisitor(env, new ArrayList<Class<? extends ParserRuleContext>>()));
+    ComparisonRequest havingRequestRes = groupByCtx
+        .accept(new ComparisonVisitor(env, repeatedColNames, new ArrayList<Class<? extends ParserRuleContext>>()));
 
     return new Pair<GroupRequest, ComparisonRequest>(groupRequestRes, havingRequestRes);
   }

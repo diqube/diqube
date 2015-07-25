@@ -103,7 +103,7 @@ public class MasterColumnManager implements ColumnManager<ExecutablePlanStep> {
 
       functionMasterSteps.put(fnReq.getOutputColumn(),
           new ArrayList<>(Arrays.asList(new ExecutablePlanStep[] { projectStep })));
-    } else {
+    } else if (fnReq.getType().equals(FunctionRequest.Type.AGGREGATION_ROW)) {
       // TODO #28 do NOT calculate all Grouped results on query master, but distribute groups according to group hash
       // along all cluster nodes. That means that those clusternodes would fully process specific sets of groups and
       // they would need to have all the data needed for calculating those groups transferred to them. This though
@@ -115,6 +115,7 @@ public class MasterColumnManager implements ColumnManager<ExecutablePlanStep> {
       functionMasterSteps.put(fnReq.getOutputColumn(),
           new ArrayList<>(Arrays.asList(new ExecutablePlanStep[] { finalStep })));
     }
+    // note that the query master does not execute anything for AGGREGATION_COL!
   }
 
   @Override
@@ -160,11 +161,11 @@ public class MasterColumnManager implements ColumnManager<ExecutablePlanStep> {
   @Override
   public void prepareBuild() {
     // ensure the source columns of the columns that are calculated on the query master are available
-    // Aggregation columns do not need the whole columns on query master, as they will receive the groupIntermediary
+    // Row Aggregation columns do not need the whole columns on query master, as they will receive the groupIntermediary
     // results from the cluster nodes
     for (Entry<String, List<ExecutablePlanStep>> remoteEntry : functionMasterSteps.entrySet()) {
       PlannerColumnInfo colInfo = columnInfo.get(remoteEntry.getKey());
-      if (colInfo != null && !colInfo.getType().equals(FunctionRequest.Type.AGGREGATION))
+      if (colInfo != null && !colInfo.getType().equals(FunctionRequest.Type.AGGREGATION_ROW))
         for (String prevColumnName : colInfo.getDependsOnColumns())
           ensureColumnAvailable(prevColumnName);
     }
@@ -205,7 +206,7 @@ public class MasterColumnManager implements ColumnManager<ExecutablePlanStep> {
     // groupIntermediary results from the cluster nodes and will not work on the column values directly.
     for (Entry<String, List<ExecutablePlanStep>> masterEntry : functionMasterSteps.entrySet()) {
       PlannerColumnInfo colInfo = columnInfo.get(masterEntry.getKey());
-      if (colInfo != null && !colInfo.getType().equals(FunctionRequest.Type.AGGREGATION)) {
+      if (colInfo != null && !colInfo.getType().equals(FunctionRequest.Type.AGGREGATION_ROW)) {
         ExecutablePlanStep inputStep = Iterables.getFirst(masterEntry.getValue(), null);
         for (String prevColumnName : colInfo.getDependsOnColumns())
           wireOutputOfColumnIfAvailable(prevColumnName, inputStep);

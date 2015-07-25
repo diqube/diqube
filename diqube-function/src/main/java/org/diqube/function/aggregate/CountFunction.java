@@ -55,7 +55,7 @@ public class CountFunction implements AggregationFunction<Object, IntermediaryRe
 
   @Override
   public void addValues(ValueProvider<Object> valueProvider) {
-    curCount += valueProvider.getRowIds().length;
+    curCount += valueProvider.size();
   }
 
   @Override

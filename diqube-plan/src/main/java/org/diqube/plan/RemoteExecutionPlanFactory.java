@@ -62,6 +62,10 @@ public class RemoteExecutionPlanFactory {
     return createFunctionStep(fnReq, stepId, RExecutionPlanStepType.GROUP_INTERMEDIATE_AGGREGATE);
   }
 
+  public RExecutionPlanStep createColumnAggregateStep(FunctionRequest fnReq, int stepId) {
+    return createFunctionStep(fnReq, stepId, RExecutionPlanStepType.COLUMN_AGGREGATE);
+  }
+
   public RExecutionPlanStep createProjectStep(FunctionRequest fnReq, int stepId) {
     return createFunctionStep(fnReq, stepId, RExecutionPlanStepType.PROJECT);
   }

@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.diqube.data.util.RepeatedColumnNameGenerator;
 import org.diqube.diql.antlr.DiqlBaseVisitor;
 import org.diqube.diql.antlr.DiqlParser.ResultValueContext;
 import org.diqube.plan.exception.ParseException;
@@ -44,13 +45,16 @@ public class ResultValueVisitor extends DiqlBaseVisitor<List<ResolveValueRequest
 
   private ExecutionRequestVisitorEnvironment env;
 
-  public ResultValueVisitor(ExecutionRequestVisitorEnvironment env) {
+  private RepeatedColumnNameGenerator repeatedColNames;
+
+  public ResultValueVisitor(ExecutionRequestVisitorEnvironment env, RepeatedColumnNameGenerator repeatedColNames) {
     this.env = env;
+    this.repeatedColNames = repeatedColNames;
   }
 
   @Override
   public List<ResolveValueRequest> visitResultValue(ResultValueContext ctx) {
-    ColumnOrValue anyValueResult = ctx.accept(new AnyValueVisitor(env));
+    ColumnOrValue anyValueResult = ctx.accept(new AnyValueVisitor(env, repeatedColNames));
 
     if (anyValueResult.getType().equals(Type.LITERAL)) {
       // TODO #19 support selecting literal values - currently use id() function

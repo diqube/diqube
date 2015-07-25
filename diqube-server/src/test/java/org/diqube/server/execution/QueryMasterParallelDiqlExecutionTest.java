@@ -316,13 +316,8 @@ public abstract class QueryMasterParallelDiqlExecutionTest<T> extends AbstractRe
       }
 
       @Override
-      public long[] getRowIds() {
-        return new long[count];
-      }
-
-      @Override
-      public Long[] getColumnValueIds() {
-        return new Long[count];
+      public long size() {
+        return count;
       }
     });
 

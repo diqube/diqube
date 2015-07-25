@@ -20,9 +20,9 @@
  */
 package org.diqube.plan.visitors;
 
+import org.diqube.data.util.RepeatedColumnNameGenerator;
 import org.diqube.diql.antlr.DiqlBaseVisitor;
 import org.diqube.diql.antlr.DiqlParser.AggregationFunctionNameContext;
-import org.diqube.diql.antlr.DiqlParser.AnyNameContext;
 import org.diqube.diql.antlr.DiqlParser.AnyValueContext;
 import org.diqube.diql.antlr.DiqlParser.ColumnNameContext;
 import org.diqube.diql.antlr.DiqlParser.DecimalLiteralValueContext;
@@ -51,9 +51,11 @@ import org.diqube.util.ColumnOrValue;
 public class AnyValueVisitor extends DiqlBaseVisitor<ColumnOrValue> {
 
   private ExecutionRequestVisitorEnvironment env;
+  private RepeatedColumnNameGenerator repeatedColName;
 
-  public AnyValueVisitor(ExecutionRequestVisitorEnvironment env) {
+  public AnyValueVisitor(ExecutionRequestVisitorEnvironment env, RepeatedColumnNameGenerator repeatedColName) {
     this.env = env;
+    this.repeatedColName = repeatedColName;
   }
 
   @Override
@@ -62,6 +64,8 @@ public class AnyValueVisitor extends DiqlBaseVisitor<ColumnOrValue> {
     FunctionBasedColumnNameBuilder colNameBuilder = new FunctionBasedColumnNameBuilder();
 
     FunctionRequest projectionRequest = new FunctionRequest();
+
+    boolean isAggregationFunction = false;
 
     // parse function name
     if (ctx.getChild(0) instanceof ProjectionFunctionNameContext) {
@@ -77,7 +81,7 @@ public class AnyValueVisitor extends DiqlBaseVisitor<ColumnOrValue> {
       String functionName = projCtx.getText().toLowerCase();
 
       projectionRequest.setFunctionName(functionName);
-      projectionRequest.setType(Type.AGGREGATION);
+      isAggregationFunction = true;
 
       colNameBuilder.withFunctionName(functionName);
     } else
@@ -97,6 +101,9 @@ public class AnyValueVisitor extends DiqlBaseVisitor<ColumnOrValue> {
       if (childResult.getType().equals(ColumnOrValue.Type.COLUMN))
         colNameBuilder.addParameterColumnName(childResult.getColumnName());
       else {
+        if (isAggregationFunction)
+          throw new ParseException("Aggregation functions (like " + projectionRequest.getFunctionName()
+              + ") only accept column names as parameter.");
         Object childValue = childResult.getValue();
         if (childValue instanceof String)
           colNameBuilder.addParameterLiteralString((String) childValue);
@@ -107,6 +114,19 @@ public class AnyValueVisitor extends DiqlBaseVisitor<ColumnOrValue> {
         else
           throw new ParseException("Function parameter did not provide valid literal value.");
       }
+    }
+
+    if (isAggregationFunction) {
+      Type aggregationType;
+      if (projectionRequest.getInputParameters().isEmpty())
+        aggregationType = Type.AGGREGATION_ROW; // example "count" - parameterless agg functions are executed on rows!
+      else if (projectionRequest.getInputParameters().stream()
+          .anyMatch(c -> c.getColumnName().contains(repeatedColName.allEntriesIdentifyingSubstr())))
+        aggregationType = Type.AGGREGATION_COL;
+      else
+        aggregationType = Type.AGGREGATION_ROW;
+
+      projectionRequest.setType(aggregationType);
     }
 
     projectionRequest.setOutputColumn(colNameBuilder.build());
@@ -132,7 +152,7 @@ public class AnyValueVisitor extends DiqlBaseVisitor<ColumnOrValue> {
 
       return new ColumnOrValue(ColumnOrValue.Type.LITERAL, value);
     } else if (anyValueCtx.getChild(0) instanceof ColumnNameContext) {
-      String colName = anyValueCtx.getChild(ColumnNameContext.class, 0).getChild(AnyNameContext.class, 0).getText();
+      String colName = anyValueCtx.getChild(ColumnNameContext.class, 0).getText();
 
       return new ColumnOrValue(ColumnOrValue.Type.COLUMN, colName);
     } else if (anyValueCtx.getChild(0) instanceof FunctionContext) {

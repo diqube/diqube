@@ -161,19 +161,14 @@ public class GroupIntermediaryAggregationStep extends AbstractThreadedExecutable
         aggregationFunctions.get(groupId).addValues(new ValueProvider<Object>() {
           @Override
           public Object[] getValues() {
-            Long[] columnValueIds = getColumnValueIds();
+            Long[] columnValueIds = env.getColumnShard(inputColumnName)
+                .resolveColumnValueIdsForRowsFlat(newRowIds.toArray(new Long[newRowIds.size()]));
             return env.getColumnShard(inputColumnName).getColumnShardDictionary().decompressValues(columnValueIds);
           }
 
           @Override
-          public Long[] getColumnValueIds() {
-            return env.getColumnShard(inputColumnName)
-                .resolveColumnValueIdsForRowsFlat(newRowIds.toArray(new Long[newRowIds.size()]));
-          }
-
-          @Override
-          public long[] getRowIds() {
-            return newRowIds.stream().mapToLong(Long::longValue).toArray();
+          public long size() {
+            return newRowIds.size();
           }
         });
 

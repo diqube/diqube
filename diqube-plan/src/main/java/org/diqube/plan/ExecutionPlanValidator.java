@@ -45,7 +45,7 @@ public class ExecutionPlanValidator {
 
     noAggregationOnAggregation(colInfos);
 
-    aggregationNeedsGroup(executionRequest, colInfos);
+    rowAggregationNeedsGroup(executionRequest, colInfos);
 
     havingNeedsGroupBy(executionRequest);
 
@@ -103,24 +103,37 @@ public class ExecutionPlanValidator {
   /**
    * When using eaggregation functions, there needs to be a Group By clause.
    */
-  private void aggregationNeedsGroup(ExecutionRequest executionRequest, Map<String, PlannerColumnInfo> colInfos)
+  private void rowAggregationNeedsGroup(ExecutionRequest executionRequest, Map<String, PlannerColumnInfo> colInfos)
       throws ValidationException {
     long numberOfAggregationFunctions = colInfos.values().stream()
-        .filter(colInfo -> colInfo.getType().equals(FunctionRequest.Type.AGGREGATION)).count();
+        .filter(colInfo -> colInfo.getType().equals(FunctionRequest.Type.AGGREGATION_ROW)).count();
     if (numberOfAggregationFunctions > 0 && executionRequest.getGroup() == null)
       throw new ValidationException("There are " + numberOfAggregationFunctions
           + " aggregation functions used, but there is no GROUP BY clause.");
   }
 
   /**
-   * There must be no aggregation function be applied on an already aggregated column.
+   * There must be no row aggregation function be applied on an already row aggregated column. The same is true for col
+   * aggregated columns. In addition to that it is not valid to have a col aggreation based on a row aggregation (only
+   * the other way round!).
    */
   private void noAggregationOnAggregation(Map<String, PlannerColumnInfo> colInfos) throws ValidationException {
     for (PlannerColumnInfo colInfo : colInfos.values()) {
-      if (colInfo.getType().equals(FunctionRequest.Type.AGGREGATION) && colInfo.isTransitivelyDependsOnAggregation())
+      if (colInfo.getType().equals(FunctionRequest.Type.AGGREGATION_ROW)
+          && colInfo.isTransitivelyDependsOnRowAggregation())
         throw new ValidationException(
-            "Use of aggregation function '" + colInfo.getProvidedByFunctionRequest().getFunctionName()
-                + "' is based on the result of at least one other aggregation function. This is invalid.");
+            "Use of row aggregation function '" + colInfo.getProvidedByFunctionRequest().getFunctionName()
+                + "' is based on the result of at least one other row aggregation function. This is invalid.");
+      if (colInfo.getType().equals(FunctionRequest.Type.AGGREGATION_COL)
+          && colInfo.isTransitivelyDependsOnColAggregation())
+        throw new ValidationException(
+            "Use of columns aggregation function '" + colInfo.getProvidedByFunctionRequest().getFunctionName()
+                + "' is based on the result of at least one other column aggregation function. This is invalid.");
+      if (colInfo.getType().equals(FunctionRequest.Type.AGGREGATION_COL)
+          && colInfo.isTransitivelyDependsOnRowAggregation())
+        throw new ValidationException(
+            "Use of columns aggregation function '" + colInfo.getProvidedByFunctionRequest().getFunctionName()
+                + "' is based on the result of at least one row aggregation function. This is invalid.");
     }
   }
 
@@ -130,12 +143,13 @@ public class ExecutionPlanValidator {
       Consumer<String> validateCol = colName -> {
         if (colInfos.containsKey(colName) // could be that there is no colInfo if it's no generated
                                           // column.
-            && (colInfos.get(colName).isTransitivelyDependsOnAggregation()
-                || colInfos.get(colName).getType().equals(FunctionRequest.Type.AGGREGATION)))
+            && (colInfos.get(colName).isTransitivelyDependsOnRowAggregation()
+                || colInfos.get(colName).getType().equals(FunctionRequest.Type.AGGREGATION_ROW)))
+          // note: col aggregations are executed on the query remotes, therefore they are fine in WHERE.
           throw new ValidationException(
               "Function '" + colInfos.get(colName).getProvidedByFunctionRequest().getFunctionName()
-                  + "' is in WHERE clause and either is an aggregation function or relies on the "
-                  + "result of an aggregation function. Aggregation functions can only be used in a HAVING clause.");
+                  + "' is in WHERE clause and either is a row aggregation function or relies on the "
+                  + "result of a row aggregation function. Aggregation functions can only be used in a HAVING clause.");
       };
 
       for (Leaf leaf : leafs) {
@@ -152,11 +166,12 @@ public class ExecutionPlanValidator {
       Consumer<String> validateCol = colName -> {
         if (!colInfos.containsKey(colName) // could be that there is no colInfo if it's no generated
                                            // column.
-            || (!colInfos.get(colName).isTransitivelyDependsOnAggregation()
-                && !colInfos.get(colName).getType().equals(FunctionRequest.Type.AGGREGATION)))
+            || (!colInfos.get(colName).isTransitivelyDependsOnRowAggregation()
+                && !colInfos.get(colName).getType().equals(FunctionRequest.Type.AGGREGATION_ROW)))
+          // note: col aggregations are executed on the query remotes, therefore they need to be in WHERE.
           throw new ValidationException(
               "Function '" + colInfos.get(colName).getProvidedByFunctionRequest().getFunctionName()
-                  + "' is in HAVING clause but it is not depending on the result of an aggregation. For performance "
+                  + "' is in HAVING clause but it is not depending on the result of a row aggregation. For performance "
                   + "reasons, this restriction has to be used in a WHERE clause.");
       };
 
@@ -174,9 +189,10 @@ public class ExecutionPlanValidator {
         if (!colInfos.containsKey(groupByCol))
           continue;
 
-        if (colInfos.get(groupByCol).isTransitivelyDependsOnAggregation()
-            || colInfos.get(groupByCol).getType().equals(FunctionRequest.Type.AGGREGATION))
-          throw new ValidationException("Cannot group on aggregation functions.");
+        if (colInfos.get(groupByCol).isTransitivelyDependsOnRowAggregation()
+            || colInfos.get(groupByCol).getType().equals(FunctionRequest.Type.AGGREGATION_ROW))
+          // we can aggregate on col aggregation functions, as these are calculated on the query remotes!
+          throw new ValidationException("Cannot group on row aggregation functions.");
 
         if (colInfos.get(groupByCol).isTransitivelyDependsOnLiteralsOnly())
           throw new ValidationException("Cannot group on projections that are based on constants only.");

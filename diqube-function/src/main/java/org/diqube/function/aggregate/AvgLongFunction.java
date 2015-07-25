@@ -78,7 +78,7 @@ public class AvgLongFunction implements AggregationFunction<Long, IntermediaryRe
 
   @Override
   public ColumnType getOutputType() {
-    return ColumnType.LONG;
+    return ColumnType.DOUBLE;
   }
 
   @Override

@@ -26,6 +26,7 @@ import java.util.Map;
 
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.RuleNode;
+import org.diqube.data.util.RepeatedColumnNameGenerator;
 import org.diqube.diql.antlr.DiqlBaseVisitor;
 import org.diqube.diql.antlr.DiqlParser.AnyValueContext;
 import org.diqube.diql.antlr.DiqlParser.BinaryComparatorContext;
@@ -64,13 +65,16 @@ public class ComparisonVisitor extends DiqlBaseVisitor<ComparisonRequest> {
   private ExecutionRequestVisitorEnvironment env;
   private List<Class<? extends ParserRuleContext>> stopParsingForContexts;
 
+  private RepeatedColumnNameGenerator repeatedColNames;
+
   /**
    * @param stopParsingForContexts
    *          Context classes which will force this visitor to stop visiting any sub-tree of that context.
    */
-  public ComparisonVisitor(ExecutionRequestVisitorEnvironment env,
+  public ComparisonVisitor(ExecutionRequestVisitorEnvironment env, RepeatedColumnNameGenerator repeatedColNames,
       List<Class<? extends ParserRuleContext>> stopParsingForContexts) {
     this.env = env;
+    this.repeatedColNames = repeatedColNames;
     this.stopParsingForContexts = stopParsingForContexts;
   }
 
@@ -81,8 +85,8 @@ public class ComparisonVisitor extends DiqlBaseVisitor<ComparisonRequest> {
     AnyValueContext firstAny = comparisonCtx.getChild(AnyValueContext.class, 0);
     AnyValueContext secondAny = comparisonCtx.getChild(AnyValueContext.class, 1);
 
-    ColumnOrValue firstOperand = firstAny.accept(new AnyValueVisitor(env));
-    ColumnOrValue secondOperand = secondAny.accept(new AnyValueVisitor(env));
+    ColumnOrValue firstOperand = firstAny.accept(new AnyValueVisitor(env, repeatedColNames));
+    ColumnOrValue secondOperand = secondAny.accept(new AnyValueVisitor(env, repeatedColNames));
 
     BinaryComparatorContext comparator = comparisonCtx.getChild(BinaryComparatorContext.class, 0);
     Operator operator = null;

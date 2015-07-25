@@ -112,7 +112,7 @@ public interface AggregationFunction<I, M extends IntermediaryResult<?, ?, ?>, O
   public static interface ValueProvider<I> {
 
     /**
-     * Further resolve the resul of {@link #getColumnValueIds()} to actual values.
+     * Fully resolve the values being provided. This is the most expensive function.
      * 
      * <p>
      * This method must only be called by the implementation of {@link AggregationFunction} if
@@ -122,23 +122,8 @@ public interface AggregationFunction<I, M extends IntermediaryResult<?, ?, ?>, O
     public I[] getValues();
 
     /**
-     * Resolve the rowIds which should be added to the internal state of the function to their respective Column Value
-     * IDs of the input parameter column of this aggregation function.
-     * 
-     * <p>
-     * This method must only be called by the implementation of {@link AggregationFunction} if
-     * {@link AggregationFunction#getInputType()} != null, as there needs to be an actual input column to resolve the
-     * column value IDs of.
+     * Returns the number of values without resovling the values themselves.
      */
-    public Long[] getColumnValueIds();
-
-    /**
-     * Returns the RowIds which should be added to the internal state of the function.
-     * 
-     * <p>
-     * This method is the least-expensive to be called and can even be called if
-     * {@link AggregationFunction#getInputType()} == null - no ColumnValueIDs or actual values will be resolved.
-     */
-    public long[] getRowIds();
+    public long size();
   }
 }

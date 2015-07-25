@@ -27,6 +27,7 @@ import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
+import org.diqube.data.util.RepeatedColumnNameGenerator;
 import org.diqube.diql.antlr.DiqlLexer;
 import org.diqube.diql.antlr.DiqlParser;
 import org.diqube.diql.antlr.DiqlParser.DiqlStmtContext;
@@ -64,10 +65,13 @@ public class ExecutionPlanBuilder {
 
   private OverwritingRowIdConsumer havingResultsConsumer;
 
+  private RepeatedColumnNameGenerator repeatedColNames;
+
   public ExecutionPlanBuilder(ExecutionPlannerFactory executionPlannerFactory,
-      ExecutionEnvironmentFactory executionEnvironmentFactory) {
+      ExecutionEnvironmentFactory executionEnvironmentFactory, RepeatedColumnNameGenerator repeatedColNames) {
     this.executionPlannerFactory = executionPlannerFactory;
     this.executionEnvironmentFactory = executionEnvironmentFactory;
+    this.repeatedColNames = repeatedColNames;
   }
 
   public ExecutionPlanBuilder fromDiql(String diql) {
@@ -95,7 +99,7 @@ public class ExecutionPlanBuilder {
    */
   public ExecutablePlan build() throws ParseException, ValidationException {
     DiqlStmtContext sqlStmt = parseWithAntlr();
-    ExecutionRequest executionRequest = sqlStmt.accept(new SelectStmtVisitor());
+    ExecutionRequest executionRequest = sqlStmt.accept(new SelectStmtVisitor(repeatedColNames));
 
     executionRequest = new ExecutionRequestOptimizer(executionRequest).optimize();
 

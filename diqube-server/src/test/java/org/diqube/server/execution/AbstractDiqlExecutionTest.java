@@ -40,6 +40,8 @@ import org.diqube.execution.consumers.AbstractThreadedOrderedRowIdConsumer;
 import org.diqube.execution.consumers.AbstractThreadedOverwritingRowIdConsumer;
 import org.diqube.execution.consumers.ColumnValueConsumer;
 import org.diqube.execution.env.ExecutionEnvironment;
+import org.diqube.loader.JsonLoader;
+import org.diqube.loader.LoadException;
 import org.diqube.loader.LoaderColumnInfo;
 import org.diqube.loader.columnshard.ColumnShardBuilder;
 import org.diqube.loader.columnshard.ColumnShardBuilderFactory;
@@ -49,6 +51,7 @@ import org.diqube.plan.ExecutionPlanBuilderFactory;
 import org.diqube.queries.QueryUuid;
 import org.diqube.threads.ExecutorManager;
 import org.diqube.threads.test.TestExecutors;
+import org.diqube.util.BigByteBuffer;
 import org.diqube.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -243,6 +246,15 @@ public abstract class AbstractDiqlExecutionTest<T> {
    */
   protected void initializeSimpleTable(Object[] colAValues, Object[] colBValues) throws IllegalStateException {
     initializeMultiShardTable(Arrays.asList(new Pair[] { new Pair<Object[], Object[]>(colAValues, colBValues) }));
+  }
+
+  protected void initializeFromJson(String json) throws LoadException {
+    JsonLoader loader = dataContext.getBean(JsonLoader.class);
+    TableShard tableShard = loader.load(0L, new BigByteBuffer(json.getBytes()), TABLE, new LoaderColumnInfo(colType));
+
+    TableRegistry tableRegistry = dataContext.getBean(TableRegistry.class);
+    TableFactory tableFactory = dataContext.getBean(TableFactory.class);
+    tableRegistry.addTable(TABLE, tableFactory.createTable(TABLE, Arrays.asList(tableShard)));
   }
 
   /**

@@ -75,6 +75,9 @@ enum RExecutionPlanStepType {
   GROUP,
   GROUP_INTERMEDIATE_AGGREGATE,
   
+  // aggregate columns of single rows (aggregating on repeated fields)
+  COLUMN_AGGREGATE,
+  
   // limit and order result set
   ORDER,
   
@@ -142,7 +145,7 @@ struct RExecutionPlanStep {
   5: optional RExecutionPlanStepDetailsResolve detailsResolve,      // set on type == RESOLVE_COLUMN_DICT_IDS
   6: optional RExecutionPlanStepDetailsOrder detailsOrder,          // set on type == ORDER
   7: optional RExecutionPlanStepDetailsGroup detailsGroup,          // set on type == GROUP
-  8: optional RExecutionPlanStepDetailsFunction detailsFunction,    // set on type == PROJECT, GROUP_INTERMEDIATE_AGGREGATE and GROUP_FINAL_AGGREGATE
+  8: optional RExecutionPlanStepDetailsFunction detailsFunction,    // set on type == PROJECT, GROUP_INTERMEDIATE_AGGREGATE and COLUMN_AGGREGATE
 }
 
 struct RExecutionPlan {

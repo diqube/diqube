@@ -40,7 +40,9 @@ public class PlannerColumnInfo {
 
   private FunctionRequest.Type type;
 
-  private boolean transitivelyDependsOnAggregation;
+  private boolean transitivelyDependsOnRowAggregation;
+
+  private boolean transitivelyDependsOnColAggregation;
 
   private boolean transitivelyDependsOnLiteralsOnly;
 
@@ -87,14 +89,27 @@ public class PlannerColumnInfo {
   }
 
   /**
-   * @return true if any of the parents (transitively) is an aggregation function.
+   * @return true if any of the parents (transitively) is an aggregation function that aggregates multiple rows (GROUP
+   *         BY aggregation).
    */
-  public boolean isTransitivelyDependsOnAggregation() {
-    return transitivelyDependsOnAggregation;
+  public boolean isTransitivelyDependsOnRowAggregation() {
+    return transitivelyDependsOnRowAggregation;
   }
 
-  public void setTransitivelyDependsOnAggregation(boolean transitivelyDependsOnAggregation) {
-    this.transitivelyDependsOnAggregation = transitivelyDependsOnAggregation;
+  public void setTransitivelyDependsOnRowAggregation(boolean transitivelyDependsOnRowAggregation) {
+    this.transitivelyDependsOnRowAggregation = transitivelyDependsOnRowAggregation;
+  }
+
+  /**
+   * @return true if any of the parents (transitively) is an aggregation function that aggregates multiple columns
+   *         (repeated field aggregation).
+   */
+  public boolean isTransitivelyDependsOnColAggregation() {
+    return transitivelyDependsOnColAggregation;
+  }
+
+  public void setTransitivelyDependsOnColAggregation(boolean transitivelyDependsOnColAggregation) {
+    this.transitivelyDependsOnColAggregation = transitivelyDependsOnColAggregation;
   }
 
   /**

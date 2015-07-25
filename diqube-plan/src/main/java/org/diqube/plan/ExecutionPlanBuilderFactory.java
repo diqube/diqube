@@ -23,6 +23,7 @@ package org.diqube.plan;
 import javax.inject.Inject;
 
 import org.diqube.context.AutoInstatiate;
+import org.diqube.data.util.RepeatedColumnNameGenerator;
 import org.diqube.execution.env.ExecutionEnvironmentFactory;
 
 /**
@@ -38,7 +39,10 @@ public class ExecutionPlanBuilderFactory {
   @Inject
   private ExecutionEnvironmentFactory executionEnvironmentFactory;
 
+  @Inject
+  private RepeatedColumnNameGenerator repeatedColNames;
+
   public ExecutionPlanBuilder createExecutionPlanBuilder() {
-    return new ExecutionPlanBuilder(executionPlannerFactory, executionEnvironmentFactory);
+    return new ExecutionPlanBuilder(executionPlannerFactory, executionEnvironmentFactory, repeatedColNames);
   }
 }

@@ -38,7 +38,7 @@ public class RepeatedColumnNameGenerator {
    *          the index for which to create the col name.
    * @return the column name.
    */
-  public String repeatedAtIndex(String baseName, int index) {
+  public String repeatedAtIndex(String baseName, long index) {
     StringBuilder sb = new StringBuilder();
     sb.append(baseName);
     sb.append("[");
@@ -56,5 +56,13 @@ public class RepeatedColumnNameGenerator {
    */
   public String repeatedLength(String baseName) {
     return baseName + "[length]";
+  }
+
+  /**
+   * @return A substring that can be appended to a column name to denote that the column is repeated and all children
+   *         are referenced.
+   */
+  public String allEntriesIdentifyingSubstr() {
+    return "[*]";
   }
 }

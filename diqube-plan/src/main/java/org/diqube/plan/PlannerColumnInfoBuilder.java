@@ -75,7 +75,8 @@ public class PlannerColumnInfoBuilder {
       }
     }
 
-    List<PlannerColumnInfo> aggregationFunctions = new ArrayList<>();
+    List<PlannerColumnInfo> rowAggregationFunctions = new ArrayList<>();
+    List<PlannerColumnInfo> colAggregationFunctions = new ArrayList<>();
     Deque<PlannerColumnInfo> literalOnlyFunctions = new LinkedList<>();
 
     for (FunctionRequest func : executionRequest.getProjectAndAggregate()) {
@@ -84,8 +85,11 @@ public class PlannerColumnInfoBuilder {
       info.setProvidedByFunctionRequest(func);
       info.setUsedInHaving(columnNamesUsedInHaving.contains(func.getOutputColumn()));
 
-      if (func.getType().equals(Type.AGGREGATION)) {
-        aggregationFunctions.add(info);
+      if (func.getType().equals(Type.AGGREGATION_ROW)) {
+        rowAggregationFunctions.add(info);
+        info.setTransitivelyDependsOnLiteralsOnly(false);
+      } else if (func.getType().equals(Type.AGGREGATION_COL)) {
+        colAggregationFunctions.add(info);
         info.setTransitivelyDependsOnLiteralsOnly(false);
       }
 
@@ -98,7 +102,7 @@ public class PlannerColumnInfoBuilder {
         }
       }
 
-      if (!func.getType().equals(Type.AGGREGATION)) {
+      if (func.getType().equals(Type.PROJECTION)) {
         info.setTransitivelyDependsOnLiteralsOnly(!foundColumn);
         if (!foundColumn)
           literalOnlyFunctions.add(info);
@@ -120,19 +124,34 @@ public class PlannerColumnInfoBuilder {
       }
     }
 
-    // resolve transitive aggregation functions
-    Deque<PlannerColumnInfo> transitiveAggregationFunctions = new LinkedList<>();
-    // find children of 'top level agg functions' - if the do not (transitively) depend on other agg functions, they are
-    // NOT 'transitive agg functions'!
-    for (PlannerColumnInfo aggregationFunction : aggregationFunctions)
+    // resolve transitive row aggregation functions
+    Deque<PlannerColumnInfo> transitiveRowAggregationFunctions = new LinkedList<>();
+    // find children of 'top level row agg functions' - if the do not (transitively) depend on other agg functions, they
+    // are NOT 'transitive row agg functions'!
+    for (PlannerColumnInfo aggregationFunction : rowAggregationFunctions)
       for (String dependingColName : aggregationFunction.getColumnsDependingOnThis())
-        transitiveAggregationFunctions.add(res.get(dependingColName));
+        transitiveRowAggregationFunctions.add(res.get(dependingColName));
 
-    while (!transitiveAggregationFunctions.isEmpty()) {
-      PlannerColumnInfo transitiveAggFunction = transitiveAggregationFunctions.poll();
-      transitiveAggFunction.setTransitivelyDependsOnAggregation(true);
+    while (!transitiveRowAggregationFunctions.isEmpty()) {
+      PlannerColumnInfo transitiveAggFunction = transitiveRowAggregationFunctions.poll();
+      transitiveAggFunction.setTransitivelyDependsOnRowAggregation(true);
       for (String dependingColName : transitiveAggFunction.getColumnsDependingOnThis())
-        aggregationFunctions.add(res.get(dependingColName));
+        transitiveRowAggregationFunctions.add(res.get(dependingColName));
+    }
+
+    // resolve transitive col aggregation functions
+    Deque<PlannerColumnInfo> transitiveColAggregationFunctions = new LinkedList<>();
+    // find children of 'top level row agg functions' - if the do not (transitively) depend on other agg functions, they
+    // are NOT 'transitive row agg functions'!
+    for (PlannerColumnInfo aggregationFunction : colAggregationFunctions)
+      for (String dependingColName : aggregationFunction.getColumnsDependingOnThis())
+        transitiveColAggregationFunctions.add(res.get(dependingColName));
+
+    while (!transitiveColAggregationFunctions.isEmpty()) {
+      PlannerColumnInfo transitiveAggFunction = transitiveColAggregationFunctions.poll();
+      transitiveAggFunction.setTransitivelyDependsOnColAggregation(true);
+      for (String dependingColName : transitiveAggFunction.getColumnsDependingOnThis())
+        transitiveColAggregationFunctions.add(res.get(dependingColName));
     }
 
     // resolve transitive literal functions

@@ -58,13 +58,13 @@ public class RemoteOrderHandler implements OrderRequestBuilder<RExecutionPlanSte
 
   @Override
   public RExecutionPlanStep build(OrderRequest orderRequest) {
-    // create a new OrderRequest that contains all columns up to the first aggregation column. We can safely order
+    // create a new OrderRequest that contains all columns up to the first row aggregation column. We can safely order
     // that on the cluster nodes and apply LIMIT clauses - that would limit the number of items reported by each
     // cluster node to the query master. The query master itself can then sort based on the whole OrderRequest.
     if (orderRequest.getLimit() != null) {
       OrderRequest clusterNodeOrder =
           orderRequest.createSubOrderRequestUpTo(pair -> columnInfo.containsKey(pair.getLeft())
-              && columnInfo.get(pair.getLeft()).getType().equals(FunctionRequest.Type.AGGREGATION));
+              && columnInfo.get(pair.getLeft()).getType().equals(FunctionRequest.Type.AGGREGATION_ROW));
 
       if (clusterNodeOrder.getColumns().isEmpty())
         return null;

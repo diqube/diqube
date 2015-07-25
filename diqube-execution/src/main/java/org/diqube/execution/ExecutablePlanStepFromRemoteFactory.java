@@ -28,8 +28,10 @@ import javax.inject.Inject;
 
 import org.diqube.context.AutoInstatiate;
 import org.diqube.data.colshard.ColumnShardFactory;
+import org.diqube.data.util.RepeatedColumnNameGenerator;
 import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.exception.ExecutablePlanBuildException;
+import org.diqube.execution.steps.ColumnAggregationStep;
 import org.diqube.execution.steps.GroupIntermediaryAggregationStep;
 import org.diqube.execution.steps.GroupStep;
 import org.diqube.execution.steps.OrderStep;
@@ -70,6 +72,9 @@ public class ExecutablePlanStepFromRemoteFactory {
   @Inject
   private ColumnShardFactory columnShardFactory;
 
+  @Inject
+  private RepeatedColumnNameGenerator repeatedColNames;
+
   /**
    * Creates an {@link ExecutablePlanStep} for the given {@link RExecutionPlanStep}. The resulting step will not be
    * data-wired.
@@ -100,6 +105,8 @@ public class ExecutablePlanStepFromRemoteFactory {
       return createGroup(defaultEnv, remoteStep);
     case GROUP_INTERMEDIATE_AGGREGATE:
       return createGroupIntermediaryAggregation(defaultEnv, remoteStep);
+    case COLUMN_AGGREGATE:
+      return createColumnAggregation(defaultEnv, remoteStep);
     case PROJECT:
       return createProject(defaultEnv, remoteStep);
     case RESOLVE_COLUMN_DICT_IDS:
@@ -271,6 +278,17 @@ public class ExecutablePlanStepFromRemoteFactory {
 
     return new GroupIntermediaryAggregationStep(remoteStep.getStepId(), defaultEnv, functionFactory, functionName,
         outputColName, inputColName);
+  }
+
+  private ExecutablePlanStep createColumnAggregation(ExecutionEnvironment defaultEnv, RExecutionPlanStep remoteStep) {
+    String functionName = remoteStep.getDetailsFunction().getFunctionNameLowerCase();
+    String outputColName = remoteStep.getDetailsFunction().getResultColumn().getColName();
+
+    String inputColName = null;
+    inputColName = remoteStep.getDetailsFunction().getFunctionArguments().get(0).getColumn().getColName();
+
+    return new ColumnAggregationStep(remoteStep.getStepId(), defaultEnv, repeatedColNames,
+        columnShardBuilderManagerFactory, functionFactory, functionName, outputColName, inputColName);
   }
 
 }

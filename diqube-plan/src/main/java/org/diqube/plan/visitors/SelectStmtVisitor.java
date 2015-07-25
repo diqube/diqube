@@ -23,6 +23,7 @@ package org.diqube.plan.visitors;
 import java.util.Arrays;
 import java.util.List;
 
+import org.diqube.data.util.RepeatedColumnNameGenerator;
 import org.diqube.diql.antlr.DiqlBaseVisitor;
 import org.diqube.diql.antlr.DiqlParser.GroupByClauseContext;
 import org.diqube.diql.antlr.DiqlParser.SelectStmtContext;
@@ -41,7 +42,10 @@ import org.diqube.util.Pair;
  */
 public class SelectStmtVisitor extends DiqlBaseVisitor<ExecutionRequest> {
 
-  public SelectStmtVisitor() {
+  private RepeatedColumnNameGenerator repeatedColNames;
+
+  public SelectStmtVisitor(RepeatedColumnNameGenerator repeatedColNames) {
+    this.repeatedColNames = repeatedColNames;
   }
 
   @Override
@@ -53,7 +57,7 @@ public class SelectStmtVisitor extends DiqlBaseVisitor<ExecutionRequest> {
     executionRequest.setTableName(tableName);
 
     // scan GROUP BY
-    Pair<GroupRequest, ComparisonRequest> groupBySteps = selectStmt.accept(new GroupByVisitor(env));
+    Pair<GroupRequest, ComparisonRequest> groupBySteps = selectStmt.accept(new GroupByVisitor(env, repeatedColNames));
     if (groupBySteps != null) {
       executionRequest.setGroup(groupBySteps.getLeft());
 
@@ -62,7 +66,7 @@ public class SelectStmtVisitor extends DiqlBaseVisitor<ExecutionRequest> {
     }
 
     // scan WHERE clause
-    ComparisonRequest restrictions = selectStmt.accept(new ComparisonVisitor(env,
+    ComparisonRequest restrictions = selectStmt.accept(new ComparisonVisitor(env, repeatedColNames,
         // we want to parse the WHERE clause here, so do not visit any sub-tree of GROUP BYs (as that might contain a
         // HAVING
         // clause with additional comparison contexts, but we do not want to visit them here!)
@@ -71,12 +75,12 @@ public class SelectStmtVisitor extends DiqlBaseVisitor<ExecutionRequest> {
       executionRequest.setWhere(restrictions);
 
     // scan order by
-    OrderRequest orderSteps = selectStmt.accept(new OrderVisitor(env));
+    OrderRequest orderSteps = selectStmt.accept(new OrderVisitor(env, repeatedColNames));
     if (orderSteps != null)
       executionRequest.setOrder(orderSteps);
 
     // scan result values
-    List<ResolveValueRequest> resultValues = selectStmt.accept(new ResultValueVisitor(env));
+    List<ResolveValueRequest> resultValues = selectStmt.accept(new ResultValueVisitor(env, repeatedColNames));
     if (resultValues != null)
       executionRequest.setResolveValues(resultValues);
 

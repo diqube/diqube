@@ -21,6 +21,7 @@
 package org.diqube.plan.visitors;
 
 import org.antlr.v4.runtime.tree.TerminalNode;
+import org.diqube.data.util.RepeatedColumnNameGenerator;
 import org.diqube.diql.antlr.DiqlBaseVisitor;
 import org.diqube.diql.antlr.DiqlParser.AnyValueContext;
 import org.diqube.diql.antlr.DiqlParser.DecimalLiteralValueContext;
@@ -52,8 +53,11 @@ public class OrderVisitor extends DiqlBaseVisitor<OrderRequest> {
 
   private ExecutionRequestVisitorEnvironment env;
 
-  public OrderVisitor(ExecutionRequestVisitorEnvironment env) {
+  private RepeatedColumnNameGenerator repeatedColNames;
+
+  public OrderVisitor(ExecutionRequestVisitorEnvironment env, RepeatedColumnNameGenerator repeatedColNames) {
     this.env = env;
+    this.repeatedColNames = repeatedColNames;
   }
 
   @Override
@@ -87,7 +91,7 @@ public class OrderVisitor extends DiqlBaseVisitor<OrderRequest> {
     OrderTermContext termCtx = null;
     while ((termCtx = orderClauseCtx.getChild(OrderTermContext.class, termPos++)) != null) {
       AnyValueContext anyValueContext = termCtx.getChild(AnyValueContext.class, 0);
-      ColumnOrValue anyValueResult = anyValueContext.accept(new AnyValueVisitor(env));
+      ColumnOrValue anyValueResult = anyValueContext.accept(new AnyValueVisitor(env, repeatedColNames));
 
       if (anyValueResult.getType().equals(Type.LITERAL))
         throw new ParseException("Ordering by literal values is not supported. "

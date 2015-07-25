@@ -35,8 +35,10 @@ import org.diqube.util.ColumnOrValue;
  * transforms these inputs to build a new column with the derived values.
  * 
  * <p>
- * An aggregation function is a function that is executed on the results of a GROUP BY, meaning that it merges the
- * values of the single rows belonging to one group to one result value.
+ * An aggregation function is a function that combines multiple values into one. There are two types of aggregation
+ * functions, first <b>row aggregation</b> is the aggregation that combines the values of the same column in multiple
+ * rows (a typical GROUP BY aggregation), and second the <b>column aggregation</b> aggregates the values of various
+ * columns in a single row (aggregating over a repeated field).
  * 
  * <p>
  * Please note that the output column name has to be <b>unique for the logic being executed by the function</b>. That
@@ -49,7 +51,7 @@ import org.diqube.util.ColumnOrValue;
  */
 public class FunctionRequest {
   public static enum Type {
-    PROJECTION, AGGREGATION
+    PROJECTION, AGGREGATION_ROW, AGGREGATION_COL
   }
 
   private List<ColumnOrValue> inputParameters = new ArrayList<>();

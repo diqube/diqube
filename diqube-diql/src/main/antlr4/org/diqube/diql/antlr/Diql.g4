@@ -156,7 +156,8 @@ tableName
  ;
 
 columnName 
- : anyName
+ : anyName ( '[' ( 'length' | DECIMAL_LITERAL | '*' ) ']' )?
+ | columnName '.' columnName
  ;
  
 anyName
