@@ -35,6 +35,7 @@ import org.diqube.data.colshard.StandardColumnShard;
 import org.diqube.data.dbl.dict.DoubleDictionary;
 import org.diqube.data.lng.dict.LongDictionary;
 import org.diqube.data.str.dict.StringDictionary;
+import org.diqube.loader.LoaderColumnInfo;
 import org.diqube.loader.compression.CompressedDoubleDictionaryBuilder;
 import org.diqube.loader.compression.CompressedLongDictionaryBuilder;
 import org.diqube.loader.compression.CompressedStringDictionaryBuilder;
@@ -86,8 +87,6 @@ public class SparseColumnShardBuilder<T> {
     Long defaultValueId = null;
 
     if (columnValueClass.equals(Long.class)) {
-      Long defaultValue = 0L;
-
       NavigableMap<Long, Long> entityMap = new TreeMap<>();
       long tmpValueId = 0;
       for (Entry<Long, T> valueEntry : rowIdToValues.entrySet()) {
@@ -97,10 +96,10 @@ public class SparseColumnShardBuilder<T> {
         navigableRowIdToValueIds.put(valueEntry.getKey(), entityMap.get(valueEntry.getValue()));
       }
 
-      if (!entityMap.containsKey(defaultValue))
-        entityMap.put(defaultValue, tmpValueId++);
+      if (!entityMap.containsKey(LoaderColumnInfo.DEFAULT_LONG))
+        entityMap.put(LoaderColumnInfo.DEFAULT_LONG, tmpValueId++);
 
-      defaultValueId = entityMap.get(defaultValue);
+      defaultValueId = entityMap.get(LoaderColumnInfo.DEFAULT_LONG);
 
       CompressedLongDictionaryBuilder builder = new CompressedLongDictionaryBuilder();
       builder.withDictionaryName(name).fromEntityMap(entityMap);
@@ -111,8 +110,6 @@ public class SparseColumnShardBuilder<T> {
       res = columnShardFactory.createStandardLongColumnShard(name, pages, columnShardDictionary);
     } else if (columnValueClass.equals(String.class)) {
       // TODO optimize c&p
-      String defaultValue = "";
-
       NavigableMap<String, Long> entityMap = new TreeMap<>();
       long tmpValueId = 0;
       for (Entry<Long, T> valueEntry : rowIdToValues.entrySet()) {
@@ -122,10 +119,10 @@ public class SparseColumnShardBuilder<T> {
         navigableRowIdToValueIds.put(valueEntry.getKey(), entityMap.get(valueEntry.getValue()));
       }
 
-      if (!entityMap.containsKey(defaultValue))
-        entityMap.put(defaultValue, tmpValueId++);
+      if (!entityMap.containsKey(LoaderColumnInfo.DEFAULT_STRING))
+        entityMap.put(LoaderColumnInfo.DEFAULT_STRING, tmpValueId++);
 
-      defaultValueId = entityMap.get(defaultValue);
+      defaultValueId = entityMap.get(LoaderColumnInfo.DEFAULT_STRING);
 
       CompressedStringDictionaryBuilder builder = new CompressedStringDictionaryBuilder();
       builder.fromEntityMap(entityMap);
@@ -136,8 +133,6 @@ public class SparseColumnShardBuilder<T> {
       res = columnShardFactory.createStandardStringColumnShard(name, pages, columnShardDictionary);
     } else if (columnValueClass.equals(Double.class)) {
       // TODO optimize c&p
-      Double defaultValue = -1.;
-
       NavigableMap<Double, Long> entityMap = new TreeMap<>();
       long tmpValueId = 0;
       for (Entry<Long, T> valueEntry : rowIdToValues.entrySet()) {
@@ -147,10 +142,10 @@ public class SparseColumnShardBuilder<T> {
         navigableRowIdToValueIds.put(valueEntry.getKey(), entityMap.get(valueEntry.getValue()));
       }
 
-      if (!entityMap.containsKey(defaultValue))
-        entityMap.put(defaultValue, tmpValueId++);
+      if (!entityMap.containsKey(LoaderColumnInfo.DEFAULT_DOUBLE))
+        entityMap.put(LoaderColumnInfo.DEFAULT_DOUBLE, tmpValueId++);
 
-      defaultValueId = entityMap.get(defaultValue);
+      defaultValueId = entityMap.get(LoaderColumnInfo.DEFAULT_DOUBLE);
 
       CompressedDoubleDictionaryBuilder builder = new CompressedDoubleDictionaryBuilder();
       builder.fromEntityMap(entityMap);

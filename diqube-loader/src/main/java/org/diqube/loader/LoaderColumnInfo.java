@@ -39,11 +39,21 @@ import org.diqube.data.ColumnType;
  */
 public class LoaderColumnInfo {
   // TODO #14 support optional columns
-  private static final Function<String[], Object[]> STRING_COL_FN = s -> s;
+
+  public static final Long DEFAULT_LONG = -1L;
+  public static final String DEFAULT_STRING = "";
+  public static final Double DEFAULT_DOUBLE = 0.;
+
+  private static final Function<String[], Object[]> STRING_COL_FN =
+      sa -> Arrays.asList(sa).stream().sequential().map(s -> {
+        if (s == null)
+          return DEFAULT_STRING;
+        return s;
+      }).toArray(len -> new String[len]);
   private static final Function<String[], Object[]> LONG_COL_FN = sa -> Arrays.asList(sa).stream().sequential()
       .map(s -> LoaderColumnInfo.parseLong(s)).toArray(len -> new Long[len]);
-  private static final Function<String[], Object[]> DOUBLE_COL_FN =
-      sa -> Arrays.asList(sa).stream().sequential().map(s -> Double.parseDouble(s)).toArray(len -> new Double[len]);
+  private static final Function<String[], Object[]> DOUBLE_COL_FN = sa -> Arrays.asList(sa).stream().sequential()
+      .map(s -> LoaderColumnInfo.parseDouble(s)).toArray(len -> new Double[len]);
 
   private Map<String, ColumnType> columnType = new HashMap<>();
   private Map<String, Function<String[], Object[]>> customTransformationFunction = new HashMap<>();
@@ -143,9 +153,15 @@ public class LoaderColumnInfo {
   }
 
   public static Long parseLong(String s) {
-    if ("".equals(s))
+    if (s == null || "".equals(s))
       // TODO #14 optional columns
-      return -1L;
+      return DEFAULT_LONG;
     return Long.parseLong(s);
+  }
+
+  public static Double parseDouble(String s) {
+    if (s == null || "".equals(s))
+      return DEFAULT_DOUBLE;
+    return Double.parseDouble(s);
   }
 }

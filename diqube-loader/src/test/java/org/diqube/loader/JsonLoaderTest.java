@@ -20,6 +20,7 @@
  */
 package org.diqube.loader;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -163,6 +164,75 @@ public class JsonLoaderTest {
           Arrays.asList(new Long[] { valueC0E, valueC1E })));
       Assert.assertEquals((long) resolveSingleRowValue(colCLength, i), 2L,
           "Correct value of length col expected for row " + i);
+    }
+
+    Assert.assertEquals(actualValues, expectedValues, "Expected correct values to be encoded");
+  }
+
+  @Test
+  public void arrayContainingDifferentLengthLongsJson() throws LoadException {
+    // GIVEN
+    String json = "[ { \"a\": 1, \"c\": [4, 5, 6]}," + "{\"a\": 2, \"c\": [ 1 ] } ]";
+
+    // WHEN
+    TableShard tableShard = loader.load(0L, new BigByteBuffer(json.getBytes()), TABLE, colInfo);
+
+    // THEN
+    Assert.assertEquals(tableShard.getLongColumns().size(), 5, "Expected all long columns to be available");
+
+    Set<Pair<Long, List<Long>>> expectedValues = new HashSet<>();
+    expectedValues.add(new Pair<>(1L, Arrays.asList(new Long[] { 4L, 5L, 6L })));
+    expectedValues.add(new Pair<>(2L, Arrays.asList(new Long[] { 1L })));
+
+    Set<Pair<Long, List<Long>>> actualValues = new HashSet<>();
+    LongStandardColumnShard colA = tableShard.getLongColumns().get("a");
+    LongStandardColumnShard[] colC =
+        new LongStandardColumnShard[] { tableShard.getLongColumns().get(repeatedColNames.repeatedAtIndex("c", 0)),
+            tableShard.getLongColumns().get(repeatedColNames.repeatedAtIndex("c", 1)),
+            tableShard.getLongColumns().get(repeatedColNames.repeatedAtIndex("c", 2)) };
+    LongStandardColumnShard colCLength = tableShard.getLongColumns().get(repeatedColNames.repeatedLength("c"));
+    for (long i = tableShard.getLowestRowId(); i < tableShard.getLowestRowId()
+        + tableShard.getNumberOfRowsInShard(); i++) {
+      Long valueA = resolveSingleRowValue(colA, i);
+      List<Long> valueC = new ArrayList<>();
+      for (int c = 0; c < resolveSingleRowValue(colCLength, i); c++)
+        valueC.add(resolveSingleRowValue(colC[c], i));
+      actualValues.add(new Pair<>(valueA, valueC));
+    }
+
+    Assert.assertEquals(actualValues, expectedValues, "Expected correct values to be encoded");
+  }
+
+  @Test
+  public void arrayContainingDifferentLengthObjectsJson() throws LoadException {
+    // GIVEN
+    String json =
+        "[ { \"a\": 1, \"c\": [ { \"d\": 4 }, { \"d\": 5}, { \"d\": 6 } ]}," + "{\"a\": 2, \"c\": [ { \"d\": 1 } ] } ]";
+
+    // WHEN
+    TableShard tableShard = loader.load(0L, new BigByteBuffer(json.getBytes()), TABLE, colInfo);
+
+    // THEN
+    Assert.assertEquals(tableShard.getLongColumns().size(), 5, "Expected all long columns to be available");
+
+    Set<Pair<Long, List<Long>>> expectedValues = new HashSet<>();
+    expectedValues.add(new Pair<>(1L, Arrays.asList(new Long[] { 4L, 5L, 6L })));
+    expectedValues.add(new Pair<>(2L, Arrays.asList(new Long[] { 1L })));
+
+    Set<Pair<Long, List<Long>>> actualValues = new HashSet<>();
+    LongStandardColumnShard colA = tableShard.getLongColumns().get("a");
+    LongStandardColumnShard[] colD = new LongStandardColumnShard[] {
+        tableShard.getLongColumns().get(repeatedColNames.repeatedAtIndex("c", 0) + ".d"),
+        tableShard.getLongColumns().get(repeatedColNames.repeatedAtIndex("c", 1) + ".d"),
+        tableShard.getLongColumns().get(repeatedColNames.repeatedAtIndex("c", 2) + ".d") };
+    LongStandardColumnShard colCLength = tableShard.getLongColumns().get(repeatedColNames.repeatedLength("c"));
+    for (long i = tableShard.getLowestRowId(); i < tableShard.getLowestRowId()
+        + tableShard.getNumberOfRowsInShard(); i++) {
+      Long valueA = resolveSingleRowValue(colA, i);
+      List<Long> valueD = new ArrayList<>();
+      for (int c = 0; c < resolveSingleRowValue(colCLength, i); c++)
+        valueD.add(resolveSingleRowValue(colD[c], i));
+      actualValues.add(new Pair<>(valueA, valueD));
     }
 
     Assert.assertEquals(actualValues, expectedValues, "Expected correct values to be encoded");

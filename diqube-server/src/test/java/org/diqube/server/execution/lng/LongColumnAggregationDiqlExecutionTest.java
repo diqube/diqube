@@ -44,8 +44,8 @@ import org.testng.annotations.Test;
  *
  * @author Bastian Gloeckle
  */
-public class ColumnAggregationDiqlExecutionTest extends AbstractDiqlExecutionTest<Long> {
-  public ColumnAggregationDiqlExecutionTest() {
+public class LongColumnAggregationDiqlExecutionTest extends AbstractDiqlExecutionTest<Long> {
+  public LongColumnAggregationDiqlExecutionTest() {
     super(ColumnType.LONG, new LongTestDataProvider());
   }
 
@@ -130,8 +130,8 @@ public class ColumnAggregationDiqlExecutionTest extends AbstractDiqlExecutionTes
   @Test
   public void twoRowTwoLevelColAggregation() throws LoadException, InterruptedException, ExecutionException {
     initializeFromJson( //
-        "[ { \"a\": 1, \"b\": [ { \"c\": [ { \"d\": 0 }, { \"d\": 20 } ] }, { \"c\": [ { \"d\": 100 }, { \"d\": 80 } ] } ] },"
-            + "{ \"a\": 2, \"b\": [ { \"c\": [ { \"d\": 0 }, { \"d\": 200 } ] }, { \"c\": [ { \"d\": 1000 }, { \"d\": 800 } ] } ] }"
+        "[ { \"a\": 1, \"b\": [ { \"c\": [ { \"d\": 20 }, { \"d\": 30 } ] }, { \"c\": [ { \"d\": 100 }, { \"d\": 25 }, { \"d\": 75 } ] } ] },"
+            + "{ \"a\": 2, \"b\": [ { \"c\": [ { \"d\": 400 }, { \"d\": 50 }, { \"d\": 150 } ] }, { \"c\": [ { \"d\": 1050 }, { \"d\": 850 } ] } ] }"
             + //
             " ]");
     ExecutablePlan plan = buildExecutablePlan("select a, round(avg(b[*].c[*].d)) from " + TABLE);
@@ -146,6 +146,51 @@ public class ColumnAggregationDiqlExecutionTest extends AbstractDiqlExecutionTes
 
       String resAggColName = new FunctionBasedColumnNameBuilder().withFunctionName("round").addParameterColumnName(
           new FunctionBasedColumnNameBuilder().withFunctionName("avg").addParameterColumnName("b[*].c[*].d").build())
+          .build();
+
+      Assert.assertTrue(resultValues.containsKey("a"), "Expected to have a result for col");
+      Assert.assertTrue(resultValues.containsKey(resAggColName),
+          "Expected that there's results for the aggregation func");
+      Assert.assertEquals(resultValues.keySet().size(), 2, "Expected to have results for correct number of cols");
+
+      Assert.assertEquals(resultValues.get("a").size(), 2, "Expected to receive a specific amout of rows");
+      Assert.assertEquals(resultValues.get(resAggColName).size(), 2, "Expected to receive a specific amout of rows");
+
+      Set<Pair<Long, Long>> expected = new HashSet<>();
+      expected.add(new Pair<>(1L, 50L));
+      expected.add(new Pair<>(2L, 500L));
+
+      Set<Pair<Long, Long>> actual = new HashSet<>();
+
+      for (long rowId : resultValues.get("a").keySet())
+        actual.add(new Pair<>(resultValues.get("a").get(rowId), resultValues.get(resAggColName).get(rowId)));
+
+      Assert.assertEquals(actual, expected, "Expected correct result values");
+    } finally {
+      executor.shutdownNow();
+    }
+  }
+
+  @Test
+  public void twoRowTwoLevelColAggregationWithoutObjectsInArray()
+      throws LoadException, InterruptedException, ExecutionException {
+    initializeFromJson( //
+        "[ { \"a\": 1, \"b\": [ { \"c\": [ 20, 30 ] }, { \"c\": [ 100, 25, 75  ] } ] },"
+            + "{ \"a\": 2, \"b\": [ { \"c\": [ 400, 50, 150 ] }, { \"c\": [ 1050, 850 ] } ] }" + //
+            " ]");
+    ExecutablePlan plan = buildExecutablePlan("select a, round(avg(b[*].c[*])) from " + TABLE);
+    ExecutorService executor = executors.newTestExecutor(plan.preferredExecutorServiceSize());
+    try {
+      Future<?> future = plan.executeAsynchronously(executor);
+      future.get();
+
+      Assert.assertTrue(columnValueConsumerIsDone, "Source should have reported 'done'");
+      Assert.assertTrue(future.isDone(), "Future should report done");
+      Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
+
+      String resAggColName = new FunctionBasedColumnNameBuilder().withFunctionName("round")
+          .addParameterColumnName(
+              new FunctionBasedColumnNameBuilder().withFunctionName("avg").addParameterColumnName("b[*].c[*]").build())
           .build();
 
       Assert.assertTrue(resultValues.containsKey("a"), "Expected to have a result for col");
