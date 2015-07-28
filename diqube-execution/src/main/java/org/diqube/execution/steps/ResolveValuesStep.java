@@ -30,23 +30,31 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ConcurrentNavigableMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
+import org.diqube.data.colshard.ColumnShard;
 import org.diqube.execution.consumers.AbstractThreadedColumnDictIdConsumer;
 import org.diqube.execution.consumers.ColumnDictIdConsumer;
 import org.diqube.execution.consumers.ColumnValueConsumer;
 import org.diqube.execution.consumers.ColumnVersionBuiltConsumer;
 import org.diqube.execution.consumers.GenericConsumer;
 import org.diqube.execution.env.ExecutionEnvironment;
+import org.diqube.execution.env.VersionedExecutionEnvironment;
 import org.diqube.execution.exception.ExecutablePlanBuildException;
 import org.diqube.util.Pair;
 import org.diqube.util.Triple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Iterables;
 
 /**
  * A step that takes the output of a {@link ResolveColumnDictIdsStep} and transforms the column value IDs into final
@@ -72,7 +80,7 @@ public class ResolveValuesStep extends AbstractThreadedExecutablePlanStep {
   private AtomicBoolean sourcesAreEmpty = new AtomicBoolean(false);
 
   private AbstractThreadedColumnDictIdConsumer columnDictIdConsumer = new AbstractThreadedColumnDictIdConsumer(this) {
-    private Object newEntrySync = new Object();
+    private final ConcurrentMap<Long, Pair<ExecutionEnvironment, Long>> EMPTY_VALUE = new ConcurrentHashMap<>();
 
     @Override
     protected void allSourcesAreDone() {
@@ -81,80 +89,141 @@ public class ResolveValuesStep extends AbstractThreadedExecutablePlanStep {
 
     @Override
     protected void doConsume(ExecutionEnvironment env, String colName, Map<Long, Long> rowIdToColumnDictId) {
-      Pair<ExecutionEnvironment, String> keyPair = new Pair<>(env, colName);
+      // acquire read lock, because multiple threads might access the following code, but none might access the
+      // "writeLock" code in the execute() method.
       rowIdReadWriteLock.readLock().lock();
       try {
-        if (!rowIds.containsKey(keyPair)) {
-          synchronized (newEntrySync) {
-            if (!rowIds.containsKey(keyPair))
-              rowIds.put(keyPair, new ConcurrentHashMap<>());
-          }
-        }
+        // put a single column name string object into the map
+        inputColsAndRows.putIfAbsent(colName, EMPTY_VALUE);
+        // fetch that single key string (which is equal to all threads!)
+        colName = inputColsAndRows.floorKey(colName);
 
-        rowIds.get(keyPair).putAll(rowIdToColumnDictId);
+        // .. now we can use that string object to sync upon - the following code will only be executed by one thread
+        // simultaneously for a single colName.
+        synchronized (colName) {
+          logger.debug("Integrating column value IDs for col {} from {} for rowIds (limit) {}", colName, env,
+              Iterables.limit(rowIdToColumnDictId.keySet(), 100));
+
+          // prepare new value map.
+          ConcurrentMap<Long, Pair<ExecutionEnvironment, Long>> newRowIdToColValueId =
+              new ConcurrentHashMap<>(inputColsAndRows.get(colName));
+
+          // for each of the input rowId/columnValueId pairs check if there is a newer version available already. If
+          // not, put the new value!
+          rowIdToColumnDictId.entrySet().forEach(new Consumer<Entry<Long, Long>>() {
+            @Override
+            public void accept(Entry<Long, Long> newEntry) {
+              newRowIdToColValueId.merge( //
+                  newEntry.getKey(), // rowId of entry to inspect
+                  new Pair<>(env, newEntry.getValue()), // use this as new value
+                  new BiFunction<Pair<ExecutionEnvironment, Long>, Pair<ExecutionEnvironment, Long>, Pair<ExecutionEnvironment, Long>>() {
+
+                @Override
+                public Pair<ExecutionEnvironment, Long> apply(Pair<ExecutionEnvironment, Long> currentValue,
+                    Pair<ExecutionEnvironment, Long> newValue) {
+                  ExecutionEnvironment currentEnv = currentValue.getLeft();
+                  ExecutionEnvironment newEnv = newValue.getLeft();
+
+                  if (!(currentEnv instanceof VersionedExecutionEnvironment))
+                    return currentValue;
+
+                  if (!(newEnv instanceof VersionedExecutionEnvironment))
+                    return newValue;
+
+                  if (((VersionedExecutionEnvironment) currentEnv)
+                      .getVersion() < ((VersionedExecutionEnvironment) newEnv).getVersion())
+                    return newValue;
+                  return currentValue;
+                }
+              });
+            }
+          });
+
+          // be sure to use the exactly same string object here again, as this might be in sync-use in other threads
+          // already.
+          inputColsAndRows.put(colName, newRowIdToColValueId);
+        }
       } finally {
         rowIdReadWriteLock.readLock().unlock();
       }
     }
   };
 
-  private ConcurrentMap<Pair<ExecutionEnvironment, String>, ConcurrentMap<Long, Long>> rowIds =
-      new ConcurrentHashMap<>();
+  /**
+   * Map from colName to map from rowId to pair containing the column Value ID and the Env to resolve the value from.
+   * The Env and the col value ID of course have to be the newest ones.
+   */
+  private ConcurrentNavigableMap<String, ConcurrentMap<Long, Pair<ExecutionEnvironment, Long>>> inputColsAndRows =
+      new ConcurrentSkipListMap<>();
 
   private ReadWriteLock rowIdReadWriteLock = new ReentrantReadWriteLock();
 
-  public ResolveValuesStep(int stepId)
-
-  {
+  public ResolveValuesStep(int stepId) {
     super(stepId);
   }
 
   @Override
   public void execute() {
     rowIdReadWriteLock.writeLock().lock();
-    ConcurrentMap<Pair<ExecutionEnvironment, String>, ConcurrentMap<Long, Long>> activeColsAndRows;
+    ConcurrentNavigableMap<String, ConcurrentMap<Long, Pair<ExecutionEnvironment, Long>>> activeColsAndRows;
     try {
-      activeColsAndRows = rowIds;
-      rowIds = new ConcurrentHashMap<>();
+      activeColsAndRows = inputColsAndRows;
+      inputColsAndRows = new ConcurrentSkipListMap<>();
+
+      if (sourcesAreEmpty.get() && activeColsAndRows.isEmpty() && inputColsAndRows.isEmpty()) {
+        // there won't be any input at all. Stop processing.
+        forEachOutputConsumerOfType(GenericConsumer.class, c -> c.sourceIsDone());
+        doneProcessing();
+        return;
+      }
     } finally {
       rowIdReadWriteLock.writeLock().unlock();
     }
 
     if (activeColsAndRows.size() > 0) {
+      logger.debug("Starting to resolve values...");
       Map<String, Map<Long, Object>> valuesPerColumn = activeColsAndRows.entrySet().stream() //
           .parallel().flatMap( //
-              new Function<Entry<Pair<ExecutionEnvironment, String>, ConcurrentMap<Long, Long>>, Stream<Triple<String, Long, Object>>>() {
+              new Function<Entry<String, ConcurrentMap<Long, Pair<ExecutionEnvironment, Long>>>, Stream<Triple<String, Long, Object>>>() {
                 @Override
                 public Stream<Triple<String, Long, Object>> apply(
-                    Entry<Pair<ExecutionEnvironment, String>, ConcurrentMap<Long, Long>> e) {
-                  ExecutionEnvironment env = e.getKey().getLeft();
-                  String colName = e.getKey().getRight();
+                    Entry<String, ConcurrentMap<Long, Pair<ExecutionEnvironment, Long>>> e) {
+                  String colName = e.getKey();
 
                   List<Triple<String, Long, Object>> res = new ArrayList<>();
 
-                  // group columnValueIds, so we do not have to decompress specific colValueIds multiple times
-                  SortedMap<Long, List<Long>> columnValueIdToRowId = new TreeMap<>();
+                  // group by ExecutionEnvs and columnValueIds, so we do not have to decompress specific colValueIds
+                  // multiple times
+                  Map<ExecutionEnvironment, SortedMap<Long, List<Long>>> envToColumnValueIdToRowId = new HashMap<>();
 
-                  for (Entry<Long, Long> rowIdColValueIdEntry : e.getValue().entrySet()) {
+                  for (Entry<Long, Pair<ExecutionEnvironment, Long>> rowIdColValueIdEntry : e.getValue().entrySet()) {
                     Long rowId = rowIdColValueIdEntry.getKey();
-                    Long columnValueId = rowIdColValueIdEntry.getValue();
-                    if (!columnValueIdToRowId.containsKey(columnValueId))
-                      columnValueIdToRowId.put(columnValueId, new ArrayList<>());
-                    columnValueIdToRowId.get(columnValueId).add(rowId);
+                    Long columnValueId = rowIdColValueIdEntry.getValue().getRight();
+                    ExecutionEnvironment env = rowIdColValueIdEntry.getValue().getLeft();
+
+                    if (!envToColumnValueIdToRowId.containsKey(env))
+                      envToColumnValueIdToRowId.put(env, new TreeMap<>());
+
+                    if (!envToColumnValueIdToRowId.get(env).containsKey(columnValueId))
+                      envToColumnValueIdToRowId.get(env).put(columnValueId, new ArrayList<>());
+                    envToColumnValueIdToRowId.get(env).get(columnValueId).add(rowId);
                   }
 
-                  Long[] sortedColumnValueIds =
-                      columnValueIdToRowId.keySet().toArray(new Long[columnValueIdToRowId.keySet().size()]);
+                  for (ExecutionEnvironment env : envToColumnValueIdToRowId.keySet()) {
+                    SortedMap<Long, List<Long>> columnValueIdToRowId = envToColumnValueIdToRowId.get(env);
+                    Long[] sortedColumnValueIds =
+                        columnValueIdToRowId.keySet().toArray(new Long[columnValueIdToRowId.keySet().size()]);
 
-                  Object[] values =
-                      env.getColumnShard(colName).getColumnShardDictionary().decompressValues(sortedColumnValueIds);
+                    ColumnShard columnShard = env.getColumnShard(colName);
+                    Object[] values = columnShard.getColumnShardDictionary().decompressValues(sortedColumnValueIds);
 
-                  for (int i = 0; i < sortedColumnValueIds.length; i++) {
-                    Long columnValueId = sortedColumnValueIds[i];
-                    Object value = values[i];
+                    for (int i = 0; i < sortedColumnValueIds.length; i++) {
+                      Long columnValueId = sortedColumnValueIds[i];
+                      Object value = values[i];
 
-                    for (Long rowId : columnValueIdToRowId.get(columnValueId))
-                      res.add(new Triple<>(colName, rowId, value));
+                      for (Long rowId : columnValueIdToRowId.get(columnValueId))
+                        res.add(new Triple<>(colName, rowId, value));
+                    }
                   }
 
                   return res.stream();
@@ -176,13 +245,14 @@ public class ResolveValuesStep extends AbstractThreadedExecutablePlanStep {
             }
           });
 
-      logger.trace("Resolved values, sending them out now");
-
-      for (String colName : valuesPerColumn.keySet())
+      for (String colName : valuesPerColumn.keySet()) {
+        logger.trace("Resolved values, sending them out now (limit): {}, {}", colName,
+            Iterables.limit(valuesPerColumn.get(colName).entrySet(), 10));
         forEachOutputConsumerOfType(ColumnValueConsumer.class, c -> c.consume(colName, valuesPerColumn.get(colName)));
+      }
     }
 
-    if (sourcesAreEmpty.get() && rowIds.isEmpty()) {
+    if (sourcesAreEmpty.get() && inputColsAndRows.isEmpty()) {
       forEachOutputConsumerOfType(GenericConsumer.class, c -> c.sourceIsDone());
       doneProcessing();
     }

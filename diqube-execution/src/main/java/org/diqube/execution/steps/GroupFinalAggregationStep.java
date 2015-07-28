@@ -53,6 +53,8 @@ import org.diqube.util.Triple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Iterables;
+
 /**
  * Receives {@link IntermediaryResult}s provided by {@link GroupIntermediaryAggregationStep}s and combines them to
  * actual values. The resulting column that is built (of which the outputs are informed by a {@link ColumnBuiltConsumer}
@@ -170,7 +172,7 @@ public class GroupFinalAggregationStep extends AbstractThreadedExecutablePlanSte
     if (activeUpdates.length > 0 && existsOutputConsumerOfType(ColumnVersionBuiltConsumer.class)) {
       logger.trace("Creating new column version of {}, changed group IDs {}", outputColName, groupIdsChanged);
 
-      newCol = createNewColumn(defaultEnv);
+      newCol = createNewColumn();
       VersionedExecutionEnvironment newEnv = columnVersionManager.createNewVersion(newCol);
       Set<Long> finalGroupIdsChanged = groupIdsChanged;
 
@@ -183,7 +185,7 @@ public class GroupFinalAggregationStep extends AbstractThreadedExecutablePlanSte
       if (!aggregationFunctions.isEmpty()) { // check if there is any result at all, if not, just report "done" (below).
         logger.trace("Creating final grouped column {}", outputColName);
         if (newCol == null)
-          newCol = createNewColumn(defaultEnv);
+          newCol = createNewColumn();
 
         switch (newCol.getColumnType()) {
         case STRING:
@@ -205,7 +207,7 @@ public class GroupFinalAggregationStep extends AbstractThreadedExecutablePlanSte
     }
   }
 
-  private ColumnShard createNewColumn(ExecutionEnvironment env) throws FunctionException {
+  private ColumnShard createNewColumn() throws FunctionException {
     SparseColumnShardBuilder<Object> columnBuildManager =
         columnShardBuilderFactory.createSparseColumnShardBuilder(outputColName);
 
@@ -217,6 +219,7 @@ public class GroupFinalAggregationStep extends AbstractThreadedExecutablePlanSte
         maxRowId = rowId;
     }
 
+    logger.trace("Values of new col (limit): {}", Iterables.limit(rowIdToValue.entrySet(), 100));
     columnBuildManager.withNumberOfRows(maxRowId + 1).withValues(rowIdToValue);
 
     ColumnShard columnShard = columnBuildManager.build();

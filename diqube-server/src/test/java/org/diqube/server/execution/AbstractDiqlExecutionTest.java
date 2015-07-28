@@ -22,7 +22,6 @@ package org.diqube.server.execution;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -58,6 +57,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
+
+import com.google.common.collect.Iterables;
 
 /**
  * Abstract base class for tests executing diql statements and inspecting the results.
@@ -175,8 +176,11 @@ public abstract class AbstractDiqlExecutionTest<T> {
 
           @Override
           protected synchronized void doConsume(String colName, Map<Long, Object> values) {
+            logger.info("Test received new results for col {} (limit): {}", colName,
+                Iterables.limit(values.entrySet(), 100));
+
             if (!resultValues.containsKey(colName))
-              resultValues.put(colName, new HashMap<>());
+              resultValues.put(colName, new ConcurrentHashMap<>());
 
             @SuppressWarnings({ "unchecked", "rawtypes" })
             Map<Long, T> valuesLongLong = (((Map) values));

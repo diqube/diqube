@@ -29,6 +29,7 @@ import java.util.NavigableSet;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.diqube.data.colshard.ConstantColumnShard;
@@ -117,7 +118,7 @@ public class ResolveColumnDictIdsStep extends AbstractThreadedExecutablePlanStep
    * Those row IDs that have been reported since the last run of {@link #execute()} as having their values changed..
    * Sync access with {@link #newestSync}.
    */
-  private NavigableSet<Long> newestAdjustedRowIds = new TreeSet<>();
+  private NavigableSet<Long> newestAdjustedRowIds = new ConcurrentSkipListSet<>();
 
   private AbstractThreadedColumnVersionBuiltConsumer columnVersionBuiltConsumer =
       new AbstractThreadedColumnVersionBuiltConsumer(this) {
@@ -220,8 +221,8 @@ public class ResolveColumnDictIdsStep extends AbstractThreadedExecutablePlanStep
     activeRowIds.addAll(Sets.intersection(curAdjustedRowIds, processedRowIds));
 
     if (activeRowIds.size() > 0) {
-      logger.trace("Resolving column dict IDs of col {} at row IDs (limit, {}) {}", colName, activeRowIds.size(),
-          Iterables.limit(activeRowIds, 500));
+      logger.trace("Resolving column dict IDs of col {} based on ExecutionEnv {} at row IDs (limit, {}) {}", colName,
+          env, activeRowIds.size(), Iterables.limit(activeRowIds, 500));
 
       if (env.getColumnShard(colName) instanceof ConstantColumnShard) {
 
@@ -244,11 +245,9 @@ public class ResolveColumnDictIdsStep extends AbstractThreadedExecutablePlanStep
       processedRowIds.addAll(activeRowIds);
     }
 
-    synchronized (newestSync) {
-      if (!intermediateRun && rowIdSourceIsEmpty.get() && rowIds.isEmpty() && newestAdjustedRowIds.isEmpty()) {
-        forEachOutputConsumerOfType(GenericConsumer.class, c -> c.sourceIsDone());
-        doneProcessing();
-      }
+    if (!intermediateRun && rowIdSourceIsEmpty.get() && rowIds.isEmpty() && newestAdjustedRowIds.isEmpty()) {
+      forEachOutputConsumerOfType(GenericConsumer.class, c -> c.sourceIsDone());
+      doneProcessing();
     }
   }
 

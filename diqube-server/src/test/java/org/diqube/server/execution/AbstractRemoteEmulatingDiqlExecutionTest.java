@@ -145,7 +145,7 @@ public abstract class AbstractRemoteEmulatingDiqlExecutionTest<T> extends Abstra
    */
   protected void waitUntilOrFail(Object objToWaitFor, Supplier<String> msgSupplier, Supplier<Boolean> testFunction)
       throws RuntimeException {
-    int maxRuns = 30; // 3s.
+    int maxRuns = 50; // 5s.
     while (maxRuns-- > 0) {
       synchronized (objToWaitFor) {
         try {
