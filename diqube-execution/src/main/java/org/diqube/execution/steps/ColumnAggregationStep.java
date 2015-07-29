@@ -23,7 +23,6 @@ package org.diqube.execution.steps;
 import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -37,13 +36,14 @@ import org.diqube.data.colshard.ColumnShard;
 import org.diqube.data.dbl.DoubleColumnShard;
 import org.diqube.data.lng.LongColumnShard;
 import org.diqube.data.str.StringColumnShard;
-import org.diqube.data.util.RepeatedColumnNameGenerator;
 import org.diqube.execution.consumers.AbstractThreadedColumnBuiltConsumer;
 import org.diqube.execution.consumers.ColumnBuiltConsumer;
 import org.diqube.execution.consumers.GenericConsumer;
 import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.exception.ExecutablePlanBuildException;
 import org.diqube.execution.exception.ExecutablePlanExecutionException;
+import org.diqube.execution.util.ColumnPatternUtil;
+import org.diqube.execution.util.ColumnPatternUtil.LengthColumnMissingException;
 import org.diqube.function.AggregationFunction;
 import org.diqube.function.AggregationFunction.ValueProvider;
 import org.diqube.function.FunctionFactory;
@@ -87,16 +87,16 @@ public class ColumnAggregationStep extends AbstractThreadedExecutablePlanStep {
   private String functionNameLowerCase;
   private String outputColName;
   private ExecutionEnvironment defaultEnv;
-  private RepeatedColumnNameGenerator repeatedColName;
   private String inputColumnNamePattern;
   private Function<ColumnType, ColumnShardBuilderManager> columnShardBuilderManagerSupplier;
+  private ColumnPatternUtil columnPatternUtil;
 
-  public ColumnAggregationStep(int stepId, ExecutionEnvironment defaultEnv, RepeatedColumnNameGenerator repeatedColName,
+  public ColumnAggregationStep(int stepId, ExecutionEnvironment defaultEnv, ColumnPatternUtil columnPatternUtil,
       ColumnShardBuilderFactory columnShardBuilderFactory, FunctionFactory functionFactory,
       String functionNameLowerCase, String outputColName, String inputColumnNamePattern) {
     super(stepId);
     this.defaultEnv = defaultEnv;
-    this.repeatedColName = repeatedColName;
+    this.columnPatternUtil = columnPatternUtil;
     this.functionFactory = functionFactory;
     this.functionNameLowerCase = functionNameLowerCase;
     this.outputColName = outputColName;
@@ -112,27 +112,30 @@ public class ColumnAggregationStep extends AbstractThreadedExecutablePlanStep {
   protected void execute() {
     // validate if all "length" columns are available and all [index] columns, too - we do this by looking for all
     // columns with all indices that are contained in the length columns (= the maximum).
-    Set<String> allColNames = findColNamesForColNamePattern(inputColumnNamePattern, 0, "",
-        lenCol -> lenCol.getColumnShardDictionary().decompressValue(lenCol.getColumnShardDictionary().getMaxId()));
-
-    if (allColNames == null) {
-      // not all length cols were available.
+    Set<String> allColNames;
+    try {
+      allColNames = columnPatternUtil.findColNamesForColNamePattern(defaultEnv, inputColumnNamePattern,
+          lenCol -> lenCol.getColumnShardDictionary().decompressValue(lenCol.getColumnShardDictionary().getMaxId()));
+    } catch (LengthColumnMissingException e) {
       if (allColumnsAreBuilt.get()) {
-        // retry because to not face race conditions
-        allColNames = findColNamesForColNamePattern(inputColumnNamePattern, 0, "",
-            lenCol -> lenCol.getColumnShardDictionary().decompressValue(lenCol.getColumnShardDictionary().getMaxId()));
-        if (allColNames == null)
+        // retry to not face race conditions
+        try {
+          allColNames =
+              columnPatternUtil.findColNamesForColNamePattern(defaultEnv, inputColumnNamePattern, lenCol -> lenCol
+                  .getColumnShardDictionary().decompressValue(lenCol.getColumnShardDictionary().getMaxId()));
+        } catch (LengthColumnMissingException e2) {
           // still not all length cols available although all input columns should be built already, there is an error!
           throw new ExecutablePlanExecutionException("When trying to aggregate column values, not all repeated "
               + "columns were available. It was expected to have repeated columns where the input column pattern "
-              + "specifies '" + repeatedColName.allEntriesIdentifyingSubstr()
-              + "'. Perhaps not all of these columns are repeated columns?");
+              + "specifies '[*]'. Perhaps not all of these columns are repeated columns?");
+        }
       } else
+        // not all columns built yet, try again later.
         return;
     }
+
     if (allColNames.isEmpty())
-      throw new ExecutablePlanExecutionException(
-          "Input col name pattern did not contain '" + repeatedColName.allEntriesIdentifyingSubstr() + "'.");
+      throw new ExecutablePlanExecutionException("Input col name pattern did not contain '[*]'.");
 
     // all length columns are available, check all the [index] columns now.
     boolean notAllColsAvailable =
@@ -183,7 +186,8 @@ public class ColumnAggregationStep extends AbstractThreadedExecutablePlanStep {
               // - based on the value of the "length" columns at this row. The other rows (with indices >= length) will
               // contain some sort of default values, which we do not want to include in the aggregation!
               final long finalRowId = rowId;
-              Set<String> colNamesForCurRow = findColNamesForColNamePattern(inputColumnNamePattern, 0, "", lenCol -> {
+              Set<String> colNamesForCurRow =
+                  columnPatternUtil.findColNamesForColNamePattern(defaultEnv, inputColumnNamePattern, lenCol -> {
                 long colValueId = lenCol.resolveColumnValueIdForRow(finalRowId);
                 return lenCol.getColumnShardDictionary().decompressValue(colValueId);
               });
@@ -263,78 +267,6 @@ public class ColumnAggregationStep extends AbstractThreadedExecutablePlanStep {
   @Override
   protected String getAdditionalToStringDetails() {
     return "outputColName=" + outputColName;
-  }
-
-  /**
-   * Replaces all the [*] strings in the pattern with actual column indices.
-   * 
-   * @param pattern
-   *          The column name pattern
-   * @param startIdx
-   *          The index in the pattern string to start at. Typically on the first call this is 0.
-   * @param parentColName
-   *          while this method is being executed, it will recursively call itself. Then this string contains the
-   *          current column name of everything in the pattern before startIdx - with the actual indices already
-   *          inserted. Provide "" when calling this method from the outside.
-   * @param lengthProvider
-   *          Function to find out how many objects should be assumed to be contained for a column. Parameter to this
-   *          method is the "length" column (= the column of a repeated column that contains the number of elements in
-   *          that repeated column for each row). Callers can e.g. resolve the number of elements for a specific rowId
-   *          in "lengthProvider" or they could simply take the "max" value of the whole column to make this method
-   *          return a list of all possible column names that could be valid for all rows in the table.
-   * @return Set of string, the final column names based on the lengths provided by the lengthProvider. The returned set
-   *         will be empty, if there is no [*] substring in the pattern. It will be <code>null</code> if not for all
-   *         columns "length" columns are available where the input pattern has a [*].
-   */
-  private Set<String> findColNamesForColNamePattern(String pattern, int startIdx, String parentColName,
-      Function<LongColumnShard, Long> lengthProvider) {
-    int allEntriesIdentifierLength = repeatedColName.allEntriesIdentifyingSubstr().length();
-
-    Set<String> res = new HashSet<>();
-    int idx = pattern.indexOf(repeatedColName.allEntriesIdentifyingSubstr(), startIdx);
-    if (idx == -1)
-      return res;
-    String baseName;
-    if (startIdx == 0)
-      baseName = pattern.substring(startIdx, idx);
-    else
-      baseName = pattern.substring(startIdx + 1 /* skip previous . */, idx);
-
-    if (!parentColName.equals(""))
-      parentColName += ".";
-
-    String lenColName = repeatedColName.repeatedLength(parentColName + baseName);
-    LongColumnShard lenCol = defaultEnv.getLongColumnShard(lenColName);
-    if (lenCol == null)
-      return null;
-
-    boolean noMorePatterns = false;
-    long len = lengthProvider.apply(lenCol);
-    for (long i = 0; i < len; i++) {
-      String curColName = parentColName + repeatedColName.repeatedAtIndex(baseName, i);
-      if (!noMorePatterns) {
-        Set<String> nextRes = findColNamesForColNamePattern(pattern,
-            startIdx + baseName.length() + allEntriesIdentifierLength, curColName, lengthProvider);
-        if (nextRes == null)
-          // no length col available
-          return null;
-        if (nextRes.isEmpty()) {
-          // no more patterns left, process below.
-          noMorePatterns = true;
-        } else {
-          // recursive call identified some solutions ad added the full names to its result.
-          res.addAll(nextRes);
-        }
-      }
-      if (noMorePatterns) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(curColName);
-        if (idx + allEntriesIdentifierLength < pattern.length())
-          sb.append(pattern.substring(idx + allEntriesIdentifierLength));
-        res.add(sb.toString());
-      }
-    }
-    return res;
   }
 
 }

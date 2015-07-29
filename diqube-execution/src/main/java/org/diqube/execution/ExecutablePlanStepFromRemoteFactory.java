@@ -28,7 +28,6 @@ import javax.inject.Inject;
 
 import org.diqube.context.AutoInstatiate;
 import org.diqube.data.colshard.ColumnShardFactory;
-import org.diqube.data.util.RepeatedColumnNameGenerator;
 import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.exception.ExecutablePlanBuildException;
 import org.diqube.execution.steps.ColumnAggregationStep;
@@ -45,6 +44,7 @@ import org.diqube.execution.steps.RowIdInequalStep.RowIdComparator;
 import org.diqube.execution.steps.RowIdNotStep;
 import org.diqube.execution.steps.RowIdOrStep;
 import org.diqube.execution.steps.RowIdSinkStep;
+import org.diqube.execution.util.ColumnPatternUtil;
 import org.diqube.function.FunctionFactory;
 import org.diqube.loader.columnshard.ColumnShardBuilderFactory;
 import org.diqube.remote.base.thrift.RValue;
@@ -73,7 +73,7 @@ public class ExecutablePlanStepFromRemoteFactory {
   private ColumnShardFactory columnShardFactory;
 
   @Inject
-  private RepeatedColumnNameGenerator repeatedColNames;
+  private ColumnPatternUtil columnPatternUtil;
 
   /**
    * Creates an {@link ExecutablePlanStep} for the given {@link RExecutionPlanStep}. The resulting step will not be
@@ -287,7 +287,7 @@ public class ExecutablePlanStepFromRemoteFactory {
     String inputColName = null;
     inputColName = remoteStep.getDetailsFunction().getFunctionArguments().get(0).getColumn().getColName();
 
-    return new ColumnAggregationStep(remoteStep.getStepId(), defaultEnv, repeatedColNames,
+    return new ColumnAggregationStep(remoteStep.getStepId(), defaultEnv, columnPatternUtil,
         columnShardBuilderManagerFactory, functionFactory, functionName, outputColName, inputColName);
   }
 
