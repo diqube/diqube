@@ -47,6 +47,7 @@ import org.diqube.loader.columnshard.ColumnShardBuilderFactory;
 import org.diqube.loader.columnshard.ColumnShardBuilderManager;
 import org.diqube.plan.ExecutionPlanBuilder;
 import org.diqube.plan.ExecutionPlanBuilderFactory;
+import org.diqube.plan.util.FunctionBasedColumnNameBuilderFactory;
 import org.diqube.queries.QueryUuid;
 import org.diqube.threads.ExecutorManager;
 import org.diqube.threads.test.TestExecutors;
@@ -124,6 +125,8 @@ public abstract class AbstractDiqlExecutionTest<T> {
 
   protected TestExecutors executors;
 
+  protected FunctionBasedColumnNameBuilderFactory functionBasedColumnNameBuilderFactory;
+
   /**
    * @param colType
    *          Type of the columns to be created.
@@ -165,6 +168,8 @@ public abstract class AbstractDiqlExecutionTest<T> {
     resultOrderRowIds = null;
     newValuesNotify = new Object();
     newOrderedRowIdsNotify = new Object();
+
+    functionBasedColumnNameBuilderFactory = dataContext.getBean(FunctionBasedColumnNameBuilderFactory.class);
 
     executionPlanBuilder = dataContext.getBean(ExecutionPlanBuilderFactory.class).createExecutionPlanBuilder()
         .withFinalColumnValueConsumer(new AbstractThreadedColumnValueConsumer(null) {

@@ -30,6 +30,7 @@ import org.diqube.diql.antlr.DiqlParser.OrderClauseContext;
 import org.diqube.diql.antlr.DiqlParser.OrderTermContext;
 import org.diqube.plan.exception.ParseException;
 import org.diqube.plan.request.OrderRequest;
+import org.diqube.plan.util.FunctionBasedColumnNameBuilderFactory;
 import org.diqube.util.ColumnOrValue;
 import org.diqube.util.ColumnOrValue.Type;
 import org.diqube.util.Pair;
@@ -54,10 +55,13 @@ public class OrderVisitor extends DiqlBaseVisitor<OrderRequest> {
   private ExecutionRequestVisitorEnvironment env;
 
   private RepeatedColumnNameGenerator repeatedColNames;
+  private FunctionBasedColumnNameBuilderFactory functionBasedColumnNameBuilderFactory;
 
-  public OrderVisitor(ExecutionRequestVisitorEnvironment env, RepeatedColumnNameGenerator repeatedColNames) {
+  public OrderVisitor(ExecutionRequestVisitorEnvironment env, RepeatedColumnNameGenerator repeatedColNames,
+      FunctionBasedColumnNameBuilderFactory functionBasedColumnNameBuilderFactory) {
     this.env = env;
     this.repeatedColNames = repeatedColNames;
+    this.functionBasedColumnNameBuilderFactory = functionBasedColumnNameBuilderFactory;
   }
 
   @Override
@@ -91,7 +95,8 @@ public class OrderVisitor extends DiqlBaseVisitor<OrderRequest> {
     OrderTermContext termCtx = null;
     while ((termCtx = orderClauseCtx.getChild(OrderTermContext.class, termPos++)) != null) {
       AnyValueContext anyValueContext = termCtx.getChild(AnyValueContext.class, 0);
-      ColumnOrValue anyValueResult = anyValueContext.accept(new AnyValueVisitor(env, repeatedColNames));
+      ColumnOrValue anyValueResult =
+          anyValueContext.accept(new AnyValueVisitor(env, repeatedColNames, functionBasedColumnNameBuilderFactory));
 
       if (anyValueResult.getType().equals(Type.LITERAL))
         throw new ParseException("Ordering by literal values is not supported. "

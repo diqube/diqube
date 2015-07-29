@@ -40,6 +40,7 @@ import org.diqube.plan.exception.ParseException;
 import org.diqube.plan.request.ComparisonRequest;
 import org.diqube.plan.request.ComparisonRequest.Not;
 import org.diqube.plan.request.ComparisonRequest.Operator;
+import org.diqube.plan.util.FunctionBasedColumnNameBuilderFactory;
 import org.diqube.util.ColumnOrValue;
 import org.diqube.util.ColumnOrValue.Type;
 
@@ -67,14 +68,18 @@ public class ComparisonVisitor extends DiqlBaseVisitor<ComparisonRequest> {
 
   private RepeatedColumnNameGenerator repeatedColNames;
 
+  private FunctionBasedColumnNameBuilderFactory functionBasedColumnNameBuilderFactory;
+
   /**
    * @param stopParsingForContexts
    *          Context classes which will force this visitor to stop visiting any sub-tree of that context.
    */
   public ComparisonVisitor(ExecutionRequestVisitorEnvironment env, RepeatedColumnNameGenerator repeatedColNames,
+      FunctionBasedColumnNameBuilderFactory functionBasedColumnNameBuilderFactory,
       List<Class<? extends ParserRuleContext>> stopParsingForContexts) {
     this.env = env;
     this.repeatedColNames = repeatedColNames;
+    this.functionBasedColumnNameBuilderFactory = functionBasedColumnNameBuilderFactory;
     this.stopParsingForContexts = stopParsingForContexts;
   }
 
@@ -85,8 +90,10 @@ public class ComparisonVisitor extends DiqlBaseVisitor<ComparisonRequest> {
     AnyValueContext firstAny = comparisonCtx.getChild(AnyValueContext.class, 0);
     AnyValueContext secondAny = comparisonCtx.getChild(AnyValueContext.class, 1);
 
-    ColumnOrValue firstOperand = firstAny.accept(new AnyValueVisitor(env, repeatedColNames));
-    ColumnOrValue secondOperand = secondAny.accept(new AnyValueVisitor(env, repeatedColNames));
+    ColumnOrValue firstOperand =
+        firstAny.accept(new AnyValueVisitor(env, repeatedColNames, functionBasedColumnNameBuilderFactory));
+    ColumnOrValue secondOperand =
+        secondAny.accept(new AnyValueVisitor(env, repeatedColNames, functionBasedColumnNameBuilderFactory));
 
     BinaryComparatorContext comparator = comparisonCtx.getChild(BinaryComparatorContext.class, 0);
     Operator operator = null;

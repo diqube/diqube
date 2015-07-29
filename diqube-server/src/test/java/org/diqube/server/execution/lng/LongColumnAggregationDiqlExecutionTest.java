@@ -29,7 +29,6 @@ import java.util.concurrent.Future;
 import org.diqube.data.ColumnType;
 import org.diqube.execution.ExecutablePlan;
 import org.diqube.loader.LoadException;
-import org.diqube.plan.util.FunctionBasedColumnNameBuilder;
 import org.diqube.server.execution.AbstractDiqlExecutionTest;
 import org.diqube.util.Pair;
 import org.testng.Assert;
@@ -62,9 +61,9 @@ public class LongColumnAggregationDiqlExecutionTest extends AbstractDiqlExecutio
       Assert.assertTrue(future.isDone(), "Future should report done");
       Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
 
-      String resAggColName = new FunctionBasedColumnNameBuilder().withFunctionName("round")
-          .addParameterColumnName(
-              new FunctionBasedColumnNameBuilder().withFunctionName("avg").addParameterColumnName("b[*].c").build())
+      String resAggColName = functionBasedColumnNameBuilderFactory.create().withFunctionName("round")
+          .addParameterColumnName(functionBasedColumnNameBuilderFactory.create().withFunctionName("avg")
+              .addParameterColumnName("b[*].c").build())
           .build();
 
       Assert.assertTrue(resultValues.containsKey("a"), "Expected to have a result for col");
@@ -99,9 +98,9 @@ public class LongColumnAggregationDiqlExecutionTest extends AbstractDiqlExecutio
       Assert.assertTrue(future.isDone(), "Future should report done");
       Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
 
-      String resAggColName = new FunctionBasedColumnNameBuilder().withFunctionName("round")
-          .addParameterColumnName(
-              new FunctionBasedColumnNameBuilder().withFunctionName("avg").addParameterColumnName("b[*].c").build())
+      String resAggColName = functionBasedColumnNameBuilderFactory.create().withFunctionName("round")
+          .addParameterColumnName(functionBasedColumnNameBuilderFactory.create().withFunctionName("avg")
+              .addParameterColumnName("b[*].c").build())
           .build();
 
       Assert.assertTrue(resultValues.containsKey("a"), "Expected to have a result for col");
@@ -144,8 +143,9 @@ public class LongColumnAggregationDiqlExecutionTest extends AbstractDiqlExecutio
       Assert.assertTrue(future.isDone(), "Future should report done");
       Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
 
-      String resAggColName = new FunctionBasedColumnNameBuilder().withFunctionName("round").addParameterColumnName(
-          new FunctionBasedColumnNameBuilder().withFunctionName("avg").addParameterColumnName("b[*].c[*].d").build())
+      String resAggColName = functionBasedColumnNameBuilderFactory.create().withFunctionName("round")
+          .addParameterColumnName(functionBasedColumnNameBuilderFactory.create().withFunctionName("avg")
+              .addParameterColumnName("b[*].c[*].d").build())
           .build();
 
       Assert.assertTrue(resultValues.containsKey("a"), "Expected to have a result for col");
@@ -188,9 +188,9 @@ public class LongColumnAggregationDiqlExecutionTest extends AbstractDiqlExecutio
       Assert.assertTrue(future.isDone(), "Future should report done");
       Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
 
-      String resAggColName = new FunctionBasedColumnNameBuilder().withFunctionName("round")
-          .addParameterColumnName(
-              new FunctionBasedColumnNameBuilder().withFunctionName("avg").addParameterColumnName("b[*].c[*]").build())
+      String resAggColName = functionBasedColumnNameBuilderFactory.create().withFunctionName("round")
+          .addParameterColumnName(functionBasedColumnNameBuilderFactory.create().withFunctionName("avg")
+              .addParameterColumnName("b[*].c[*]").build())
           .build();
 
       Assert.assertTrue(resultValues.containsKey("a"), "Expected to have a result for col");

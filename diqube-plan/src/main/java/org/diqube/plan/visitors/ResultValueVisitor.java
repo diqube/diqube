@@ -29,6 +29,7 @@ import org.diqube.diql.antlr.DiqlBaseVisitor;
 import org.diqube.diql.antlr.DiqlParser.ResultValueContext;
 import org.diqube.plan.exception.ParseException;
 import org.diqube.plan.request.ResolveValueRequest;
+import org.diqube.plan.util.FunctionBasedColumnNameBuilderFactory;
 import org.diqube.util.ColumnOrValue;
 import org.diqube.util.ColumnOrValue.Type;
 
@@ -47,14 +48,19 @@ public class ResultValueVisitor extends DiqlBaseVisitor<List<ResolveValueRequest
 
   private RepeatedColumnNameGenerator repeatedColNames;
 
-  public ResultValueVisitor(ExecutionRequestVisitorEnvironment env, RepeatedColumnNameGenerator repeatedColNames) {
+  private FunctionBasedColumnNameBuilderFactory functionBasedColumnNameBuilderFactory;
+
+  public ResultValueVisitor(ExecutionRequestVisitorEnvironment env, RepeatedColumnNameGenerator repeatedColNames,
+      FunctionBasedColumnNameBuilderFactory functionBasedColumnNameBuilderFactory) {
     this.env = env;
     this.repeatedColNames = repeatedColNames;
+    this.functionBasedColumnNameBuilderFactory = functionBasedColumnNameBuilderFactory;
   }
 
   @Override
   public List<ResolveValueRequest> visitResultValue(ResultValueContext ctx) {
-    ColumnOrValue anyValueResult = ctx.accept(new AnyValueVisitor(env, repeatedColNames));
+    ColumnOrValue anyValueResult =
+        ctx.accept(new AnyValueVisitor(env, repeatedColNames, functionBasedColumnNameBuilderFactory));
 
     if (anyValueResult.getType().equals(Type.LITERAL)) {
       // TODO #19 support selecting literal values - currently use id() function

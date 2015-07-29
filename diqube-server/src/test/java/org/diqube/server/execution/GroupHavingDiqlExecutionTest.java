@@ -26,7 +26,6 @@ import java.util.concurrent.Future;
 
 import org.diqube.data.ColumnType;
 import org.diqube.execution.ExecutablePlan;
-import org.diqube.plan.util.FunctionBasedColumnNameBuilder;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -62,7 +61,7 @@ public abstract class GroupHavingDiqlExecutionTest<T> extends AbstractDiqlExecut
 
       Assert.assertTrue(resultValues.containsKey(COL_A), "Result values should be available for result column a");
 
-      String resColName = new FunctionBasedColumnNameBuilder().withFunctionName("count").build();
+      String resColName = functionBasedColumnNameBuilderFactory.create().withFunctionName("count").build();
 
       Assert.assertTrue(resultValues.containsKey(COL_A), "Result values should be available for result column a");
       Assert.assertTrue(resultValues.containsKey(resColName),
@@ -104,7 +103,7 @@ public abstract class GroupHavingDiqlExecutionTest<T> extends AbstractDiqlExecut
 
       Assert.assertTrue(resultValues.containsKey(COL_A), "Result values should be available for result column a");
 
-      String resColName = new FunctionBasedColumnNameBuilder().withFunctionName("count").build();
+      String resColName = functionBasedColumnNameBuilderFactory.create().withFunctionName("count").build();
 
       Assert.assertTrue(resultValues.containsKey(COL_A), "Result values should be available for result column a");
       Assert.assertTrue(resultValues.containsKey(resColName),
@@ -146,7 +145,7 @@ public abstract class GroupHavingDiqlExecutionTest<T> extends AbstractDiqlExecut
 
       Assert.assertTrue(resultValues.containsKey(COL_A), "Result values should be available for result column a");
 
-      String resColName = new FunctionBasedColumnNameBuilder().withFunctionName("count").build();
+      String resColName = functionBasedColumnNameBuilderFactory.create().withFunctionName("count").build();
 
       Assert.assertTrue(resultValues.containsKey(COL_A), "Result values should be available for result column a");
       Assert.assertTrue(resultValues.containsKey(resColName),

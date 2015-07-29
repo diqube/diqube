@@ -31,7 +31,6 @@ import java.util.concurrent.Future;
 import org.diqube.data.ColumnType;
 import org.diqube.execution.ExecutablePlan;
 import org.diqube.plan.exception.ValidationException;
-import org.diqube.plan.util.FunctionBasedColumnNameBuilder;
 import org.diqube.server.execution.GroupDiqlExecutionTest;
 import org.diqube.util.Pair;
 import org.diqube.util.Triple;
@@ -71,8 +70,8 @@ public class LongGroupDiqlExecutionTest extends GroupDiqlExecutionTest<Long> {
       Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
 
       Assert.assertTrue(resultValues.containsKey(COL_A), "Result values should be available for result column");
-      String resColName = new FunctionBasedColumnNameBuilder().withFunctionName("add")
-          .addParameterColumnName(new FunctionBasedColumnNameBuilder().withFunctionName("count").build())
+      String resColName = functionBasedColumnNameBuilderFactory.create().withFunctionName("add")
+          .addParameterColumnName(functionBasedColumnNameBuilderFactory.create().withFunctionName("count").build())
           .addParameterLiteralLong(1L).build();
       Assert.assertTrue(resultValues.containsKey(resColName),
           "Result values should be available for aggregated res column");
@@ -114,8 +113,8 @@ public class LongGroupDiqlExecutionTest extends GroupDiqlExecutionTest<Long> {
 
       Assert.assertTrue(resultValues.containsKey(COL_A), "Result values should be available for result column a");
 
-      String resColName = new FunctionBasedColumnNameBuilder().withFunctionName("avg")
-          .addParameterColumnName(new FunctionBasedColumnNameBuilder().withFunctionName("add")
+      String resColName = functionBasedColumnNameBuilderFactory.create().withFunctionName("avg")
+          .addParameterColumnName(functionBasedColumnNameBuilderFactory.create().withFunctionName("add")
               .addParameterColumnName(COL_A).addParameterLiteralLong(1L).build())
           .build();
 
@@ -157,9 +156,9 @@ public class LongGroupDiqlExecutionTest extends GroupDiqlExecutionTest<Long> {
       Assert.assertTrue(future.isDone(), "Future should report done");
       Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
 
-      String resColName = new FunctionBasedColumnNameBuilder().withFunctionName("add")
-          .addParameterColumnName(new FunctionBasedColumnNameBuilder().withFunctionName("avg")
-              .addParameterColumnName(new FunctionBasedColumnNameBuilder().withFunctionName("add")
+      String resColName = functionBasedColumnNameBuilderFactory.create().withFunctionName("add")
+          .addParameterColumnName(functionBasedColumnNameBuilderFactory.create().withFunctionName("avg")
+              .addParameterColumnName(functionBasedColumnNameBuilderFactory.create().withFunctionName("add")
                   .addParameterColumnName(COL_A).addParameterLiteralLong(1L).build())
               .build())
           .addParameterLiteralDouble(1.).build();
@@ -204,8 +203,8 @@ public class LongGroupDiqlExecutionTest extends GroupDiqlExecutionTest<Long> {
       Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
 
       Assert.assertTrue(resultValues.containsKey(COL_A), "Result values should be available for result column");
-      String resColName = new FunctionBasedColumnNameBuilder().withFunctionName("add")
-          .addParameterColumnName(new FunctionBasedColumnNameBuilder().withFunctionName("count").build())
+      String resColName = functionBasedColumnNameBuilderFactory.create().withFunctionName("add")
+          .addParameterColumnName(functionBasedColumnNameBuilderFactory.create().withFunctionName("count").build())
           .addParameterLiteralLong(1L).build();
       Assert.assertTrue(resultValues.containsKey(resColName),
           "Result values should be available for aggregated res column");
@@ -247,7 +246,7 @@ public class LongGroupDiqlExecutionTest extends GroupDiqlExecutionTest<Long> {
       Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
 
       Assert.assertTrue(resultValues.containsKey(COL_A), "Result values should be available for result column A");
-      String resColName = new FunctionBasedColumnNameBuilder().withFunctionName("count").build();
+      String resColName = functionBasedColumnNameBuilderFactory.create().withFunctionName("count").build();
       Assert.assertTrue(resultValues.containsKey(resColName),
           "Result values should be available for result aggregated col");
       Assert.assertEquals(resultValues.size(), 2, "Result values should be available for two columns only");
@@ -303,10 +302,10 @@ public class LongGroupDiqlExecutionTest extends GroupDiqlExecutionTest<Long> {
       Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
 
       Assert.assertTrue(resultValues.containsKey(COL_A), "Result values should be available for result column A");
-      String resCountColName = new FunctionBasedColumnNameBuilder().withFunctionName("count").build();
-      String resAvgColName = new FunctionBasedColumnNameBuilder().withFunctionName("round")
-          .addParameterColumnName(
-              new FunctionBasedColumnNameBuilder().withFunctionName("avg").addParameterColumnName(COL_B).build())
+      String resCountColName = functionBasedColumnNameBuilderFactory.create().withFunctionName("count").build();
+      String resAvgColName = functionBasedColumnNameBuilderFactory.create().withFunctionName("round")
+          .addParameterColumnName(functionBasedColumnNameBuilderFactory.create().withFunctionName("avg")
+              .addParameterColumnName(COL_B).build())
           .build();
       Assert.assertTrue(resultValues.containsKey(resCountColName),
           "Result values should be available for result count col");
@@ -437,9 +436,9 @@ public class LongGroupDiqlExecutionTest extends GroupDiqlExecutionTest<Long> {
       Assert.assertTrue(future.isDone(), "Future should report done");
       Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
 
-      String resAddColName = new FunctionBasedColumnNameBuilder().withFunctionName("add").addParameterColumnName(COL_B)
-          .addParameterColumnName(COL_A).build();
-      String resCountColName = new FunctionBasedColumnNameBuilder().withFunctionName("count").build();
+      String resAddColName = functionBasedColumnNameBuilderFactory.create().withFunctionName("add")
+          .addParameterColumnName(COL_B).addParameterColumnName(COL_A).build();
+      String resCountColName = functionBasedColumnNameBuilderFactory.create().withFunctionName("count").build();
 
       Assert.assertTrue(resultValues.containsKey(resAddColName), "Expected results for add col");
       Assert.assertTrue(resultValues.containsKey(resCountColName), "Expected results for count col");

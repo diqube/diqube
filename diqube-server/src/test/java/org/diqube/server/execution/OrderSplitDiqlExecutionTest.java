@@ -40,7 +40,6 @@ import org.diqube.execution.consumers.AbstractThreadedRowIdConsumer;
 import org.diqube.execution.steps.ExecuteRemotePlanOnShardsStep;
 import org.diqube.plan.planner.ExecutionPlanner;
 import org.diqube.plan.planner.OrderRequestBuilder;
-import org.diqube.plan.util.FunctionBasedColumnNameBuilder;
 import org.diqube.remote.cluster.thrift.RExecutionPlanStep;
 import org.diqube.remote.cluster.thrift.RExecutionPlanStepType;
 import org.diqube.util.Pair;
@@ -123,7 +122,7 @@ public abstract class OrderSplitDiqlExecutionTest<T> extends AbstractDiqlExecuti
       // colA: 2L, colB: 300L, count: 5
       expectedValues.add(new Triple<>(dp.v(2), dp.v(300), 5L));
 
-      String resultCountCol = new FunctionBasedColumnNameBuilder().withFunctionName("count").build();
+      String resultCountCol = functionBasedColumnNameBuilderFactory.create().withFunctionName("count").build();
 
       for (int i = 0; i < expectedValues.size(); i++) {
         Triple<Object, Object, Object> expected = expectedValues.get(i);

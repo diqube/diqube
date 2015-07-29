@@ -36,7 +36,6 @@ import org.diqube.execution.env.VersionedExecutionEnvironment;
 import org.diqube.function.AggregationFunction.ValueProvider;
 import org.diqube.function.IntermediaryResult;
 import org.diqube.function.aggregate.CountFunction;
-import org.diqube.plan.util.FunctionBasedColumnNameBuilder;
 import org.diqube.queries.QueryRegistry.QueryResultHandler;
 import org.diqube.queries.QueryUuid;
 import org.testng.Assert;
@@ -86,7 +85,7 @@ public abstract class QueryMasterParallelDiqlExecutionTest<T> extends AbstractRe
           resultHandler = queryRegistry.getQueryResultHandlers(QueryUuid.getCurrentQueryUuid()).iterator().next();
       }
 
-      String countCol = new FunctionBasedColumnNameBuilder().withFunctionName("count").build();
+      String countCol = functionBasedColumnNameBuilderFactory.create().withFunctionName("count").build();
 
       Object groupByValue1 = dp.v(5);
       Object groupByValue2 = dp.v(10);
@@ -214,7 +213,7 @@ public abstract class QueryMasterParallelDiqlExecutionTest<T> extends AbstractRe
           resultHandler = queryRegistry.getQueryResultHandlers(QueryUuid.getCurrentQueryUuid()).iterator().next();
       }
 
-      String countCol = new FunctionBasedColumnNameBuilder().withFunctionName("count").build();
+      String countCol = functionBasedColumnNameBuilderFactory.create().withFunctionName("count").build();
 
       Object groupByValue1 = dp.v(5);
       Object groupByValue2 = dp.v(10);

@@ -28,7 +28,6 @@ import java.util.concurrent.Future;
 
 import org.diqube.data.ColumnType;
 import org.diqube.execution.ExecutablePlan;
-import org.diqube.plan.util.FunctionBasedColumnNameBuilder;
 import org.diqube.server.execution.AbstractDiqlExecutionTest;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -63,8 +62,8 @@ public class DoubleProjectionDiqlExecutionTest extends AbstractDiqlExecutionTest
       Assert.assertTrue(future.isDone(), "Future should report done");
       Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
 
-      String resColName = new FunctionBasedColumnNameBuilder().withFunctionName("add").addParameterColumnName(COL_A)
-          .addParameterLiteralDouble(1.).build();
+      String resColName = functionBasedColumnNameBuilderFactory.create().withFunctionName("add")
+          .addParameterColumnName(COL_A).addParameterLiteralDouble(1.).build();
 
       Assert.assertTrue(resultValues.containsKey(resColName), "Result values should be available for result column");
       Assert.assertEquals(resultValues.size(), 1, "Result values should be available for one column only");
@@ -102,8 +101,8 @@ public class DoubleProjectionDiqlExecutionTest extends AbstractDiqlExecutionTest
       Assert.assertTrue(future.isDone(), "Future should report done");
       Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
 
-      String resColName = new FunctionBasedColumnNameBuilder().withFunctionName("add").addParameterColumnName(COL_A)
-          .addParameterColumnName(COL_B).build();
+      String resColName = functionBasedColumnNameBuilderFactory.create().withFunctionName("add")
+          .addParameterColumnName(COL_A).addParameterColumnName(COL_B).build();
 
       Assert.assertTrue(resultValues.containsKey(resColName), "Result values should be available for result column");
       Assert.assertEquals(resultValues.size(), 1, "Result values should be available for one column only");
@@ -140,8 +139,8 @@ public class DoubleProjectionDiqlExecutionTest extends AbstractDiqlExecutionTest
       Assert.assertTrue(future.isDone(), "Future should report done");
       Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
 
-      String resColName = new FunctionBasedColumnNameBuilder().withFunctionName("add")
-          .addParameterLiteralDouble(1.).addParameterColumnName(new FunctionBasedColumnNameBuilder()
+      String resColName = functionBasedColumnNameBuilderFactory.create().withFunctionName("add")
+          .addParameterLiteralDouble(1.).addParameterColumnName(functionBasedColumnNameBuilderFactory.create()
               .withFunctionName("add").addParameterLiteralDouble(500.).addParameterLiteralDouble(1000.).build())
           .build();
 
@@ -179,7 +178,7 @@ public class DoubleProjectionDiqlExecutionTest extends AbstractDiqlExecutionTest
       Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
 
       String resColName =
-          new FunctionBasedColumnNameBuilder().withFunctionName("id").addParameterLiteralDouble(1.).build();
+          functionBasedColumnNameBuilderFactory.create().withFunctionName("id").addParameterLiteralDouble(1.).build();
 
       Assert.assertTrue(resultValues.containsKey(resColName), "Result values should be available for result column");
       Assert.assertEquals(resultValues.size(), 1, "Result values should be available for one column only");
@@ -214,8 +213,8 @@ public class DoubleProjectionDiqlExecutionTest extends AbstractDiqlExecutionTest
       Assert.assertTrue(future.isDone(), "Future should report done");
       Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
 
-      String resColName = new FunctionBasedColumnNameBuilder().withFunctionName("add").addParameterColumnName(COL_A)
-          .addParameterLiteralDouble(500.).build();
+      String resColName = functionBasedColumnNameBuilderFactory.create().withFunctionName("add")
+          .addParameterColumnName(COL_A).addParameterLiteralDouble(500.).build();
 
       Assert.assertTrue(resultValues.containsKey(resColName), "Result values should be available for result column");
       Assert.assertEquals(resultValues.size(), 1, "Result values should be available for one column only");

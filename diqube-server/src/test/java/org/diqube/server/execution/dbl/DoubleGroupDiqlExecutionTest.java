@@ -31,7 +31,6 @@ import java.util.concurrent.Future;
 
 import org.diqube.data.ColumnType;
 import org.diqube.execution.ExecutablePlan;
-import org.diqube.plan.util.FunctionBasedColumnNameBuilder;
 import org.diqube.server.execution.GroupDiqlExecutionTest;
 import org.diqube.util.DoubleUtil;
 import org.diqube.util.Pair;
@@ -72,7 +71,7 @@ public class DoubleGroupDiqlExecutionTest extends GroupDiqlExecutionTest<Double>
 
       Assert.assertTrue(resultValues.containsKey(COL_A), "Result values should be available for result column");
       String resColName =
-          new FunctionBasedColumnNameBuilder().withFunctionName("avg").addParameterColumnName(COL_B).build();
+          functionBasedColumnNameBuilderFactory.create().withFunctionName("avg").addParameterColumnName(COL_B).build();
       Assert.assertTrue(resultValues.containsKey(resColName),
           "Result values should be available for aggregated res column");
       Assert.assertEquals(resultValues.size(), 2, "Result values should be available for one column only");
@@ -123,7 +122,7 @@ public class DoubleGroupDiqlExecutionTest extends GroupDiqlExecutionTest<Double>
 
       Assert.assertTrue(resultValues.containsKey(COL_A), "Result values should be available for result column A");
       String resColName =
-          new FunctionBasedColumnNameBuilder().withFunctionName("avg").addParameterColumnName(COL_B).build();
+          functionBasedColumnNameBuilderFactory.create().withFunctionName("avg").addParameterColumnName(COL_B).build();
       Assert.assertTrue(resultValues.containsKey(resColName),
           "Result values should be available for result aggregated col");
       Assert.assertEquals(resultValues.size(), 2, "Result values should be available for two columns only");

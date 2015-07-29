@@ -28,7 +28,6 @@ import java.util.concurrent.Future;
 
 import org.diqube.data.ColumnType;
 import org.diqube.execution.ExecutablePlan;
-import org.diqube.plan.util.FunctionBasedColumnNameBuilder;
 import org.diqube.server.execution.AbstractDiqlExecutionTest;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -62,8 +61,8 @@ public class StringProjectionDiqlExecutionTest extends AbstractDiqlExecutionTest
       Assert.assertTrue(future.isDone(), "Future should report done");
       Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
 
-      String resColName = new FunctionBasedColumnNameBuilder().withFunctionName("concat").addParameterColumnName(COL_A)
-          .addParameterLiteralString("a").build();
+      String resColName = functionBasedColumnNameBuilderFactory.create().withFunctionName("concat")
+          .addParameterColumnName(COL_A).addParameterLiteralString("a").build();
 
       Assert.assertTrue(resultValues.containsKey(resColName), "Result values should be available for result column");
       Assert.assertEquals(resultValues.size(), 1, "Result values should be available for one column only");
@@ -100,8 +99,8 @@ public class StringProjectionDiqlExecutionTest extends AbstractDiqlExecutionTest
       Assert.assertTrue(future.isDone(), "Future should report done");
       Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
 
-      String resColName = new FunctionBasedColumnNameBuilder().withFunctionName("concat").addParameterLiteralString("a")
-          .addParameterColumnName(COL_A).build();
+      String resColName = functionBasedColumnNameBuilderFactory.create().withFunctionName("concat")
+          .addParameterLiteralString("a").addParameterColumnName(COL_A).build();
 
       Assert.assertTrue(resultValues.containsKey(resColName), "Result values should be available for result column");
       Assert.assertEquals(resultValues.size(), 1, "Result values should be available for one column only");
@@ -139,8 +138,8 @@ public class StringProjectionDiqlExecutionTest extends AbstractDiqlExecutionTest
       Assert.assertTrue(future.isDone(), "Future should report done");
       Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
 
-      String resColName = new FunctionBasedColumnNameBuilder().withFunctionName("concat").addParameterColumnName(COL_A)
-          .addParameterColumnName(COL_B).build();
+      String resColName = functionBasedColumnNameBuilderFactory.create().withFunctionName("concat")
+          .addParameterColumnName(COL_A).addParameterColumnName(COL_B).build();
 
       Assert.assertTrue(resultValues.containsKey(resColName), "Result values should be available for result column");
       Assert.assertEquals(resultValues.size(), 1, "Result values should be available for one column only");
@@ -177,8 +176,8 @@ public class StringProjectionDiqlExecutionTest extends AbstractDiqlExecutionTest
       Assert.assertTrue(future.isDone(), "Future should report done");
       Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
 
-      String resColName = new FunctionBasedColumnNameBuilder().withFunctionName("concat")
-          .addParameterLiteralString("a").addParameterColumnName(new FunctionBasedColumnNameBuilder()
+      String resColName = functionBasedColumnNameBuilderFactory.create().withFunctionName("concat")
+          .addParameterLiteralString("a").addParameterColumnName(functionBasedColumnNameBuilderFactory.create()
               .withFunctionName("concat").addParameterLiteralString("b").addParameterLiteralString("c").build())
           .build();
 
@@ -215,8 +214,8 @@ public class StringProjectionDiqlExecutionTest extends AbstractDiqlExecutionTest
       Assert.assertTrue(future.isDone(), "Future should report done");
       Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
 
-      String resColName = new FunctionBasedColumnNameBuilder().withFunctionName("concat").addParameterColumnName(COL_A)
-          .addParameterLiteralString("a").build();
+      String resColName = functionBasedColumnNameBuilderFactory.create().withFunctionName("concat")
+          .addParameterColumnName(COL_A).addParameterLiteralString("a").build();
 
       Assert.assertTrue(resultValues.containsKey(resColName), "Result values should be available for result column");
       Assert.assertEquals(resultValues.size(), 1, "Result values should be available for one column only");

@@ -23,6 +23,8 @@ package org.diqube.plan.util;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.diqube.data.util.RepeatedColumnNameGenerator;
+
 /**
  * Calculates the name of the result column when executing a function on some input data.
  * 
@@ -37,6 +39,12 @@ public class FunctionBasedColumnNameBuilder {
   private List<String> parameterNames = new ArrayList<>();
 
   private String functionName;
+
+  private RepeatedColumnNameGenerator repeatedCols;
+
+  /* package */ FunctionBasedColumnNameBuilder(RepeatedColumnNameGenerator repeatedCols) {
+    this.repeatedCols = repeatedCols;
+  }
 
   public FunctionBasedColumnNameBuilder addParameterColumnName(String parameterColumnName) {
     parameterNames.add("col%" + parameterColumnName);

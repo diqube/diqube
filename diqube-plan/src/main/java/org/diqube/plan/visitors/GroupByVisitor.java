@@ -30,6 +30,7 @@ import org.diqube.diql.antlr.DiqlParser.AnyValueContext;
 import org.diqube.diql.antlr.DiqlParser.GroupByClauseContext;
 import org.diqube.plan.request.ComparisonRequest;
 import org.diqube.plan.request.GroupRequest;
+import org.diqube.plan.util.FunctionBasedColumnNameBuilderFactory;
 import org.diqube.util.ColumnOrValue;
 import org.diqube.util.Pair;
 
@@ -48,9 +49,13 @@ public class GroupByVisitor extends DiqlBaseVisitor<Pair<GroupRequest, Compariso
 
   private RepeatedColumnNameGenerator repeatedColNames;
 
-  public GroupByVisitor(ExecutionRequestVisitorEnvironment env, RepeatedColumnNameGenerator repeatedColNames) {
+  private FunctionBasedColumnNameBuilderFactory functionBasedColumnNameBuilderFactory;
+
+  public GroupByVisitor(ExecutionRequestVisitorEnvironment env, RepeatedColumnNameGenerator repeatedColNames,
+      FunctionBasedColumnNameBuilderFactory functionBasedColumnNameBuilderFactory) {
     this.env = env;
     this.repeatedColNames = repeatedColNames;
+    this.functionBasedColumnNameBuilderFactory = functionBasedColumnNameBuilderFactory;
   }
 
   @Override
@@ -61,7 +66,8 @@ public class GroupByVisitor extends DiqlBaseVisitor<Pair<GroupRequest, Compariso
     int anyValueCnt = 0;
     AnyValueContext anyValueCtx;
     while ((anyValueCtx = groupByCtx.getChild(AnyValueContext.class, anyValueCnt++)) != null) {
-      ColumnOrValue groupBy = anyValueCtx.accept(new AnyValueVisitor(env, repeatedColNames));
+      ColumnOrValue groupBy =
+          anyValueCtx.accept(new AnyValueVisitor(env, repeatedColNames, functionBasedColumnNameBuilderFactory));
 
       if (!groupBy.getType().equals(ColumnOrValue.Type.COLUMN))
         throw new ParseException("Can only group on columns.");
@@ -69,8 +75,8 @@ public class GroupByVisitor extends DiqlBaseVisitor<Pair<GroupRequest, Compariso
       groupRequestRes.getGroupColumns().add(groupBy.getColumnName());
     }
 
-    ComparisonRequest havingRequestRes = groupByCtx
-        .accept(new ComparisonVisitor(env, repeatedColNames, new ArrayList<Class<? extends ParserRuleContext>>()));
+    ComparisonRequest havingRequestRes = groupByCtx.accept(new ComparisonVisitor(env, repeatedColNames,
+        functionBasedColumnNameBuilderFactory, new ArrayList<Class<? extends ParserRuleContext>>()));
 
     return new Pair<GroupRequest, ComparisonRequest>(groupRequestRes, havingRequestRes);
   }

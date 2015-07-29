@@ -45,6 +45,7 @@ import org.diqube.plan.exception.ParseException;
 import org.diqube.plan.exception.ValidationException;
 import org.diqube.plan.optimizer.ExecutionRequestOptimizer;
 import org.diqube.plan.request.ExecutionRequest;
+import org.diqube.plan.util.FunctionBasedColumnNameBuilderFactory;
 import org.diqube.plan.visitors.SelectStmtVisitor;
 
 /**
@@ -67,11 +68,15 @@ public class ExecutionPlanBuilder {
 
   private RepeatedColumnNameGenerator repeatedColNames;
 
+  private FunctionBasedColumnNameBuilderFactory functionBasedColumnNameBuilderFactory;
+
   public ExecutionPlanBuilder(ExecutionPlannerFactory executionPlannerFactory,
-      ExecutionEnvironmentFactory executionEnvironmentFactory, RepeatedColumnNameGenerator repeatedColNames) {
+      ExecutionEnvironmentFactory executionEnvironmentFactory, RepeatedColumnNameGenerator repeatedColNames,
+      FunctionBasedColumnNameBuilderFactory functionBasedColumnNameBuilderFactory) {
     this.executionPlannerFactory = executionPlannerFactory;
     this.executionEnvironmentFactory = executionEnvironmentFactory;
     this.repeatedColNames = repeatedColNames;
+    this.functionBasedColumnNameBuilderFactory = functionBasedColumnNameBuilderFactory;
   }
 
   public ExecutionPlanBuilder fromDiql(String diql) {
@@ -99,7 +104,8 @@ public class ExecutionPlanBuilder {
    */
   public ExecutablePlan build() throws ParseException, ValidationException {
     DiqlStmtContext sqlStmt = parseWithAntlr();
-    ExecutionRequest executionRequest = sqlStmt.accept(new SelectStmtVisitor(repeatedColNames));
+    ExecutionRequest executionRequest =
+        sqlStmt.accept(new SelectStmtVisitor(repeatedColNames, functionBasedColumnNameBuilderFactory));
 
     executionRequest = new ExecutionRequestOptimizer(executionRequest).optimize();
 

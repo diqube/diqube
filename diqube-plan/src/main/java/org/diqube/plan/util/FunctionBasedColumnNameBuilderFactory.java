@@ -18,36 +18,25 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.plan;
+package org.diqube.plan.util;
 
 import javax.inject.Inject;
 
 import org.diqube.context.AutoInstatiate;
 import org.diqube.data.util.RepeatedColumnNameGenerator;
-import org.diqube.execution.env.ExecutionEnvironmentFactory;
-import org.diqube.plan.util.FunctionBasedColumnNameBuilderFactory;
 
 /**
- * Factory for {@link ExecutionPlanBuilder}
+ * Factory for {@link FunctionBasedColumnNameBuilder}.
  *
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
-public class ExecutionPlanBuilderFactory {
-  @Inject
-  private ExecutionPlannerFactory executionPlannerFactory;
+public class FunctionBasedColumnNameBuilderFactory {
 
   @Inject
-  private ExecutionEnvironmentFactory executionEnvironmentFactory;
+  private RepeatedColumnNameGenerator repeatedCols;
 
-  @Inject
-  private RepeatedColumnNameGenerator repeatedColNames;
-
-  @Inject
-  private FunctionBasedColumnNameBuilderFactory functionBasedColumnNameBuilderFactory;
-
-  public ExecutionPlanBuilder createExecutionPlanBuilder() {
-    return new ExecutionPlanBuilder(executionPlannerFactory, executionEnvironmentFactory, repeatedColNames,
-        functionBasedColumnNameBuilderFactory);
+  public FunctionBasedColumnNameBuilder create() {
+    return new FunctionBasedColumnNameBuilder(repeatedCols);
   }
 }

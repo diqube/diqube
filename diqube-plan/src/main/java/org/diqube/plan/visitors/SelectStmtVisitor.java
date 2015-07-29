@@ -32,6 +32,7 @@ import org.diqube.plan.request.ExecutionRequest;
 import org.diqube.plan.request.GroupRequest;
 import org.diqube.plan.request.OrderRequest;
 import org.diqube.plan.request.ResolveValueRequest;
+import org.diqube.plan.util.FunctionBasedColumnNameBuilderFactory;
 import org.diqube.util.Pair;
 
 /**
@@ -43,9 +44,12 @@ import org.diqube.util.Pair;
 public class SelectStmtVisitor extends DiqlBaseVisitor<ExecutionRequest> {
 
   private RepeatedColumnNameGenerator repeatedColNames;
+  private FunctionBasedColumnNameBuilderFactory functionBasedColumnNameBuilderFactory;
 
-  public SelectStmtVisitor(RepeatedColumnNameGenerator repeatedColNames) {
+  public SelectStmtVisitor(RepeatedColumnNameGenerator repeatedColNames,
+      FunctionBasedColumnNameBuilderFactory functionBasedColumnNameBuilderFactory) {
     this.repeatedColNames = repeatedColNames;
+    this.functionBasedColumnNameBuilderFactory = functionBasedColumnNameBuilderFactory;
   }
 
   @Override
@@ -57,7 +61,8 @@ public class SelectStmtVisitor extends DiqlBaseVisitor<ExecutionRequest> {
     executionRequest.setTableName(tableName);
 
     // scan GROUP BY
-    Pair<GroupRequest, ComparisonRequest> groupBySteps = selectStmt.accept(new GroupByVisitor(env, repeatedColNames));
+    Pair<GroupRequest, ComparisonRequest> groupBySteps =
+        selectStmt.accept(new GroupByVisitor(env, repeatedColNames, functionBasedColumnNameBuilderFactory));
     if (groupBySteps != null) {
       executionRequest.setGroup(groupBySteps.getLeft());
 
@@ -66,21 +71,25 @@ public class SelectStmtVisitor extends DiqlBaseVisitor<ExecutionRequest> {
     }
 
     // scan WHERE clause
-    ComparisonRequest restrictions = selectStmt.accept(new ComparisonVisitor(env, repeatedColNames,
-        // we want to parse the WHERE clause here, so do not visit any sub-tree of GROUP BYs (as that might contain a
-        // HAVING
-        // clause with additional comparison contexts, but we do not want to visit them here!)
-        Arrays.asList(new Class[] { GroupByClauseContext.class })));
+    ComparisonRequest restrictions =
+        selectStmt.accept(new ComparisonVisitor(env, repeatedColNames, functionBasedColumnNameBuilderFactory,
+            // we want to parse the WHERE clause here, so do not visit any sub-tree of GROUP BYs (as that might contain
+            // a
+            // HAVING
+            // clause with additional comparison contexts, but we do not want to visit them here!)
+            Arrays.asList(new Class[] { GroupByClauseContext.class })));
     if (restrictions != null)
       executionRequest.setWhere(restrictions);
 
     // scan order by
-    OrderRequest orderSteps = selectStmt.accept(new OrderVisitor(env, repeatedColNames));
+    OrderRequest orderSteps =
+        selectStmt.accept(new OrderVisitor(env, repeatedColNames, functionBasedColumnNameBuilderFactory));
     if (orderSteps != null)
       executionRequest.setOrder(orderSteps);
 
     // scan result values
-    List<ResolveValueRequest> resultValues = selectStmt.accept(new ResultValueVisitor(env, repeatedColNames));
+    List<ResolveValueRequest> resultValues =
+        selectStmt.accept(new ResultValueVisitor(env, repeatedColNames, functionBasedColumnNameBuilderFactory));
     if (resultValues != null)
       executionRequest.setResolveValues(resultValues);
 

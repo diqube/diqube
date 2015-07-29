@@ -36,6 +36,7 @@ import org.diqube.plan.request.ExecutionRequest;
 import org.diqube.plan.request.FunctionRequest;
 import org.diqube.plan.request.FunctionRequest.Type;
 import org.diqube.plan.util.FunctionBasedColumnNameBuilder;
+import org.diqube.plan.util.FunctionBasedColumnNameBuilderFactory;
 import org.diqube.util.ColumnOrValue;
 
 /**
@@ -52,16 +53,19 @@ public class AnyValueVisitor extends DiqlBaseVisitor<ColumnOrValue> {
 
   private ExecutionRequestVisitorEnvironment env;
   private RepeatedColumnNameGenerator repeatedColName;
+  private FunctionBasedColumnNameBuilderFactory functionBasedColumnNameBuilderFactory;
 
-  public AnyValueVisitor(ExecutionRequestVisitorEnvironment env, RepeatedColumnNameGenerator repeatedColName) {
+  public AnyValueVisitor(ExecutionRequestVisitorEnvironment env, RepeatedColumnNameGenerator repeatedColName,
+      FunctionBasedColumnNameBuilderFactory functionBasedColumnNameBuilderFactory) {
     this.env = env;
     this.repeatedColName = repeatedColName;
+    this.functionBasedColumnNameBuilderFactory = functionBasedColumnNameBuilderFactory;
   }
 
   @Override
   public ColumnOrValue visitFunction(FunctionContext ctx) {
     // The output column of the function needs a name. We use a builder to build that.
-    FunctionBasedColumnNameBuilder colNameBuilder = new FunctionBasedColumnNameBuilder();
+    FunctionBasedColumnNameBuilder colNameBuilder = functionBasedColumnNameBuilderFactory.create();
 
     FunctionRequest projectionRequest = new FunctionRequest();
 
