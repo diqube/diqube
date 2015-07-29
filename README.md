@@ -5,7 +5,7 @@ easily.
 
 ##Building from source##
 
-[![Build Status](https://travis-ci.org/diqube/diqube.svg?branch=master)](https://travis-ci.org/diqube/diqube)
+[![Build Status](http://build.diqube.org/buildStatus/icon?job=diqube)](http://build.diqube.org)
 
 Make sure you have the prerequisites installed:
 
