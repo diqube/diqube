@@ -22,6 +22,7 @@ package org.diqube.config;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.util.Properties;
@@ -41,6 +42,8 @@ import org.slf4j.LoggerFactory;
 @AutoInstatiate
 public class ConfigurationManager {
   private static final Logger logger = LoggerFactory.getLogger(ConfigurationManager.class);
+
+  public static final String TEST_CONFIG_CLASSPATH_FILENAME = "/server-test.properties";
 
   public static final String DEFAULT_CONFIG_CLASSPATH_FILENAME = "/server.properties";
 
@@ -70,8 +73,15 @@ public class ConfigurationManager {
 
     defaultProperties = new Properties();
     try {
-      defaultProperties.load(new InputStreamReader(
-          this.getClass().getResourceAsStream(DEFAULT_CONFIG_CLASSPATH_FILENAME), Charset.forName("UTF-8")));
+      String classpathFile = TEST_CONFIG_CLASSPATH_FILENAME;
+      InputStream classpathStream = this.getClass().getResourceAsStream(classpathFile);
+      if (classpathStream == null) {
+        classpathFile = DEFAULT_CONFIG_CLASSPATH_FILENAME;
+        classpathStream = this.getClass().getResourceAsStream(classpathFile);
+      }
+      logger.info("Loading default (fallback) config from {}", classpathFile);
+
+      defaultProperties.load(new InputStreamReader(classpathStream, Charset.forName("UTF-8")));
     } catch (IOException e) {
       throw new RuntimeException("Could not load default config.");
     }
