@@ -45,6 +45,7 @@ import org.diqube.execution.consumers.RowIdConsumer;
 import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.env.VersionedExecutionEnvironment;
 import org.diqube.execution.exception.ExecutablePlanBuildException;
+import org.diqube.queries.QueryRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -156,8 +157,9 @@ public class ResolveColumnDictIdsStep extends AbstractThreadedExecutablePlanStep
    */
   private Set<Long> processedRowIds = new HashSet<>();
 
-  public ResolveColumnDictIdsStep(int stepId, ExecutionEnvironment defaultEnv, String colName) {
-    super(stepId);
+  public ResolveColumnDictIdsStep(int stepId, QueryRegistry queryRegistry, ExecutionEnvironment defaultEnv,
+      String colName) {
+    super(stepId, queryRegistry);
     this.defaultEnv = defaultEnv;
     this.colName = colName;
   }

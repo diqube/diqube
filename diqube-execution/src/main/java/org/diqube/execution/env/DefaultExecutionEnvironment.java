@@ -28,6 +28,7 @@ import org.diqube.data.colshard.ColumnShard;
 import org.diqube.data.dbl.DoubleColumnShard;
 import org.diqube.data.lng.LongColumnShard;
 import org.diqube.data.str.StringColumnShard;
+import org.diqube.queries.QueryRegistry;
 
 /**
  * Default implementation of a {@link ExecutionEnvironment} which is optionally based on the resources of a
@@ -43,7 +44,8 @@ public class DefaultExecutionEnvironment extends AbstractExecutionEnvironment {
    * @param tableShard
    *          <code>null</code> for Query Master.
    */
-  public DefaultExecutionEnvironment(TableShard tableShard) {
+  public DefaultExecutionEnvironment(QueryRegistry queryRegistry, TableShard tableShard) {
+    super(queryRegistry);
     this.tableShard = tableShard;
   }
 

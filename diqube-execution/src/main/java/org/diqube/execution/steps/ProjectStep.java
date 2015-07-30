@@ -57,6 +57,7 @@ import org.diqube.function.ProjectionFunction;
 import org.diqube.loader.LoaderColumnInfo;
 import org.diqube.loader.columnshard.ColumnShardBuilderFactory;
 import org.diqube.loader.columnshard.ColumnShardBuilderManager;
+import org.diqube.queries.QueryRegistry;
 import org.diqube.util.ColumnOrValue;
 import org.diqube.util.Pair;
 import org.slf4j.Logger;
@@ -174,11 +175,11 @@ public class ProjectStep extends AbstractThreadedExecutablePlanStep {
    *          Needed in case {@link ColumnVersionBuiltConsumer} are wired and intermediate columns should be created.
    *          This is needed on query master only.
    */
-  public ProjectStep(int stepId, ExecutionEnvironment defaultEnv, FunctionFactory functionFactory,
-      String functionNameLowerCase, ColumnOrValue[] functionParameters, String outputColName,
-      ColumnShardBuilderFactory columnShardBuilderFactory, ColumnShardFactory columnShardFactory,
+  public ProjectStep(int stepId, QueryRegistry queryRegistry, ExecutionEnvironment defaultEnv,
+      FunctionFactory functionFactory, String functionNameLowerCase, ColumnOrValue[] functionParameters,
+      String outputColName, ColumnShardBuilderFactory columnShardBuilderFactory, ColumnShardFactory columnShardFactory,
       ColumnVersionManager columnVersionManager) {
-    super(stepId);
+    super(stepId, queryRegistry);
     this.defaultEnv = defaultEnv;
     this.functionFactory = functionFactory;
     this.functionNameLowerCase = functionNameLowerCase;

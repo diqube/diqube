@@ -27,6 +27,7 @@ import org.diqube.remote.base.thrift.RUUID;
 import org.diqube.remote.base.util.RUuidUtil;
 import org.diqube.remote.query.thrift.QueryResultService.Iface;
 import org.diqube.remote.query.thrift.RQueryException;
+import org.diqube.remote.query.thrift.RQueryStatistics;
 import org.diqube.remote.query.thrift.RResultTable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,6 +56,12 @@ public class QueryResultServiceHandler implements Iface {
   public void queryException(RUUID queryRUuid, RQueryException exceptionThrown) throws TException {
     UUID queryUuid = RUuidUtil.toUuid(queryRUuid);
     logger.debug("Received EXCEPTION {}: {}", queryUuid, exceptionThrown.getMessage());
+  }
+
+  @Override
+  public void queryStatistics(RUUID queryRuuid, RQueryStatistics stats) throws TException {
+    UUID queryUuid = RUuidUtil.toUuid(queryRuuid);
+    logger.debug("Received STATS {}: {}", queryUuid, stats.toString());
   }
 
 }

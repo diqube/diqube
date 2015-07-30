@@ -33,6 +33,7 @@ import org.diqube.execution.consumers.GenericConsumer;
 import org.diqube.execution.consumers.RowIdConsumer;
 import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.exception.ExecutablePlanBuildException;
+import org.diqube.queries.QueryRegistry;
 
 /**
  * A logical NOT on a row ID step.
@@ -67,8 +68,8 @@ public class RowIdNotStep extends AbstractThreadedExecutablePlanStep {
   };
   private ExecutionEnvironment defaultEnv;
 
-  public RowIdNotStep(int stepId, ExecutionEnvironment defaultEnv) {
-    super(stepId);
+  public RowIdNotStep(int stepId, QueryRegistry queryRegistry, ExecutionEnvironment defaultEnv) {
+    super(stepId, queryRegistry);
     this.defaultEnv = defaultEnv;
 
     if (defaultEnv.getTableShardIfAvailable() == null)

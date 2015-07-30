@@ -34,6 +34,7 @@ import org.diqube.execution.consumers.OverwritingRowIdConsumer;
 import org.diqube.execution.consumers.RowIdConsumer;
 import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.env.VersionedExecutionEnvironment;
+import org.diqube.queries.QueryRegistry;
 
 /**
  * A logical NOT on a row ID step, based on {@link OverwritingRowIdConsumer}s.
@@ -70,8 +71,8 @@ public class OverwritingRowIdNotStep extends AbstractThreadedExecutablePlanStep 
     }
   };
 
-  public OverwritingRowIdNotStep(int stepId) {
-    super(stepId);
+  public OverwritingRowIdNotStep(int stepId, QueryRegistry queryRegistry) {
+    super(stepId, queryRegistry);
   }
 
   @Override

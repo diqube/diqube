@@ -49,6 +49,7 @@ import org.diqube.execution.consumers.RowIdConsumer;
 import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.env.VersionedExecutionEnvironment;
 import org.diqube.execution.exception.ExecutablePlanBuildException;
+import org.diqube.queries.QueryRegistry;
 import org.diqube.util.ArrayViewLongList;
 import org.diqube.util.Pair;
 import org.slf4j.Logger;
@@ -224,9 +225,9 @@ public class OrderStep extends AbstractThreadedExecutablePlanStep {
    *          If both limit and limitStart are null, this field might be set, otherwise it needs to be <code>null</code>
    *          . For a description, see class comment.
    */
-  public OrderStep(int stepId, ExecutionEnvironment defaultEnv, List<Pair<String, Boolean>> sortCols, Long limit,
-      Long limitStart, Long softLimit) {
-    super(stepId);
+  public OrderStep(int stepId, QueryRegistry queryRegistry, ExecutionEnvironment defaultEnv,
+      List<Pair<String, Boolean>> sortCols, Long limit, Long limitStart, Long softLimit) {
+    super(stepId, queryRegistry);
     this.defaultEnv = defaultEnv;
     this.sortCols = sortCols;
     this.limitStart = limitStart;
@@ -256,6 +257,7 @@ public class OrderStep extends AbstractThreadedExecutablePlanStep {
           @Override
           public long resolveColumnValueId(long rowId) {
             ColumnPage page = pages.floorEntry(rowId).getValue();
+
             // TODO #7 perhaps decompress whole value array, as it may be RLE encoded anyway.
             long columnPageValueId = page.getValues().get((int) (rowId - page.getFirstRowId()));
 

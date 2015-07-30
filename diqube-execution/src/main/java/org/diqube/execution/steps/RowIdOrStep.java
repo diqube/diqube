@@ -33,6 +33,7 @@ import org.diqube.execution.consumers.AbstractThreadedRowIdConsumer;
 import org.diqube.execution.consumers.GenericConsumer;
 import org.diqube.execution.consumers.RowIdConsumer;
 import org.diqube.execution.exception.ExecutablePlanBuildException;
+import org.diqube.queries.QueryRegistry;
 
 /**
  * A logical OR on two row ID steps.
@@ -76,8 +77,8 @@ public class RowIdOrStep extends AbstractThreadedExecutablePlanStep {
     }
   };
 
-  public RowIdOrStep(int stepId) {
-    super(stepId);
+  public RowIdOrStep(int stepId, QueryRegistry queryRegistry) {
+    super(stepId, queryRegistry);
   }
 
   @Override

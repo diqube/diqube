@@ -28,6 +28,7 @@ import org.diqube.data.colshard.StandardColumnShard;
 import org.diqube.data.dbl.DoubleColumnShard;
 import org.diqube.data.lng.LongColumnShard;
 import org.diqube.data.str.StringColumnShard;
+import org.diqube.queries.QueryRegistry;
 
 /**
  * An {@link ExecutionEnvironment} that delegates to another {@link ExecutionEnvironment} object and overriding specific
@@ -42,7 +43,8 @@ public class DelegatingExecutionEnvironment extends AbstractExecutionEnvironment
   private int version;
   private boolean isModifiable = true;
 
-  public DelegatingExecutionEnvironment(ExecutionEnvironment delegate, int version) {
+  public DelegatingExecutionEnvironment(QueryRegistry queryRegistry, ExecutionEnvironment delegate, int version) {
+    super(queryRegistry);
     this.delegate = delegate;
     this.version = version;
   }

@@ -155,6 +155,15 @@ struct RExecutionPlan {
   2: list<RExecutionPlanStep> steps,
 }
 
+
+struct RClusterQueryStatistics {
+  1: i64 startedUntilDoneMs,
+  2: map<i32, i64> stepThreadActiveMs,
+  3: i32 numberOfThreads,
+  4: i32 numberOfTemporaryColumnsCreated
+}
+
+
 exception RExecutionException {
     1: string message;
 }
@@ -172,7 +181,9 @@ service ClusterQueryService {
   
   oneway void executionException(1: base.RUUID queryId, 2:RExecutionException executionException),
   
-  oneway void cancelExecution(1: base.RUUID queryUuid)
+  oneway void cancelExecution(1: base.RUUID queryUuid),
+  
+  oneway void queryStatistics(1: base.RUUID queryUuid, 2: RClusterQueryStatistics stats) 
 }
 
 service ClusterManagementService {

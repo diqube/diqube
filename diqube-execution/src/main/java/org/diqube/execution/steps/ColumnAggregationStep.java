@@ -51,6 +51,7 @@ import org.diqube.function.IntermediaryResult;
 import org.diqube.loader.LoaderColumnInfo;
 import org.diqube.loader.columnshard.ColumnShardBuilderFactory;
 import org.diqube.loader.columnshard.ColumnShardBuilderManager;
+import org.diqube.queries.QueryRegistry;
 
 import com.google.common.collect.Iterables;
 
@@ -91,10 +92,11 @@ public class ColumnAggregationStep extends AbstractThreadedExecutablePlanStep {
   private Function<ColumnType, ColumnShardBuilderManager> columnShardBuilderManagerSupplier;
   private ColumnPatternUtil columnPatternUtil;
 
-  public ColumnAggregationStep(int stepId, ExecutionEnvironment defaultEnv, ColumnPatternUtil columnPatternUtil,
-      ColumnShardBuilderFactory columnShardBuilderFactory, FunctionFactory functionFactory,
-      String functionNameLowerCase, String outputColName, String inputColumnNamePattern) {
-    super(stepId);
+  public ColumnAggregationStep(int stepId, QueryRegistry queryRegistry, ExecutionEnvironment defaultEnv,
+      ColumnPatternUtil columnPatternUtil, ColumnShardBuilderFactory columnShardBuilderFactory,
+      FunctionFactory functionFactory, String functionNameLowerCase, String outputColName,
+      String inputColumnNamePattern) {
+    super(stepId, queryRegistry);
     this.defaultEnv = defaultEnv;
     this.columnPatternUtil = columnPatternUtil;
     this.functionFactory = functionFactory;

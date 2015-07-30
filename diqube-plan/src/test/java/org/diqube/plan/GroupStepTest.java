@@ -52,7 +52,9 @@ import org.diqube.execution.steps.RowIdSinkStep;
 import org.diqube.loader.LoaderColumnInfo;
 import org.diqube.loader.columnshard.ColumnShardBuilderFactory;
 import org.diqube.loader.columnshard.ColumnShardBuilderManager;
+import org.diqube.queries.QueryRegistry;
 import org.diqube.util.Pair;
+import org.mockito.Mockito;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
@@ -294,10 +296,12 @@ public class GroupStepTest {
     List<AbstractThreadedExecutablePlanStep> res = new ArrayList<>();
     int stepId = 0;
 
-    RowIdSinkStep rowIdSinkStep = new RowIdSinkStep(stepId++, env);
+    RowIdSinkStep rowIdSinkStep =
+        new RowIdSinkStep(stepId++, Mockito.mock(QueryRegistry.class, Mockito.RETURNS_DEEP_STUBS), env);
     res.add(rowIdSinkStep);
 
-    GroupStep groupStep = new GroupStep(stepId++, env, Arrays.asList(groupByCols));
+    GroupStep groupStep = new GroupStep(stepId++, Mockito.mock(QueryRegistry.class, Mockito.RETURNS_DEEP_STUBS), env,
+        Arrays.asList(groupByCols));
     groupStep.wireOneInputConsumerToOutputOf(RowIdConsumer.class, rowIdSinkStep);
     groupStep.addOutputConsumer(new AbstractThreadedGroupConsumer(null) {
 
@@ -323,10 +327,12 @@ public class GroupStepTest {
     });
     res.add(groupStep);
 
-    ResolveValuesStep resolveValuesStep = new ResolveValuesStep(stepId++);
+    ResolveValuesStep resolveValuesStep =
+        new ResolveValuesStep(stepId++, Mockito.mock(QueryRegistry.class, Mockito.RETURNS_DEEP_STUBS));
 
     for (String resolveCol : resolveCols) {
-      ResolveColumnDictIdsStep resolveDictIdStep = new ResolveColumnDictIdsStep(stepId++, env, resolveCol);
+      ResolveColumnDictIdsStep resolveDictIdStep = new ResolveColumnDictIdsStep(stepId++,
+          Mockito.mock(QueryRegistry.class, Mockito.RETURNS_DEEP_STUBS), env, resolveCol);
       resolveDictIdStep.wireOneInputConsumerToOutputOf(RowIdConsumer.class, groupStep);
       resolveValuesStep.wireOneInputConsumerToOutputOf(ColumnDictIdConsumer.class, resolveDictIdStep);
       res.add(resolveDictIdStep);

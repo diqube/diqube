@@ -21,9 +21,13 @@
 package org.diqube.server.querymaster;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicLong;
 
 import javax.inject.Inject;
 
@@ -33,27 +37,31 @@ import org.diqube.cluster.connection.ConnectionException;
 import org.diqube.cluster.connection.ConnectionPool;
 import org.diqube.cluster.connection.SocketListener;
 import org.diqube.context.AutoInstatiate;
+import org.diqube.execution.ExecutablePlan;
 import org.diqube.execution.steps.ExecuteRemotePlanOnShardsStep;
 import org.diqube.plan.ExecutionPlanBuilderFactory;
 import org.diqube.plan.exception.ParseException;
 import org.diqube.plan.exception.ValidationException;
 import org.diqube.queries.QueryRegistry;
 import org.diqube.queries.QueryRegistry.QueryExceptionHandler;
+import org.diqube.queries.QueryStats;
 import org.diqube.queries.QueryUuidProvider;
 import org.diqube.remote.base.thrift.RNodeAddress;
 import org.diqube.remote.base.thrift.RUUID;
 import org.diqube.remote.base.util.RUuidUtil;
 import org.diqube.remote.cluster.ClusterQueryServiceConstants;
 import org.diqube.remote.cluster.thrift.ClusterQueryService;
+import org.diqube.remote.cluster.thrift.RExecutionPlan;
 import org.diqube.remote.query.QueryResultServiceConstants;
 import org.diqube.remote.query.thrift.QueryResultService;
 import org.diqube.remote.query.thrift.QueryService;
 import org.diqube.remote.query.thrift.QueryService.Iface;
 import org.diqube.remote.query.thrift.RQueryException;
+import org.diqube.remote.query.thrift.RQueryStatistics;
 import org.diqube.remote.query.thrift.RResultTable;
 import org.diqube.threads.ExecutorManager;
 import org.diqube.util.Holder;
-import org.diqube.util.Pair;
+import org.diqube.util.Triple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -113,7 +121,7 @@ public class QueryServiceHandler implements Iface {
     };
 
     MasterQueryExecutor queryExecutor = new MasterQueryExecutor(executorManager, executionPlanBuilderFactory,
-        new MasterQueryExecutor.QueryExecutorCallback() {
+        queryRegistry, new MasterQueryExecutor.QueryExecutorCallback() {
           @Override
           public void intermediaryResultTableAvailable(RResultTable resultTable) {
             // noop
@@ -175,8 +183,11 @@ public class QueryServiceHandler implements Iface {
 
     UUID executionUuid = queryUuidProvider.createNewExecutionUuid(queryUuid, "master-" + queryUuid);
 
+    AtomicLong startNanos = new AtomicLong(System.nanoTime());
+
     // will hold the remote execution step, if one is available.
     Holder<ExecuteRemotePlanOnShardsStep> remoteExecutionStepHolder = new Holder<>();
+    Holder<ExecutablePlan> masterPlanHolder = new Holder<>();
 
     SocketListener resultSocketListener = new SocketListener() {
       @Override
@@ -245,8 +256,22 @@ public class QueryServiceHandler implements Iface {
       }
     };
 
+    Deque<QueryStats> remoteStats = new ConcurrentLinkedDeque<>();
+    Object remoteStatsWait = new Object();
+
+    queryRegistry.addQueryStatsListener(queryUuid, executionUuid, new QueryRegistry.QueryStatsListener() {
+      @Override
+      public void queryStatistics(QueryStats stats) {
+        remoteStats.add(stats);
+        logger.trace("Received remote stats for {}", queryUuid);
+        synchronized (remoteStatsWait) {
+          remoteStatsWait.notifyAll();
+        }
+      }
+    });
+
     MasterQueryExecutor queryExecutor = new MasterQueryExecutor(executorManager, executionPlanBuilderFactory,
-        new MasterQueryExecutor.QueryExecutorCallback() {
+        queryRegistry, new MasterQueryExecutor.QueryExecutorCallback() {
 
           @Override
           public void intermediaryResultTableAvailable(RResultTable resultTable) {
@@ -276,6 +301,57 @@ public class QueryServiceHandler implements Iface {
                   e);
             }
 
+            long endNanos = System.nanoTime();
+            long overallExecutionMs = (long) ((endNanos - startNanos.get()) / 1e6);
+            queryRegistry.getOrCreateCurrentStats().setStartedUntilDoneMs(overallExecutionMs);
+
+            if (masterPlanHolder.getValue() != null && remoteExecutionStepHolder.getValue() != null) {
+              ExecutablePlan masterPlan = masterPlanHolder.getValue();
+              RExecutionPlan remotePlan = remoteExecutionStepHolder.getValue().getRemoteExecutionPlan();
+
+              // wait some time in case the last remote did not yet provide its statistics.
+              int count = 0;
+              while (remoteStats.size() != remoteExecutionStepHolder.getValue().getNumberOfRemotesTriggerdOverall()) {
+                count++;
+                synchronized (remoteStatsWait) {
+                  try {
+                    remoteStatsWait.wait(100);
+                  } catch (InterruptedException e) {
+                    connectionPool.releaseConnection(resultConnection);
+                    queryRegistry.unregisterQueryExecution(queryUuid, executionUuid);
+                    executorManager.shutdownEverythingOfQueryExecution(queryUuid, executionUuid); // this will kill our
+                    // thread, too!
+                    return;
+                  }
+                }
+
+                if (count == 50) { // wait approx. 5s
+                  break;
+                }
+              }
+
+              // only proceed if we now really collected all stats.
+              if (remoteStats.size() == remoteExecutionStepHolder.getValue().getNumberOfRemotesTriggerdOverall()) {
+                MasterQueryStatisticsMerger statMerger = new MasterQueryStatisticsMerger(masterPlan, remotePlan);
+
+                RQueryStatistics finalStats =
+                    statMerger.merge(queryRegistry.getCurrentStats(), new ArrayList<>(remoteStats));
+
+                logger.trace("Sending out query statistics of {} to client: {}", queryUuid, finalStats);
+                try {
+                  synchronized (resultConnection) {
+                    resultService.queryStatistics(queryRUuid, finalStats);
+                  }
+                } catch (TException e) {
+                  logger.warn(
+                      "Was not able to send out query statistics to " + resultAddress.toString() + " for " + queryUuid,
+                      e);
+                }
+              } else
+                logger.trace("Not sending statistics for {} as there were not all results received from remotes.",
+                    queryUuid);
+            }
+
             // we received the final result, be sure to clean up everything.
             connectionPool.releaseConnection(resultConnection);
             queryRegistry.unregisterQueryExecution(queryUuid, executionUuid);
@@ -288,10 +364,12 @@ public class QueryServiceHandler implements Iface {
 
     Runnable execute;
     try {
-      Pair<Runnable, ExecuteRemotePlanOnShardsStep> p = queryExecutor.prepareExecution(queryUuid, executionUuid, diql);
-      execute = p.getLeft();
-      if (p.getRight() != null)
-        remoteExecutionStepHolder.setValue(p.getRight());
+      Triple<Runnable, ExecutablePlan, ExecuteRemotePlanOnShardsStep> t =
+          queryExecutor.prepareExecution(queryUuid, executionUuid, diql);
+      execute = t.getLeft();
+      masterPlanHolder.setValue(t.getMiddle());
+      if (t.getRight() != null)
+        remoteExecutionStepHolder.setValue(t.getRight());
 
     } catch (ParseException | ValidationException e) {
       logger.warn("Exception while preparing the query execution of {}: {}", queryUuid, e.getMessage());
@@ -301,6 +379,7 @@ public class QueryServiceHandler implements Iface {
     Executor executor =
         executorManager.newQueryFixedThreadPool(1, "query-master-" + queryUuid + "-%d", queryUuid, executionUuid);
 
+    startNanos.set(System.nanoTime());
     // start asynchronous execution.
     executor.execute(execute);
   }

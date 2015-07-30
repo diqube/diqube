@@ -34,6 +34,7 @@ import org.diqube.execution.consumers.AbstractPlanStepBasedGenericConsumer;
 import org.diqube.execution.consumers.ContinuousConsumer;
 import org.diqube.execution.consumers.GenericConsumer;
 import org.diqube.execution.exception.ExecutablePlanBuildException;
+import org.diqube.queries.QueryRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,8 +75,11 @@ public abstract class AbstractThreadedExecutablePlanStep implements ExecutablePl
 
   private AtomicBoolean doneProcessing = new AtomicBoolean(false);
 
-  public AbstractThreadedExecutablePlanStep(int stepId) {
+  protected QueryRegistry queryRegistry;
+
+  public AbstractThreadedExecutablePlanStep(int stepId, QueryRegistry queryRegistry) {
     this.stepId = stepId;
+    this.queryRegistry = queryRegistry;
   }
 
   @Override
@@ -83,7 +87,15 @@ public abstract class AbstractThreadedExecutablePlanStep implements ExecutablePl
     validateWiredStatus();
     while (!doneProcessing.get()) {
       numberOfEventsNotProcessed.set(0);
+
+      long startNanos = System.nanoTime();
       execute();
+      long endNanos = System.nanoTime();
+
+      long activeMs = (long) ((endNanos - startNanos) / 1e6);
+
+      queryRegistry.getOrCreateCurrentStats().addStepThreadActiveMs(stepId, activeMs);
+
       if (doneProcessing.get())
         break;
       waitForNewData();

@@ -23,10 +23,12 @@ package org.diqube.queries;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 
@@ -49,6 +51,8 @@ import org.diqube.util.Pair;
 public class QueryRegistry {
   private Map<Pair<UUID, UUID>, QueryExceptionHandler> exceptionHandlers = new ConcurrentHashMap<>();
   private Map<UUID, Deque<QueryResultHandler>> resultHandlers = new ConcurrentHashMap<>();
+  private Map<UUID, QueryStats> queryStats = new ConcurrentHashMap<>();
+  private ConcurrentMap<UUID, Map<UUID, QueryStatsListener>> queryStatsListeners = new ConcurrentHashMap<>();;
 
   /**
    * Register a query, its execution and its exception handler. Note that for the query
@@ -114,6 +118,16 @@ public class QueryRegistry {
    */
   public void unregisterQueryExecution(UUID queryUuid, UUID executionUuid) {
     exceptionHandlers.remove(new Pair<>(queryUuid, executionUuid));
+    queryStats.remove(executionUuid);
+    if (queryStatsListeners.containsKey(queryUuid)) {
+      synchronized (queryStatsListeners) {
+        if (queryStatsListeners.containsKey(queryUuid)) {
+          queryStatsListeners.get(queryUuid).remove(executionUuid);
+          if (queryStatsListeners.get(queryUuid).isEmpty())
+            queryStatsListeners.remove(queryUuid);
+        }
+      }
+    }
   }
 
   /**
@@ -129,6 +143,71 @@ public class QueryRegistry {
     exceptionHandler.handleException(t);
     unregisterQueryExecution(queryUuid, executionUuid);
     return true;
+  }
+
+  /**
+   * @return The currently active {@link QueryStats}, there is one created if not yet available.
+   * @throws IllegalStateException
+   *           If current queryUuid or executionUuid cannot be found.
+   */
+  public QueryStats getOrCreateCurrentStats() throws IllegalStateException {
+    UUID queryUuid = QueryUuid.getCurrentQueryUuid();
+    UUID executionUuid = QueryUuid.getCurrentExecutionUuid();
+    if (queryUuid == null || executionUuid == null)
+      throw new IllegalStateException("No current query and execution!");
+    return getOrCreateStats(queryUuid, executionUuid);
+  }
+
+  /**
+   * Gets, but does not create the current statistics
+   * 
+   * @return the current {@link QueryStats} or <code>null</code>.
+   * @throws IllegalStateException
+   *           If current executionUuid cannot be determined.
+   */
+  public QueryStats getCurrentStats() throws IllegalStateException {
+    UUID executionUuid = QueryUuid.getCurrentExecutionUuid();
+    if (executionUuid == null)
+      throw new IllegalStateException("No current query and execution!");
+    return queryStats.get(executionUuid);
+  }
+
+  /**
+   * Get or create a QueryStats object for the given query/execution.
+   * 
+   * @return The active {@link QueryStats} for that query/execution, there is one created if not yet available.
+   */
+  public QueryStats getOrCreateStats(UUID queryUuid, UUID executionUuid) {
+    if (!queryStats.containsKey(executionUuid)) {
+      synchronized (queryStats) {
+        if (!queryStats.containsKey(executionUuid))
+          queryStats.put(executionUuid, new QueryStats(queryUuid));
+      }
+    }
+
+    return queryStats.get(executionUuid);
+  }
+
+  /**
+   * Add a listener which gets informed when query remotes inform about their query statistics on the given query UUID.
+   */
+  public void addQueryStatsListener(UUID queryUuid, UUID executionUuid, QueryStatsListener listener) {
+    if (!queryStatsListeners.containsKey(queryUuid)) {
+      synchronized (queryStatsListeners) {
+        if (!queryStatsListeners.containsKey(queryUuid))
+          queryStatsListeners.putIfAbsent(queryUuid, new ConcurrentHashMap<>());
+      }
+    }
+
+    queryStatsListeners.get(queryUuid).put(executionUuid, listener);
+  }
+
+  /**
+   * As soon as a remote reported query statistics, call this method in order to inform everybody who is interested.
+   */
+  public void remoteQueryStatsAvailable(UUID queryUuid, QueryStats stats) {
+    Map<UUID, QueryStatsListener> listeners = queryStatsListeners.getOrDefault(queryUuid, new HashMap<>());
+    listeners.values().forEach(listener -> listener.queryStatistics(stats));
   }
 
   /**
@@ -169,5 +248,12 @@ public class QueryRegistry {
      * therefore.
      */
     public void oneRemoteException(String msg);
+  }
+
+  /**
+   * Listener that is called when new statistics have been reported by query remotes.
+   */
+  public static interface QueryStatsListener {
+    public void queryStatistics(QueryStats stats);
   }
 }

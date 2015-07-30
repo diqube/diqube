@@ -57,6 +57,7 @@ import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.env.VersionedExecutionEnvironment;
 import org.diqube.execution.exception.ExecutablePlanBuildException;
 import org.diqube.execution.exception.ExecutablePlanExecutionException;
+import org.diqube.queries.QueryRegistry;
 import org.diqube.util.HashingBatchCollector;
 import org.diqube.util.Pair;
 import org.slf4j.Logger;
@@ -186,9 +187,9 @@ public class RowIdInequalStep extends AbstractThreadedExecutablePlanStep {
    *          > {@link GtRowIdComparator}, if >= then {@link GtEqRowIdComparator}, if < {@link LtRowIdComparator}, if <=
    *          {@link LtEqRowIdComparator}.
    */
-  public RowIdInequalStep(int stepId, ExecutionEnvironment defaultEnv, String colName, Object value,
-      RowIdComparator comparator) {
-    super(stepId);
+  public RowIdInequalStep(int stepId, QueryRegistry queryRegistry, ExecutionEnvironment defaultEnv, String colName,
+      Object value, RowIdComparator comparator) {
+    super(stepId, queryRegistry);
     this.defaultEnv = defaultEnv;
     this.colName = colName;
     this.value = value;
@@ -205,9 +206,9 @@ public class RowIdInequalStep extends AbstractThreadedExecutablePlanStep {
    * @param otherColNameUsed
    *          provide true always. Needed because constructor is overloaded.
    */
-  public RowIdInequalStep(int stepId, ExecutionEnvironment env, String colName, String otherColName,
-      RowIdComparator comparator, boolean otherColNameUsed) {
-    super(stepId);
+  public RowIdInequalStep(int stepId, QueryRegistry queryRegistry, ExecutionEnvironment env, String colName,
+      String otherColName, RowIdComparator comparator, boolean otherColNameUsed) {
+    super(stepId, queryRegistry);
     this.defaultEnv = env;
     this.colName = colName;
     this.otherColName = otherColName;

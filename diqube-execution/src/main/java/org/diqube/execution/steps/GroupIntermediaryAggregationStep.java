@@ -43,6 +43,7 @@ import org.diqube.function.AggregationFunction;
 import org.diqube.function.AggregationFunction.ValueProvider;
 import org.diqube.function.FunctionFactory;
 import org.diqube.function.IntermediaryResult;
+import org.diqube.queries.QueryRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -102,9 +103,9 @@ public class GroupIntermediaryAggregationStep extends AbstractThreadedExecutable
   /** can be null if no parameter is specified for the aggregation function (e.g. count()) */
   private String inputColumnName;
 
-  public GroupIntermediaryAggregationStep(int stepId, ExecutionEnvironment env, FunctionFactory functionFactory,
-      String functionNameLowerCase, String outputColName, String inputColumnName) {
-    super(stepId);
+  public GroupIntermediaryAggregationStep(int stepId, QueryRegistry queryRegistry, ExecutionEnvironment env,
+      FunctionFactory functionFactory, String functionNameLowerCase, String outputColName, String inputColumnName) {
+    super(stepId, queryRegistry);
     this.env = env;
     this.functionFactory = functionFactory;
     this.functionNameLowerCase = functionNameLowerCase;

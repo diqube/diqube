@@ -20,8 +20,11 @@
  */
 package org.diqube.execution.env;
 
+import javax.inject.Inject;
+
 import org.diqube.context.AutoInstatiate;
 import org.diqube.data.TableShard;
+import org.diqube.queries.QueryRegistry;
 
 /**
  * Factory for {@link ExecutionEnvironment}.
@@ -31,16 +34,19 @@ import org.diqube.data.TableShard;
 @AutoInstatiate
 public class ExecutionEnvironmentFactory {
 
+  @Inject
+  private QueryRegistry queryRegistry;
+
   public ExecutionEnvironment createQueryMasterExecutionEnvironment() {
-    return new DefaultExecutionEnvironment(null);
+    return new DefaultExecutionEnvironment(queryRegistry, null);
   }
 
   public ExecutionEnvironment createExecutionEnvironment(TableShard tableShard) {
-    return new DefaultExecutionEnvironment(tableShard);
+    return new DefaultExecutionEnvironment(queryRegistry, tableShard);
   }
 
   public DelegatingExecutionEnvironment createDelegatingExecutionEnvironment(ExecutionEnvironment delegate,
       int version) {
-    return new DelegatingExecutionEnvironment(delegate, version);
+    return new DelegatingExecutionEnvironment(queryRegistry, delegate, version);
   }
 }

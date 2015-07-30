@@ -31,6 +31,7 @@ import org.diqube.data.colshard.ColumnShard;
 import org.diqube.data.dbl.DoubleColumnShard;
 import org.diqube.data.lng.LongColumnShard;
 import org.diqube.data.str.StringColumnShard;
+import org.diqube.queries.QueryRegistry;
 
 /**
  * Abstract implementation of an {@link ExecutionEnvironment} containing a separate set of Long, String and Double
@@ -42,6 +43,11 @@ public abstract class AbstractExecutionEnvironment implements ExecutionEnvironme
   private Map<String, LongColumnShard> tempLongColumns = new ConcurrentHashMap<>();
   private Map<String, StringColumnShard> tempStringColumns = new ConcurrentHashMap<>();
   private Map<String, DoubleColumnShard> tempDoubleColumns = new ConcurrentHashMap<>();
+  private QueryRegistry queryRegistry;
+
+  public AbstractExecutionEnvironment(QueryRegistry queryRegistry) {
+    this.queryRegistry = queryRegistry;
+  }
 
   @Override
   public LongColumnShard getLongColumnShard(String name) {
@@ -105,16 +111,19 @@ public abstract class AbstractExecutionEnvironment implements ExecutionEnvironme
 
   @Override
   public void storeTemporaryLongColumnShard(LongColumnShard column) {
+    queryRegistry.getOrCreateCurrentStats().incNumberOfTemporaryColumnsCreated();
     tempLongColumns.put(column.getName(), column);
   }
 
   @Override
   public void storeTemporaryStringColumnShard(StringColumnShard column) {
+    queryRegistry.getOrCreateCurrentStats().incNumberOfTemporaryColumnsCreated();
     tempStringColumns.put(column.getName(), column);
   }
 
   @Override
   public void storeTemporaryDoubleColumnShard(DoubleColumnShard column) {
+    queryRegistry.getOrCreateCurrentStats().incNumberOfTemporaryColumnsCreated();
     tempDoubleColumns.put(column.getName(), column);
   }
 

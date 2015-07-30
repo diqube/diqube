@@ -43,6 +43,7 @@ import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.env.VersionedExecutionEnvironment;
 import org.diqube.loader.columnshard.ColumnShardBuilderFactory;
 import org.diqube.loader.columnshard.SparseColumnShardBuilder;
+import org.diqube.queries.QueryRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -105,9 +106,9 @@ public class BuildColumnFromValuesStep extends AbstractThreadedExecutablePlanSte
 
   private ColumnVersionManager columnVersionManager;
 
-  public BuildColumnFromValuesStep(int stepId, ExecutionEnvironment defaultEnv, String colName,
-      ColumnShardBuilderFactory columnShardBuilderFactory, ColumnVersionManager columnVersionManager) {
-    super(stepId);
+  public BuildColumnFromValuesStep(int stepId, QueryRegistry queryRegistry, ExecutionEnvironment defaultEnv,
+      String colName, ColumnShardBuilderFactory columnShardBuilderFactory, ColumnVersionManager columnVersionManager) {
+    super(stepId, queryRegistry);
     this.defaultEnv = defaultEnv;
     this.colName = colName;
     this.columnShardBuilderFactory = columnShardBuilderFactory;

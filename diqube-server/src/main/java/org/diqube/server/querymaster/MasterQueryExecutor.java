@@ -47,11 +47,12 @@ import org.diqube.plan.ExecutionPlanBuilder;
 import org.diqube.plan.ExecutionPlanBuilderFactory;
 import org.diqube.plan.exception.ParseException;
 import org.diqube.plan.exception.ValidationException;
+import org.diqube.queries.QueryRegistry;
 import org.diqube.remote.base.thrift.RValue;
 import org.diqube.remote.base.util.RValueUtil;
 import org.diqube.remote.query.thrift.RResultTable;
 import org.diqube.threads.ExecutorManager;
-import org.diqube.util.Pair;
+import org.diqube.util.Triple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -93,10 +94,14 @@ class MasterQueryExecutor {
 
   private boolean isHaving;
 
+  private QueryRegistry queryRegistry;
+
   public MasterQueryExecutor(ExecutorManager executorManager, ExecutionPlanBuilderFactory executionPlanBuildeFactory,
-      MasterQueryExecutor.QueryExecutorCallback callback, boolean createIntermediaryUpdates) {
+      QueryRegistry queryRegistry, MasterQueryExecutor.QueryExecutorCallback callback,
+      boolean createIntermediaryUpdates) {
     this.executorManager = executorManager;
     this.executionPlanBuildeFactory = executionPlanBuildeFactory;
+    this.queryRegistry = queryRegistry;
     this.callback = callback;
     this.createIntermediaryUpdates = createIntermediaryUpdates;
   }
@@ -108,15 +113,16 @@ class MasterQueryExecutor {
    * The returned {@link Runnable} will, when called, execute the query, block the current thread until the execution is
    * done and will call the callback accordingly.
    * 
-   * @return A pair consisting of the Runnable mentioned above and the {@link ExecuteRemotePlanOnShardsStep} if there is
-   *         one available in the created plan (otherwise <code>null</code>).
+   * @return A triple consisting of the Runnable mentioned above, the {@link ExecutablePlan} that will be executed on
+   *         query master and the {@link ExecuteRemotePlanOnShardsStep} if there is one available in the created plan
+   *         (otherwise <code>null</code>).
    * @throws ParseException
    *           in case the query cannot be parsed.
    * @throws ValidationException
    *           in case the query cannot be validated.
    */
-  public Pair<Runnable, ExecuteRemotePlanOnShardsStep> prepareExecution(UUID queryUuid, UUID executionUuid, String diql)
-      throws ParseException, ValidationException {
+  public Triple<Runnable, ExecutablePlan, ExecuteRemotePlanOnShardsStep> prepareExecution(UUID queryUuid,
+      UUID executionUuid, String diql) throws ParseException, ValidationException {
     ExecutionPlanBuilder planBuilder = executionPlanBuildeFactory.createExecutionPlanBuilder();
     planBuilder.fromDiql(diql);
     planBuilder.withFinalColumnValueConsumer(new AbstractThreadedColumnValueConsumer(null) {
@@ -189,6 +195,8 @@ class MasterQueryExecutor {
     Runnable r = new Runnable() {
       @Override
       public void run() {
+        queryRegistry.getOrCreateCurrentStats().setNumberOfThreads(plan.preferredExecutorServiceSize());
+
         Executor executor = executorManager.newQueryFixedThreadPool(plan.preferredExecutorServiceSize(),
             "query-master-worker-" + queryUuid + "-%d", //
             queryUuid, executionUuid);
@@ -201,7 +209,7 @@ class MasterQueryExecutor {
     Optional<ExecutablePlanStep> executeRemoteStep =
         plan.getSteps().stream().filter(s -> s instanceof ExecuteRemotePlanOnShardsStep).findFirst();
 
-    return new Pair<>(r,
+    return new Triple<>(r, plan,
         executeRemoteStep.isPresent() ? ((ExecuteRemotePlanOnShardsStep) executeRemoteStep.get()) : null);
   }
 

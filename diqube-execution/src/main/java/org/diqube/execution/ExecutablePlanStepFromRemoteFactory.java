@@ -49,6 +49,7 @@ import org.diqube.execution.steps.RowIdSinkStep;
 import org.diqube.execution.util.ColumnPatternUtil;
 import org.diqube.function.FunctionFactory;
 import org.diqube.loader.columnshard.ColumnShardBuilderFactory;
+import org.diqube.queries.QueryRegistry;
 import org.diqube.remote.base.thrift.RValue;
 import org.diqube.remote.cluster.thrift.RColOrValue;
 import org.diqube.remote.cluster.thrift.RExecutionPlanStep;
@@ -79,6 +80,9 @@ public class ExecutablePlanStepFromRemoteFactory {
 
   @Inject
   private RepeatedColumnNameGenerator repeatedColNameGen;
+
+  @Inject
+  private QueryRegistry queryRegistry;
 
   /**
    * Creates an {@link ExecutablePlanStep} for the given {@link RExecutionPlanStep}. The resulting step will not be
@@ -133,7 +137,8 @@ public class ExecutablePlanStepFromRemoteFactory {
     if (details.isSetOtherColumn()) {
       // Comapre col vs. col
       String otherColName = details.getOtherColumn().getColName();
-      return new RowIdInequalStep(remoteStep.getStepId(), defaultEnv, colName, otherColName, comparator, true);
+      return new RowIdInequalStep(remoteStep.getStepId(), queryRegistry, defaultEnv, colName, otherColName, comparator,
+          true);
     } else {
       // Compare col vs. constant
       Object value;
@@ -150,7 +155,7 @@ public class ExecutablePlanStepFromRemoteFactory {
       else
         value = remoteValue.getDoubleValue();
 
-      return new RowIdInequalStep(remoteStep.getStepId(), defaultEnv, colName, value, comparator);
+      return new RowIdInequalStep(remoteStep.getStepId(), queryRegistry, defaultEnv, colName, value, comparator);
     }
   }
 
@@ -161,7 +166,7 @@ public class ExecutablePlanStepFromRemoteFactory {
     if (details.isSetOtherColumn()) {
       // Comapre col vs. col
       String otherColName = details.getOtherColumn().getColName();
-      return new RowIdEqualsStep(remoteStep.getStepId(), defaultEnv, colName, otherColName);
+      return new RowIdEqualsStep(remoteStep.getStepId(), queryRegistry, defaultEnv, colName, otherColName);
     } else {
       // Compare col vs. constants
       Object[] sortedValues;
@@ -184,34 +189,34 @@ public class ExecutablePlanStepFromRemoteFactory {
         sortedValues = details.getSortedValues().stream().map(v -> v.getDoubleValue()).toArray(l -> new Double[l]);
       }
 
-      return new RowIdEqualsStep(remoteStep.getStepId(), defaultEnv, colName, sortedValues);
+      return new RowIdEqualsStep(remoteStep.getStepId(), queryRegistry, defaultEnv, colName, sortedValues);
     }
   }
 
   private ExecutablePlanStep createRowIdOr(ExecutionEnvironment defaultEnv, RExecutionPlanStep remoteStep) {
-    return new RowIdOrStep(remoteStep.getStepId());
+    return new RowIdOrStep(remoteStep.getStepId(), queryRegistry);
   }
 
   private ExecutablePlanStep createRowIdAnd(ExecutionEnvironment defaultEnv, RExecutionPlanStep remoteStep) {
-    return new RowIdAndStep(remoteStep.getStepId());
+    return new RowIdAndStep(remoteStep.getStepId(), queryRegistry);
   }
 
   private ExecutablePlanStep createRowIdNot(ExecutionEnvironment defaultEnv, RExecutionPlanStep remoteStep) {
-    return new RowIdNotStep(remoteStep.getStepId(), defaultEnv);
+    return new RowIdNotStep(remoteStep.getStepId(), queryRegistry, defaultEnv);
   }
 
   private ExecutablePlanStep createRowIdSink(ExecutionEnvironment defaultEnv, RExecutionPlanStep remoteStep) {
-    return new RowIdSinkStep(remoteStep.getStepId(), defaultEnv);
+    return new RowIdSinkStep(remoteStep.getStepId(), queryRegistry, defaultEnv);
   }
 
   private ExecutablePlanStep createResolveColumnDictIds(ExecutionEnvironment defaultEnv,
       RExecutionPlanStep remoteStep) {
     String colName = remoteStep.getDetailsResolve().getColumn().getColName();
-    return new ResolveColumnDictIdsStep(remoteStep.getStepId(), defaultEnv, colName);
+    return new ResolveColumnDictIdsStep(remoteStep.getStepId(), queryRegistry, defaultEnv, colName);
   }
 
   private ExecutablePlanStep createResolveValues(RExecutionPlanStep remoteStep) {
-    return new ResolveValuesStep(remoteStep.getStepId());
+    return new ResolveValuesStep(remoteStep.getStepId(), queryRegistry);
   }
 
   private ExecutablePlanStep createOrder(ExecutionEnvironment defaultEnv, RExecutionPlanStep remoteStep) {
@@ -232,7 +237,7 @@ public class ExecutablePlanStepFromRemoteFactory {
         limitStart = remoteStep.getDetailsOrder().getLimit().getLimitStart();
     }
 
-    return new OrderStep(remoteStep.getStepId(), defaultEnv, orderColumns, limit, limitStart,
+    return new OrderStep(remoteStep.getStepId(), queryRegistry, defaultEnv, orderColumns, limit, limitStart,
         (remoteStep.getDetailsOrder().isSetSoftLimit()) ? remoteStep.getDetailsOrder().getSoftLimit() : null);
   }
 
@@ -240,7 +245,7 @@ public class ExecutablePlanStepFromRemoteFactory {
     List<String> colsToGroupBy = remoteStep.getDetailsGroup().getGroupByColumns().stream().map(col -> col.getColName())
         .collect(Collectors.toList());
 
-    return new GroupStep(remoteStep.getStepId(), defaultEnv, colsToGroupBy);
+    return new GroupStep(remoteStep.getStepId(), queryRegistry, defaultEnv, colsToGroupBy);
   }
 
   private ExecutablePlanStep createProject(ExecutionEnvironment defaultEnv, RExecutionPlanStep remoteStep) {
@@ -269,8 +274,9 @@ public class ExecutablePlanStepFromRemoteFactory {
       functionParameters[i] = newArg;
     }
 
-    return new ProjectStep(remoteStep.getStepId(), defaultEnv, functionFactory, functionName, functionParameters,
-        outputColName, columnShardBuilderManagerFactory, columnShardFactory, null /* no column versions on remotes. */);
+    return new ProjectStep(remoteStep.getStepId(), queryRegistry, defaultEnv, functionFactory, functionName,
+        functionParameters, outputColName, columnShardBuilderManagerFactory, columnShardFactory,
+        null /* no column versions on remotes. */);
   }
 
   private ExecutablePlanStep createRepeatedProject(ExecutionEnvironment defaultEnv, RExecutionPlanStep remoteStep) {
@@ -299,7 +305,7 @@ public class ExecutablePlanStepFromRemoteFactory {
       functionParameters[i] = newArg;
     }
 
-    return new RepeatedProjectStep(remoteStep.getStepId(), defaultEnv, functionFactory,
+    return new RepeatedProjectStep(remoteStep.getStepId(), queryRegistry, defaultEnv, functionFactory,
         columnShardBuilderManagerFactory, repeatedColNameGen, columnPatternUtil, functionName, functionParameters,
         outputColName);
   }
@@ -314,8 +320,8 @@ public class ExecutablePlanStepFromRemoteFactory {
       inputColName = remoteStep.getDetailsFunction().getFunctionArguments().get(0).getColumn().getColName();
     }
 
-    return new GroupIntermediaryAggregationStep(remoteStep.getStepId(), defaultEnv, functionFactory, functionName,
-        outputColName, inputColName);
+    return new GroupIntermediaryAggregationStep(remoteStep.getStepId(), queryRegistry, defaultEnv, functionFactory,
+        functionName, outputColName, inputColName);
   }
 
   private ExecutablePlanStep createColumnAggregation(ExecutionEnvironment defaultEnv, RExecutionPlanStep remoteStep) {
@@ -325,7 +331,7 @@ public class ExecutablePlanStepFromRemoteFactory {
     String inputColName = null;
     inputColName = remoteStep.getDetailsFunction().getFunctionArguments().get(0).getColumn().getColName();
 
-    return new ColumnAggregationStep(remoteStep.getStepId(), defaultEnv, columnPatternUtil,
+    return new ColumnAggregationStep(remoteStep.getStepId(), queryRegistry, defaultEnv, columnPatternUtil,
         columnShardBuilderManagerFactory, functionFactory, functionName, outputColName, inputColName);
   }
 

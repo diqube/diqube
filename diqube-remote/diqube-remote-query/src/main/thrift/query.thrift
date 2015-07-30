@@ -42,8 +42,18 @@ service QueryService {
                          4: base.RNodeAddress resultAddress) throws (1: RQueryException queryException)
 }
 
+struct RQueryStatistics {
+  1: i64 masterStartedUntilDoneMs,
+  2: list<i64> remotesStartedUntilDoneMs,
+  3: i32 remoteNumberOfThreads,
+  4: i32 numberOfTemporaryColumnsCreated,
+  5: map<string, i64> masterStepsMs,
+  6: map<string, list<i64>> remotesStepsMs
+}
+
 service QueryResultService {
   oneway void partialUpdate(1:base.RUUID queryRUuid, 2:RResultTable partialResult, 3:i16 percentComplete),
   oneway void queryResults(1:base.RUUID queryRUuid, 2:RResultTable finalResult),
-  oneway void queryException(1:base.RUUID queryRUuid, 2:RQueryException exceptionThrown)
+  oneway void queryException(1:base.RUUID queryRUuid, 2:RQueryException exceptionThrown),
+  oneway void queryStatistics(1:base.RUUID queryRuuid, 2: RQueryStatistics stats)
 }

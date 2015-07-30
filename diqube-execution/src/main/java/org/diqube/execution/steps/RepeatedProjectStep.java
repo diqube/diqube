@@ -53,6 +53,7 @@ import org.diqube.function.ProjectionFunction;
 import org.diqube.loader.LoaderColumnInfo;
 import org.diqube.loader.columnshard.ColumnShardBuilderFactory;
 import org.diqube.loader.columnshard.ColumnShardBuilderManager;
+import org.diqube.queries.QueryRegistry;
 import org.diqube.util.ColumnOrValue;
 import org.diqube.util.ColumnOrValue.Type;
 
@@ -121,11 +122,11 @@ public class RepeatedProjectStep extends AbstractThreadedExecutablePlanStep {
 
   private ColumnShardBuilderFactory columnShardBuilderFactory;
 
-  public RepeatedProjectStep(int stepId, ExecutionEnvironment defaultEnv, FunctionFactory functionFactory,
-      ColumnShardBuilderFactory columnShardBuilderFactory, RepeatedColumnNameGenerator repeatedColNameGen,
-      ColumnPatternUtil columnPatternUtil, String functionNameLowerCase, ColumnOrValue[] functionParameters,
-      String outputColPattern) {
-    super(stepId);
+  public RepeatedProjectStep(int stepId, QueryRegistry queryRegistry, ExecutionEnvironment defaultEnv,
+      FunctionFactory functionFactory, ColumnShardBuilderFactory columnShardBuilderFactory,
+      RepeatedColumnNameGenerator repeatedColNameGen, ColumnPatternUtil columnPatternUtil, String functionNameLowerCase,
+      ColumnOrValue[] functionParameters, String outputColPattern) {
+    super(stepId, queryRegistry);
     this.defaultEnv = defaultEnv;
     this.functionFactory = functionFactory;
     this.columnShardBuilderFactory = columnShardBuilderFactory;

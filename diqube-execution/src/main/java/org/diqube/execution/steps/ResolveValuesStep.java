@@ -49,6 +49,7 @@ import org.diqube.execution.consumers.GenericConsumer;
 import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.env.VersionedExecutionEnvironment;
 import org.diqube.execution.exception.ExecutablePlanBuildException;
+import org.diqube.queries.QueryRegistry;
 import org.diqube.util.Pair;
 import org.diqube.util.Triple;
 import org.slf4j.Logger;
@@ -158,8 +159,8 @@ public class ResolveValuesStep extends AbstractThreadedExecutablePlanStep {
 
   private ReadWriteLock rowIdReadWriteLock = new ReentrantReadWriteLock();
 
-  public ResolveValuesStep(int stepId) {
-    super(stepId);
+  public ResolveValuesStep(int stepId, QueryRegistry queryRegistry) {
+    super(stepId, queryRegistry);
   }
 
   @Override

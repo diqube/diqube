@@ -49,6 +49,7 @@ import org.diqube.execution.consumers.GroupDeltaConsumer;
 import org.diqube.execution.consumers.RowIdConsumer;
 import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.exception.ExecutablePlanBuildException;
+import org.diqube.queries.QueryRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -123,8 +124,8 @@ public class GroupStep extends AbstractThreadedExecutablePlanStep {
 
   private ExecutionEnvironment defaultEnv;
 
-  public GroupStep(int stepId, ExecutionEnvironment env, List<String> colNamesToGroupBy) {
-    super(stepId);
+  public GroupStep(int stepId, QueryRegistry queryRegistry, ExecutionEnvironment env, List<String> colNamesToGroupBy) {
+    super(stepId, queryRegistry);
     this.defaultEnv = env;
     this.colNamesToGroupBy = colNamesToGroupBy;
 

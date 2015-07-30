@@ -58,6 +58,7 @@ import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.env.VersionedExecutionEnvironment;
 import org.diqube.execution.exception.ExecutablePlanBuildException;
 import org.diqube.execution.exception.ExecutablePlanExecutionException;
+import org.diqube.queries.QueryRegistry;
 import org.diqube.util.DiqubeCollectors;
 import org.diqube.util.HashingBatchCollector;
 import org.diqube.util.Pair;
@@ -185,8 +186,9 @@ public class RowIdEqualsStep extends AbstractThreadedExecutablePlanStep {
    * @param sortedValues
    *          Expected to be sorted!
    */
-  public RowIdEqualsStep(int stepId, ExecutionEnvironment defaultEnv, String colName, Object[] sortedValues) {
-    super(stepId);
+  public RowIdEqualsStep(int stepId, QueryRegistry queryRegistry, ExecutionEnvironment defaultEnv, String colName,
+      Object[] sortedValues) {
+    super(stepId, queryRegistry);
     this.defaultEnv = defaultEnv;
     this.colName = colName;
     this.values = sortedValues;
@@ -195,8 +197,9 @@ public class RowIdEqualsStep extends AbstractThreadedExecutablePlanStep {
 
   /**
    */
-  public RowIdEqualsStep(int stepId, ExecutionEnvironment defaultEnv, String colName, String otherColName) {
-    super(stepId);
+  public RowIdEqualsStep(int stepId, QueryRegistry queryRegistry, ExecutionEnvironment defaultEnv, String colName,
+      String otherColName) {
+    super(stepId, queryRegistry);
     this.defaultEnv = defaultEnv;
     this.colName = colName;
     this.otherColName = otherColName;

@@ -71,6 +71,15 @@ public class TableShard {
     return longColumns;
   }
 
+  public Map<String, StandardColumnShard> getColumns() {
+    Map<String, StandardColumnShard> res = new HashMap<>();
+    res.putAll(stringColumns);
+    res.putAll(longColumns);
+    res.putAll(doubleColumns);
+
+    return res;
+  }
+
   /**
    * @return The number of rows contained in this shard.
    */

@@ -22,10 +22,13 @@ package org.diqube.util;
 
 /**
  * An arbitrary pair of values.
+ * 
+ * A {@link Pair} is {@link Comparable} when both objects are {@link Comparable}. The left side will be compared first
+ * and only if the left is equal, the right will be compared.
  *
  * @author Bastian Gloeckle
  */
-public class Pair<L, R> {
+public class Pair<L, R> implements Comparable<Pair<L, R>> {
   final private L left;
 
   final private R right;
@@ -51,6 +54,16 @@ public class Pair<L, R> {
   @Override
   public int hashCode() {
     return ((left != null) ? left.hashCode() : 7) ^ ((right != null) ? right.hashCode() : 11);
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public int compareTo(Pair<L, R> o) {
+    int compareResLeft = ((Comparable<L>) left).compareTo(o.getLeft());
+    if (compareResLeft == 0) {
+      return ((Comparable<R>) right).compareTo(o.getRight());
+    } else
+      return compareResLeft;
   }
 
   @Override

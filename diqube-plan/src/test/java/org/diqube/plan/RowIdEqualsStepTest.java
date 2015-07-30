@@ -41,6 +41,8 @@ import org.diqube.execution.steps.RowIdEqualsStep;
 import org.diqube.loader.LoaderColumnInfo;
 import org.diqube.loader.columnshard.ColumnShardBuilderFactory;
 import org.diqube.loader.columnshard.ColumnShardBuilderManager;
+import org.diqube.queries.QueryRegistry;
+import org.mockito.Mockito;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
@@ -146,8 +148,10 @@ public class RowIdEqualsStepTest {
 
   private List<AbstractThreadedExecutablePlanStep> createIdEqualsAndResolveSteps(ExecutionEnvironment env,
       String equalsCol, Object[] equalsValues, String resolveCol) {
-    RowIdEqualsStep rowIdEqualsStep = new RowIdEqualsStep(0, env, equalsCol, new Long[] { Long.MIN_VALUE });
-    ResolveColumnDictIdsStep resolveValueStep = new ResolveColumnDictIdsStep(1, env, resolveCol);
+    RowIdEqualsStep rowIdEqualsStep = new RowIdEqualsStep(0,
+        Mockito.mock(QueryRegistry.class, Mockito.RETURNS_DEEP_STUBS), env, equalsCol, new Long[] { Long.MIN_VALUE });
+    ResolveColumnDictIdsStep resolveValueStep =
+        new ResolveColumnDictIdsStep(1, Mockito.mock(QueryRegistry.class, Mockito.RETURNS_DEEP_STUBS), env, resolveCol);
     resolveValueStep.wireOneInputConsumerToOutputOf(RowIdConsumer.class, rowIdEqualsStep);
     resolveValueStep.addOutputConsumer(new AbstractThreadedColumnDictIdConsumer(null) {
       @Override

@@ -33,6 +33,7 @@ import org.diqube.execution.consumers.AbstractThreadedRowIdConsumer;
 import org.diqube.execution.consumers.GenericConsumer;
 import org.diqube.execution.consumers.RowIdConsumer;
 import org.diqube.execution.exception.ExecutablePlanBuildException;
+import org.diqube.queries.QueryRegistry;
 
 import com.google.common.collect.Sets;
 
@@ -83,8 +84,8 @@ public class RowIdAndStep extends AbstractThreadedExecutablePlanStep {
     }
   };
 
-  public RowIdAndStep(int stepId) {
-    super(stepId);
+  public RowIdAndStep(int stepId, QueryRegistry queryRegistry) {
+    super(stepId, queryRegistry);
   }
 
   @Override

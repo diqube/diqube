@@ -138,10 +138,12 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
     }
   };
 
-  public ExecuteRemotePlanOnShardsStep(int stepId, ExecutionEnvironment env, RExecutionPlan remoteExecutionPlan,
-      ClusterManager clusterManager, QueryRegistry queryRegistry, ConnectionPool connectionPool,
+  private int numberOfRemotesInformed;
+
+  public ExecuteRemotePlanOnShardsStep(int stepId, QueryRegistry queryRegistry, ExecutionEnvironment env,
+      RExecutionPlan remoteExecutionPlan, ClusterManager clusterManager, ConnectionPool connectionPool,
       ClusterQueryService.Iface localClusterQueryService) {
-    super(stepId);
+    super(stepId, queryRegistry);
     this.remoteExecutionPlan = remoteExecutionPlan;
     this.clusterManager = clusterManager;
     this.queryRegistry = queryRegistry;
@@ -181,7 +183,7 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
       }
     };
 
-    int numberOfActiveRemotes = remoteNodes.size();
+    numberOfRemotesInformed = remoteNodes.size();
     queryRegistry.addQueryResultHandler(QueryUuid.getCurrentQueryUuid(), resultHandler);
     try {
       // distribute query execution
@@ -222,7 +224,7 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
       }
 
       // wait until done
-      while (remotesDone.get() < numberOfActiveRemotes && exceptionMessage == null) {
+      while (remotesDone.get() < numberOfRemotesInformed && exceptionMessage == null) {
         synchronized (wait) {
           try {
             wait.wait(1000);
@@ -247,10 +249,14 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
 
   /**
    * @return The addresses of those query remotes that this step triggered an execution on. Might be <code>null</code>
-   *         or empty.
+   *         or empty. Only valid before this step is done.
    */
   public Collection<RNodeAddress> getRemotesTriggered() {
     return remotesTriggered;
+  }
+
+  public int getNumberOfRemotesTriggerdOverall() {
+    return numberOfRemotesInformed;
   }
 
   @Override

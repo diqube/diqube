@@ -49,6 +49,7 @@ import org.diqube.function.FunctionFactory;
 import org.diqube.function.IntermediaryResult;
 import org.diqube.loader.columnshard.ColumnShardBuilderFactory;
 import org.diqube.loader.columnshard.SparseColumnShardBuilder;
+import org.diqube.queries.QueryRegistry;
 import org.diqube.util.Triple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -103,10 +104,10 @@ public class GroupFinalAggregationStep extends AbstractThreadedExecutablePlanSte
 
   private ColumnVersionManager columnVersionManager;
 
-  public GroupFinalAggregationStep(int stepId, ExecutionEnvironment defaultEnv, FunctionFactory functionFactory,
-      ColumnShardBuilderFactory columnShardBuilderFactory, String functionNameLowerCase, String outputColName,
-      ColumnVersionManager columnVersionManager) {
-    super(stepId);
+  public GroupFinalAggregationStep(int stepId, QueryRegistry queryRegistry, ExecutionEnvironment defaultEnv,
+      FunctionFactory functionFactory, ColumnShardBuilderFactory columnShardBuilderFactory,
+      String functionNameLowerCase, String outputColName, ColumnVersionManager columnVersionManager) {
+    super(stepId, queryRegistry);
     this.defaultEnv = defaultEnv;
     this.functionFactory = functionFactory;
     this.columnShardBuilderFactory = columnShardBuilderFactory;

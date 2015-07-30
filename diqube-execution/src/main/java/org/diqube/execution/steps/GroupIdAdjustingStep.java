@@ -39,6 +39,7 @@ import org.diqube.execution.consumers.GenericConsumer;
 import org.diqube.execution.consumers.GroupIntermediaryAggregationConsumer;
 import org.diqube.execution.consumers.RowIdConsumer;
 import org.diqube.function.IntermediaryResult;
+import org.diqube.queries.QueryRegistry;
 import org.diqube.util.Triple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -117,8 +118,8 @@ public class GroupIdAdjustingStep extends AbstractThreadedExecutablePlanStep {
   private Map<Long, Long> groupIdMap = new HashMap<>();
   private Map<Map<String, Object>, Long> valuesToGroupId = new HashMap<>();
 
-  public GroupIdAdjustingStep(int stepId, Set<String> groupedColumnNames) {
-    super(stepId);
+  public GroupIdAdjustingStep(int stepId, QueryRegistry queryRegistry, Set<String> groupedColumnNames) {
+    super(stepId, queryRegistry);
     this.groupedColumnNames = groupedColumnNames;
   }
 

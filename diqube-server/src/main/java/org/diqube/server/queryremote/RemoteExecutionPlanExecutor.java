@@ -68,10 +68,14 @@ public class RemoteExecutionPlanExecutor {
 
   private ExecutorManager executorManager;
 
+  private QueryRegistry queryRegistry;
+
   public RemoteExecutionPlanExecutor(TableRegistry tableRegistry,
-      ExecutablePlanFromRemoteBuilderFactory executablePlanBuilderFactory, ExecutorManager executorManager) {
+      ExecutablePlanFromRemoteBuilderFactory executablePlanBuilderFactory, ExecutorManager executorManager,
+      QueryRegistry queryRegistry) {
     this.executablePlanBuilderFactory = executablePlanBuilderFactory;
     this.executorManager = executorManager;
+    this.queryRegistry = queryRegistry;
   }
 
   /**
@@ -96,7 +100,7 @@ public class RemoteExecutionPlanExecutor {
         if (groupIntermediateDone.get() && !doneSent) {
           synchronized (doneSync) {
             if (!doneSent) {
-              callback.executionDone();
+              // callback.executionDone();
               doneSent = true;
             }
           }
@@ -120,7 +124,7 @@ public class RemoteExecutionPlanExecutor {
             if (columnValuesDone.get() && !doneSent) {
               synchronized (doneSync) {
                 if (!doneSent) {
-                  callback.executionDone();
+                  // callback.executionDone();
                   doneSent = true;
                 }
               }
@@ -156,15 +160,25 @@ public class RemoteExecutionPlanExecutor {
       public void run() {
         List<Future<?>> futures = new ArrayList<>();
 
+        int numberOfThreads = 0;
+        int numberOfPages = 0;
+
         for (ExecutablePlan plan : executablePlans) {
           TableShard shard = plan.getDefaultExecutionEnvironment().getTableShardIfAvailable();
+
+          numberOfThreads += plan.preferredExecutorServiceSize();
 
           Executor executor = executorManager.newQueryFixedThreadPool(plan.preferredExecutorServiceSize(),
               "query-remote-worker-" + queryUuid + "-shard" + shard.getLowestRowId() + "-%d", queryUuid, executionUuid);
 
           Future<Void> f = plan.executeAsynchronously(executor);
           futures.add(f);
+
+          numberOfPages +=
+              shard.getColumns().values().stream().mapToLong(colShard -> (long) colShard.getPages().size()).sum();
         }
+
+        queryRegistry.getOrCreateCurrentStats().setNumberOfThreads(numberOfThreads);
 
         for (Future<?> f : futures)
           try {
@@ -176,6 +190,7 @@ public class RemoteExecutionPlanExecutor {
             // interrupted, stop quietly.
             return;
           }
+        callback.executionDone();
       }
     };
   }

@@ -33,6 +33,7 @@ import org.diqube.execution.consumers.OverwritingRowIdConsumer;
 import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.env.VersionedExecutionEnvironment;
 import org.diqube.execution.exception.ExecutablePlanBuildException;
+import org.diqube.queries.QueryRegistry;
 
 import com.google.common.collect.Sets;
 
@@ -101,8 +102,8 @@ public class OverwritingRowIdOrStep extends AbstractThreadedExecutablePlanStep {
         }
       };
 
-  public OverwritingRowIdOrStep(int stepId) {
-    super(stepId);
+  public OverwritingRowIdOrStep(int stepId, QueryRegistry queryRegistry) {
+    super(stepId, queryRegistry);
   }
 
   @Override

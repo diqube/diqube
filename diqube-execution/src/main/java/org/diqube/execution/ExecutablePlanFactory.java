@@ -93,22 +93,22 @@ public class ExecutablePlanFactory {
 
   public GroupFinalAggregationStep createGroupFinalAggregationStep(int stepId, ExecutionEnvironment env,
       String functionNameLowerCase, String outputColName, ColumnVersionManager columnVersionManager) {
-    return new GroupFinalAggregationStep(stepId, env, functionFactory, columnShardBuilderFactory, functionNameLowerCase,
-        outputColName, columnVersionManager);
+    return new GroupFinalAggregationStep(stepId, queryRegistry, env, functionFactory, columnShardBuilderFactory,
+        functionNameLowerCase, outputColName, columnVersionManager);
   }
 
   public ProjectStep createProjectStep(int stepId, ExecutionEnvironment env, String functionNameLowerCase,
       String outputColName, ColumnOrValue[] functionParameters, ColumnVersionManager columnVersionManager) {
-    return new ProjectStep(stepId, env, functionFactory, functionNameLowerCase, functionParameters, outputColName,
-        columnShardBuilderFactory, columnShardFactory, columnVersionManager);
+    return new ProjectStep(stepId, queryRegistry, env, functionFactory, functionNameLowerCase, functionParameters,
+        outputColName, columnShardBuilderFactory, columnShardFactory, columnVersionManager);
   }
 
   public ResolveColumnDictIdsStep createResolveColumnDictIdStep(int stepId, ExecutionEnvironment env, String colName) {
-    return new ResolveColumnDictIdsStep(stepId, env, colName);
+    return new ResolveColumnDictIdsStep(stepId, queryRegistry, env, colName);
   }
 
   public ResolveValuesStep createResolveValuesStep(int stepId) {
-    return new ResolveValuesStep(stepId);
+    return new ResolveValuesStep(stepId, queryRegistry);
   }
 
   public ExecutablePlan createExecutablePlan(ExecutionEnvironment defaultEnv, List<ExecutablePlanStep> steps,
@@ -123,63 +123,64 @@ public class ExecutablePlanFactory {
 
   public ExecuteRemotePlanOnShardsStep createExecuteRemotePlanStep(int stepId, ExecutionEnvironment env,
       RExecutionPlan remotePlan) {
-    return new ExecuteRemotePlanOnShardsStep(stepId, env, remotePlan, clusterManager, queryRegistry, connectionPool,
+    return new ExecuteRemotePlanOnShardsStep(stepId, queryRegistry, env, remotePlan, clusterManager, connectionPool,
         localClusterQueryService);
   }
 
   public OrderStep createOrderStep(int stepId, ExecutionEnvironment env, List<Pair<String, Boolean>> sortCols,
       Long limit, Long limitStart, Long softLimit) {
-    return new OrderStep(stepId, env, sortCols, limit, limitStart, softLimit);
+    return new OrderStep(stepId, queryRegistry, env, sortCols, limit, limitStart, softLimit);
   }
 
   public BuildColumnFromValuesStep createBuildColumnFromValuesStep(int stepId, ExecutionEnvironment env, String colName,
       ColumnVersionManager columnVersionManager) {
-    return new BuildColumnFromValuesStep(stepId, env, colName, columnShardBuilderFactory, columnVersionManager);
+    return new BuildColumnFromValuesStep(stepId, queryRegistry, env, colName, columnShardBuilderFactory,
+        columnVersionManager);
   }
 
   public FilterRequestedColumnsAndActiveRowIdsStep createFilterRequestedColumnsValuesStep(int stepId,
       Set<String> requestedColNames) {
-    return new FilterRequestedColumnsAndActiveRowIdsStep(stepId, requestedColNames);
+    return new FilterRequestedColumnsAndActiveRowIdsStep(stepId, queryRegistry, requestedColNames);
   }
 
   public GroupIdAdjustingStep createGroupIdAdjustingStep(int stepId, Set<String> groupedColNames) {
-    return new GroupIdAdjustingStep(stepId, groupedColNames);
+    return new GroupIdAdjustingStep(stepId, queryRegistry, groupedColNames);
   }
 
   public RowIdEqualsStep createRowIdEqualsStep(int stepId, ExecutionEnvironment env, String colName,
       Object[] sortedValues) {
-    return new RowIdEqualsStep(stepId, env, colName, sortedValues);
+    return new RowIdEqualsStep(stepId, queryRegistry, env, colName, sortedValues);
   }
 
   public RowIdEqualsStep createRowIdEqualsStep(int stepId, ExecutionEnvironment env, String colName,
       String otherColName) {
-    return new RowIdEqualsStep(stepId, env, colName, otherColName);
+    return new RowIdEqualsStep(stepId, queryRegistry, env, colName, otherColName);
   }
 
   public RowIdInequalStep createRowIdInequalStep(int stepId, ExecutionEnvironment env, String colName, Object value,
       RowIdComparator comparator) {
-    return new RowIdInequalStep(stepId, env, colName, value, comparator);
+    return new RowIdInequalStep(stepId, queryRegistry, env, colName, value, comparator);
   }
 
   public RowIdInequalStep createRowIdInequalStep2Cols(int stepId, ExecutionEnvironment env, String colName,
       String otherColName, RowIdComparator comparator) {
-    return new RowIdInequalStep(stepId, env, colName, otherColName, comparator, true);
+    return new RowIdInequalStep(stepId, queryRegistry, env, colName, otherColName, comparator, true);
   }
 
   public OverwritingRowIdAndStep createOverwritingRowIdAndStep(int stepId) {
-    return new OverwritingRowIdAndStep(stepId);
+    return new OverwritingRowIdAndStep(stepId, queryRegistry);
   }
 
   public OverwritingRowIdOrStep createOverwritingRowIdOrStep(int stepId) {
-    return new OverwritingRowIdOrStep(stepId);
+    return new OverwritingRowIdOrStep(stepId, queryRegistry);
   }
 
   public OverwritingRowIdNotStep createOverwritingRowIdNotStep(int stepId) {
-    return new OverwritingRowIdNotStep(stepId);
+    return new OverwritingRowIdNotStep(stepId, queryRegistry);
   }
 
   public HavingResultStep createHavingResultStep(int stepId) {
-    return new HavingResultStep(stepId);
+    return new HavingResultStep(stepId, queryRegistry);
   }
 
 }

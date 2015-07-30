@@ -40,6 +40,7 @@ import org.diqube.execution.consumers.ColumnValueConsumer;
 import org.diqube.execution.consumers.GenericConsumer;
 import org.diqube.execution.consumers.RowIdConsumer;
 import org.diqube.execution.exception.ExecutablePlanBuildException;
+import org.diqube.queries.QueryRegistry;
 import org.diqube.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -111,8 +112,9 @@ public class FilterRequestedColumnsAndActiveRowIdsStep extends AbstractThreadedE
   private Set<Long> allRowIds = new HashSet<>();
   private Map<String, Map<Long, Object>> allValues = new HashMap<>();
 
-  public FilterRequestedColumnsAndActiveRowIdsStep(int stepId, Set<String> requestedColumns) {
-    super(stepId);
+  public FilterRequestedColumnsAndActiveRowIdsStep(int stepId, QueryRegistry queryRegistry,
+      Set<String> requestedColumns) {
+    super(stepId, queryRegistry);
     this.requestedColumns = requestedColumns;
   }
 

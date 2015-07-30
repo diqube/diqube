@@ -30,6 +30,7 @@ import org.diqube.remote.cluster.thrift.ClusterQueryService;
 import org.diqube.remote.cluster.thrift.RExecutionException;
 import org.diqube.remote.cluster.thrift.RExecutionPlan;
 import org.diqube.remote.cluster.thrift.ROldNewIntermediateAggregationResult;
+import org.diqube.remote.cluster.thrift.RClusterQueryStatistics;
 import org.diqube.server.queryremote.ClusterQueryServiceHandler;
 
 /**
@@ -64,6 +65,10 @@ public class NoopClusterQueryService implements ClusterQueryService.Iface {
 
   @Override
   public void cancelExecution(RUUID queryUuid) throws TException {
+  }
+
+  @Override
+  public void queryStatistics(RUUID queryUuid, RClusterQueryStatistics stats) throws TException {
   }
 
 }

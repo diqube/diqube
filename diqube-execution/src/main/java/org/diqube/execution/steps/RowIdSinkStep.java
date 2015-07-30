@@ -32,6 +32,7 @@ import org.diqube.execution.consumers.GenericConsumer;
 import org.diqube.execution.consumers.RowIdConsumer;
 import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.exception.ExecutablePlanBuildException;
+import org.diqube.queries.QueryRegistry;
 
 /**
  * A step that collects the RowIds calculated. If there are no RowId selection steps, this step provides all row IDs of
@@ -64,8 +65,8 @@ public class RowIdSinkStep extends AbstractThreadedExecutablePlanStep {
   };
   private ExecutionEnvironment env;
 
-  public RowIdSinkStep(int stepId, ExecutionEnvironment env) {
-    super(stepId);
+  public RowIdSinkStep(int stepId, QueryRegistry queryRegistry, ExecutionEnvironment env) {
+    super(stepId, queryRegistry);
     this.env = env;
   }
 
