@@ -28,6 +28,7 @@ import org.diqube.plan.exception.ValidationException;
 import org.diqube.plan.request.ComparisonRequest.Leaf;
 import org.diqube.plan.request.ExecutionRequest;
 import org.diqube.plan.request.FunctionRequest;
+import org.diqube.plan.request.ResolveValueRequest;
 import org.diqube.util.ColumnOrValue.Type;
 import org.diqube.util.Pair;
 
@@ -52,10 +53,13 @@ public class ExecutionPlanValidator {
     validateLimit(executionRequest);
 
     anyResultColumn(executionRequest);
+    noArrayResultResolveWhereHavingGroupOrder(executionRequest, colInfos);
 
     orderByColumnsOnly(executionRequest, colInfos);
 
     validateGroupBy(executionRequest, colInfos);
+
+    validateRepeatedProjections(executionRequest, colInfos);
 
     // TODO #23 validate if functions are used correctly (= correct number of params, correct types)
 
@@ -80,6 +84,80 @@ public class ExecutionPlanValidator {
   private void anyResultColumn(ExecutionRequest executionRequest) throws ValidationException {
     if (executionRequest.getResolveValues() == null || executionRequest.getResolveValues().size() == 0)
       throw new ValidationException("No result columns speicified.");
+  }
+
+  private void noArrayResultResolveWhereHavingGroupOrder(ExecutionRequest executionRequest,
+      Map<String, PlannerColumnInfo> colInfos) throws ValidationException {
+    for (ResolveValueRequest r : executionRequest.getResolveValues()) {
+      if (r.getResolve().getType().equals(Type.COLUMN)) {
+        if (colInfos.containsKey(r.getResolve().getColumnName())
+            && colInfos.get(r.getResolve().getColumnName()).isArrayResult())
+          throw new ValidationException("Function '"
+              + colInfos.get(r.getResolve().getColumnName()).getProvidedByFunctionRequest().getFunctionName()
+              + "' is a function that returns not a single but multiple values ([*] syntax). "
+              + "This cannot be SELECTed directly. You might want to aggregate those values "
+              + "using a column-aggregation function.");
+      }
+    }
+
+    if (executionRequest.getWhere() != null) {
+      Collection<Leaf> whereLeafs = executionRequest.getWhere().findRecursivelyAllOfType(Leaf.class);
+      for (Leaf l : whereLeafs) {
+        FunctionRequest badFr = null;
+        if ((colInfos.containsKey(l.getLeftColumnName()) && colInfos.get(l.getLeftColumnName()).isArrayResult()))
+          badFr = colInfos.get(l.getLeftColumnName()).getProvidedByFunctionRequest();
+        if (badFr != null && l.getRight().getType().equals(Type.COLUMN)
+            && colInfos.containsKey(l.getRight().getColumnName())
+            && colInfos.get(l.getRight().getColumnName()).isArrayResult())
+          badFr = colInfos.get(l.getRight().getColumnName()).getProvidedByFunctionRequest();
+
+        if (badFr != null)
+          throw new ValidationException("Function '" + badFr.getFunctionName()
+              + "' is a function that returns not a single but multiple values ([*] syntax). "
+              + "This cannot be used in a comparison in the WHERE clause. You may want to aggregate those values "
+              + "using a column-aggregation function.");
+      }
+    }
+
+    if (executionRequest.getHaving() != null) {
+      Collection<Leaf> whereLeafs = executionRequest.getHaving().findRecursivelyAllOfType(Leaf.class);
+      for (Leaf l : whereLeafs) {
+        FunctionRequest badFr = null;
+        if ((colInfos.containsKey(l.getLeftColumnName()) && colInfos.get(l.getLeftColumnName()).isArrayResult()))
+          badFr = colInfos.get(l.getLeftColumnName()).getProvidedByFunctionRequest();
+        if (badFr != null && l.getRight().getType().equals(Type.COLUMN)
+            && colInfos.containsKey(l.getRight().getColumnName())
+            && colInfos.get(l.getRight().getColumnName()).isArrayResult())
+          badFr = colInfos.get(l.getRight().getColumnName()).getProvidedByFunctionRequest();
+
+        if (badFr != null)
+          throw new ValidationException("Function '" + badFr.getFunctionName()
+              + "' is a function that returns not a single but multiple values ([*] syntax). "
+              + "This cannot be used in a comparison in the HAVING clause. You may want to aggregate those values "
+              + "using a column-aggregation function.");
+      }
+    }
+
+    if (executionRequest.getGroup() != null) {
+      for (String groupCol : executionRequest.getGroup().getGroupColumns()) {
+        if ((colInfos.containsKey(groupCol) && colInfos.get(groupCol).isArrayResult()))
+          throw new ValidationException("Function '" + colInfos.get(groupCol).getProvidedByFunctionRequest()
+              + "' is a function that returns not a single but multiple values ([*] syntax). "
+              + "This cannot be used in the GROUP BY clause. You may want to aggregate those values "
+              + "using a column-aggregation function.");
+      }
+    }
+
+    if (executionRequest.getOrder() != null) {
+      for (Pair<String, Boolean> orderPair : executionRequest.getOrder().getColumns()) {
+        String orderCol = orderPair.getLeft();
+        if ((colInfos.containsKey(orderCol) && colInfos.get(orderCol).isArrayResult()))
+          throw new ValidationException("Function '" + colInfos.get(orderCol).getProvidedByFunctionRequest()
+              + "' is a function that returns not a single but multiple values ([*] syntax). "
+              + "This cannot be used in the ORDER BY clause. You may want to aggregate those values "
+              + "using a column-aggregation function.");
+      }
+    }
   }
 
   private void validateLimit(ExecutionRequest executionRequest) throws ValidationException {
@@ -196,6 +274,29 @@ public class ExecutionPlanValidator {
 
         if (colInfos.get(groupByCol).isTransitivelyDependsOnLiteralsOnly())
           throw new ValidationException("Cannot group on projections that are based on constants only.");
+      }
+    }
+  }
+
+  private void validateRepeatedProjections(ExecutionRequest executionRequest, Map<String, PlannerColumnInfo> colInfos) {
+    for (FunctionRequest funcReq : executionRequest.getProjectAndAggregate()) {
+      PlannerColumnInfo colInfo = colInfos.get(funcReq.getOutputColumn());
+      if (colInfo != null && colInfo.isArrayResult()) {
+        if (colInfo.isTransitivelyDependsOnRowAggregation())
+          throw new ValidationException("Execution of column projection function '" + funcReq.getFunctionName()
+              + "' is based on the calculation of a row-wise aggregation (GROUP BY). "
+              + "This is not possible for projections that do a column wise projection ('[*]' syntax).");
+      } else {
+        // validate that REPEATED_PROJECTIONS are only used as children of other REPEATED_PROJECTION or AGGREGATION_COL
+        // steps.
+        boolean dependsOnArrayResult = colInfo.getColumnsDependingOnThis().stream()
+            .anyMatch(s -> colInfos.containsKey(s) && colInfos.get(s).isArrayResult());
+
+        if (dependsOnArrayResult && !(funcReq.getType().equals(FunctionRequest.Type.AGGREGATION_COL)
+            || funcReq.getType().equals(FunctionRequest.Type.REPEATED_PROJECTION)))
+          throw new ValidationException("Function '" + funcReq.getFunctionName()
+              + "' is based on the result of a function which provides not a single result but "
+              + "multiple ([*] syntax). That is not supported here.");
       }
     }
   }

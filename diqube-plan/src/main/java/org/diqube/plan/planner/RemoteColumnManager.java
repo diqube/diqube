@@ -74,13 +74,18 @@ public class RemoteColumnManager implements ColumnManager<RExecutionPlanStep> {
           remoteExecutionPlanFactory.createColumnAggregateStep(fnReq, nextRemoteStepIdSupplier.get());
 
       functionRemoteSteps.put(fnReq.getOutputColumn(), new ArrayList<>(Arrays.asList(colAggStep)));
-    } else {
-      // PROJECTION
+    } else if (fnReq.getType().equals(FunctionRequest.Type.PROJECTION)) {
       RExecutionPlanStep projectStep =
           remoteExecutionPlanFactory.createProjectStep(fnReq, nextRemoteStepIdSupplier.get());
 
       functionRemoteSteps.put(fnReq.getOutputColumn(),
           new ArrayList<>(Arrays.asList(new RExecutionPlanStep[] { projectStep })));
+    } else if (fnReq.getType().equals(FunctionRequest.Type.REPEATED_PROJECTION)) {
+      RExecutionPlanStep repeatedProjectStep =
+          remoteExecutionPlanFactory.createRepeatedProjectStep(fnReq, nextRemoteStepIdSupplier.get());
+
+      functionRemoteSteps.put(fnReq.getOutputColumn(),
+          new ArrayList<>(Arrays.asList(new RExecutionPlanStep[] { repeatedProjectStep })));
     }
   }
 

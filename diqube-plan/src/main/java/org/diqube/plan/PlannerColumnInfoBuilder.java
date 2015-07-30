@@ -108,6 +108,12 @@ public class PlannerColumnInfoBuilder {
           literalOnlyFunctions.add(info);
       }
 
+      if (func.getType().equals(Type.REPEATED_PROJECTION)) {
+        info.setTransitivelyDependsOnLiteralsOnly(false); // cannot be, as there is at least one repeated col as param.
+        info.setArrayResult(true);
+      } else
+        info.setArrayResult(false);
+
       res.put(info.getName(), info);
     }
 

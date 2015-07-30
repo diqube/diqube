@@ -32,6 +32,7 @@ import org.diqube.data.ColumnType;
 import org.diqube.data.TableFactory;
 import org.diqube.data.TableShard;
 import org.diqube.data.colshard.StandardColumnShard;
+import org.diqube.data.util.RepeatedColumnNameGenerator;
 import org.diqube.execution.ExecutablePlan;
 import org.diqube.execution.TableRegistry;
 import org.diqube.execution.consumers.AbstractThreadedColumnValueConsumer;
@@ -127,6 +128,8 @@ public abstract class AbstractDiqlExecutionTest<T> {
 
   protected FunctionBasedColumnNameBuilderFactory functionBasedColumnNameBuilderFactory;
 
+  protected RepeatedColumnNameGenerator repeatedColNameGen;
+
   /**
    * @param colType
    *          Type of the columns to be created.
@@ -170,6 +173,7 @@ public abstract class AbstractDiqlExecutionTest<T> {
     newOrderedRowIdsNotify = new Object();
 
     functionBasedColumnNameBuilderFactory = dataContext.getBean(FunctionBasedColumnNameBuilderFactory.class);
+    repeatedColNameGen = dataContext.getBean(RepeatedColumnNameGenerator.class);
 
     executionPlanBuilder = dataContext.getBean(ExecutionPlanBuilderFactory.class).createExecutionPlanBuilder()
         .withFinalColumnValueConsumer(new AbstractThreadedColumnValueConsumer(null) {

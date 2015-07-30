@@ -25,6 +25,7 @@ import java.util.Set;
 
 import org.diqube.plan.request.ExecutionRequest;
 import org.diqube.plan.request.FunctionRequest;
+import org.diqube.plan.request.FunctionRequest.Type;
 
 /**
  * Information about a column that is needed while planning the execution of a {@link ExecutionRequest}.
@@ -45,6 +46,8 @@ public class PlannerColumnInfo {
   private boolean transitivelyDependsOnColAggregation;
 
   private boolean transitivelyDependsOnLiteralsOnly;
+
+  private boolean isArrayResult;
 
   private boolean usedInHaving;
 
@@ -151,6 +154,18 @@ public class PlannerColumnInfo {
 
   public void setUsedInHaving(boolean usedInHaving) {
     this.usedInHaving = usedInHaving;
+  }
+
+  /**
+   * @return true if the result of calling a function is an array. This is typically the case for
+   *         {@link Type#REPEATED_PROJECTION}, a projection function executed on a repeated field ('[*]' syntax).
+   */
+  public boolean isArrayResult() {
+    return isArrayResult;
+  }
+
+  public void setArrayResult(boolean isArrayResult) {
+    this.isArrayResult = isArrayResult;
   }
 
 }

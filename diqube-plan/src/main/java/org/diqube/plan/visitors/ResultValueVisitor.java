@@ -60,7 +60,7 @@ public class ResultValueVisitor extends DiqlBaseVisitor<List<ResolveValueRequest
   @Override
   public List<ResolveValueRequest> visitResultValue(ResultValueContext ctx) {
     ColumnOrValue anyValueResult =
-        ctx.accept(new AnyValueVisitor(env, repeatedColNames, functionBasedColumnNameBuilderFactory));
+        ctx.accept(new AnyValueVisitor(env, repeatedColNames, functionBasedColumnNameBuilderFactory)).getLeft();
 
     if (anyValueResult.getType().equals(Type.LITERAL)) {
       // TODO #19 support selecting literal values - currently use id() function

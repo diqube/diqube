@@ -91,9 +91,9 @@ public class ComparisonVisitor extends DiqlBaseVisitor<ComparisonRequest> {
     AnyValueContext secondAny = comparisonCtx.getChild(AnyValueContext.class, 1);
 
     ColumnOrValue firstOperand =
-        firstAny.accept(new AnyValueVisitor(env, repeatedColNames, functionBasedColumnNameBuilderFactory));
+        firstAny.accept(new AnyValueVisitor(env, repeatedColNames, functionBasedColumnNameBuilderFactory)).getLeft();
     ColumnOrValue secondOperand =
-        secondAny.accept(new AnyValueVisitor(env, repeatedColNames, functionBasedColumnNameBuilderFactory));
+        secondAny.accept(new AnyValueVisitor(env, repeatedColNames, functionBasedColumnNameBuilderFactory)).getLeft();
 
     BinaryComparatorContext comparator = comparisonCtx.getChild(BinaryComparatorContext.class, 0);
     Operator operator = null;

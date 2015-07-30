@@ -46,8 +46,16 @@ public class FunctionBasedColumnNameBuilder {
     this.repeatedCols = repeatedCols;
   }
 
+  /**
+   * Transforms all [*] occurrences in the string with [a], therefore the resulting column name represents the finally
+   * built column and not the pattern that is used in a query.
+   */
   public FunctionBasedColumnNameBuilder addParameterColumnName(String parameterColumnName) {
-    parameterNames.add("col%" + parameterColumnName);
+    if (parameterColumnName.contains(repeatedCols.allEntriesIdentifyingSubstr()))
+      parameterNames.add("col%" + parameterColumnName.replace(repeatedCols.allEntriesIdentifyingSubstr(),
+          repeatedCols.allEntriesManifestedSubstr()));
+    else
+      parameterNames.add("col%" + parameterColumnName);
     return this;
   }
 

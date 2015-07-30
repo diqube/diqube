@@ -38,6 +38,7 @@ import org.diqube.plan.request.FunctionRequest.Type;
 import org.diqube.plan.util.FunctionBasedColumnNameBuilder;
 import org.diqube.plan.util.FunctionBasedColumnNameBuilderFactory;
 import org.diqube.util.ColumnOrValue;
+import org.diqube.util.Pair;
 
 /**
  * Parses and {@link AnyValueContext} including references to literal values, column names and aggregate and projection
@@ -47,9 +48,13 @@ import org.diqube.util.ColumnOrValue;
  * Any projection/grouping is added correctly to the ExecutionRequest of the {@link ExecutionRequestVisitorEnvironment}
  * (method {@link ExecutionRequest#getProjectAndAggregate()}) that is specified in the constructor.
  * 
+ * <p>
+ * The result of this visitor is a pair containing the resulting column or value and a boolean indicating if the result
+ * column is an array column (happens when projecting on repeated fields, [*] syntax).
+ * 
  * @author Bastian Gloeckle
  */
-public class AnyValueVisitor extends DiqlBaseVisitor<ColumnOrValue> {
+public class AnyValueVisitor extends DiqlBaseVisitor<Pair<ColumnOrValue, Boolean>> {
 
   private ExecutionRequestVisitorEnvironment env;
   private RepeatedColumnNameGenerator repeatedColName;
@@ -63,52 +68,65 @@ public class AnyValueVisitor extends DiqlBaseVisitor<ColumnOrValue> {
   }
 
   @Override
-  public ColumnOrValue visitFunction(FunctionContext ctx) {
+  public Pair<ColumnOrValue, Boolean> visitFunction(FunctionContext ctx) {
     // The output column of the function needs a name. We use a builder to build that.
     FunctionBasedColumnNameBuilder colNameBuilder = functionBasedColumnNameBuilderFactory.create();
 
-    FunctionRequest projectionRequest = new FunctionRequest();
-
-    boolean isAggregationFunction = false;
+    FunctionRequest functionRequest = new FunctionRequest();
 
     // parse function name
     if (ctx.getChild(0) instanceof ProjectionFunctionNameContext) {
       ProjectionFunctionNameContext projCtx = (ProjectionFunctionNameContext) ctx.getChild(0);
       String functionName = projCtx.getText().toLowerCase();
 
-      projectionRequest.setFunctionName(functionName);
-      projectionRequest.setType(Type.PROJECTION);
+      functionRequest.setFunctionName(functionName);
+      functionRequest.setType(Type.PROJECTION);
 
       colNameBuilder.withFunctionName(functionName);
     } else if (ctx.getChild(0) instanceof AggregationFunctionNameContext) {
       AggregationFunctionNameContext projCtx = (AggregationFunctionNameContext) ctx.getChild(0);
       String functionName = projCtx.getText().toLowerCase();
 
-      projectionRequest.setFunctionName(functionName);
-      isAggregationFunction = true;
+      functionRequest.setFunctionName(functionName);
+      functionRequest.setType(Type.AGGREGATION_ROW);
 
       colNameBuilder.withFunctionName(functionName);
     } else
       throw new ParseException("Could not parse function name.");
 
-    env.getExecutionRequest().getProjectAndAggregate().add(projectionRequest);
+    env.getExecutionRequest().getProjectAndAggregate().add(functionRequest);
+
+    boolean isArrayInput = false;
 
     int anyValueChildCnt = 0;
     AnyValueContext anyValueCtx;
     // parse function parameters
     while ((anyValueCtx = ctx.getChild(AnyValueContext.class, anyValueChildCnt++)) != null) {
-      ColumnOrValue childResult = anyValueCtx.accept(this);
+      Pair<ColumnOrValue, Boolean> childResult = anyValueCtx.accept(this);
 
-      projectionRequest.getInputParameters().add(childResult);
+      functionRequest.getInputParameters().add(childResult.getLeft());
+
+      if (childResult.getRight())
+        isArrayInput = true;
 
       // add the childs parameter to the name of the column that will be created by executing this function.
-      if (childResult.getType().equals(ColumnOrValue.Type.COLUMN))
-        colNameBuilder.addParameterColumnName(childResult.getColumnName());
-      else {
-        if (isAggregationFunction)
-          throw new ParseException("Aggregation functions (like " + projectionRequest.getFunctionName()
+      if (childResult.getLeft().getType().equals(ColumnOrValue.Type.COLUMN)) {
+
+        String childColName = childResult.getLeft().getColumnName();
+
+        // Check if child is array result. If it is, verify that is has [*] inside. This is true for directly used
+        // columns (which are not produced by another function!). But if the child col is produced by another function,
+        // it's name will instead contain [a] - but we want to access all results of the array calculation -> append
+        // [*].
+        if (childResult.getRight() && !childColName.contains(repeatedColName.allEntriesIdentifyingSubstr()))
+          colNameBuilder.addParameterColumnName(childColName + repeatedColName.allEntriesIdentifyingSubstr());
+        else
+          colNameBuilder.addParameterColumnName(childColName);
+      } else {
+        if (functionRequest.getType().equals(Type.AGGREGATION_ROW))
+          throw new ParseException("Aggregation functions (like " + functionRequest.getFunctionName()
               + ") only accept column names as parameter.");
-        Object childValue = childResult.getValue();
+        Object childValue = childResult.getLeft().getValue();
         if (childValue instanceof String)
           colNameBuilder.addParameterLiteralString((String) childValue);
         else if (childValue instanceof Long)
@@ -120,26 +138,30 @@ public class AnyValueVisitor extends DiqlBaseVisitor<ColumnOrValue> {
       }
     }
 
-    if (isAggregationFunction) {
-      Type aggregationType;
-      if (projectionRequest.getInputParameters().isEmpty())
-        aggregationType = Type.AGGREGATION_ROW; // example "count" - parameterless agg functions are executed on rows!
-      else if (projectionRequest.getInputParameters().stream()
-          .anyMatch(c -> c.getColumnName().contains(repeatedColName.allEntriesIdentifyingSubstr())))
-        aggregationType = Type.AGGREGATION_COL;
-      else
-        aggregationType = Type.AGGREGATION_ROW;
+    functionRequest.setOutputColumn(colNameBuilder.build());
 
-      projectionRequest.setType(aggregationType);
+    boolean isArrayOutput = false;
+    if (isArrayInput) {
+      if (functionRequest.getType().equals(Type.PROJECTION)) {
+        // projecting on an array input value will result in an array output value, we're projecting over a repeated
+        // field.
+        functionRequest.setType(Type.REPEATED_PROJECTION);
+        isArrayOutput = true;
+        // make clear that we're outputting an array value.
+        functionRequest
+            .setOutputColumn(functionRequest.getOutputColumn() + repeatedColName.allEntriesIdentifyingSubstr());
+      } else {
+        // aggregation function. We're aggregating over an array, result will be a single value, but we are aggregating
+        // over column values.
+        functionRequest.setType(Type.AGGREGATION_COL);
+      }
     }
 
-    projectionRequest.setOutputColumn(colNameBuilder.build());
-
-    return new ColumnOrValue(ColumnOrValue.Type.COLUMN, projectionRequest.getOutputColumn());
+    return new Pair<>(new ColumnOrValue(ColumnOrValue.Type.COLUMN, functionRequest.getOutputColumn()), isArrayOutput);
   }
 
   @Override
-  public ColumnOrValue visitAnyValue(AnyValueContext anyValueCtx) {
+  public Pair<ColumnOrValue, Boolean> visitAnyValue(AnyValueContext anyValueCtx) {
     if (anyValueCtx.getChild(0) instanceof LiteralValueContext) {
       LiteralValueContext literalCtx = anyValueCtx.getChild(LiteralValueContext.class, 0);
       String valueText = literalCtx.getText();
@@ -154,11 +176,13 @@ public class AnyValueVisitor extends DiqlBaseVisitor<ColumnOrValue> {
       else
         throw new ParseException("Could not parse literal value at " + literalCtx.toString());
 
-      return new ColumnOrValue(ColumnOrValue.Type.LITERAL, value);
+      return new Pair<>(new ColumnOrValue(ColumnOrValue.Type.LITERAL, value), false);
     } else if (anyValueCtx.getChild(0) instanceof ColumnNameContext) {
       String colName = anyValueCtx.getChild(ColumnNameContext.class, 0).getText();
 
-      return new ColumnOrValue(ColumnOrValue.Type.COLUMN, colName);
+      boolean isArray = colName.contains(repeatedColName.allEntriesIdentifyingSubstr());
+
+      return new Pair<>(new ColumnOrValue(ColumnOrValue.Type.COLUMN, colName), isArray);
     } else if (anyValueCtx.getChild(0) instanceof FunctionContext) {
       return visitFunction(anyValueCtx.getChild(FunctionContext.class, 0));
     }

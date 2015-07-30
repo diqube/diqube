@@ -66,8 +66,8 @@ public class GroupByVisitor extends DiqlBaseVisitor<Pair<GroupRequest, Compariso
     int anyValueCnt = 0;
     AnyValueContext anyValueCtx;
     while ((anyValueCtx = groupByCtx.getChild(AnyValueContext.class, anyValueCnt++)) != null) {
-      ColumnOrValue groupBy =
-          anyValueCtx.accept(new AnyValueVisitor(env, repeatedColNames, functionBasedColumnNameBuilderFactory));
+      ColumnOrValue groupBy = anyValueCtx
+          .accept(new AnyValueVisitor(env, repeatedColNames, functionBasedColumnNameBuilderFactory)).getLeft();
 
       if (!groupBy.getType().equals(ColumnOrValue.Type.COLUMN))
         throw new ParseException("Can only group on columns.");

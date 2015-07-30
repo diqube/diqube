@@ -148,8 +148,8 @@ public class ExecutionPlanner {
           remoteColManager.produceColumn(fnReq);
           masterColManager.produceColumn(fnReq);
         } else {
-          // simple PROJECTION that is not based on a row Agg, or a column aggregtation - both of these can be executed
-          // on the remotes.
+          // simple (REPEATED_)PROJECTION that is not based on a row Agg, or a column aggregation - all of these can be
+          // executed on the remotes.
           remoteColManager.produceColumn(fnReq);
         }
       }

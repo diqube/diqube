@@ -51,7 +51,7 @@ import org.diqube.util.ColumnOrValue;
  */
 public class FunctionRequest {
   public static enum Type {
-    PROJECTION, AGGREGATION_ROW, AGGREGATION_COL
+    PROJECTION, REPEATED_PROJECTION, AGGREGATION_ROW, AGGREGATION_COL
   }
 
   private List<ColumnOrValue> inputParameters = new ArrayList<>();

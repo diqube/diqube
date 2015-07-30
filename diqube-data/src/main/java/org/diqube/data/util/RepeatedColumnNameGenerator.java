@@ -59,10 +59,22 @@ public class RepeatedColumnNameGenerator {
   }
 
   /**
-   * @return A substring that can be appended to a column name to denote that the column is repeated and all children
-   *         are referenced.
+   * @return A substring that can be appended to a column when used in a query name to denote that the column is
+   *         repeated and all children are referenced. Strings containing this substring are called "patterns".
+   * @see #allEntriesManifestedSubstr()
    */
   public String allEntriesIdentifyingSubstr() {
     return "[*]";
+  }
+
+  /**
+   * @return A substring that is contained in column names that were built by a query that contained
+   *         {@link #allEntriesIdentifyingSubstr()}, i.e. that aggregated/projected over columns in a row. This
+   *         substring is used instead of "[*]" in the output column of those aggregation/projection columns. Using this
+   *         "manifested" string is needed, if the output column is used in a consecutive step which would, if [*] is
+   *         still used, again try to aggregate/project columns.
+   */
+  public String allEntriesManifestedSubstr() {
+    return "[a]";
   }
 }

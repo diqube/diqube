@@ -28,6 +28,7 @@ import javax.inject.Inject;
 
 import org.diqube.context.AutoInstatiate;
 import org.diqube.data.colshard.ColumnShardFactory;
+import org.diqube.data.util.RepeatedColumnNameGenerator;
 import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.exception.ExecutablePlanBuildException;
 import org.diqube.execution.steps.ColumnAggregationStep;
@@ -35,6 +36,7 @@ import org.diqube.execution.steps.GroupIntermediaryAggregationStep;
 import org.diqube.execution.steps.GroupStep;
 import org.diqube.execution.steps.OrderStep;
 import org.diqube.execution.steps.ProjectStep;
+import org.diqube.execution.steps.RepeatedProjectStep;
 import org.diqube.execution.steps.ResolveColumnDictIdsStep;
 import org.diqube.execution.steps.ResolveValuesStep;
 import org.diqube.execution.steps.RowIdAndStep;
@@ -75,6 +77,9 @@ public class ExecutablePlanStepFromRemoteFactory {
   @Inject
   private ColumnPatternUtil columnPatternUtil;
 
+  @Inject
+  private RepeatedColumnNameGenerator repeatedColNameGen;
+
   /**
    * Creates an {@link ExecutablePlanStep} for the given {@link RExecutionPlanStep}. The resulting step will not be
    * data-wired.
@@ -109,6 +114,8 @@ public class ExecutablePlanStepFromRemoteFactory {
       return createColumnAggregation(defaultEnv, remoteStep);
     case PROJECT:
       return createProject(defaultEnv, remoteStep);
+    case REPEATED_PROJECT:
+      return createRepeatedProject(defaultEnv, remoteStep);
     case RESOLVE_COLUMN_DICT_IDS:
       return createResolveColumnDictIds(defaultEnv, remoteStep);
     case RESOLVE_VALUES:
@@ -264,6 +271,37 @@ public class ExecutablePlanStepFromRemoteFactory {
 
     return new ProjectStep(remoteStep.getStepId(), defaultEnv, functionFactory, functionName, functionParameters,
         outputColName, columnShardBuilderManagerFactory, columnShardFactory, null /* no column versions on remotes. */);
+  }
+
+  private ExecutablePlanStep createRepeatedProject(ExecutionEnvironment defaultEnv, RExecutionPlanStep remoteStep) {
+    String functionName = remoteStep.getDetailsFunction().getFunctionNameLowerCase();
+    String outputColName = remoteStep.getDetailsFunction().getResultColumn().getColName();
+
+    ColumnOrValue[] functionParameters = new ColumnOrValue[remoteStep.getDetailsFunction().getFunctionArgumentsSize()];
+    for (int i = 0; i < functionParameters.length; i++) {
+      RColOrValue remoteArg = remoteStep.getDetailsFunction().getFunctionArguments().get(i);
+
+      ColumnOrValue.Type colType = remoteArg.isSetColumn() ? ColumnOrValue.Type.COLUMN : ColumnOrValue.Type.LITERAL;
+      Object value = null;
+      if (colType.equals(ColumnOrValue.Type.COLUMN))
+        value = remoteArg.getColumn().getColName();
+      else {
+        if (remoteArg.getValue().isSetStrValue())
+          value = remoteArg.getValue().getStrValue();
+        else if (remoteArg.getValue().isSetLongValue())
+          value = remoteArg.getValue().getLongValue();
+        else if (remoteArg.getValue().isSetDoubleValue())
+          value = remoteArg.getValue().getDoubleValue();
+      }
+
+      ColumnOrValue newArg = new ColumnOrValue(colType, value);
+
+      functionParameters[i] = newArg;
+    }
+
+    return new RepeatedProjectStep(remoteStep.getStepId(), defaultEnv, functionFactory,
+        columnShardBuilderManagerFactory, repeatedColNameGen, columnPatternUtil, functionName, functionParameters,
+        outputColName);
   }
 
   private ExecutablePlanStep createGroupIntermediaryAggregation(ExecutionEnvironment defaultEnv,

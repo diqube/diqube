@@ -70,6 +70,10 @@ public class RemoteExecutionPlanFactory {
     return createFunctionStep(fnReq, stepId, RExecutionPlanStepType.PROJECT);
   }
 
+  public RExecutionPlanStep createRepeatedProjectStep(FunctionRequest fnReq, int stepId) {
+    return createFunctionStep(fnReq, stepId, RExecutionPlanStepType.REPEATED_PROJECT);
+  }
+
   private RExecutionPlanStep createFunctionStep(FunctionRequest fnReq, int stepId, RExecutionPlanStepType type) {
     RExecutionPlanStep intermediaryStep = new RExecutionPlanStep();
     intermediaryStep.setStepId(stepId);

@@ -95,8 +95,8 @@ public class OrderVisitor extends DiqlBaseVisitor<OrderRequest> {
     OrderTermContext termCtx = null;
     while ((termCtx = orderClauseCtx.getChild(OrderTermContext.class, termPos++)) != null) {
       AnyValueContext anyValueContext = termCtx.getChild(AnyValueContext.class, 0);
-      ColumnOrValue anyValueResult =
-          anyValueContext.accept(new AnyValueVisitor(env, repeatedColNames, functionBasedColumnNameBuilderFactory));
+      ColumnOrValue anyValueResult = anyValueContext
+          .accept(new AnyValueVisitor(env, repeatedColNames, functionBasedColumnNameBuilderFactory)).getLeft();
 
       if (anyValueResult.getType().equals(Type.LITERAL))
         throw new ParseException("Ordering by literal values is not supported. "

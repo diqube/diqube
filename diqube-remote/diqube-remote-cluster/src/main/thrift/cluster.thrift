@@ -70,6 +70,8 @@ enum RExecutionPlanStepType {
   
   // project columns
   PROJECT,
+  // project the values of array elements of each single row to a new value in that row.
+  REPEATED_PROJECT,
   
   // group by value of left column
   GROUP,
