@@ -253,8 +253,8 @@ public class RowIdEqualsStep extends AbstractThreadedExecutablePlanStep {
     if (curEnv.getColumnShard(colName) == null)
       throw new ExecutablePlanExecutionException("Could not find column " + colName);
 
-    Dictionary<?> columnShardDictionary = curEnv.getColumnShard(colName).getColumnShardDictionary();
-    Collection<ColumnPage> pages = ((StandardColumnShard) curEnv.getColumnShard(colName)).getPages().values();
+    Dictionary<?> columnShardDictionary = curEnv.getPureStandardColumnShard(colName).getColumnShardDictionary();
+    Collection<ColumnPage> pages = curEnv.getPureStandardColumnShard(colName).getPages().values();
 
     if (pages.size() > 0) {
       if (values != null) {
@@ -296,11 +296,11 @@ public class RowIdEqualsStep extends AbstractThreadedExecutablePlanStep {
           throw new ExecutablePlanExecutionException("Cannot compare column " + colName + " to column " + otherColName
               + " as they have different data types.");
 
-        Collection<ColumnPage> pages2 = ((StandardColumnShard) curEnv.getColumnShard(otherColName)).getPages().values();
+        Collection<ColumnPage> pages2 = curEnv.getPureStandardColumnShard(otherColName).getPages().values();
 
         if (pages.size() > 0 && pages2.size() > 0) {
           NavigableMap<Long, Long> equalColumnValueIds =
-              findEqualIds(curEnv.getColumnShard(colName), curEnv.getColumnShard(otherColName));
+              findEqualIds(curEnv.getPureStandardColumnShard(colName), curEnv.getPureStandardColumnShard(otherColName));
 
           rowIdEqualsOtherCol(curEnv, pages, pages2, equalColumnValueIds, activeRowIds);
         }

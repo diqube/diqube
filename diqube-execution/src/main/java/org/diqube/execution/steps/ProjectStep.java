@@ -24,13 +24,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
-import java.util.NavigableMap;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
 import org.diqube.data.ColumnType;
@@ -343,24 +341,21 @@ public class ProjectStep extends AbstractThreadedExecutablePlanStep {
   private ColumnShard buildColumnBasedProjection(ExecutionEnvironment env) {
 
     // buckets of row IDs we want to process together. Left of pair: first row ID of bucket, right: length.
-    List<Pair<Long, Integer>> rowIdBucketsToProcess;
+    Set<Pair<Long, Integer>> rowIdBucketsToProcess;
 
-    if (inputColNames.stream().anyMatch(colName -> env.getColumnShard(colName) instanceof StandardColumnShard)) {
+    if (inputColNames.stream().anyMatch(colName -> env.getPureStandardColumnShard(colName) != null)) {
       // Find column shard that contains the least rows, in order to calculate rowID buckets below.
       // On the query master each column might have different number of rows, therefore we find the least common number
       // of rows that we can process.
-      String referenceColName = inputColNames.stream()
-          .filter(colName -> env.getColumnShard(colName) instanceof StandardColumnShard).map(name -> //
-          new Pair<String, Long>(name, ((StandardColumnShard) env.getColumnShard(name)).getNumberOfRowsInColumnShard()))
-          .min((p1, p2) -> p1.getRight().compareTo(p2.getRight())).get().getLeft();
+      String referenceColName =
+          inputColNames.stream().filter(colName -> env.getPureStandardColumnShard(colName) != null).map(name -> //
+          new Pair<String, Long>(name, env.getPureStandardColumnShard(name).getNumberOfRowsInColumnShard()))
+              .min((p1, p2) -> p1.getRight().compareTo(p2.getRight())).get().getLeft();
 
-      NavigableMap<Long, ColumnPage> pages = ((StandardColumnShard) env.getColumnShard(referenceColName)).getPages();
-      rowIdBucketsToProcess = pages.entrySet().stream(). //
-          map(entry -> new Pair<Long, Integer>(entry.getKey(), entry.getValue().size())). //
-          collect(Collectors.toList());
+      rowIdBucketsToProcess = env.getColumnShard(referenceColName).getGoodResolutionPairs();
     } else {
       // only ConstantColumnShard objects.
-      rowIdBucketsToProcess = new ArrayList<Pair<Long, Integer>>();
+      rowIdBucketsToProcess = new HashSet<Pair<Long, Integer>>();
       rowIdBucketsToProcess.add(new Pair<Long, Integer>(defaultEnv.getFirstRowIdInShard(), 1));
     }
 
@@ -397,14 +392,14 @@ public class ProjectStep extends AbstractThreadedExecutablePlanStep {
           if (param.getType() == ColumnOrValue.Type.LITERAL) {
             fn.provideConstantParameter(paramIdx, param.getValue());
           } else {
-            if (env.getColumnShard(param.getColumnName()) instanceof ConstantColumnShard) {
-              fn.provideConstantParameter(paramIdx,
-                  ((ConstantColumnShard) env.getColumnShard(param.getColumnName())).getValue());
+            ConstantColumnShard constantShard = env.getPureConstantColumnShard(param.getColumnName());
+            if (constantShard != null) {
+              fn.provideConstantParameter(paramIdx, constantShard.getValue());
             } else {
               hadStandardColumnInput = true;
               Object[] colValues = fn.createEmptyInputArray(length);
-              int rowsResolved = resolveValuesFromColumn(
-                  (StandardColumnShard) env.getColumnShard(param.getColumnName()), firstRowId, length, colValues);
+              int rowsResolved =
+                  resolveValuesFromColumn(env.getColumnShard(param.getColumnName()), firstRowId, length, colValues);
               if (rowsResolved != length)
                 throw new ExecutablePlanExecutionException("Column " + param.getColumnName()
                     + " does not contain the same number of rows as other columns; cannot execute function "
@@ -457,10 +452,10 @@ public class ProjectStep extends AbstractThreadedExecutablePlanStep {
    * @return number of elements resolved - this might be smaller than 'length' in case source column did not provide
    *         enough data.
    */
-  private int resolveValuesFromColumn(StandardColumnShard column, long firstRowId, int length, Object[] result) {
-    if (column.getPages().firstKey() > firstRowId) {
+  private int resolveValuesFromColumn(ColumnShard column, long firstRowId, int length, Object[] result) {
+    if (column.getFirstRowId() > firstRowId) {
       // make sure firstRowId is inside the column shard.
-      long delta = firstRowId - column.getPages().firstKey();
+      long delta = firstRowId - column.getFirstRowId();
       length -= delta;
       firstRowId += delta;
       if (length <= 0)

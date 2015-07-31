@@ -25,6 +25,8 @@ import java.util.Map;
 import org.diqube.data.ColumnType;
 import org.diqube.data.TableShard;
 import org.diqube.data.colshard.ColumnShard;
+import org.diqube.data.colshard.ConstantColumnShard;
+import org.diqube.data.colshard.StandardColumnShard;
 import org.diqube.data.dbl.DoubleColumnShard;
 import org.diqube.data.lng.LongColumnShard;
 import org.diqube.data.str.StringColumnShard;
@@ -64,6 +66,10 @@ public interface ExecutionEnvironment {
   public ColumnType getColumnType(String colName);
 
   public ColumnShard getColumnShard(String name);
+
+  public StandardColumnShard getPureStandardColumnShard(String name);
+
+  public ConstantColumnShard getPureConstantColumnShard(String name);
 
   public Map<String, ColumnShard> getAllColumnShards();
 

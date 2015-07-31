@@ -25,19 +25,15 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.NavigableMap;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
-import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.diqube.data.TableShard;
-import org.diqube.data.colshard.ColumnPage;
 import org.diqube.data.colshard.ColumnShard;
 import org.diqube.data.colshard.StandardColumnShard;
 import org.diqube.execution.consumers.AbstractThreadedColumnBuiltConsumer;
@@ -260,38 +256,16 @@ public class GroupStep extends AbstractThreadedExecutablePlanStep {
         return;
       }
 
+      Map<Long, Long> rowIdToColValId = column.resolveColumnValueIdsForRows(rowIds);
+
       Map<Long, List<Long>> columnValueToRowIds = new HashMap<>();
-
-      // Group row IDs by their ColumnPage and then use dict of ColumnPage to resolve Column Value IDs for these rows.
-      Map<ColumnPage, List<Long>> pageToRowIds =
-          rowIds.stream().collect(Collectors.groupingBy(new Function<Long, ColumnPage>() {
-            @Override
-            public ColumnPage apply(Long t) {
-              NavigableMap<Long, ColumnPage> pages = ((StandardColumnShard) column).getPages();
-              return pages.get(pages.floorKey(t));
-            }
-          }));
-      pageToRowIds.forEach(new BiConsumer<ColumnPage, List<Long>>() {
-        @Override
-        public void accept(ColumnPage page, List<Long> rowIdList) {
-          Long[] rowIds = rowIdList.toArray(new Long[rowIdList.size()]);
-
-          // TODO #7 perhaps decompress whole value array, as it may be RLE encoded anyway.
-          Long[] pageValueIds = Stream.<Long> of(rowIds)
-              .map(rowId -> page.getValues().get((int) (rowId - page.getFirstRowId()))).toArray(l -> new Long[l]);
-
-          Long[] columnValueIds = page.getColumnPageDict().decompressValues(pageValueIds);
-
-          for (int i = 0; i < rowIds.length; i++) {
-            Long columnValueId = columnValueIds[i];
-            Long rowId = rowIds[i];
-
-            if (!columnValueToRowIds.containsKey(columnValueId))
-              columnValueToRowIds.put(columnValueId, new ArrayList<>());
-            columnValueToRowIds.get(columnValueId).add(rowId);
-          }
-        }
-      });
+      for (Entry<Long, Long> e : rowIdToColValId.entrySet()) {
+        long rowId = e.getKey();
+        long colValueId = e.getValue();
+        if (!columnValueToRowIds.containsKey(colValueId))
+          columnValueToRowIds.put(colValueId, new ArrayList<>());
+        columnValueToRowIds.get(colValueId).add(rowId);
+      }
 
       // Add the row IDs to delegate groupers based on their column value id.
       columnValueToRowIds.forEach(new BiConsumer<Long, List<Long>>() {

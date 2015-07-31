@@ -263,7 +263,7 @@ public class RowIdInequalStep extends AbstractThreadedExecutablePlanStep {
     if (curEnv.getColumnShard(colName) == null)
       throw new ExecutablePlanExecutionException("Could not find column " + colName);
 
-    StandardColumnShard columnShard = (StandardColumnShard) curEnv.getColumnShard(colName);
+    StandardColumnShard columnShard = curEnv.getPureStandardColumnShard(colName);
     NavigableMap<Long, ColumnPage> pages = columnShard.getPages();
 
     if (pages.size() > 0) {
@@ -280,7 +280,7 @@ public class RowIdInequalStep extends AbstractThreadedExecutablePlanStep {
           throw new ExecutablePlanExecutionException("Cannot compare column " + colName + " to column " + otherColName
               + " as they have different data types.");
 
-        StandardColumnShard otherColumnShard = (StandardColumnShard) curEnv.getColumnShard(otherColName);
+        StandardColumnShard otherColumnShard = curEnv.getPureStandardColumnShard(otherColName);
 
         if (otherColumnShard.getPages().size() > 0)
           executeOnOtherCol(curEnv, columnShard, otherColumnShard, activeRowIds, comparator);

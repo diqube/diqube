@@ -21,11 +21,15 @@
 package org.diqube.data.colshard;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import org.diqube.data.ColumnType;
 import org.diqube.data.Dictionary;
+import org.diqube.util.Pair;
 
 /**
  * Abstract base implementation of a {@link ConstantColumnShard}.
@@ -101,10 +105,9 @@ public abstract class AbstractConstantColumnShard implements ConstantColumnShard
   }
 
   @Override
-  public Map<Long, Long> resolveColumnValueIdsForRows(Long[] rowIds) {
+  public Map<Long, Long> resolveColumnValueIdsForRows(Collection<Long> rowIds) {
     Map<Long, Long> res = new HashMap<>();
-    for (int i = 0; i < rowIds.length; i++)
-      res.put(rowIds[i], 0L);
+    rowIds.forEach(rowId -> res.put(rowId, 0L));
     return res;
   }
 
@@ -116,6 +119,11 @@ public abstract class AbstractConstantColumnShard implements ConstantColumnShard
   @Override
   public long getSingleColumnDictId() {
     return 0L; // constant, as created by #createColumnShardDictionary
+  }
+
+  @Override
+  public Set<Pair<Long, Integer>> getGoodResolutionPairs() {
+    return new HashSet<>(Arrays.asList(new Pair<>(firstRowId, 1)));
   }
 
 }

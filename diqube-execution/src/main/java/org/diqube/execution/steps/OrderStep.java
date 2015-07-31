@@ -24,7 +24,6 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
-import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Set;
 import java.util.TreeSet;
@@ -34,9 +33,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import org.diqube.data.colshard.ColumnPage;
+import org.diqube.data.colshard.ColumnShard;
 import org.diqube.data.colshard.StandardColumnShard;
-import org.diqube.data.lng.dict.LongDictionary;
 import org.diqube.execution.ColumnVersionBuiltHelper;
 import org.diqube.execution.consumers.AbstractThreadedColumnBuiltConsumer;
 import org.diqube.execution.consumers.AbstractThreadedColumnVersionBuiltConsumer;
@@ -250,21 +248,8 @@ public class OrderStep extends AbstractThreadedExecutablePlanStep {
         String colName = sortCol.getLeft();
         boolean sortAsc = sortCol.getRight();
 
-        NavigableMap<Long, ColumnPage> pages =
-            ((StandardColumnShard) executionEnvironment.getColumnShard(colName)).getPages();
-
-        ColumnValueIdResolver resolver = new ColumnValueIdResolver() {
-          @Override
-          public long resolveColumnValueId(long rowId) {
-            ColumnPage page = pages.floorEntry(rowId).getValue();
-
-            // TODO #7 perhaps decompress whole value array, as it may be RLE encoded anyway.
-            long columnPageValueId = page.getValues().get((int) (rowId - page.getFirstRowId()));
-
-            LongDictionary columnPageDict = page.getColumnPageDict();
-            return columnPageDict.decompressValue(columnPageValueId);
-          }
-        };
+        ColumnShard column = executionEnvironment.getColumnShard(colName);
+        ColumnValueIdResolver resolver = (rowId) -> column.resolveColumnValueIdForRow(rowId);
 
         SortComparator newComparator = new SortComparator(resolver, sortAsc);
         if (lastComparator != null)
@@ -334,8 +319,9 @@ public class OrderStep extends AbstractThreadedExecutablePlanStep {
       }
     }
 
-    logger.trace("Starting to order based on Env {}, having active RowIDs (limt) {}. intermediateRun: {}", env,
-        Iterables.limit(activeRowIdsSet, 100), intermediateRun);
+    logger.trace(
+        "Starting to order based on Env {}, having active RowIDs (limt) {}, not yet processed (limit) {}. intermediateRun: {}",
+        env, Iterables.limit(activeRowIdsSet, 100), Iterables.limit(notYetProcessedRowIds, 100), intermediateRun);
 
     if (activeRowIdsSet.size() > 0) {
 

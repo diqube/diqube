@@ -20,11 +20,14 @@
  */
 package org.diqube.data.colshard;
 
+import java.util.Collection;
 import java.util.Map;
+import java.util.Set;
 
 import org.diqube.data.ColumnType;
 import org.diqube.data.Dictionary;
 import org.diqube.data.TableShard;
+import org.diqube.util.Pair;
 
 /**
  * A ColumnShard contains all data of one column of all rows of a specific {@link TableShard} or of intermediary values
@@ -78,7 +81,7 @@ public interface ColumnShard {
    * 
    * @return Map from rowID to column value ID.
    */
-  public Map<Long, Long> resolveColumnValueIdsForRows(Long[] rowIds);
+  public Map<Long, Long> resolveColumnValueIdsForRows(Collection<Long> rowIds);
 
   /**
    * Just like {@link #resolveColumnValueIdsForRows(Long[])}, but maps the column value ids back into a flat Long[] ->
@@ -95,4 +98,11 @@ public interface ColumnShard {
    * @return -1 if row not available.
    */
   public long resolveColumnValueIdForRow(Long rowId);
+
+  /**
+   * Returns information on how rowIds would be well-fitted to be used with the resolve* methods.
+   * 
+   * @return Set of pair containing firstRowId and length of one bucket.
+   */
+  public Set<Pair<Long, Integer>> getGoodResolutionPairs();
 }

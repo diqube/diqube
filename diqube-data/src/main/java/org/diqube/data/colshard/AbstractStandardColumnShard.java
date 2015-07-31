@@ -21,6 +21,8 @@
 package org.diqube.data.colshard;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -28,6 +30,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -110,7 +113,7 @@ public abstract class AbstractStandardColumnShard implements StandardColumnShard
 
   @Override
   public Long[] resolveColumnValueIdsForRowsFlat(Long[] rowIds) {
-    Map<Long, Long> rowIdToColumnValueId = resolveColumnValueIdsForRows(rowIds);
+    Map<Long, Long> rowIdToColumnValueId = resolveColumnValueIdsForRows(Arrays.asList(rowIds));
     Long[] res = new Long[rowIds.length];
     for (int i = 0; i < rowIds.length; i++)
       res[i] = (rowIdToColumnValueId.containsKey(rowIds[i])) ? rowIdToColumnValueId.get(rowIds[i]) : -1L;
@@ -131,8 +134,8 @@ public abstract class AbstractStandardColumnShard implements StandardColumnShard
   }
 
   @Override
-  public Map<Long, Long> resolveColumnValueIdsForRows(Long[] rowIds) {
-    Map<ColumnPage, NavigableSet<Long>> rowIdsByPage = Stream.<Long> of(rowIds).parallel().collect( //
+  public Map<Long, Long> resolveColumnValueIdsForRows(Collection<Long> rowIds) {
+    Map<ColumnPage, NavigableSet<Long>> rowIdsByPage = rowIds.stream().parallel().collect( //
         Collectors.groupingByConcurrent(rowId -> {
           Entry<Long, ColumnPage> e = pages.floorEntry(rowId);
           if (e == null)
@@ -170,6 +173,15 @@ public abstract class AbstractStandardColumnShard implements StandardColumnShard
         }).collect(() -> new HashMap<Long, Long>(), (map, pair) -> map.put(pair.getLeft(), pair.getRight()),
             (map1, map2) -> map1.putAll(map2));
     return rowIdToColumnValueId;
+  }
+
+  @Override
+  public Set<Pair<Long, Integer>> getGoodResolutionPairs() {
+    Set<Pair<Long, Integer>> res = pages.entrySet().stream(). //
+        map(entry -> new Pair<Long, Integer>(entry.getKey(), entry.getValue().size())). //
+        collect(Collectors.toSet());
+
+    return res;
   }
 
 }

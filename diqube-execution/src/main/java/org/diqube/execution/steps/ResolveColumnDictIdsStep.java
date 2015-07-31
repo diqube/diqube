@@ -32,7 +32,6 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.diqube.data.colshard.ConstantColumnShard;
 import org.diqube.execution.ColumnVersionBuiltHelper;
 import org.diqube.execution.consumers.AbstractThreadedColumnBuiltConsumer;
 import org.diqube.execution.consumers.AbstractThreadedColumnVersionBuiltConsumer;
@@ -226,9 +225,8 @@ public class ResolveColumnDictIdsStep extends AbstractThreadedExecutablePlanStep
       logger.trace("Resolving column dict IDs of col {} based on ExecutionEnv {} at row IDs (limit, {}) {}", colName,
           env, activeRowIds.size(), Iterables.limit(activeRowIds, 500));
 
-      if (env.getColumnShard(colName) instanceof ConstantColumnShard) {
-
-        long columnValueId = ((ConstantColumnShard) env.getColumnShard(colName)).getSingleColumnDictId();
+      if (env.getPureConstantColumnShard(colName) != null) {
+        long columnValueId = env.getPureConstantColumnShard(colName).getSingleColumnDictId();
 
         Map<Long, Long> rowIdToDictIdMap = new HashMap<>();
         for (Long curRowId : activeRowIds)
@@ -237,10 +235,10 @@ public class ResolveColumnDictIdsStep extends AbstractThreadedExecutablePlanStep
             colName);
         forEachOutputConsumerOfType(ColumnDictIdConsumer.class, c -> c.consume(env, colName, rowIdToDictIdMap));
       } else {
-        Map<Long, Long> rowIdToColumnValueId = env.getColumnShard(colName)
-            .resolveColumnValueIdsForRows(activeRowIds.toArray(new Long[activeRowIds.size()]));
+        Map<Long, Long> rowIdToColumnValueId = env.getColumnShard(colName).resolveColumnValueIdsForRows(activeRowIds);
 
-        logger.trace("Resolving column dict IDs of col {} done, sending out updates", colName);
+        logger.trace("Resolving column dict IDs of col {} done, sending out updates (limit): {}", colName,
+            Iterables.limit(rowIdToColumnValueId.entrySet(), 100));
         forEachOutputConsumerOfType(ColumnDictIdConsumer.class, c -> c.consume(env, colName, rowIdToColumnValueId));
       }
 

@@ -221,13 +221,15 @@ public class RepeatedProjectStep extends AbstractThreadedExecutablePlanStep {
           else {
             int patternIdx = inputColPatternsIndex.get(parameter.getColumnName());
             String actualColName = colCombination.get(patternIdx);
-            ColumnShard colShard = defaultEnv.getColumnShard(actualColName);
+            ColumnShard colShard = defaultEnv.getPureConstantColumnShard(actualColName);
 
-            if (colShard instanceof ConstantColumnShard)
+            if (colShard != null)
               value = ((ConstantColumnShard) colShard).getValue();
-            else
+            else {
+              colShard = defaultEnv.getPureStandardColumnShard(actualColName);
               value =
                   colShard.getColumnShardDictionary().decompressValue(colShard.resolveColumnValueIdForRow(finalRowId));
+            }
           }
           fn.provideConstantParameter(paramIdx, value);
         }

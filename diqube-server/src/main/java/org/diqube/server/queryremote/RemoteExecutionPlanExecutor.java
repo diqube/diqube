@@ -161,8 +161,6 @@ public class RemoteExecutionPlanExecutor {
         List<Future<?>> futures = new ArrayList<>();
 
         int numberOfThreads = 0;
-        int numberOfPages = 0;
-
         for (ExecutablePlan plan : executablePlans) {
           TableShard shard = plan.getDefaultExecutionEnvironment().getTableShardIfAvailable();
 
@@ -173,9 +171,6 @@ public class RemoteExecutionPlanExecutor {
 
           Future<Void> f = plan.executeAsynchronously(executor);
           futures.add(f);
-
-          numberOfPages +=
-              shard.getColumns().values().stream().mapToLong(colShard -> (long) colShard.getPages().size()).sum();
         }
 
         queryRegistry.getOrCreateCurrentStats().setNumberOfThreads(numberOfThreads);

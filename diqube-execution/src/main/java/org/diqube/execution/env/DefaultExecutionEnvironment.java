@@ -28,6 +28,9 @@ import org.diqube.data.colshard.ColumnShard;
 import org.diqube.data.dbl.DoubleColumnShard;
 import org.diqube.data.lng.LongColumnShard;
 import org.diqube.data.str.StringColumnShard;
+import org.diqube.execution.env.querystats.DoubleColumnShardStatsFacade;
+import org.diqube.execution.env.querystats.LongColumnShardStatsFacade;
+import org.diqube.execution.env.querystats.StringColumnShardStatsFacade;
 import org.diqube.queries.QueryRegistry;
 
 /**
@@ -73,22 +76,22 @@ public class DefaultExecutionEnvironment extends AbstractExecutionEnvironment {
 
   @Override
   protected LongColumnShard delegateGetLongColumnShard(String name) {
-    if (tableShard != null)
-      return tableShard.getLongColumns().get(name);
+    if (tableShard != null && tableShard.getLongColumns().get(name) != null)
+      return new LongColumnShardStatsFacade(tableShard.getLongColumns().get(name), false);
     return null;
   }
 
   @Override
   protected StringColumnShard delegateGetStringColumnShard(String name) {
-    if (tableShard != null)
-      return tableShard.getStringColumns().get(name);
+    if (tableShard != null && tableShard.getStringColumns().get(name) != null)
+      return new StringColumnShardStatsFacade(tableShard.getStringColumns().get(name), false);
     return null;
   }
 
   @Override
   protected DoubleColumnShard delegateGetDoubleColumnShard(String name) {
-    if (tableShard != null)
-      return tableShard.getDoubleColumns().get(name);
+    if (tableShard != null && tableShard.getDoubleColumns().get(name) != null)
+      return new DoubleColumnShardStatsFacade(tableShard.getDoubleColumns().get(name), false);
     return null;
   }
 
@@ -96,9 +99,14 @@ public class DefaultExecutionEnvironment extends AbstractExecutionEnvironment {
   protected Map<String, ColumnShard> delegateGetAllColumnShards() {
     Map<String, ColumnShard> res = new HashMap<>();
     if (tableShard != null) {
-      res.putAll(tableShard.getDoubleColumns());
-      res.putAll(tableShard.getStringColumns());
-      res.putAll(tableShard.getLongColumns());
+      tableShard.getDoubleColumns().entrySet().stream()
+          .forEach(entry -> res.put(entry.getKey(), new DoubleColumnShardStatsFacade(entry.getValue(), false)));
+
+      tableShard.getStringColumns().entrySet().stream()
+          .forEach(entry -> res.put(entry.getKey(), new StringColumnShardStatsFacade(entry.getValue(), false)));
+
+      tableShard.getLongColumns().entrySet().stream()
+          .forEach(entry -> res.put(entry.getKey(), new LongColumnShardStatsFacade(entry.getValue(), false)));
     }
 
     return res;

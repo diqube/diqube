@@ -25,7 +25,6 @@ import java.util.NavigableSet;
 import java.util.Set;
 
 import org.diqube.data.colshard.ColumnShard;
-import org.diqube.data.colshard.StandardColumnShard;
 import org.diqube.execution.consumers.ColumnVersionBuiltConsumer;
 import org.diqube.execution.consumers.GenericConsumer;
 import org.diqube.execution.env.ExecutionEnvironment;
@@ -58,10 +57,10 @@ public class ColumnVersionBuiltHelper {
       NavigableSet<Long> notYetProcessedRowIds) {
     long maxRowId;
     Collection<ColumnShard> cols = env.getAllColumnShards().values();
-    if (cols.stream().anyMatch(col -> col instanceof StandardColumnShard)) {
-      maxRowId = cols.stream().filter(col -> col instanceof StandardColumnShard)
-          .mapToLong(
-              column -> column.getFirstRowId() + ((StandardColumnShard) column).getNumberOfRowsInColumnShard() - 1)
+    if (cols.stream().anyMatch(col -> env.getPureStandardColumnShard(col.getName()) != null)) {
+      maxRowId = cols.stream().filter(col -> env.getPureStandardColumnShard(col.getName()) != null)
+          .mapToLong(column -> column.getFirstRowId()
+              + env.getPureStandardColumnShard(column.getName()).getNumberOfRowsInColumnShard() - 1)
           . //
           min().getAsLong();
     } else
