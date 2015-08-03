@@ -38,13 +38,13 @@ import org.diqube.data.colshard.ColumnPage;
  * @author Bastian Gloeckle
  */
 public class QueryStatsManager {
-  private long startedNanos;
+  private long startedNanos = 0;
 
-  private long completedNanos;
+  private long completedNanos = 0;
 
   private ConcurrentMap<Integer, Long> stepThreadActiveMs = new ConcurrentHashMap<>();
 
-  private int numberOfThreads;
+  private int numberOfThreads = 0;
 
   private AtomicInteger numberOfTemporaryColumnsCreated = new AtomicInteger(0);
 
@@ -54,9 +54,9 @@ public class QueryStatsManager {
 
   private Map<Integer, String> pageNames = new ConcurrentHashMap<>();
 
-  private int numberOfPages;
+  private int numberOfPages = 0;
 
-  private int numberOfTemporaryPages;
+  private int numberOfTemporaryPages = 0;
 
   private Map<String, Integer> numberOfTemporaryVersionsPerColName = new ConcurrentHashMap<>();
 

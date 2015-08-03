@@ -218,7 +218,7 @@ public abstract class AbstractExecutionEnvironment implements ExecutionEnvironme
 
   @Override
   public Map<String, QueryableColumnShard> getAllNonTemporaryColumnShards() {
-    return delegateGetAllColumnShards();
+    return delegateGetAllNonTemporaryColumnShards();
   }
 
   protected abstract Map<String, QueryableColumnShard> delegateGetAllNonTemporaryColumnShards();

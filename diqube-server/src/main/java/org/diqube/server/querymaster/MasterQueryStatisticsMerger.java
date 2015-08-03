@@ -24,14 +24,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.diqube.execution.ExecutablePlan;
 import org.diqube.queries.QueryStats;
 import org.diqube.remote.cluster.thrift.RExecutionPlan;
 import org.diqube.remote.query.thrift.RQueryStatistics;
-
-import com.google.common.collect.Iterables;
+import org.diqube.remote.query.thrift.RQueryStatisticsDetails;
 
 /**
  * Merges the statistics from various query remotes and the query master into a final {@link RQueryStatistics} object
@@ -50,39 +48,39 @@ public class MasterQueryStatisticsMerger {
 
   public RQueryStatistics merge(QueryStats masterStats, List<QueryStats> remoteStats) {
     RQueryStatistics res = new RQueryStatistics();
+    Map<Integer, String> stepDescription = new HashMap<>();
+    masterPlan.getSteps().forEach(s -> stepDescription.put(s.getStepId(), s.toString()));
 
-    res.setMasterStartedUntilDoneMs(masterStats.getStartedUntilDoneMs());
-    List<Long> remotesStartedUntilDone =
-        remoteStats.stream().map(stat -> stat.getStartedUntilDoneMs()).collect(Collectors.toList());
-    res.setRemotesStartedUntilDoneMs(remotesStartedUntilDone);
-    res.setRemoteNumberOfThreads(Iterables.getFirst(remoteStats, null).getNumberOfThreads());
+    res.setMaster(createDetails(stepDescription, masterStats));
 
-    int numberOfRemoteTempColsCreated =
-        (int) remoteStats.stream().mapToLong(stat -> stat.getNumberOfTemporaryColumnsCreated()).sum();
-    res.setNumberOfTemporaryColumnsCreated(
-        numberOfRemoteTempColsCreated + masterStats.getNumberOfTemporaryColumnsCreated());
+    Map<Integer, String> remoteStepDescription = new HashMap<>();
+    remotePlan.getSteps().forEach(s -> remoteStepDescription.put(s.getStepId(), s.toString()));
 
-    Map<Integer, String> masterStepDescription = new HashMap<>();
-    masterPlan.getSteps().forEach(s -> masterStepDescription.put(s.getStepId(), s.toString()));
-    Map<String, Long> timesInMasterSteps = new HashMap<>();
-    for (int stepId : masterStats.getStepThreadActiveMs().keySet())
-      timesInMasterSteps.put(masterStepDescription.get(stepId), masterStats.getStepThreadActiveMs().get(stepId));
+    List<RQueryStatisticsDetails> remoteDetails = new ArrayList<>();
+    for (QueryStats remote : remoteStats)
+      remoteDetails.add(createDetails(remoteStepDescription, remote));
 
-    res.setMasterStepsMs(timesInMasterSteps);
+    res.setRemotes(remoteDetails);
+    return res;
+  }
 
-    Map<Integer, String> remotesStepDescription = new HashMap<>();
-    remotePlan.getSteps().forEach(s -> remotesStepDescription.put(s.getStepId(), s.toString()));
-    Map<String, List<Long>> timesInRemoteSteps = new HashMap<>();
-    for (QueryStats curRemoteStats : remoteStats) {
-      for (int stepId : curRemoteStats.getStepThreadActiveMs().keySet()) {
-        String desc = remotesStepDescription.get(stepId);
-        if (!timesInRemoteSteps.containsKey(desc))
-          timesInRemoteSteps.put(desc, new ArrayList<>());
-        timesInRemoteSteps.get(desc).add(curRemoteStats.getStepThreadActiveMs().get(stepId));
-      }
-    }
+  private RQueryStatisticsDetails createDetails(Map<Integer, String> stepDescription, QueryStats stats) {
+    RQueryStatisticsDetails res = new RQueryStatisticsDetails();
 
-    res.setRemotesStepsMs(timesInRemoteSteps);
+    res.setStartedUntilDoneMs(stats.getStartedUntilDoneMs());
+    res.setNumberOfThreads(stats.getNumberOfThreads());
+    res.setNumberOfTemporaryColumnsCreated(stats.getNumberOfTemporaryColumnsCreated());
+
+    Map<String, Long> timesInSteps = new HashMap<>();
+    for (int stepId : stats.getStepThreadActiveMs().keySet())
+      timesInSteps.put(stepDescription.get(stepId), stats.getStepThreadActiveMs().get(stepId));
+    res.setStepsActiveMs(timesInSteps);
+
+    res.setNumberOfPageAccesses(stats.getPageAccess());
+    res.setNumberOfTemporaryPageAccesses(stats.getTemporaryPageAccess());
+    res.setNumberOfPages(stats.getNumberOfPages());
+    res.setNumberOfTemporaryPages(stats.getNumberOfTemporaryPages());
+    res.setNumberOfTemporaryVersionsPerColName(stats.getNumberOfTemporaryVersionsPerColName());
 
     return res;
   }

@@ -27,7 +27,6 @@ include "${diqube.thrift.dependencies}/base.thrift"
 struct RResultTable {
   1: list<string> columnNames,
   2: list<list<base.RValue>> rows
-  // TODO type needed here?
 }
 
 exception RQueryException {
@@ -42,13 +41,22 @@ service QueryService {
                          4: base.RNodeAddress resultAddress) throws (1: RQueryException queryException)
 }
 
-struct RQueryStatistics {
-  1: i64 masterStartedUntilDoneMs,
-  2: list<i64> remotesStartedUntilDoneMs,
-  3: i32 remoteNumberOfThreads,
+struct RQueryStatisticsDetails {
+  1: i64 startedUntilDoneMs,
+  3: i32 numberOfThreads,
   4: i32 numberOfTemporaryColumnsCreated,
-  5: map<string, i64> masterStepsMs,
-  6: map<string, list<i64>> remotesStepsMs
+  5: map<string, i64> stepsActiveMs,
+  6: map<string, i32> numberOfPageAccesses,
+  7: map<string, i32> numberOfTemporaryPageAccesses,
+  8: i32 numberOfPages,
+  9: i32 numberOfTemporaryPages,
+  10: map<string, i32> numberOfTemporaryVersionsPerColName
+}  
+
+
+struct RQueryStatistics {
+  1: RQueryStatisticsDetails master,
+  2: list<RQueryStatisticsDetails> remotes
 }
 
 service QueryResultService {

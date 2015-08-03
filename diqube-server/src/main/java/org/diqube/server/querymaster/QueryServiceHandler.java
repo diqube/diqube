@@ -387,7 +387,7 @@ public class QueryServiceHandler implements Iface {
         executorManager.newQueryFixedThreadPool(1, "query-master-" + queryUuid + "-%d", queryUuid, executionUuid);
 
     // start asynchronous execution.
-    queryRegistry.getOrCreateCurrentStatsManager().setStartedNanos(System.nanoTime());
+    queryRegistry.getOrCreateStatsManager(queryUuid, executionUuid).setStartedNanos(System.nanoTime());
     executor.execute(execute);
   }
 
