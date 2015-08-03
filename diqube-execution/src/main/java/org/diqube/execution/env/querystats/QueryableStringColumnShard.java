@@ -20,12 +20,13 @@
  */
 package org.diqube.execution.env.querystats;
 
-import org.diqube.data.colshard.ColumnShard;
+import org.diqube.data.str.StringColumnShard;
 
 /**
+ * A {@link QueryableColumnShard} for string columns.
  *
  * @author Bastian Gloeckle
  */
-public interface ColumnShardStatsFacade {
-  public ColumnShard getDelegate();
+public interface QueryableStringColumnShard extends QueryableColumnShard, StringColumnShard {
+
 }

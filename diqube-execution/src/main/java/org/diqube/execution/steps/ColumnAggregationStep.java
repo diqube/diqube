@@ -40,6 +40,7 @@ import org.diqube.execution.consumers.AbstractThreadedColumnBuiltConsumer;
 import org.diqube.execution.consumers.ColumnBuiltConsumer;
 import org.diqube.execution.consumers.GenericConsumer;
 import org.diqube.execution.env.ExecutionEnvironment;
+import org.diqube.execution.env.querystats.QueryableColumnShard;
 import org.diqube.execution.exception.ExecutablePlanBuildException;
 import org.diqube.execution.exception.ExecutablePlanExecutionException;
 import org.diqube.execution.util.ColumnPatternUtil;
@@ -52,6 +53,8 @@ import org.diqube.loader.LoaderColumnInfo;
 import org.diqube.loader.columnshard.ColumnShardBuilderFactory;
 import org.diqube.loader.columnshard.ColumnShardBuilderManager;
 import org.diqube.queries.QueryRegistry;
+import org.diqube.queries.QueryUuid;
+import org.diqube.queries.QueryUuid.QueryUuidThreadState;
 
 import com.google.common.collect.Iterables;
 
@@ -157,79 +160,89 @@ public class ColumnAggregationStep extends AbstractThreadedExecutablePlanStep {
     long lastRowIdInShard = defaultEnv.getLastRowIdInShard();
     final Set<String> finalAllColNames = allColNames;
 
+    QueryUuidThreadState uuidState = QueryUuid.getCurrentThreadState();
     // work on all rowIds with a specific batch size
     LongStream.rangeClosed(defaultEnv.getFirstRowIdInShard(), lastRowIdInShard). //
         parallel().filter(l -> l % BATCH_SIZE == 0).forEach(new LongConsumer() {
           @Override
           public void accept(long firstRowId) {
-            // to not have to decompress a lot of single values later, lets decompress all values of the current batch
-            // for all columns.
-            // This might resolve some columns that we later do not need for some columns, but anyway, in general it
-            // should be faster.
-            Class<?> valueClass = null;
-            Map<String, Object[]> valuesByCol = new HashMap<>();
-            for (String inputColName : finalAllColNames) {
-              ColumnShard colShard = defaultEnv.getColumnShard(inputColName);
-              Long[] colValueIds = colShard.resolveColumnValueIdsForRowsFlat(
-                  LongStream.range(firstRowId, Math.min(firstRowId + BATCH_SIZE, lastRowIdInShard + 1))
-                      .mapToObj(Long::valueOf).toArray(l -> new Long[l]));
-              Object[] values = colShard.getColumnShardDictionary().decompressValues(colValueIds);
-              if (valueClass == null)
-                valueClass = values[0].getClass();
-              valuesByCol.put(inputColName, values);
-            }
-
-            final Class<?> finalValueClass = valueClass;
-
-            Object[] resValueArray = null;
-            for (long rowId = firstRowId; rowId < firstRowId + BATCH_SIZE && rowId <= lastRowIdInShard; rowId++) {
-
-              // Ok, lets work on this single row. Let's first find all the column names that are important for this row
-              // - based on the value of the "length" columns at this row. The other rows (with indices >= length) will
-              // contain some sort of default values, which we do not want to include in the aggregation!
-              final long finalRowId = rowId;
-              Set<String> colNamesForCurRow =
-                  columnPatternUtil.findColNamesForColNamePattern(defaultEnv, inputColumnNamePattern, lenCol -> {
-                long colValueId = lenCol.resolveColumnValueIdForRow(finalRowId);
-                return lenCol.getColumnShardDictionary().decompressValue(colValueId);
-              });
-
-              AggregationFunction<Object, IntermediaryResult<Object, Object, Object>, Object> aggFunction =
-                  functionFactory.createAggregationFunction(functionNameLowerCase, inputColType);
-
-              // add the values to the aggregation, resolve them using the pre-computed arrays from above.
-              aggFunction.addValues(new ValueProvider<Object>() {
-                @Override
-                public Object[] getValues() {
-                  Object[] res = colNamesForCurRow.stream()
-                      .map(colName -> valuesByCol.get(colName)[(int) (finalRowId - firstRowId)])
-                      .toArray(l -> (Object[]) Array.newInstance(finalValueClass, colNamesForCurRow.size()));
-                  return res;
-                }
-
-                @Override
-                public long size() {
-                  return colNamesForCurRow.size();
-                }
-              });
-
-              Object resValue = aggFunction.calculate();
-
-              // check if we still need to create the result array
-              if (resValueArray == null) {
-                if (firstRowId + BATCH_SIZE <= lastRowIdInShard)
-                  resValueArray = (Object[]) Array.newInstance(resValue.getClass(), BATCH_SIZE);
-                else
-                  resValueArray =
-                      (Object[]) Array.newInstance(resValue.getClass(), (int) (lastRowIdInShard - firstRowId + 1));
+            QueryUuid.setCurrentThreadState(uuidState);
+            try {
+              // to not have to decompress a lot of single values later, lets decompress all values of the current batch
+              // for all columns.
+              // This might resolve some columns that we later do not need for some columns, but anyway, in general it
+              // should be faster.
+              Class<?> valueClass = null;
+              Map<String, Object[]> valuesByCol = new HashMap<>();
+              for (String inputColName : finalAllColNames) {
+                QueryableColumnShard colShard = defaultEnv.getColumnShard(inputColName);
+                Long[] colValueIds = colShard.resolveColumnValueIdsForRowsFlat(
+                    LongStream.range(firstRowId, Math.min(firstRowId + BATCH_SIZE, lastRowIdInShard + 1))
+                        .mapToObj(Long::valueOf).toArray(l -> new Long[l]));
+                Object[] values = colShard.getColumnShardDictionary().decompressValues(colValueIds);
+                if (valueClass == null)
+                  valueClass = values[0].getClass();
+                valuesByCol.put(inputColName, values);
               }
 
-              resValueArray[(int) (rowId - firstRowId)] = resValue;
-            }
+              final Class<?> finalValueClass = valueClass;
 
-            colShardBuilderManager.addValues(outputColName, resValueArray, firstRowId);
+              Object[] resValueArray = null;
+              for (long rowId = firstRowId; rowId < firstRowId + BATCH_SIZE && rowId <= lastRowIdInShard; rowId++) {
+
+                // Ok, lets work on this single row. Let's first find all the column names that are important for this
+                // row
+                // - based on the value of the "length" columns at this row. The other rows (with indices >= length)
+                // will
+                // contain some sort of default values, which we do not want to include in the aggregation!
+                final long finalRowId = rowId;
+                Set<String> colNamesForCurRow =
+                    columnPatternUtil.findColNamesForColNamePattern(defaultEnv, inputColumnNamePattern, lenCol -> {
+                  long colValueId = lenCol.resolveColumnValueIdForRow(finalRowId);
+                  return lenCol.getColumnShardDictionary().decompressValue(colValueId);
+                });
+
+                AggregationFunction<Object, IntermediaryResult<Object, Object, Object>, Object> aggFunction =
+                    functionFactory.createAggregationFunction(functionNameLowerCase, inputColType);
+
+                // add the values to the aggregation, resolve them using the pre-computed arrays from above.
+                aggFunction.addValues(new ValueProvider<Object>() {
+                  @Override
+                  public Object[] getValues() {
+                    Object[] res = colNamesForCurRow.stream()
+                        .map(colName -> valuesByCol.get(colName)[(int) (finalRowId - firstRowId)])
+                        .toArray(l -> (Object[]) Array.newInstance(finalValueClass, colNamesForCurRow.size()));
+                    return res;
+                  }
+
+                  @Override
+                  public long size() {
+                    return colNamesForCurRow.size();
+                  }
+                });
+
+                Object resValue = aggFunction.calculate();
+
+                // check if we still need to create the result array
+                if (resValueArray == null) {
+                  if (firstRowId + BATCH_SIZE <= lastRowIdInShard)
+                    resValueArray = (Object[]) Array.newInstance(resValue.getClass(), BATCH_SIZE);
+                  else
+                    resValueArray =
+                        (Object[]) Array.newInstance(resValue.getClass(), (int) (lastRowIdInShard - firstRowId + 1));
+                }
+
+                resValueArray[(int) (rowId - firstRowId)] = resValue;
+              }
+
+              colShardBuilderManager.addValues(outputColName, resValueArray, firstRowId);
+            } finally {
+              QueryUuid.clearCurrent();
+            }
           }
         });
+
+    QueryUuid.setCurrentThreadState(uuidState);
 
     ColumnShard outputCol = colShardBuilderManager.build(outputColName);
 

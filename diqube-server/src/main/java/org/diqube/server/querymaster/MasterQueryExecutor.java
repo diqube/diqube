@@ -195,7 +195,7 @@ class MasterQueryExecutor {
     Runnable r = new Runnable() {
       @Override
       public void run() {
-        queryRegistry.getOrCreateCurrentStats().setNumberOfThreads(plan.preferredExecutorServiceSize());
+        queryRegistry.getOrCreateCurrentStatsManager().setNumberOfThreads(plan.preferredExecutorServiceSize());
 
         Executor executor = executorManager.newQueryFixedThreadPool(plan.preferredExecutorServiceSize(),
             "query-master-worker-" + queryUuid + "-%d", //

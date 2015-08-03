@@ -20,10 +20,7 @@
  */
 package org.diqube.queries;
 
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Map;
 
 /**
  * Data object where statistics about the execution of a query is collected.
@@ -31,61 +28,72 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author Bastian Gloeckle
  */
 public class QueryStats {
-  private UUID queryUuid;
-
   private long startedUntilDoneMs;
 
-  private ConcurrentMap<Integer, Long> stepThreadActiveMs = new ConcurrentHashMap<>();
+  private Map<Integer, Long> stepThreadActiveMs;
 
   private int numberOfThreads;
 
-  private AtomicInteger numberOfTemporaryColumnsCreated = new AtomicInteger(0);
+  private int numberOfTemporaryColumnsCreated;
 
-  public QueryStats(UUID queryUuid) {
-    this.queryUuid = queryUuid;
-  }
+  private Map<String, Integer> pageAccess;
 
-  public UUID getQueryUuid() {
-    return queryUuid;
+  private Map<String, Integer> temporaryPageAccess;
+
+  private int numberOfPages;
+
+  private int numberOfTemporaryPages;
+
+  private Map<String, Integer> numberOfTemporaryVersionsPerColName;
+
+  public QueryStats(long startedUntilDoneMs, Map<Integer, Long> stepThreadActiveMs, int numberOfThreads,
+      int numberOfTemporaryColumnsCreated, Map<String, Integer> pageAccess, Map<String, Integer> temporaryPageAccess,
+      int numberOfPages, int numberOfTemporaryPages, Map<String, Integer> numberOfTemporaryVersionsPerColName) {
+    this.startedUntilDoneMs = startedUntilDoneMs;
+    this.stepThreadActiveMs = stepThreadActiveMs;
+    this.numberOfThreads = numberOfThreads;
+    this.numberOfTemporaryColumnsCreated = numberOfTemporaryColumnsCreated;
+    this.pageAccess = pageAccess;
+    this.temporaryPageAccess = temporaryPageAccess;
+    this.numberOfPages = numberOfPages;
+    this.numberOfTemporaryPages = numberOfTemporaryPages;
+    this.numberOfTemporaryVersionsPerColName = numberOfTemporaryVersionsPerColName;
   }
 
   public long getStartedUntilDoneMs() {
     return startedUntilDoneMs;
   }
 
-  public void setStartedUntilDoneMs(long startedUntilDoneMs) {
-    this.startedUntilDoneMs = startedUntilDoneMs;
-  }
-
-  public ConcurrentMap<Integer, Long> getStepThreadActiveMs() {
+  public Map<Integer, Long> getStepThreadActiveMs() {
     return stepThreadActiveMs;
-  }
-
-  public void addStepThreadActiveMs(int stepId, long activeMs) {
-    stepThreadActiveMs.merge(stepId, activeMs, (oldActive, newActive) -> oldActive + newActive);
   }
 
   public int getNumberOfThreads() {
     return numberOfThreads;
   }
 
-  public void setNumberOfThreads(int numberOfThreads) {
-    this.numberOfThreads = numberOfThreads;
-  }
-
   public int getNumberOfTemporaryColumnsCreated() {
-    return numberOfTemporaryColumnsCreated.get();
+    return numberOfTemporaryColumnsCreated;
   }
 
-  public void incNumberOfTemporaryColumnsCreated() {
-    numberOfTemporaryColumnsCreated.incrementAndGet();
+  public Map<String, Integer> getPageAccess() {
+    return pageAccess;
   }
 
-  public void setStepThreadActiveMs(ConcurrentMap<Integer, Long> stepThreadActiveMs) {
-    this.stepThreadActiveMs = stepThreadActiveMs;
+  public Map<String, Integer> getTemporaryPageAccess() {
+    return temporaryPageAccess;
   }
 
-  public void setNumberOfTemporaryColumnsCreated(int numberOfTemporaryColumnsCreated) {
-    this.numberOfTemporaryColumnsCreated.set(numberOfTemporaryColumnsCreated);
+  public int getNumberOfPages() {
+    return numberOfPages;
   }
+
+  public int getNumberOfTemporaryPages() {
+    return numberOfTemporaryPages;
+  }
+
+  public Map<String, Integer> getNumberOfTemporaryVersionsPerColName() {
+    return numberOfTemporaryVersionsPerColName;
+  }
+
 }

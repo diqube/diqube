@@ -33,7 +33,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.diqube.execution.ColumnVersionManager;
-import org.diqube.execution.ColumnVersionManagerFactory;
 import org.diqube.execution.ExecutablePlanFactory;
 import org.diqube.execution.ExecutablePlanStep;
 import org.diqube.execution.consumers.ColumnBuiltConsumer;
@@ -76,7 +75,7 @@ public class MasterColumnManager implements ColumnManager<ExecutablePlanStep> {
    */
   public MasterColumnManager(ExecutionEnvironment masterExecutuionEnvironment,
       Supplier<Integer> nextMasterStepIdSupplier, ExecutablePlanFactory executablePlanFactory,
-      ColumnVersionManagerFactory columnVersionManagerFactory, Map<String, PlannerColumnInfo> columnInfo,
+      ColumnVersionManager columnVersionManager, Map<String, PlannerColumnInfo> columnInfo,
       RemoteResolveManager remoteResolveManager, MasterWireManager masterWireManager) {
     this.env = masterExecutuionEnvironment;
     this.nextMasterStepIdSupplier = nextMasterStepIdSupplier;
@@ -84,7 +83,7 @@ public class MasterColumnManager implements ColumnManager<ExecutablePlanStep> {
     this.columnInfo = columnInfo;
     this.remoteResolveManager = remoteResolveManager;
     this.masterWireManager = masterWireManager;
-    this.columnVersionManager = columnVersionManagerFactory.createColumnVersionManager(env);
+    this.columnVersionManager = columnVersionManager;
   }
 
   @Override

@@ -20,17 +20,21 @@
  */
 package org.diqube.execution.env;
 
+import java.util.List;
 import java.util.Map;
 
 import org.diqube.data.ColumnType;
 import org.diqube.data.TableShard;
-import org.diqube.data.colshard.ColumnShard;
 import org.diqube.data.colshard.ConstantColumnShard;
 import org.diqube.data.colshard.StandardColumnShard;
 import org.diqube.data.dbl.DoubleColumnShard;
 import org.diqube.data.lng.LongColumnShard;
 import org.diqube.data.str.StringColumnShard;
 import org.diqube.execution.ExecutablePlanStep;
+import org.diqube.execution.env.querystats.QueryableColumnShard;
+import org.diqube.execution.env.querystats.QueryableDoubleColumnShard;
+import org.diqube.execution.env.querystats.QueryableLongColumnShard;
+import org.diqube.execution.env.querystats.QueryableStringColumnShard;
 
 /**
  * The environment of an execution, which holds for example temporary data produced by some {@link ExecutablePlanStep}s
@@ -57,34 +61,126 @@ import org.diqube.execution.ExecutablePlanStep;
  */
 public interface ExecutionEnvironment {
 
-  public LongColumnShard getLongColumnShard(String name);
+  /**
+   * Returns a {@link QueryableLongColumnShard} for a specific column.
+   * 
+   * That column shard can either be a temporary one or a "real" one from a {@link TableShard}.
+   * 
+   * @return A {@link QueryableLongColumnShard} for the column with the given name or <code>null</code> if it does not
+   *         exist.
+   */
+  public QueryableLongColumnShard getLongColumnShard(String name);
 
-  public StringColumnShard getStringColumnShard(String name);
+  /**
+   * Returns a {@link QueryableStringColumnShard} for a specific column.
+   * 
+   * That column shard can either be a temporary one or a "real" one from a {@link TableShard}.
+   * 
+   * @return A {@link QueryableStringColumnShard} for the column with the given name or <code>null</code> if it does not
+   *         exist.
+   */
+  public QueryableStringColumnShard getStringColumnShard(String name);
 
-  public DoubleColumnShard getDoubleColumnShard(String name);
+  /**
+   * Returns a {@link QueryableDoubleColumnShard} for a specific column.
+   * 
+   * That column shard can either be a temporary one or a "real" one from a {@link TableShard}.
+   * 
+   * @return A {@link QueryableDoubleColumnShard} for the column with the given name or <code>null</code> if it does not
+   *         exist.
+   */
+  public QueryableDoubleColumnShard getDoubleColumnShard(String name);
 
+  /**
+   * @return the {@link ColumnType} of a column that can be fetched with {@link #getColumnShard(String)},
+   *         {@link #getLongColumnShard(String)}, {@link #getStringColumnShard(String)},
+   *         {@link #getDoubleColumnShard(String)}, {@link #getPureConstantColumnShard(String)} or
+   *         {@link #getPureStandardColumnShard(String)}.
+   */
   public ColumnType getColumnType(String colName);
 
-  public ColumnShard getColumnShard(String name);
+  /**
+   * Returns a {@link QueryableColumnShard} for a specific column (no matter what data type the corresponding column
+   * has).
+   * 
+   * That column shard can either be a temporary one or a "real" one from a {@link TableShard}.
+   * 
+   * @return A {@link QueryableColumnShard} for the column with the given name or <code>null</code> if it does not
+   *         exist.
+   */
+  public QueryableColumnShard getColumnShard(String name);
 
+  /**
+   * Get the "real" (non-facaded) {@link StandardColumnShard} of a specific column.
+   * 
+   * That column shard can either be a temporary one or a "real" one from a {@link TableShard}.
+   * 
+   * @return A {@link StandardColumnShard} for the column or <code>null</code> if the column not exists or if it is no
+   *         {@link StandardColumnShard}.
+   */
   public StandardColumnShard getPureStandardColumnShard(String name);
 
+  /**
+   * Get the "real" (non-facaded) {@link ConstantColumnShard} of a specific column.
+   * 
+   * That column shard can either be a temporary one or a "real" one from a {@link TableShard}.
+   * 
+   * @return A {@link ConstantColumnShard} for the column or <code>null</code> if the column not exists or if it is no
+   *         {@link ConstantColumnShard}.
+   */
   public ConstantColumnShard getPureConstantColumnShard(String name);
 
-  public Map<String, ColumnShard> getAllColumnShards();
+  /**
+   * @return <code>true</code> if the given column is a temporary one, <code>false</code> if it is a real column present
+   *         in a {@link TableShard}.
+   */
+  public boolean isTemporaryColumn(String colName);
 
+  /**
+   * @return Map from colName to {@link QueryableColumnShard} for all available column shards.
+   */
+  public Map<String, QueryableColumnShard> getAllColumnShards();
+
+  /**
+   * Returns a map from colName to a list of {@link QueryableColumnShard}s for all temporary columns.
+   * 
+   * On the query master we may have several versions of a column (see {@link VersionedExecutionEnvironment}), this
+   * method returns all versions of all columns, the last entry in the list being the newest version.
+   */
+  public Map<String, List<QueryableColumnShard>> getAllTemporaryColumnShards();
+
+  /**
+   * Returns a map from colName to a list of {@link QueryableColumnShard}s for all non-temporary columns.
+   * 
+   * On the query master we may have several versions of a column (see {@link VersionedExecutionEnvironment}), this
+   * method returns all versions of all columns, the last entry in the list being the newest version.
+   */
+  public Map<String, QueryableColumnShard> getAllNonTemporaryColumnShards();
+
+  /**
+   * Store a new temporary {@link LongColumnShard} in this {@link ExecutionEnvironment}.
+   */
   public void storeTemporaryLongColumnShard(LongColumnShard column);
 
+  /**
+   * Store a new temporary {@link StringColumnShard} in this {@link ExecutionEnvironment}.
+   */
   public void storeTemporaryStringColumnShard(StringColumnShard column);
 
+  /**
+   * Store a new temporary {@link DoubleColumnShard} in this {@link ExecutionEnvironment}.
+   */
   public void storeTemporaryDoubleColumnShard(DoubleColumnShard column);
 
   /**
-   * The {@link TableShard} backing this {@link DefaultExecutionEnvironment}. Can be <code>null</code> in case this
-   * execution happens on the query master and there is no backing {@link TableShard} object available.
+   * The {@link TableShard} backing this {@link ExecutionEnvironment}. Can be <code>null</code> in case this execution
+   * happens on the query master and there is no backing {@link TableShard} object available.
    */
   public TableShard getTableShardIfAvailable();
 
+  /**
+   * @return The overall lowest rowID of all columns of this {@link ExecutionEnvironment}.
+   */
   public long getFirstRowIdInShard();
 
   /**

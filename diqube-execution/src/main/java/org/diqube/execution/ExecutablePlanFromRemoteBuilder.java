@@ -165,7 +165,8 @@ public class ExecutablePlanFromRemoteBuilder {
 
       ExecutablePlanInfo info = createExecutablePlanInfo(plan);
       ExecutablePlan executablePlan =
-          executablePlanFactory.createExecutablePlan(defaultEnv, new ArrayList<>(steps.values()), info);
+          executablePlanFactory.createExecutablePlan(defaultEnv, new ArrayList<>(steps.values()), info,
+              null /* no col version manager on remote as there are no colversions used here */);
       res.add(executablePlan);
     }
 

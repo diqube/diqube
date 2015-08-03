@@ -47,6 +47,7 @@ import org.diqube.remote.cluster.RIntermediateAggregationResultUtil;
 import org.diqube.remote.cluster.thrift.RExecutionPlan;
 import org.diqube.remote.cluster.thrift.ROldNewIntermediateAggregationResult;
 import org.diqube.threads.ExecutorManager;
+import org.diqube.util.Pair;
 
 /**
  * Executes a {@link RExecutionPlan} on a "query remote" node.
@@ -87,9 +88,12 @@ public class RemoteExecutionPlanExecutor {
    * 
    * For each TableShard a new Executor will be used and a corresponding execution UUID will be created. This will not
    * automatically be registered with {@link QueryRegistry} though!
+   * 
+   * @return Pair of runnable (see above) and the ExecutablePlans that were created from the {@link RExecutionPlan} and
+   *         will be executed.
    */
-  public Runnable prepareExecution(UUID queryUuid, UUID executionUuid, RExecutionPlan executionPlan,
-      RemoteExecutionPlanExecutionCallback callback) {
+  public Pair<Runnable, List<ExecutablePlan>> prepareExecution(UUID queryUuid, UUID executionUuid,
+      RExecutionPlan executionPlan, RemoteExecutionPlanExecutionCallback callback) {
     ExecutablePlanFromRemoteBuilder executablePlanBuilder =
         executablePlanBuilderFactory.createExecutablePlanFromRemoteBuilder();
     executablePlanBuilder.withRemoteExecutionPlan(executionPlan);
@@ -155,7 +159,7 @@ public class RemoteExecutionPlanExecutor {
       // "allSourcesDone" calls either!)
       groupIntermediateDone.set(true);
 
-    return new Runnable() {
+    return new Pair<>(new Runnable() {
       @Override
       public void run() {
         List<Future<?>> futures = new ArrayList<>();
@@ -173,7 +177,7 @@ public class RemoteExecutionPlanExecutor {
           futures.add(f);
         }
 
-        queryRegistry.getOrCreateCurrentStats().setNumberOfThreads(numberOfThreads);
+        queryRegistry.getOrCreateCurrentStatsManager().setNumberOfThreads(numberOfThreads);
 
         for (Future<?> f : futures)
           try {
@@ -187,7 +191,7 @@ public class RemoteExecutionPlanExecutor {
           }
         callback.executionDone();
       }
-    };
+    }, executablePlans);
   }
 
   /**

@@ -51,7 +51,7 @@ import org.diqube.util.Pair;
 public class QueryRegistry {
   private Map<Pair<UUID, UUID>, QueryExceptionHandler> exceptionHandlers = new ConcurrentHashMap<>();
   private Map<UUID, Deque<QueryResultHandler>> resultHandlers = new ConcurrentHashMap<>();
-  private Map<UUID, QueryStats> queryStats = new ConcurrentHashMap<>();
+  private Map<UUID, QueryStatsManager> queryStats = new ConcurrentHashMap<>();
   private ConcurrentMap<UUID, Map<UUID, QueryStatsListener>> queryStatsListeners = new ConcurrentHashMap<>();;
 
   /**
@@ -150,12 +150,12 @@ public class QueryRegistry {
    * @throws IllegalStateException
    *           If current queryUuid or executionUuid cannot be found.
    */
-  public QueryStats getOrCreateCurrentStats() throws IllegalStateException {
+  public QueryStatsManager getOrCreateCurrentStatsManager() throws IllegalStateException {
     UUID queryUuid = QueryUuid.getCurrentQueryUuid();
     UUID executionUuid = QueryUuid.getCurrentExecutionUuid();
     if (queryUuid == null || executionUuid == null)
       throw new IllegalStateException("No current query and execution!");
-    return getOrCreateStats(queryUuid, executionUuid);
+    return getOrCreateStatsManager(queryUuid, executionUuid);
   }
 
   /**
@@ -165,7 +165,7 @@ public class QueryRegistry {
    * @throws IllegalStateException
    *           If current executionUuid cannot be determined.
    */
-  public QueryStats getCurrentStats() throws IllegalStateException {
+  public QueryStatsManager getCurrentStatsManager() throws IllegalStateException {
     UUID executionUuid = QueryUuid.getCurrentExecutionUuid();
     if (executionUuid == null)
       throw new IllegalStateException("No current query and execution!");
@@ -177,11 +177,11 @@ public class QueryRegistry {
    * 
    * @return The active {@link QueryStats} for that query/execution, there is one created if not yet available.
    */
-  public QueryStats getOrCreateStats(UUID queryUuid, UUID executionUuid) {
+  public QueryStatsManager getOrCreateStatsManager(UUID queryUuid, UUID executionUuid) {
     if (!queryStats.containsKey(executionUuid)) {
       synchronized (queryStats) {
         if (!queryStats.containsKey(executionUuid))
-          queryStats.put(executionUuid, new QueryStats(queryUuid));
+          queryStats.put(executionUuid, new QueryStatsManager());
       }
     }
 

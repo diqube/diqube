@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import org.diqube.execution.ColumnVersionManager;
 import org.diqube.execution.ColumnVersionManagerFactory;
 import org.diqube.execution.ExecutablePlan;
 import org.diqube.execution.ExecutablePlanFactory;
@@ -117,8 +118,11 @@ public class ExecutionPlanner {
     RemoteResolveManager remoteResolveManager =
         new RemoteResolveManager(nextRemoteIdSupplier, remoteColManager, remoteExecutionPlanFactory, remoteWireManager);
 
+    ColumnVersionManager masterColumnVersionManager =
+        columnVersionManagerFactory.createColumnVersionManager(masterDefaultExecutionEnv);
+
     MasterColumnManager masterColManager = new MasterColumnManager(masterDefaultExecutionEnv, nextMasterIdSupplier,
-        executablePlanFactory, columnVersionManagerFactory, columnInfo, remoteResolveManager, masterWireManager);
+        executablePlanFactory, masterColumnVersionManager, columnInfo, remoteResolveManager, masterWireManager);
     MasterResolveManager masterResolveManager = new MasterResolveManager(nextMasterIdSupplier,
         masterDefaultExecutionEnv, executablePlanFactory, masterColManager, masterWireManager, resultColNamesRequested);
 
@@ -372,7 +376,8 @@ public class ExecutionPlanner {
 
     // TODO #19 support selecting non-cols
     ExecutablePlanInfo info = createInfo(executionRequest);
-    ExecutablePlan plan = executablePlanFactory.createExecutablePlan(masterDefaultExecutionEnv, allMasterSteps, info);
+    ExecutablePlan plan = executablePlanFactory.createExecutablePlan(masterDefaultExecutionEnv, allMasterSteps, info,
+        masterColumnVersionManager);
 
     return plan;
   }

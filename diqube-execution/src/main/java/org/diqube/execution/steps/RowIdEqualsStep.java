@@ -59,6 +59,8 @@ import org.diqube.execution.env.VersionedExecutionEnvironment;
 import org.diqube.execution.exception.ExecutablePlanBuildException;
 import org.diqube.execution.exception.ExecutablePlanExecutionException;
 import org.diqube.queries.QueryRegistry;
+import org.diqube.queries.QueryUuid;
+import org.diqube.queries.QueryUuid.QueryUuidThreadState;
 import org.diqube.util.DiqubeCollectors;
 import org.diqube.util.HashingBatchCollector;
 import org.diqube.util.Pair;
@@ -286,7 +288,7 @@ public class RowIdEqualsStep extends AbstractThreadedExecutablePlanStep {
           }
         }
 
-        rowIdEqualsConstants(curEnv, columnValueIdsOfSearchedValues, pages, activeRowIds);
+        rowIdEqualsConstants(curEnv, colName, columnValueIdsOfSearchedValues, pages, activeRowIds);
       } else {
         // we're supposed to compare to cols to each other.
         if (curEnv.getColumnShard(otherColName) == null)
@@ -302,7 +304,7 @@ public class RowIdEqualsStep extends AbstractThreadedExecutablePlanStep {
           NavigableMap<Long, Long> equalColumnValueIds =
               findEqualIds(curEnv.getPureStandardColumnShard(colName), curEnv.getPureStandardColumnShard(otherColName));
 
-          rowIdEqualsOtherCol(curEnv, pages, pages2, equalColumnValueIds, activeRowIds);
+          rowIdEqualsOtherCol(curEnv, colName, pages, otherColName, pages2, equalColumnValueIds, activeRowIds);
         }
       }
     }
@@ -319,33 +321,43 @@ public class RowIdEqualsStep extends AbstractThreadedExecutablePlanStep {
         .findEqualIds((Dictionary<T>) shard2.getColumnShardDictionary());
   }
 
-  private void rowIdEqualsConstants(ExecutionEnvironment curEnv, Long[] columnValueIdsOfSearchedValues,
+  private void rowIdEqualsConstants(ExecutionEnvironment curEnv, String colName, Long[] columnValueIdsOfSearchedValues,
       Collection<ColumnPage> pages, NavigableSet<Long> activeRowIds) {
-    sendRowIds(curEnv, rowIdEqualsStream(columnValueIdsOfSearchedValues, pages, activeRowIds));
+    sendRowIds(curEnv, rowIdEqualsStream(curEnv, colName, columnValueIdsOfSearchedValues, pages, activeRowIds));
   }
 
   /**
    * Executes a terminal operation on the given stream that will send the row IDs to all output {@link RowIdConsumer}s.
    */
-  private void sendRowIds(ExecutionEnvironment curEnv, Stream<Long> rowIdStream) {
-    rowIdStream. //
+  private void sendRowIds(ExecutionEnvironment curEnv, Pair<Stream<Long>, QueryUuidThreadState> rowIdStreamPair) {
+    Stream<Long> stream = rowIdStreamPair.getLeft();
+    QueryUuidThreadState uuidState = rowIdStreamPair.getRight();
+    stream. //
         collect(new HashingBatchCollector<Long>( // RowIds are unique, so using BatchCollector is ok.
             100, // Batch size
             len -> new Long[len], // new result array
             new Consumer<Long[]>() { // Batch-collect the row IDs
               @Override
               public void accept(Long[] t) {
-                if (columnVersionBuiltConsumer.getNumberOfTimesWired() == 0)
-                  forEachOutputConsumerOfType(RowIdConsumer.class, c -> c.consume(t));
-                else
-                  forEachOutputConsumerOfType(OverwritingRowIdConsumer.class, c -> c.consume(curEnv, t));
+                QueryUuid.setCurrentThreadState(uuidState);
+                try {
+                  if (columnVersionBuiltConsumer.getNumberOfTimesWired() == 0)
+                    forEachOutputConsumerOfType(RowIdConsumer.class, c -> c.consume(t));
+                  else
+                    forEachOutputConsumerOfType(OverwritingRowIdConsumer.class, c -> c.consume(curEnv, t));
+                } finally {
+                  QueryUuid.clearCurrent();
+                }
               }
             }));
+    QueryUuid.setCurrentThreadState(uuidState);
   }
 
   /**
    * Searches row IDs containing specific values.
    * 
+   * @param env
+   *          The current {@link ExecutionEnvironment}.
    * @param columnValueIdsOfSearchedValues
    *          The ColumnValueIDs of the searched values.
    * @param pages
@@ -354,69 +366,96 @@ public class RowIdEqualsStep extends AbstractThreadedExecutablePlanStep {
    *          The row IDs that are 'active' - only these row IDs will be searched for the given column value IDs. These
    *          row IDs will be used in order to reduce the number of pages that will be inspected. May be
    *          <code>null</code>.
-   * @return Stream of rowIDs where the column is equal to one of the given values. If activeRowIds is set, this
-   *         returned stream contains a (non-strict) sub-set of those activeRowIds.
+   * 
+   * @return Pair of stream of rowIds and a {@link QueryUuidThreadState}. Stream of rowIDs is where the column is equal
+   *         to one of the given values. If activeRowIds is set, this returned stream contains a (non-strict) sub-set of
+   *         those activeRowIds. The {@link QueryUuidThreadState} needs to be restored as soon as a terminal operation
+   *         on the returned stream was executed.
    */
-  private Stream<Long> rowIdEqualsStream(Long[] columnValueIdsOfSearchedValues, Collection<ColumnPage> pages,
-      NavigableSet<Long> activeRowIds) {
-    return pages.stream().parallel(). // stream all Pages in parallel
+  private Pair<Stream<Long>, QueryUuidThreadState> rowIdEqualsStream(ExecutionEnvironment env, String colName,
+      Long[] columnValueIdsOfSearchedValues, Collection<ColumnPage> pages, NavigableSet<Long> activeRowIds) {
+    QueryUuidThreadState uuidState = QueryUuid.getCurrentThreadState();
+    return new Pair<>(pages.stream().parallel(). // stream all Pages in parallel
         filter(new Predicate<ColumnPage>() { // filter out inactive Pages
           @Override
           public boolean test(ColumnPage page) {
-            if (activeRowIds != null) {
-              // If we're restricting the row IDs, we check if the page contains any row that we are interested in.
-              Long interestedRowId = activeRowIds.ceiling(page.getFirstRowId());
-              if (interestedRowId == null || interestedRowId > page.getFirstRowId() + page.size())
-                return false;
-            }
+            QueryUuid.setCurrentThreadState(uuidState);
 
-            return page.getColumnPageDict().containsAnyValue(columnValueIdsOfSearchedValues);
+            try {
+              if (activeRowIds != null) {
+                // If we're restricting the row IDs, we check if the page contains any row that we are interested in.
+                Long interestedRowId = activeRowIds.ceiling(page.getFirstRowId());
+                if (interestedRowId == null || interestedRowId > page.getFirstRowId() + page.size())
+                  return false;
+              }
+
+              return page.getColumnPageDict().containsAnyValue(columnValueIdsOfSearchedValues);
+            } finally {
+              QueryUuid.clearCurrent();
+            }
           }
         }).map(new Function<ColumnPage, Pair<ColumnPage, Set<Long>>>() { // find ColumnPageValue IDs for active
                                                                          // Pages
           @Override
           public Pair<ColumnPage, Set<Long>> apply(ColumnPage page) {
-            Long[] pageValueIdsArray = page.getColumnPageDict().findIdsOfValues(columnValueIdsOfSearchedValues);
-            Set<Long> pageValueIdsSet = new HashSet<Long>(Arrays.asList(pageValueIdsArray));
-            return new Pair<>(page, pageValueIdsSet);
+            QueryUuid.setCurrentThreadState(uuidState);
+            try {
+              queryRegistry.getOrCreateCurrentStatsManager().registerPageAccess(page, env.isTemporaryColumn(colName));
+
+              Long[] pageValueIdsArray = page.getColumnPageDict().findIdsOfValues(columnValueIdsOfSearchedValues);
+              Set<Long> pageValueIdsSet = new HashSet<Long>(Arrays.asList(pageValueIdsArray));
+              return new Pair<>(page, pageValueIdsSet);
+            } finally {
+              QueryUuid.clearCurrent();
+            }
           }
         }).flatMap(new Function<Pair<ColumnPage, Set<Long>>, Stream<Long>>() { // resolve RowIDs and map them flat
           // into a single stream
           @Override
           public Stream<Long> apply(Pair<ColumnPage, Set<Long>> pagePair) {
-            ColumnPage page = pagePair.getLeft();
-            Set<Long> searchedPageValueIds = pagePair.getRight();
-            List<Long> res = new LinkedList<>();
-            if (activeRowIds != null) {
-              // If we're restricted to a specific set of row IDs, we decompress only the corresponding values and
-              // check those.
-              SortedSet<Long> activeRowIdsInThisPage = activeRowIds.subSet( //
-                  page.getFirstRowId(), page.getFirstRowId() + page.size());
+            QueryUuid.setCurrentThreadState(uuidState);
 
-              for (Long rowId : activeRowIdsInThisPage) {
-                // TODO #7 perhaps decompress whole value array, as it may be RLE encoded anyway.
-                Long decompressedColumnPageId = page.getValues().get((int) (rowId - page.getFirstRowId()));
-                if (searchedPageValueIds.contains(decompressedColumnPageId))
-                  res.add(rowId);
+            try {
+              ColumnPage page = pagePair.getLeft();
+              Set<Long> searchedPageValueIds = pagePair.getRight();
+              List<Long> res = new LinkedList<>();
+              if (activeRowIds != null) {
+                // If we're restricted to a specific set of row IDs, we decompress only the corresponding values and
+                // check those.
+                SortedSet<Long> activeRowIdsInThisPage = activeRowIds.subSet( //
+                    page.getFirstRowId(), page.getFirstRowId() + page.size());
+
+                for (Long rowId : activeRowIdsInThisPage) {
+                  // TODO #7 perhaps decompress whole value array, as it may be RLE encoded anyway.
+                  Long decompressedColumnPageId = page.getValues().get((int) (rowId - page.getFirstRowId()));
+                  if (searchedPageValueIds.contains(decompressedColumnPageId))
+                    res.add(rowId);
+                }
+              } else {
+                // TODO #2 STAT use statistics to decide if we should decompress the whole array here.
+                long[] decompressedValues = page.getValues().decompressedArray();
+                for (int i = 0; i < decompressedValues.length; i++) {
+                  if (searchedPageValueIds.contains(decompressedValues[i]))
+                    res.add(i + page.getFirstRowId());
+                }
               }
-            } else {
-              // TODO #2 STAT use statistics to decide if we should decompress the whole array here.
-              long[] decompressedValues = page.getValues().decompressedArray();
-              for (int i = 0; i < decompressedValues.length; i++) {
-                if (searchedPageValueIds.contains(decompressedValues[i]))
-                  res.add(i + page.getFirstRowId());
-              }
+              return res.stream();
+            } finally {
+              QueryUuid.clearCurrent();
             }
-            return res.stream();
           }
-        });
+        }), uuidState);
   }
 
   /**
    * Finds row IDs where two columns have the same value.
    * 
+   * @param colName1
+   *          Name of the column "pages1" belongs to.
    * @param pages1
    *          All {@link ColumnPage}s of the first column.
+   * @param colName2
+   *          Name of the column "pages2" belongs to.
    * @param pages2
    *          All {@link ColumnPage}s of the second column.
    * @param equalColumnValueIds
@@ -425,19 +464,23 @@ public class RowIdEqualsStep extends AbstractThreadedExecutablePlanStep {
    * @param activeRowIds
    *          If there are any, the set of row IDs that should be inspected at most.
    */
-  private void rowIdEqualsOtherCol(ExecutionEnvironment curEnv, Collection<ColumnPage> pages1,
-      Collection<ColumnPage> pages2, NavigableMap<Long, Long> equalColumnValueIds, NavigableSet<Long> activeRowIds) {
+  private void rowIdEqualsOtherCol(ExecutionEnvironment curEnv, String colName1, Collection<ColumnPage> pages1,
+      String colName2, Collection<ColumnPage> pages2, NavigableMap<Long, Long> equalColumnValueIds,
+      NavigableSet<Long> activeRowIds) {
     Long[] columnValueIds1 = equalColumnValueIds.keySet().stream().toArray((l) -> new Long[l]);
     Long[] columnValueIds2 = equalColumnValueIds.values().stream().sorted().toArray((l) -> new Long[l]);
 
     // TODO #2 STAT use statistics to first search the column that produces less results.
 
     // first: Find rows in col1 that have the given value
-    Stream<Long> stillActiveRowIds = rowIdEqualsStream(columnValueIds1, pages1, activeRowIds);
+    Pair<Stream<Long>, QueryUuidThreadState> stillActiveRowIdsPair =
+        rowIdEqualsStream(curEnv, colName, columnValueIds1, pages1, activeRowIds);
+    NavigableSet<Long> stillActiveRowIds = stillActiveRowIdsPair.getLeft().collect(DiqubeCollectors.toNavigableSet());
+    QueryUuid.setCurrentThreadState(stillActiveRowIdsPair.getRight());
 
     // then: search in the resulting Row ID stream those rowIds that have a valid value in col2.
-    Stream<Long> equalRowIds =
-        rowIdEqualsStream(columnValueIds2, pages2, stillActiveRowIds.collect(DiqubeCollectors.toNavigableSet()));
+    Pair<Stream<Long>, QueryUuidThreadState> equalRowIds =
+        rowIdEqualsStream(curEnv, otherColName, columnValueIds2, pages2, stillActiveRowIds);
 
     sendRowIds(curEnv, equalRowIds);
   }

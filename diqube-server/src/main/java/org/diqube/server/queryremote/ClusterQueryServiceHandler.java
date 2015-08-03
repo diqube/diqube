@@ -21,12 +21,12 @@
 package org.diqube.server.queryremote;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
-import java.util.concurrent.atomic.AtomicLong;
 
 import javax.inject.Inject;
 
@@ -38,6 +38,7 @@ import org.diqube.cluster.connection.ConnectionPool;
 import org.diqube.cluster.connection.SocketListener;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.data.TableShard;
+import org.diqube.execution.ExecutablePlan;
 import org.diqube.execution.ExecutablePlanFromRemoteBuilderFactory;
 import org.diqube.execution.TableRegistry;
 import org.diqube.function.IntermediaryResult;
@@ -62,7 +63,9 @@ import org.diqube.remote.cluster.thrift.ROldNewIntermediateAggregationResult;
 import org.diqube.remote.query.thrift.QueryService;
 import org.diqube.server.querymaster.QueryServiceHandler;
 import org.diqube.server.queryremote.RemoteExecutionPlanExecutor.RemoteExecutionPlanExecutionCallback;
+import org.diqube.server.util.ExecutablePlanQueryStatsUtil;
 import org.diqube.threads.ExecutorManager;
+import org.diqube.util.Holder;
 import org.diqube.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -126,8 +129,6 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
     UUID queryUuid = RUuidUtil.toUuid(remoteQueryUuid);
     // The executionUuid we will use for the all executors executing something started by this API call.
     UUID executionUuid = queryUuidProvider.createNewExecutionUuid(queryUuid, "remote-" + queryUuid);
-
-    AtomicLong startNanos = new AtomicLong(System.nanoTime());
 
     if (resultAddress.equals(clusterManager.getOurHostAddr().createRemote())) {
       // implement short cut if we should answer to the local node, i.e. the query master is running on this node, too.
@@ -195,7 +196,9 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
       }
     };
 
-    Runnable execute =
+    Holder<List<ExecutablePlan>> executablePlansHolder = new Holder<>();
+
+    Pair<Runnable, List<ExecutablePlan>> prepareRes =
         executor.prepareExecution(queryUuid, executionUuid, executionPlan, new RemoteExecutionPlanExecutionCallback() {
           @Override
           public void newGroupIntermediaryAggregration(long groupId, String colName,
@@ -225,24 +228,23 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
 
           @Override
           public void executionDone() {
-            long endNanos = System.nanoTime();
-            long overallExecutionMs = (long) ((endNanos - startNanos.get()) / 1e6);
-            queryRegistry.getOrCreateCurrentStats().setStartedUntilDoneMs(overallExecutionMs);
+            // gather final stats
+            queryRegistry.getOrCreateCurrentStatsManager().setCompletedNanos(System.nanoTime());
 
-            QueryStats stats = queryRegistry.getCurrentStats();
-            if (stats != null) {
-              RClusterQueryStatistics remoteStats = RClusterQueryStatsUtil.createRQueryStats(stats);
-              logger.trace("Sending query statistics of {} to query master: {}", queryUuid, remoteStats);
-              synchronized (connSync) {
-                try {
-                  resultService.queryStatistics(remoteQueryUuid, remoteStats);
-                } catch (TException e) {
-                  logger.error("Could not send statistics to client for query {}", queryUuid, e);
-                }
-              }
-            }
+            for (ExecutablePlan plan : executablePlansHolder.getValue())
+              new ExecutablePlanQueryStatsUtil().publishQueryStats(queryRegistry.getCurrentStatsManager(), plan);
 
+            // send stats
+            RClusterQueryStatistics remoteStats =
+                RClusterQueryStatsUtil.createRQueryStats(queryRegistry.getCurrentStatsManager().createQueryStats());
+            logger.trace("Sending query statistics of {} to query master: {}", queryUuid, remoteStats);
             synchronized (connSync) {
+              try {
+                resultService.queryStatistics(remoteQueryUuid, remoteStats);
+              } catch (TException e) {
+                logger.error("Could not send statistics to client for query {}", queryUuid, e);
+              }
+
               try {
                 resultService.executionDone(remoteQueryUuid);
               } catch (TException e) {
@@ -266,15 +268,16 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
             exceptionHandler.handleException(null);
           }
         });
+    executablePlansHolder.setValue(prepareRes.getRight());
 
     // prepare to launch the execution in a different Thread
     Executor threadPool = executorManager.newQueryFixedThreadPool(1, "query-remote-master-" + queryUuid + "-%d",
         queryUuid, executionUuid);
     queryRegistry.registerQueryExecution(queryUuid, executionUuid, exceptionHandler);
 
-    startNanos.set(System.nanoTime());
     // start execution of ExecutablePlan(s) asynchronously.
-    threadPool.execute(execute);
+    queryRegistry.getOrCreateCurrentStatsManager().setStartedNanos(System.nanoTime());
+    threadPool.execute(prepareRes.getLeft());
   }
 
   /**
@@ -361,7 +364,7 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
   @Override
   public void queryStatistics(RUUID remoteQueryUuid, RClusterQueryStatistics remoteStats) throws TException {
     UUID queryUuid = RUuidUtil.toUuid(remoteQueryUuid);
-    QueryStats stats = RClusterQueryStatsUtil.createQueryStats(queryUuid, remoteStats);
+    QueryStats stats = RClusterQueryStatsUtil.createQueryStats(remoteStats);
 
     queryRegistry.remoteQueryStatsAvailable(queryUuid, stats);
   }

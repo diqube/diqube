@@ -44,6 +44,8 @@ import org.diqube.execution.consumers.AbstractThreadedColumnBuiltConsumer;
 import org.diqube.execution.consumers.ColumnBuiltConsumer;
 import org.diqube.execution.consumers.GenericConsumer;
 import org.diqube.execution.env.ExecutionEnvironment;
+import org.diqube.execution.env.querystats.QueryableColumnShard;
+import org.diqube.execution.env.querystats.QueryableLongColumnShard;
 import org.diqube.execution.exception.ExecutablePlanBuildException;
 import org.diqube.execution.exception.ExecutablePlanExecutionException;
 import org.diqube.execution.util.ColumnPatternUtil;
@@ -81,12 +83,13 @@ import com.google.common.collect.Sets;
  * @author Bastian Gloeckle
  */
 public class RepeatedProjectStep extends AbstractThreadedExecutablePlanStep {
-  private static final Function<LongColumnShard, Long> MAX_LENGTH_PROVIDER = new Function<LongColumnShard, Long>() {
-    @Override
-    public Long apply(LongColumnShard t) {
-      return t.getColumnShardDictionary().decompressValue(t.getColumnShardDictionary().getMaxId());
-    }
-  };
+  private static final Function<QueryableLongColumnShard, Long> MAX_LENGTH_PROVIDER =
+      new Function<QueryableLongColumnShard, Long>() {
+        @Override
+        public Long apply(QueryableLongColumnShard t) {
+          return t.getColumnShardDictionary().decompressValue(t.getColumnShardDictionary().getMaxId());
+        }
+      };
 
   private AtomicBoolean allInputColumnsBuilt = new AtomicBoolean(false);
 
@@ -226,9 +229,9 @@ public class RepeatedProjectStep extends AbstractThreadedExecutablePlanStep {
             if (colShard != null)
               value = ((ConstantColumnShard) colShard).getValue();
             else {
-              colShard = defaultEnv.getPureStandardColumnShard(actualColName);
-              value =
-                  colShard.getColumnShardDictionary().decompressValue(colShard.resolveColumnValueIdForRow(finalRowId));
+              QueryableColumnShard queryableColShard = defaultEnv.getColumnShard(actualColName);
+              value = queryableColShard.getColumnShardDictionary()
+                  .decompressValue(queryableColShard.resolveColumnValueIdForRow(finalRowId));
             }
           }
           fn.provideConstantParameter(paramIdx, value);

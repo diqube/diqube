@@ -21,16 +21,17 @@
 package org.diqube.execution.env;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.diqube.data.TableShard;
-import org.diqube.data.colshard.ColumnShard;
-import org.diqube.data.dbl.DoubleColumnShard;
-import org.diqube.data.lng.LongColumnShard;
-import org.diqube.data.str.StringColumnShard;
-import org.diqube.execution.env.querystats.DoubleColumnShardStatsFacade;
-import org.diqube.execution.env.querystats.LongColumnShardStatsFacade;
-import org.diqube.execution.env.querystats.StringColumnShardStatsFacade;
+import org.diqube.execution.env.querystats.QueryableColumnShard;
+import org.diqube.execution.env.querystats.QueryableDoubleColumnShard;
+import org.diqube.execution.env.querystats.QueryableDoubleColumnShardFacade;
+import org.diqube.execution.env.querystats.QueryableLongColumnShard;
+import org.diqube.execution.env.querystats.QueryableLongColumnShardFacade;
+import org.diqube.execution.env.querystats.QueryableStringColumnShard;
+import org.diqube.execution.env.querystats.QueryableStringColumnShardFacade;
 import org.diqube.queries.QueryRegistry;
 
 /**
@@ -75,38 +76,38 @@ public class DefaultExecutionEnvironment extends AbstractExecutionEnvironment {
   }
 
   @Override
-  protected LongColumnShard delegateGetLongColumnShard(String name) {
+  protected QueryableLongColumnShard delegateGetLongColumnShard(String name) {
     if (tableShard != null && tableShard.getLongColumns().get(name) != null)
-      return new LongColumnShardStatsFacade(tableShard.getLongColumns().get(name), false);
+      return new QueryableLongColumnShardFacade(tableShard.getLongColumns().get(name), false, queryRegistry);
     return null;
   }
 
   @Override
-  protected StringColumnShard delegateGetStringColumnShard(String name) {
+  protected QueryableStringColumnShard delegateGetStringColumnShard(String name) {
     if (tableShard != null && tableShard.getStringColumns().get(name) != null)
-      return new StringColumnShardStatsFacade(tableShard.getStringColumns().get(name), false);
+      return new QueryableStringColumnShardFacade(tableShard.getStringColumns().get(name), false, queryRegistry);
     return null;
   }
 
   @Override
-  protected DoubleColumnShard delegateGetDoubleColumnShard(String name) {
+  protected QueryableDoubleColumnShard delegateGetDoubleColumnShard(String name) {
     if (tableShard != null && tableShard.getDoubleColumns().get(name) != null)
-      return new DoubleColumnShardStatsFacade(tableShard.getDoubleColumns().get(name), false);
+      return new QueryableDoubleColumnShardFacade(tableShard.getDoubleColumns().get(name), false, queryRegistry);
     return null;
   }
 
   @Override
-  protected Map<String, ColumnShard> delegateGetAllColumnShards() {
-    Map<String, ColumnShard> res = new HashMap<>();
+  protected Map<String, QueryableColumnShard> delegateGetAllColumnShards() {
+    Map<String, QueryableColumnShard> res = new HashMap<>();
     if (tableShard != null) {
-      tableShard.getDoubleColumns().entrySet().stream()
-          .forEach(entry -> res.put(entry.getKey(), new DoubleColumnShardStatsFacade(entry.getValue(), false)));
+      tableShard.getDoubleColumns().entrySet().stream().forEach(entry -> res.put(entry.getKey(),
+          new QueryableDoubleColumnShardFacade(entry.getValue(), false, queryRegistry)));
 
-      tableShard.getStringColumns().entrySet().stream()
-          .forEach(entry -> res.put(entry.getKey(), new StringColumnShardStatsFacade(entry.getValue(), false)));
+      tableShard.getStringColumns().entrySet().stream().forEach(entry -> res.put(entry.getKey(),
+          new QueryableStringColumnShardFacade(entry.getValue(), false, queryRegistry)));
 
-      tableShard.getLongColumns().entrySet().stream()
-          .forEach(entry -> res.put(entry.getKey(), new LongColumnShardStatsFacade(entry.getValue(), false)));
+      tableShard.getLongColumns().entrySet().stream().forEach(
+          entry -> res.put(entry.getKey(), new QueryableLongColumnShardFacade(entry.getValue(), false, queryRegistry)));
     }
 
     return res;
@@ -116,6 +117,26 @@ public class DefaultExecutionEnvironment extends AbstractExecutionEnvironment {
   public String toString() {
     return this.getClass().getSimpleName() + "[tableShard=" + ((tableShard == null) ? "null" : tableShard.toString())
         + "]";
+  }
+
+  @Override
+  protected boolean delegateIsTemporaryColumns(String colName) {
+    // delegate loads from tableShard, so "no", this col is no temp col.
+    return false;
+  }
+
+  @Override
+  protected Map<String, List<QueryableColumnShard>> delegateGetAllTemporaryColumnShards() {
+    return new HashMap<>();
+  }
+
+  @Override
+  protected Map<String, QueryableColumnShard> delegateGetAllNonTemporaryColumnShards() {
+    Map<String, QueryableColumnShard> res = new HashMap<>();
+    if (tableShard != null)
+      res.putAll(delegateGetAllColumnShards());
+
+    return res;
   }
 
 }

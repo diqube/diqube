@@ -34,7 +34,6 @@ import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
 import org.diqube.data.TableShard;
-import org.diqube.data.colshard.ColumnShard;
 import org.diqube.data.colshard.StandardColumnShard;
 import org.diqube.execution.consumers.AbstractThreadedColumnBuiltConsumer;
 import org.diqube.execution.consumers.AbstractThreadedRowIdConsumer;
@@ -44,6 +43,7 @@ import org.diqube.execution.consumers.GroupConsumer;
 import org.diqube.execution.consumers.GroupDeltaConsumer;
 import org.diqube.execution.consumers.RowIdConsumer;
 import org.diqube.execution.env.ExecutionEnvironment;
+import org.diqube.execution.env.querystats.QueryableColumnShard;
 import org.diqube.execution.exception.ExecutablePlanBuildException;
 import org.diqube.queries.QueryRegistry;
 import org.slf4j.Logger;
@@ -140,7 +140,7 @@ public class GroupStep extends AbstractThreadedExecutablePlanStep {
         // Use a Leaf grouper after the last Non-lead grouper.
         return new Grouper();
 
-      ColumnShard shard = defaultEnv.getColumnShard(columnsToGroupBy.get(index));
+      QueryableColumnShard shard = defaultEnv.getColumnShard(columnsToGroupBy.get(index));
       return new Grouper(shard, createGroupers(columnsToGroupBy, index + 1));
     };
   }
@@ -230,13 +230,13 @@ public class GroupStep extends AbstractThreadedExecutablePlanStep {
    * </ul>
    */
   private class Grouper {
-    private ColumnShard column;
+    private QueryableColumnShard column;
     private Map<Long, Grouper> delegateGroupers;
     private Long groupId = null;
     private boolean isLeaf;
     private Supplier<Grouper> delegateGroupersFactory;
 
-    public Grouper(ColumnShard column, Supplier<Grouper> delegateGroupersFactory) {
+    public Grouper(QueryableColumnShard column, Supplier<Grouper> delegateGroupersFactory) {
       this.column = column;
       this.delegateGroupersFactory = delegateGroupersFactory;
       delegateGroupers = new HashMap<>();

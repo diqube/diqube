@@ -48,6 +48,7 @@ import org.diqube.execution.consumers.ColumnVersionBuiltConsumer;
 import org.diqube.execution.consumers.GenericConsumer;
 import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.env.VersionedExecutionEnvironment;
+import org.diqube.execution.env.querystats.QueryableColumnShard;
 import org.diqube.execution.exception.ExecutablePlanBuildException;
 import org.diqube.execution.exception.ExecutablePlanExecutionException;
 import org.diqube.function.FunctionFactory;
@@ -452,7 +453,7 @@ public class ProjectStep extends AbstractThreadedExecutablePlanStep {
    * @return number of elements resolved - this might be smaller than 'length' in case source column did not provide
    *         enough data.
    */
-  private int resolveValuesFromColumn(ColumnShard column, long firstRowId, int length, Object[] result) {
+  private int resolveValuesFromColumn(QueryableColumnShard column, long firstRowId, int length, Object[] result) {
     if (column.getFirstRowId() > firstRowId) {
       // make sure firstRowId is inside the column shard.
       long delta = firstRowId - column.getFirstRowId();

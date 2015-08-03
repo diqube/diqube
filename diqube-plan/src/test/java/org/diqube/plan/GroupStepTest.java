@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Function;
 
 import org.diqube.data.ColumnType;
@@ -53,10 +54,12 @@ import org.diqube.loader.LoaderColumnInfo;
 import org.diqube.loader.columnshard.ColumnShardBuilderFactory;
 import org.diqube.loader.columnshard.ColumnShardBuilderManager;
 import org.diqube.queries.QueryRegistry;
+import org.diqube.queries.QueryUuid;
 import org.diqube.util.Pair;
 import org.mockito.Mockito;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.testng.Assert;
+import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -98,6 +101,13 @@ public class GroupStepTest {
     resultFullGroups = new HashMap<>();
 
     columns = new HashMap<>();
+
+    QueryUuid.setCurrentQueryUuidAndExecutionUuid(UUID.randomUUID(), UUID.randomUUID());
+  }
+
+  @AfterMethod
+  public void cleanup() {
+    QueryUuid.clearCurrent();
   }
 
   @Test

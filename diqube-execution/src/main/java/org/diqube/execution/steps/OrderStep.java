@@ -33,7 +33,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import org.diqube.data.colshard.ColumnShard;
 import org.diqube.data.colshard.StandardColumnShard;
 import org.diqube.execution.ColumnVersionBuiltHelper;
 import org.diqube.execution.consumers.AbstractThreadedColumnBuiltConsumer;
@@ -46,6 +45,7 @@ import org.diqube.execution.consumers.OrderedRowIdConsumer;
 import org.diqube.execution.consumers.RowIdConsumer;
 import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.env.VersionedExecutionEnvironment;
+import org.diqube.execution.env.querystats.QueryableColumnShard;
 import org.diqube.execution.exception.ExecutablePlanBuildException;
 import org.diqube.queries.QueryRegistry;
 import org.diqube.util.ArrayViewLongList;
@@ -248,7 +248,7 @@ public class OrderStep extends AbstractThreadedExecutablePlanStep {
         String colName = sortCol.getLeft();
         boolean sortAsc = sortCol.getRight();
 
-        ColumnShard column = executionEnvironment.getColumnShard(colName);
+        QueryableColumnShard column = executionEnvironment.getColumnShard(colName);
         ColumnValueIdResolver resolver = (rowId) -> column.resolveColumnValueIdForRow(rowId);
 
         SortComparator newComparator = new SortComparator(resolver, sortAsc);

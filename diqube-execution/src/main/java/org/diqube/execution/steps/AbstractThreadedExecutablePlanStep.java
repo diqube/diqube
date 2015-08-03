@@ -94,7 +94,7 @@ public abstract class AbstractThreadedExecutablePlanStep implements ExecutablePl
 
       long activeMs = (long) ((endNanos - startNanos) / 1e6);
 
-      queryRegistry.getOrCreateCurrentStats().addStepThreadActiveMs(stepId, activeMs);
+      queryRegistry.getOrCreateCurrentStatsManager().addStepThreadActiveMs(stepId, activeMs);
 
       if (doneProcessing.get())
         break;

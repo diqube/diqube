@@ -55,9 +55,12 @@ import org.diqube.execution.consumers.OverwritingRowIdConsumer;
 import org.diqube.execution.consumers.RowIdConsumer;
 import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.env.VersionedExecutionEnvironment;
+import org.diqube.execution.env.querystats.QueryableColumnShard;
 import org.diqube.execution.exception.ExecutablePlanBuildException;
 import org.diqube.execution.exception.ExecutablePlanExecutionException;
 import org.diqube.queries.QueryRegistry;
+import org.diqube.queries.QueryUuid;
+import org.diqube.queries.QueryUuid.QueryUuidThreadState;
 import org.diqube.util.HashingBatchCollector;
 import org.diqube.util.Pair;
 import org.slf4j.Logger;
@@ -280,9 +283,9 @@ public class RowIdInequalStep extends AbstractThreadedExecutablePlanStep {
           throw new ExecutablePlanExecutionException("Cannot compare column " + colName + " to column " + otherColName
               + " as they have different data types.");
 
-        StandardColumnShard otherColumnShard = curEnv.getPureStandardColumnShard(otherColName);
+        QueryableColumnShard otherColumnShard = curEnv.getColumnShard(otherColName);
 
-        if (otherColumnShard.getPages().size() > 0)
+        if (((StandardColumnShard) otherColumnShard.getDelegate()).getPages().size() > 0)
           executeOnOtherCol(curEnv, columnShard, otherColumnShard, activeRowIds, comparator);
       }
     }
@@ -309,13 +312,19 @@ public class RowIdInequalStep extends AbstractThreadedExecutablePlanStep {
    */
   private void compareToConstant(ExecutionEnvironment curEnv, Object constantValue, StandardColumnShard column,
       NavigableSet<Long> activeRowIds, RowIdComparator comparator) {
-    sendRowIds(curEnv, rowIdStreamOfConstant(column, constantValue, activeRowIds, comparator));
+    sendRowIds(curEnv, rowIdStreamOfConstant(curEnv, column, constantValue, activeRowIds, comparator));
   }
 
   /**
    * Executes a terminal operation on the given stream that will send the row IDs to all output {@link RowIdConsumer}s.
+   * 
+   * @param rowIdStreamPair
+   *          Pair of stream producing rowIds, and the {@link QueryUuidThreadState} that should be re-constructed as
+   *          soon as the terminal operation on the stream was executed.
    */
-  private void sendRowIds(ExecutionEnvironment curEnv, Stream<Long> rowIdStream) {
+  private void sendRowIds(ExecutionEnvironment curEnv, Pair<Stream<Long>, QueryUuidThreadState> rowIdStreamPair) {
+    Stream<Long> rowIdStream = rowIdStreamPair.getLeft();
+    QueryUuidThreadState uuidState = rowIdStreamPair.getRight();
     rowIdStream. //
         collect(new HashingBatchCollector<Long>( // RowIds are unique, so using BatchCollector is ok.
             100, // Batch size
@@ -323,12 +332,18 @@ public class RowIdInequalStep extends AbstractThreadedExecutablePlanStep {
             new Consumer<Long[]>() { // Batch-collect the row IDs
               @Override
               public void accept(Long[] t) {
-                if (columnVersionBuiltConsumer.getNumberOfTimesWired() == 0)
-                  forEachOutputConsumerOfType(RowIdConsumer.class, c -> c.consume(t));
-                else
-                  forEachOutputConsumerOfType(OverwritingRowIdConsumer.class, c -> c.consume(curEnv, t));
+                QueryUuid.setCurrentThreadState(uuidState);
+                try {
+                  if (columnVersionBuiltConsumer.getNumberOfTimesWired() == 0)
+                    forEachOutputConsumerOfType(RowIdConsumer.class, c -> c.consume(t));
+                  else
+                    forEachOutputConsumerOfType(OverwritingRowIdConsumer.class, c -> c.consume(curEnv, t));
+                } finally {
+                  QueryUuid.clearCurrent();
+                }
               }
             }));
+    QueryUuid.setCurrentThreadState(uuidState);
   }
 
   /**
@@ -339,66 +354,88 @@ public class RowIdInequalStep extends AbstractThreadedExecutablePlanStep {
    * 
    * Example: COL >= constant
    * 
-   * @return A Stream containing the RowIds that matched.
+   * @return A Stream containing the RowIds that matched and the {@link QueryUuidThreadState} that should be
+   *         re-constructed as soon as the terminal operation on the stream was executed.
    */
-  private Stream<Long> rowIdStreamOfConstant(StandardColumnShard column, Object constantValue,
-      NavigableSet<Long> activeRowIds, RowIdComparator comparator) {
+  private Pair<Stream<Long>, QueryUuidThreadState> rowIdStreamOfConstant(ExecutionEnvironment env,
+      StandardColumnShard column, Object constantValue, NavigableSet<Long> activeRowIds, RowIdComparator comparator) {
     Long referenceColumnValueId = comparator.findReferenceColumnValueId(column, constantValue);
+
+    QueryUuidThreadState uuidState = QueryUuid.getCurrentThreadState();
 
     if (referenceColumnValueId == null)
       // no entry matches, return empty stream.
-      return new ArrayList<Long>().stream();
+      return new Pair<>(new ArrayList<Long>().stream(), uuidState);
 
-    return column.getPages().values().stream().parallel(). // stream all Pages in parallel
+    return new Pair<>(column.getPages().values().stream().parallel(). // stream all Pages in parallel
         filter(new Predicate<ColumnPage>() { // filter out inactive Pages
           @Override
           public boolean test(ColumnPage page) {
-            if (activeRowIds != null) {
-              // If we're restricting the row IDs, we check if the page contains any row that we are interested in.
-              Long interestedRowId = activeRowIds.ceiling(page.getFirstRowId());
-              if (interestedRowId == null || interestedRowId > page.getFirstRowId() + page.size())
-                return false;
-            }
+            QueryUuid.setCurrentThreadState(uuidState);
 
-            return comparator.pageContainsAnyRelevantValue(page, referenceColumnValueId);
+            try {
+              if (activeRowIds != null) {
+                // If we're restricting the row IDs, we check if the page contains any row that we are interested in.
+                Long interestedRowId = activeRowIds.ceiling(page.getFirstRowId());
+                if (interestedRowId == null || interestedRowId > page.getFirstRowId() + page.size())
+                  return false;
+              }
+
+              return comparator.pageContainsAnyRelevantValue(page, referenceColumnValueId);
+            } finally {
+              QueryUuid.clearCurrent();
+            }
           }
         }).map(new Function<ColumnPage, Pair<ColumnPage, Set<Long>>>() { // find ColumnPageValue IDs that match the
                                                                          // comparison
           @Override
           public Pair<ColumnPage, Set<Long>> apply(ColumnPage page) {
-            Set<Long> pageValueIds = comparator.findActivePageValueIds(page, referenceColumnValueId);
-            return new Pair<>(page, pageValueIds);
+            QueryUuid.setCurrentThreadState(uuidState);
+            try {
+              queryRegistry.getOrCreateCurrentStatsManager().registerPageAccess(page,
+                  env.isTemporaryColumn(column.getName()));
+
+              Set<Long> pageValueIds = comparator.findActivePageValueIds(page, referenceColumnValueId);
+              return new Pair<>(page, pageValueIds);
+            } finally {
+              QueryUuid.clearCurrent();
+            }
           }
         }).flatMap(new Function<Pair<ColumnPage, Set<Long>>, Stream<Long>>() { // resolve RowIDs and map them flat
           // into a single stream
           @Override
           public Stream<Long> apply(Pair<ColumnPage, Set<Long>> pagePair) {
-            ColumnPage page = pagePair.getLeft();
-            Set<Long> searchedPageValueIds = pagePair.getRight();
-            List<Long> res = new LinkedList<>();
-            if (activeRowIds != null) {
-              // If we're restricted to a specific set of row IDs, we decompress only the corresponding values and
-              // check those.
-              SortedSet<Long> activeRowIdsInThisPage = activeRowIds.subSet( //
-                  page.getFirstRowId(), page.getFirstRowId() + page.size());
+            QueryUuid.setCurrentThreadState(uuidState);
+            try {
+              ColumnPage page = pagePair.getLeft();
+              Set<Long> searchedPageValueIds = pagePair.getRight();
+              List<Long> res = new LinkedList<>();
+              if (activeRowIds != null) {
+                // If we're restricted to a specific set of row IDs, we decompress only the corresponding values and
+                // check those.
+                SortedSet<Long> activeRowIdsInThisPage = activeRowIds.subSet( //
+                    page.getFirstRowId(), page.getFirstRowId() + page.size());
 
-              for (Long rowId : activeRowIdsInThisPage) {
-                // TODO #7 perhaps decompress whole value array, as it may be RLE encoded anyway.
-                Long decompressedColumnPageId = page.getValues().get((int) (rowId - page.getFirstRowId()));
-                if (searchedPageValueIds.contains(decompressedColumnPageId))
-                  res.add(rowId);
+                for (Long rowId : activeRowIdsInThisPage) {
+                  // TODO #7 perhaps decompress whole value array, as it may be RLE encoded anyway.
+                  Long decompressedColumnPageId = page.getValues().get((int) (rowId - page.getFirstRowId()));
+                  if (searchedPageValueIds.contains(decompressedColumnPageId))
+                    res.add(rowId);
+                }
+              } else {
+                // TODO #2 STAT use statistics to decide if we should decompress the whole array here.
+                long[] decompressedValues = page.getValues().decompressedArray();
+                for (int i = 0; i < decompressedValues.length; i++) {
+                  if (searchedPageValueIds.contains(decompressedValues[i]))
+                    res.add(i + page.getFirstRowId());
+                }
               }
-            } else {
-              // TODO #2 STAT use statistics to decide if we should decompress the whole array here.
-              long[] decompressedValues = page.getValues().decompressedArray();
-              for (int i = 0; i < decompressedValues.length; i++) {
-                if (searchedPageValueIds.contains(decompressedValues[i]))
-                  res.add(i + page.getFirstRowId());
-              }
+              return res.stream();
+            } finally {
+              QueryUuid.clearCurrent();
             }
-            return res.stream();
           }
-        });
+        }), uuidState);
   }
 
   /**
@@ -407,73 +444,91 @@ public class RowIdInequalStep extends AbstractThreadedExecutablePlanStep {
    * @param leftColumn
    *          The left column of the equation.
    * @param rightColumn
-   *          The right column of the equation.
+   *          The right column of the equation, the {@link QueryableColumnShard#getDelegate()} must return a
+   *          {@link StandardColumnShard}.
    * @param activeRowIds
    *          Set of active row IDs, used to filter the column pages. Can be <code>null</code>.
    * @param comparator
    *          The comparator implementing >, >=, < or <=.
    */
   private void executeOnOtherCol(ExecutionEnvironment curEnv, StandardColumnShard leftColumn,
-      StandardColumnShard rightColumn, NavigableSet<Long> activeRowIds, RowIdComparator comparator) {
+      QueryableColumnShard rightColumn, NavigableSet<Long> activeRowIds, RowIdComparator comparator) {
 
     NavigableMap<Long, Long> comparisonMap = comparator.calculateComparisonMap(leftColumn, rightColumn);
 
     Long[] colValueIds1 = comparisonMap.keySet().stream().sorted().toArray(l -> new Long[l]);
 
-    Stream<Long> resultRowIdStream = leftColumn.getPages().values().stream().parallel().
+    QueryUuidThreadState uuidState = QueryUuid.getCurrentThreadState();
+    Stream<Long> resultRowIdStream;
+
+    resultRowIdStream = leftColumn.getPages().values().stream().parallel().
         // filter out pairs that either do not match the rowID range or where the left page does not contain any
         // interesting value
     filter(new Predicate<ColumnPage>() {
       @Override
       public boolean test(ColumnPage leftColPage) {
-        if (activeRowIds != null) {
-          // If we're restricting the row IDs, we check if the page contains any row that we are interested in.
-          Long interestedRowId = activeRowIds.ceiling(leftColPage.getFirstRowId());
-          if (interestedRowId == null || interestedRowId > leftColPage.getFirstRowId() + leftColPage.size())
+        QueryUuid.setCurrentThreadState(uuidState);
+        try {
+          if (activeRowIds != null) {
+            // If we're restricting the row IDs, we check if the page contains any row that we are interested in.
+            Long interestedRowId = activeRowIds.ceiling(leftColPage.getFirstRowId());
+            if (interestedRowId == null || interestedRowId > leftColPage.getFirstRowId() + leftColPage.size())
+              return false;
+          }
+
+          if (!leftColPage.getColumnPageDict().containsAnyValue(colValueIds1))
             return false;
+
+          return true;
+        } finally {
+          QueryUuid.clearCurrent();
         }
-
-        if (!leftColPage.getColumnPageDict().containsAnyValue(colValueIds1))
-          return false;
-
-        return true;
       }
     }).flatMap(new Function<ColumnPage, Stream<Long>>() {
 
       @Override
       public Stream<Long> apply(ColumnPage leftColPage) {
-        // resolve ColumnPage value IDs from column value IDs for left page for all column value IDs we're
-        // interested in.
-        NavigableMap<Long, Long> leftPageIdsToColumnIds = new TreeMap<>();
-        Long[] leftPageValueIds = leftColPage.getColumnPageDict().findIdsOfValues(colValueIds1);
-        for (int i = 0; i < leftPageValueIds.length; i++)
-          leftPageIdsToColumnIds.put(leftPageValueIds[i], colValueIds1[i]);
+        QueryUuid.setCurrentThreadState(uuidState);
 
-        List<Long> res = new ArrayList<>();
+        try {
+          // resolve ColumnPage value IDs from column value IDs for left page for all column value IDs we're
+          // interested in.
+          queryRegistry.getOrCreateCurrentStatsManager().registerPageAccess(leftColPage,
+              curEnv.isTemporaryColumn(leftColumn.getName()));
 
-        // decompress value arrays and traverse them
-        // TODO #2 STAT decide if full value array should be decompressed when there are activeRowIds.
-        long[] leftValues = leftColPage.getValues().decompressedArray();
+          NavigableMap<Long, Long> leftPageIdsToColumnIds = new TreeMap<>();
+          Long[] leftPageValueIds = leftColPage.getColumnPageDict().findIdsOfValues(colValueIds1);
+          for (int i = 0; i < leftPageValueIds.length; i++)
+            leftPageIdsToColumnIds.put(leftPageValueIds[i], colValueIds1[i]);
 
-        for (int i = 0; i < leftValues.length; i++) {
-          long rowId = leftColPage.getFirstRowId() + i;
-          if (activeRowIds == null || activeRowIds.contains(rowId)) {
-            long leftPageValueId = leftValues[i];
-            Long leftColumnValueId = leftPageIdsToColumnIds.get(leftPageValueId);
-            // check if we're interested in that column value ID.
-            if (leftColumnValueId != null) {
-              // TODO #2 STAT decide if we should decompress the whole array for the right side, too.
-              if (comparator.rowMatches(leftColumnValueId, rowId, rightColumn, comparisonMap))
-                res.add(rowId);
+          List<Long> res = new ArrayList<>();
+
+          // decompress value arrays and traverse them
+          // TODO #2 STAT decide if full value array should be decompressed when there are activeRowIds.
+          long[] leftValues = leftColPage.getValues().decompressedArray();
+
+          for (int i = 0; i < leftValues.length; i++) {
+            long rowId = leftColPage.getFirstRowId() + i;
+            if (activeRowIds == null || activeRowIds.contains(rowId)) {
+              long leftPageValueId = leftValues[i];
+              Long leftColumnValueId = leftPageIdsToColumnIds.get(leftPageValueId);
+              // check if we're interested in that column value ID.
+              if (leftColumnValueId != null) {
+                // TODO #2 STAT decide if we should decompress the whole array for the right side, too.
+                if (comparator.rowMatches(leftColumnValueId, rowId, rightColumn, comparisonMap))
+                  res.add(rowId);
+              }
             }
           }
+          return res.stream();
+        } finally {
+          QueryUuid.clearCurrent();
         }
-        return res.stream();
       }
-
     });
 
-    sendRowIds(curEnv, resultRowIdStream);
+    sendRowIds(curEnv, new Pair<>(resultRowIdStream, uuidState));
+
   }
 
   @Override
@@ -560,9 +615,13 @@ public class RowIdInequalStep extends AbstractThreadedExecutablePlanStep {
      * 
      * <p>
      * The two columns are expected to have the same column type.
+     * 
+     * @param rightCol
+     *          although a {@link QueryableColumnShard}, this needs to be a {@link StandardColumnShard} (=
+     *          {@link QueryableColumnShard#getDelegate()} needs to return a {@link StandardColumnShard}!)
      */
     public <T> NavigableMap<Long, Long> calculateComparisonMap(StandardColumnShard leftCol,
-        StandardColumnShard rightCol);
+        QueryableColumnShard rightCol);
 
     /**
      * Evaluates if a specific row where the leftCol matched a key the comparison map actually is a row that matches the
@@ -575,7 +634,8 @@ public class RowIdInequalStep extends AbstractThreadedExecutablePlanStep {
      * <p>
      * This method is called if a column is compared to another column.
      */
-    public boolean rowMatches(long leftColumnValueId, long rowId, ColumnShard rightCol, Map<Long, Long> comparisonMap);
+    public boolean rowMatches(long leftColumnValueId, long rowId, QueryableColumnShard rightCol,
+        Map<Long, Long> comparisonMap);
   }
 
   /**
@@ -615,13 +675,14 @@ public class RowIdInequalStep extends AbstractThreadedExecutablePlanStep {
     @Override
     @SuppressWarnings("unchecked")
     public <T> NavigableMap<Long, Long> calculateComparisonMap(StandardColumnShard leftCol,
-        StandardColumnShard rightCol) {
+        QueryableColumnShard rightCol) {
       return ((Dictionary<T>) leftCol.getColumnShardDictionary())
           .findGtEqIds((Dictionary<T>) rightCol.getColumnShardDictionary());
     }
 
     @Override
-    public boolean rowMatches(long leftColumnValueId, long rowId, ColumnShard rightCol, Map<Long, Long> comparisonMap) {
+    public boolean rowMatches(long leftColumnValueId, long rowId, QueryableColumnShard rightCol,
+        Map<Long, Long> comparisonMap) {
       long rightColumnValueId = rightCol.resolveColumnValueIdForRow(rowId);
       long comparisonOtherId = comparisonMap.get(leftColumnValueId);
 
@@ -675,7 +736,7 @@ public class RowIdInequalStep extends AbstractThreadedExecutablePlanStep {
     @Override
     @SuppressWarnings("unchecked")
     public <T> NavigableMap<Long, Long> calculateComparisonMap(StandardColumnShard leftCol,
-        StandardColumnShard rightCol) {
+        QueryableColumnShard rightCol) {
       // start off with a 'greater or equal' map.
       NavigableMap<Long, Long> res = ((Dictionary<T>) leftCol.getColumnShardDictionary())
           .findGtEqIds((Dictionary<T>) rightCol.getColumnShardDictionary());
@@ -695,7 +756,8 @@ public class RowIdInequalStep extends AbstractThreadedExecutablePlanStep {
     }
 
     @Override
-    public boolean rowMatches(long leftColumnValueId, long rowId, ColumnShard rightCol, Map<Long, Long> comparisonMap) {
+    public boolean rowMatches(long leftColumnValueId, long rowId, QueryableColumnShard rightCol,
+        Map<Long, Long> comparisonMap) {
       long rightColumnValueId = rightCol.resolveColumnValueIdForRow(rowId);
       return (rightColumnValueId != -1 && rightColumnValueId <= comparisonMap.get(leftColumnValueId));
     }
@@ -737,13 +799,14 @@ public class RowIdInequalStep extends AbstractThreadedExecutablePlanStep {
     @Override
     @SuppressWarnings("unchecked")
     public <T> NavigableMap<Long, Long> calculateComparisonMap(StandardColumnShard leftCol,
-        StandardColumnShard rightCol) {
+        QueryableColumnShard rightCol) {
       return ((Dictionary<T>) leftCol.getColumnShardDictionary())
           .findLtEqIds((Dictionary<T>) rightCol.getColumnShardDictionary());
     }
 
     @Override
-    public boolean rowMatches(long leftColumnValueId, long rowId, ColumnShard rightCol, Map<Long, Long> comparisonMap) {
+    public boolean rowMatches(long leftColumnValueId, long rowId, QueryableColumnShard rightCol,
+        Map<Long, Long> comparisonMap) {
       long rightColumnValueId = rightCol.resolveColumnValueIdForRow(rowId);
       long comparisonOtherID = comparisonMap.get(leftColumnValueId);
 
@@ -801,14 +864,16 @@ public class RowIdInequalStep extends AbstractThreadedExecutablePlanStep {
     @Override
     @SuppressWarnings("unchecked")
     public <T> NavigableMap<Long, Long> calculateComparisonMap(StandardColumnShard leftCol,
-        StandardColumnShard rightCol) {
+        QueryableColumnShard rightCol) {
       // start off with a 'less than or equal' comparison map
       NavigableMap<Long, Long> res = ((Dictionary<T>) leftCol.getColumnShardDictionary())
           .findLtEqIds((Dictionary<T>) rightCol.getColumnShardDictionary());
 
+      StandardColumnShard rightStandardCol = (StandardColumnShard) rightCol.getDelegate();
+
       for (Iterator<Entry<Long, Long>> it = res.entrySet().iterator(); it.hasNext();) {
         Entry<Long, Long> e = it.next();
-        if (e.getValue() == rightCol.getFirstRowId() + rightCol.getNumberOfRowsInColumnShard() - 1)
+        if (e.getValue() == rightCol.getFirstRowId() + rightStandardCol.getNumberOfRowsInColumnShard() - 1)
           // leftCol == everything colB[lastIdx] -> we're not interested in ==, therefore remove entry.
           it.remove();
         else if (e.getValue() > 0) // leftCol == colB[value]. As we want < relation, leftCol is < colB[value +1].
@@ -821,7 +886,8 @@ public class RowIdInequalStep extends AbstractThreadedExecutablePlanStep {
     }
 
     @Override
-    public boolean rowMatches(long leftColumnValueId, long rowId, ColumnShard rightCol, Map<Long, Long> comparisonMap) {
+    public boolean rowMatches(long leftColumnValueId, long rowId, QueryableColumnShard rightCol,
+        Map<Long, Long> comparisonMap) {
       long rightColumnValueId = rightCol.resolveColumnValueIdForRow(rowId);
       return (rightColumnValueId != -1 && rightColumnValueId >= comparisonMap.get(leftColumnValueId));
     }

@@ -112,8 +112,8 @@ public class ExecutablePlanFactory {
   }
 
   public ExecutablePlan createExecutablePlan(ExecutionEnvironment defaultEnv, List<ExecutablePlanStep> steps,
-      ExecutablePlanInfo info) {
-    return new ExecutablePlan(defaultEnv, steps, info);
+      ExecutablePlanInfo info, ColumnVersionManager columnVersionManager) {
+    return new ExecutablePlan(defaultEnv, steps, info, columnVersionManager);
   }
 
   public ExecutablePlanInfo createExecutablePlanInfo(List<String> selectedColumnNames, boolean isOrdered,

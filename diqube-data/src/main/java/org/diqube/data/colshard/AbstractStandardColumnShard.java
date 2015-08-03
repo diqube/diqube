@@ -20,25 +20,10 @@
  */
 package org.diqube.data.colshard;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.NavigableMap;
-import java.util.NavigableSet;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.diqube.data.ColumnType;
 import org.diqube.data.Dictionary;
-import org.diqube.util.DiqubeCollectors;
-import org.diqube.util.Pair;
 
 /**
  * Abstract implementation of a {@link StandardColumnShard}.
@@ -109,79 +94,6 @@ public abstract class AbstractStandardColumnShard implements StandardColumnShard
   @Override
   public long getFirstRowId() {
     return pages.firstKey();
-  }
-
-  @Override
-  public Long[] resolveColumnValueIdsForRowsFlat(Long[] rowIds) {
-    Map<Long, Long> rowIdToColumnValueId = resolveColumnValueIdsForRows(Arrays.asList(rowIds));
-    Long[] res = new Long[rowIds.length];
-    for (int i = 0; i < rowIds.length; i++)
-      res[i] = (rowIdToColumnValueId.containsKey(rowIds[i])) ? rowIdToColumnValueId.get(rowIds[i]) : -1L;
-
-    return res;
-  }
-
-  @Override
-  public long resolveColumnValueIdForRow(Long rowId) {
-    Entry<Long, ColumnPage> floorEntry = pages.floorEntry(rowId);
-    if (floorEntry == null)
-      return -1;
-    ColumnPage page = floorEntry.getValue();
-    if (rowId >= page.getFirstRowId() + page.getValues().size())
-      return -1;
-
-    return page.getColumnPageDict().decompressValue(page.getValues().get((int) (rowId - page.getFirstRowId())));
-  }
-
-  @Override
-  public Map<Long, Long> resolveColumnValueIdsForRows(Collection<Long> rowIds) {
-    Map<ColumnPage, NavigableSet<Long>> rowIdsByPage = rowIds.stream().parallel().collect( //
-        Collectors.groupingByConcurrent(rowId -> {
-          Entry<Long, ColumnPage> e = pages.floorEntry(rowId);
-          if (e == null)
-            // filter out too low row IDs. This might happen if this column shard has a firstRowId that is > than a
-            // provided rowId.
-            return null;
-          return e.getValue();
-        } , DiqubeCollectors.toNavigableSet()));
-    Map<Long, Long> rowIdToColumnValueId = rowIdsByPage.entrySet().stream().parallel().filter(e -> e.getKey() != null)
-        .flatMap(new Function<Entry<ColumnPage, NavigableSet<Long>>, Stream<Pair<Long, Long>>>() {
-          @Override
-          public Stream<Pair<Long, Long>> apply(Entry<ColumnPage, NavigableSet<Long>> entry) {
-            List<Pair<Long, Long>> res = new ArrayList<>();
-
-            ColumnPage page = entry.getKey();
-            // take only those rowIDs that are inside the page - if there were row IDs provided that we do not have
-            // any values of, do not return those entries. This may happen for the last page of a column.
-            NavigableSet<Long> rowIds = entry.getValue().headSet(page.getFirstRowId() + page.getValues().size(), false);
-
-            Long[] columnPageValueIds = new Long[rowIds.size()];
-            Iterator<Long> rowIdIt = rowIds.iterator();
-            for (int i = 0; i < columnPageValueIds.length; i++)
-              // TODO #7 if long consecutive list of rowIds, we should fetch more elements here at once. Values could
-              // be RLE encoded
-              columnPageValueIds[i] = page.getValues().get((int) (rowIdIt.next() - page.getFirstRowId()));
-
-            Long[] columnValueIds = page.getColumnPageDict().decompressValues(columnPageValueIds);
-
-            rowIdIt = rowIds.iterator();
-            for (int i = 0; i < columnPageValueIds.length; i++)
-              res.add(new Pair<Long, Long>(rowIdIt.next(), columnValueIds[i]));
-
-            return res.stream();
-          }
-        }).collect(() -> new HashMap<Long, Long>(), (map, pair) -> map.put(pair.getLeft(), pair.getRight()),
-            (map1, map2) -> map1.putAll(map2));
-    return rowIdToColumnValueId;
-  }
-
-  @Override
-  public Set<Pair<Long, Integer>> getGoodResolutionPairs() {
-    Set<Pair<Long, Integer>> res = pages.entrySet().stream(). //
-        map(entry -> new Pair<Long, Integer>(entry.getKey(), entry.getValue().size())). //
-        collect(Collectors.toSet());
-
-    return res;
   }
 
 }

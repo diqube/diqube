@@ -41,9 +41,13 @@ public class ColumnPageFactory {
    *          The values of this column page, available in Column Page Value IDs that are available in ColumnPageDict.
    * @param firstRowId
    *          The ID of the first row whose value is represented by the first value in 'values'.
+   * @param name
+   *          The name of the colPage. This should denote the column it belongs to and which of the columnPages of that
+   *          column it is.
    * @return The new {@link ColumnPage}.
    */
-  public ColumnPage createColumnPage(LongDictionary columnPageDict, CompressedLongArray values, long firstRowId) {
-    return new ColumnPage(columnPageDict, values, firstRowId);
+  public ColumnPage createColumnPage(LongDictionary columnPageDict, CompressedLongArray values, long firstRowId,
+      String name) {
+    return new ColumnPage(columnPageDict, values, firstRowId, name);
   }
 }

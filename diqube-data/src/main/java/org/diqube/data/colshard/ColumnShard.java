@@ -20,14 +20,9 @@
  */
 package org.diqube.data.colshard;
 
-import java.util.Collection;
-import java.util.Map;
-import java.util.Set;
-
 import org.diqube.data.ColumnType;
 import org.diqube.data.Dictionary;
 import org.diqube.data.TableShard;
-import org.diqube.util.Pair;
 
 /**
  * A ColumnShard contains all data of one column of all rows of a specific {@link TableShard} or of intermediary values
@@ -72,37 +67,4 @@ public interface ColumnShard {
    */
   public long getFirstRowId();
 
-  /**
-   * Resolves the column (shard) value IDs of specific rowIds from this column. These column value IDs are IDs in
-   * {@link #getColumnShardDictionary()} and can be resolved to actual values using that.
-   * 
-   * <p>
-   * Please note that for rowIds not contained in this column shard, there won't be an entry in the resulting map.
-   * 
-   * @return Map from rowID to column value ID.
-   */
-  public Map<Long, Long> resolveColumnValueIdsForRows(Collection<Long> rowIds);
-
-  /**
-   * Just like {@link #resolveColumnValueIdsForRows(Long[])}, but maps the column value ids back into a flat Long[] ->
-   * the index of the provided row ID matches the corresponding value in the result array.
-   * 
-   * <p>
-   * Please note that for row IDs that are not available in this column shard, the returned array will be -1.
-   */
-  public Long[] resolveColumnValueIdsForRowsFlat(Long[] rowIds);
-
-  /**
-   * Just like {@link #resolveColumnValueIdsForRowsFlat(Long[])},but for one rowId only.
-   * 
-   * @return -1 if row not available.
-   */
-  public long resolveColumnValueIdForRow(Long rowId);
-
-  /**
-   * Returns information on how rowIds would be well-fitted to be used with the resolve* methods.
-   * 
-   * @return Set of pair containing firstRowId and length of one bucket.
-   */
-  public Set<Pair<Long, Integer>> getGoodResolutionPairs();
 }

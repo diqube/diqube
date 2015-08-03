@@ -100,4 +100,9 @@ public class ColumnVersionManager {
 
     return res;
   }
+
+  /** The last created {@link VersionedExecutionEnvironment}, if any. */
+  public VersionedExecutionEnvironment getLastVersionedExecutionEnvironment() {
+    return lastVersionedExecutionEnvironment;
+  }
 }

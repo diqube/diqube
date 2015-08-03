@@ -20,9 +20,12 @@
  */
 package org.diqube.execution.env;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -33,11 +36,17 @@ import org.diqube.data.colshard.StandardColumnShard;
 import org.diqube.data.dbl.DoubleColumnShard;
 import org.diqube.data.lng.LongColumnShard;
 import org.diqube.data.str.StringColumnShard;
-import org.diqube.execution.env.querystats.ColumnShardStatsFacade;
-import org.diqube.execution.env.querystats.DoubleColumnShardStatsFacade;
-import org.diqube.execution.env.querystats.LongColumnShardStatsFacade;
-import org.diqube.execution.env.querystats.StringColumnShardStatsFacade;
+import org.diqube.execution.env.querystats.AbstractQueryableColumnShardFacade;
+import org.diqube.execution.env.querystats.QueryableColumnShard;
+import org.diqube.execution.env.querystats.QueryableDoubleColumnShard;
+import org.diqube.execution.env.querystats.QueryableDoubleColumnShardFacade;
+import org.diqube.execution.env.querystats.QueryableLongColumnShard;
+import org.diqube.execution.env.querystats.QueryableLongColumnShardFacade;
+import org.diqube.execution.env.querystats.QueryableStringColumnShard;
+import org.diqube.execution.env.querystats.QueryableStringColumnShardFacade;
 import org.diqube.queries.QueryRegistry;
+
+import com.google.common.collect.Iterables;
 
 /**
  * Abstract implementation of an {@link ExecutionEnvironment} containing a separate set of Long, String and Double
@@ -46,17 +55,17 @@ import org.diqube.queries.QueryRegistry;
  * @author Bastian Gloeckle
  */
 public abstract class AbstractExecutionEnvironment implements ExecutionEnvironment {
-  private Map<String, LongColumnShardStatsFacade> tempLongColumns = new ConcurrentHashMap<>();
-  private Map<String, StringColumnShardStatsFacade> tempStringColumns = new ConcurrentHashMap<>();
-  private Map<String, DoubleColumnShardStatsFacade> tempDoubleColumns = new ConcurrentHashMap<>();
-  private QueryRegistry queryRegistry;
+  private Map<String, QueryableLongColumnShardFacade> tempLongColumns = new ConcurrentHashMap<>();
+  private Map<String, QueryableStringColumnShardFacade> tempStringColumns = new ConcurrentHashMap<>();
+  private Map<String, QueryableDoubleColumnShardFacade> tempDoubleColumns = new ConcurrentHashMap<>();
+  protected QueryRegistry queryRegistry;
 
   public AbstractExecutionEnvironment(QueryRegistry queryRegistry) {
     this.queryRegistry = queryRegistry;
   }
 
   @Override
-  public LongColumnShard getLongColumnShard(String name) {
+  public QueryableLongColumnShard getLongColumnShard(String name) {
     if (tempLongColumns.containsKey(name))
       return tempLongColumns.get(name);
     return delegateGetLongColumnShard(name);
@@ -65,10 +74,10 @@ public abstract class AbstractExecutionEnvironment implements ExecutionEnvironme
   /**
    * @return <code>null</code> if not available.
    */
-  abstract protected LongColumnShard delegateGetLongColumnShard(String name);
+  abstract protected QueryableLongColumnShard delegateGetLongColumnShard(String name);
 
   @Override
-  public StringColumnShard getStringColumnShard(String name) {
+  public QueryableStringColumnShard getStringColumnShard(String name) {
     if (tempStringColumns.containsKey(name))
       return tempStringColumns.get(name);
     return delegateGetStringColumnShard(name);
@@ -77,10 +86,10 @@ public abstract class AbstractExecutionEnvironment implements ExecutionEnvironme
   /**
    * @return <code>null</code> if not available.
    */
-  abstract protected StringColumnShard delegateGetStringColumnShard(String name);
+  abstract protected QueryableStringColumnShard delegateGetStringColumnShard(String name);
 
   @Override
-  public DoubleColumnShard getDoubleColumnShard(String name) {
+  public QueryableDoubleColumnShard getDoubleColumnShard(String name) {
     if (tempDoubleColumns.containsKey(name))
       return tempDoubleColumns.get(name);
     return delegateGetDoubleColumnShard(name);
@@ -89,7 +98,7 @@ public abstract class AbstractExecutionEnvironment implements ExecutionEnvironme
   /**
    * @return <code>null</code> if not available.
    */
-  abstract protected DoubleColumnShard delegateGetDoubleColumnShard(String name);
+  abstract protected QueryableDoubleColumnShard delegateGetDoubleColumnShard(String name);
 
   @Override
   public ColumnType getColumnType(String colName) {
@@ -103,8 +112,8 @@ public abstract class AbstractExecutionEnvironment implements ExecutionEnvironme
   }
 
   @Override
-  public ColumnShard getColumnShard(String name) {
-    ColumnShard res = getLongColumnShard(name);
+  public QueryableColumnShard getColumnShard(String name) {
+    QueryableColumnShard res = getLongColumnShard(name);
     if (res != null)
       return res;
 
@@ -117,20 +126,20 @@ public abstract class AbstractExecutionEnvironment implements ExecutionEnvironme
 
   @Override
   public void storeTemporaryLongColumnShard(LongColumnShard column) {
-    queryRegistry.getOrCreateCurrentStats().incNumberOfTemporaryColumnsCreated();
-    tempLongColumns.put(column.getName(), new LongColumnShardStatsFacade(column, true));
+    queryRegistry.getOrCreateCurrentStatsManager().incNumberOfTemporaryColumnsCreated();
+    tempLongColumns.put(column.getName(), new QueryableLongColumnShardFacade(column, true, queryRegistry));
   }
 
   @Override
   public void storeTemporaryStringColumnShard(StringColumnShard column) {
-    queryRegistry.getOrCreateCurrentStats().incNumberOfTemporaryColumnsCreated();
-    tempStringColumns.put(column.getName(), new StringColumnShardStatsFacade(column, true));
+    queryRegistry.getOrCreateCurrentStatsManager().incNumberOfTemporaryColumnsCreated();
+    tempStringColumns.put(column.getName(), new QueryableStringColumnShardFacade(column, true, queryRegistry));
   }
 
   @Override
   public void storeTemporaryDoubleColumnShard(DoubleColumnShard column) {
-    queryRegistry.getOrCreateCurrentStats().incNumberOfTemporaryColumnsCreated();
-    tempDoubleColumns.put(column.getName(), new DoubleColumnShardStatsFacade(column, true));
+    queryRegistry.getOrCreateCurrentStatsManager().incNumberOfTemporaryColumnsCreated();
+    tempDoubleColumns.put(column.getName(), new QueryableDoubleColumnShardFacade(column, true, queryRegistry));
   }
 
   @Override
@@ -140,8 +149,8 @@ public abstract class AbstractExecutionEnvironment implements ExecutionEnvironme
     if (colShard == null)
       return null;
 
-    if (colShard instanceof ColumnShardStatsFacade)
-      colShard = ((ColumnShardStatsFacade) colShard).getDelegate();
+    if (colShard instanceof QueryableColumnShard)
+      colShard = ((QueryableColumnShard) colShard).getDelegate();
 
     if (colShard instanceof StandardColumnShard)
       return (StandardColumnShard) colShard;
@@ -156,8 +165,8 @@ public abstract class AbstractExecutionEnvironment implements ExecutionEnvironme
     if (colShard == null)
       return null;
 
-    if (colShard instanceof ColumnShardStatsFacade)
-      colShard = ((ColumnShardStatsFacade) colShard).getDelegate();
+    if (colShard instanceof QueryableColumnShard)
+      colShard = ((QueryableColumnShard) colShard).getDelegate();
 
     if (colShard instanceof ConstantColumnShard)
       return (ConstantColumnShard) colShard;
@@ -166,8 +175,8 @@ public abstract class AbstractExecutionEnvironment implements ExecutionEnvironme
   }
 
   @Override
-  public Map<String, ColumnShard> getAllColumnShards() {
-    Map<String, ColumnShard> res = new HashMap<>(delegateGetAllColumnShards());
+  public Map<String, QueryableColumnShard> getAllColumnShards() {
+    Map<String, QueryableColumnShard> res = new HashMap<>(delegateGetAllColumnShards());
     // temp cols stored in this EE override any delegate information.
     res.putAll(tempDoubleColumns);
     res.putAll(tempStringColumns);
@@ -175,7 +184,7 @@ public abstract class AbstractExecutionEnvironment implements ExecutionEnvironme
     return res;
   }
 
-  abstract protected Map<String, ColumnShard> delegateGetAllColumnShards();
+  abstract protected Map<String, QueryableColumnShard> delegateGetAllColumnShards();
 
   protected Set<String> getAllColumnNamesDefinedInThisEnv() {
     Set<String> res = new HashSet<>();
@@ -184,5 +193,34 @@ public abstract class AbstractExecutionEnvironment implements ExecutionEnvironme
     res.addAll(tempStringColumns.keySet());
     return res;
   }
+
+  @Override
+  public boolean isTemporaryColumn(String colName) {
+    return tempDoubleColumns.containsKey(colName) || tempLongColumns.containsKey(colName)
+        || tempStringColumns.containsKey(colName) || delegateIsTemporaryColumns(colName);
+  }
+
+  protected abstract boolean delegateIsTemporaryColumns(String colName);
+
+  @Override
+  public Map<String, List<QueryableColumnShard>> getAllTemporaryColumnShards() {
+    Map<String, List<QueryableColumnShard>> res = delegateGetAllTemporaryColumnShards();
+    for (Entry<String, ? extends AbstractQueryableColumnShardFacade> tempEntry : Iterables
+        .concat(tempDoubleColumns.entrySet(), tempLongColumns.entrySet(), tempStringColumns.entrySet())) {
+      if (!res.containsKey(tempEntry.getKey()))
+        res.put(tempEntry.getKey(), new ArrayList<>());
+      res.get(tempEntry.getKey()).add(tempEntry.getValue());
+    }
+    return res;
+  }
+
+  protected abstract Map<String, List<QueryableColumnShard>> delegateGetAllTemporaryColumnShards();
+
+  @Override
+  public Map<String, QueryableColumnShard> getAllNonTemporaryColumnShards() {
+    return delegateGetAllColumnShards();
+  }
+
+  protected abstract Map<String, QueryableColumnShard> delegateGetAllNonTemporaryColumnShards();
 
 }

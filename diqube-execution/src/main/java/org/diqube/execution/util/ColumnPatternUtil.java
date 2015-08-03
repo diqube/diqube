@@ -35,9 +35,9 @@ import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 
 import org.diqube.context.AutoInstatiate;
-import org.diqube.data.lng.LongColumnShard;
 import org.diqube.data.util.RepeatedColumnNameGenerator;
 import org.diqube.execution.env.ExecutionEnvironment;
+import org.diqube.execution.env.querystats.QueryableLongColumnShard;
 import org.diqube.util.Pair;
 
 import com.google.common.collect.Iterables;
@@ -80,7 +80,7 @@ public class ColumnPatternUtil {
    *           available in the provided env.
    */
   public Set<String> findColNamesForColNamePattern(ExecutionEnvironment env, String pattern,
-      Function<LongColumnShard, Long> lengthProvider) throws LengthColumnMissingException {
+      Function<QueryableLongColumnShard, Long> lengthProvider) throws LengthColumnMissingException {
     List<Pair<String, Integer>> parents = Arrays.asList(new Pair<>("", 0));
     return findColNamesForColNamePattern(env, Arrays.asList(pattern), parents, lengthProvider).stream()
         .map(list -> Iterables.getOnlyElement(list)).collect(Collectors.toSet());
@@ -153,7 +153,7 @@ public class ColumnPatternUtil {
    *           available in the provided env.
    */
   public Set<List<String>> findColNamesForColNamePattern(ExecutionEnvironment env, List<String> patterns,
-      Function<LongColumnShard, Long> lengthProvider) throws PatternException, LengthColumnMissingException {
+      Function<QueryableLongColumnShard, Long> lengthProvider) throws PatternException, LengthColumnMissingException {
 
     if (patterns.size() > 1) {
       // Validate that patterns "repeat" in the same paths. For example the following is invalid:
@@ -205,8 +205,8 @@ public class ColumnPatternUtil {
    *          entries as "patterns", each Pair having an empty string and the index 0.
    */
   private Set<List<String>> findColNamesForColNamePattern(ExecutionEnvironment env, List<String> patterns,
-      List<Pair<String, Integer>> parentColNamesAndStartIndices, Function<LongColumnShard, Long> lengthProvider)
-          throws PatternException, LengthColumnMissingException {
+      List<Pair<String, Integer>> parentColNamesAndStartIndices,
+      Function<QueryableLongColumnShard, Long> lengthProvider) throws PatternException, LengthColumnMissingException {
     Set<List<String>> res = new HashSet<>();
 
     @SuppressWarnings("unchecked")
@@ -275,7 +275,7 @@ public class ColumnPatternUtil {
       String baseName = newColNamePair.getRight();
 
       String lenColName = repeatedColNames.repeatedLength(parentColName + baseName);
-      LongColumnShard lenCol = env.getLongColumnShard(lenColName);
+      QueryableLongColumnShard lenCol = env.getLongColumnShard(lenColName);
       if (lenCol == null)
         throw new LengthColumnMissingException("Column " + lenColName + " not available.");
 

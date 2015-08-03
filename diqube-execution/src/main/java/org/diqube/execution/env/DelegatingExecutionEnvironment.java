@@ -20,6 +20,7 @@
  */
 package org.diqube.execution.env;
 
+import java.util.List;
 import java.util.Map;
 
 import org.diqube.data.TableShard;
@@ -28,6 +29,10 @@ import org.diqube.data.colshard.StandardColumnShard;
 import org.diqube.data.dbl.DoubleColumnShard;
 import org.diqube.data.lng.LongColumnShard;
 import org.diqube.data.str.StringColumnShard;
+import org.diqube.execution.env.querystats.QueryableColumnShard;
+import org.diqube.execution.env.querystats.QueryableDoubleColumnShard;
+import org.diqube.execution.env.querystats.QueryableLongColumnShard;
+import org.diqube.execution.env.querystats.QueryableStringColumnShard;
 import org.diqube.queries.QueryRegistry;
 
 /**
@@ -79,17 +84,17 @@ public class DelegatingExecutionEnvironment extends AbstractExecutionEnvironment
   }
 
   @Override
-  protected LongColumnShard delegateGetLongColumnShard(String name) {
+  protected QueryableLongColumnShard delegateGetLongColumnShard(String name) {
     return delegate.getLongColumnShard(name);
   }
 
   @Override
-  protected StringColumnShard delegateGetStringColumnShard(String name) {
+  protected QueryableStringColumnShard delegateGetStringColumnShard(String name) {
     return delegate.getStringColumnShard(name);
   }
 
   @Override
-  protected DoubleColumnShard delegateGetDoubleColumnShard(String name) {
+  protected QueryableDoubleColumnShard delegateGetDoubleColumnShard(String name) {
     return delegate.getDoubleColumnShard(name);
   }
 
@@ -99,7 +104,7 @@ public class DelegatingExecutionEnvironment extends AbstractExecutionEnvironment
   }
 
   @Override
-  protected Map<String, ColumnShard> delegateGetAllColumnShards() {
+  protected Map<String, QueryableColumnShard> delegateGetAllColumnShards() {
     return delegate.getAllColumnShards();
   }
 
@@ -135,5 +140,20 @@ public class DelegatingExecutionEnvironment extends AbstractExecutionEnvironment
     if (!isModifiable)
       throw new UnsupportedOperationException("The intermediary ExecutionEnvironment is unmodifiable.");
     super.storeTemporaryDoubleColumnShard(column);
+  }
+
+  @Override
+  protected boolean delegateIsTemporaryColumns(String colName) {
+    return delegate.isTemporaryColumn(colName);
+  }
+
+  @Override
+  protected Map<String, List<QueryableColumnShard>> delegateGetAllTemporaryColumnShards() {
+    return delegate.getAllTemporaryColumnShards();
+  }
+
+  @Override
+  protected Map<String, QueryableColumnShard> delegateGetAllNonTemporaryColumnShards() {
+    return delegate.getAllNonTemporaryColumnShards();
   }
 }

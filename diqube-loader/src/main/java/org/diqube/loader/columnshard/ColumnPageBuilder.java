@@ -137,7 +137,7 @@ public class ColumnPageBuilder {
       CompressedLongArray compressedValues = bestStrat.compress(values);
 
       // build final ColumnPage
-      ColumnPage page = columnPageFactory.createColumnPage(columnPageDict, compressedValues, firstRowId);
+      ColumnPage page = columnPageFactory.createColumnPage(columnPageDict, compressedValues, firstRowId, name);
       return page;
     } finally {
       for (LongArrayCompressionStrategy strat : COMPRESSION_STRATEGIES)

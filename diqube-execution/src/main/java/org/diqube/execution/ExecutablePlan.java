@@ -68,11 +68,14 @@ public class ExecutablePlan {
 
   private ExecutablePlanInfo info;
 
+  private ColumnVersionManager columnVersionManager;
+
   /* package */ ExecutablePlan(ExecutionEnvironment defaultEnv, Collection<ExecutablePlanStep> steps,
-      ExecutablePlanInfo info) {
+      ExecutablePlanInfo info, ColumnVersionManager columnVersionManager) {
     this.defaultEnv = defaultEnv;
     this.steps = steps;
     this.info = info;
+    this.columnVersionManager = columnVersionManager;
   }
 
   public Collection<ExecutablePlanStep> getSteps() {
@@ -129,6 +132,14 @@ public class ExecutablePlan {
    */
   public ExecutablePlanInfo getInfo() {
     return info;
+  }
+
+  /**
+   * @return The {@link ColumnVersionManager} that is used when this ExecutablePlan is executed. Could be
+   *         <code>null</code>.
+   */
+  public ColumnVersionManager getColumnVersionManager() {
+    return columnVersionManager;
   }
 
   public static class ExecutionFuture implements Future<Void> {

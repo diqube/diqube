@@ -20,9 +20,6 @@
  */
 package org.diqube.remote.cluster;
 
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-
 import org.diqube.queries.QueryStats;
 import org.diqube.remote.cluster.thrift.RClusterQueryStatistics;
 
@@ -31,22 +28,30 @@ import org.diqube.remote.cluster.thrift.RClusterQueryStatistics;
  * @author Bastian Gloeckle
  */
 public class RClusterQueryStatsUtil {
-  public static QueryStats createQueryStats(UUID queryUuid, RClusterQueryStatistics remote) {
-    QueryStats res = new QueryStats(queryUuid);
-
-    res.setNumberOfThreads(remote.getNumberOfThreads());
-    res.setStartedUntilDoneMs(remote.getStartedUntilDoneMs());
-    res.setNumberOfTemporaryColumnsCreated(remote.getNumberOfTemporaryColumnsCreated());
-    res.setStepThreadActiveMs(new ConcurrentHashMap<>(remote.getStepThreadActiveMs()));
-    return res;
-  }
-
   public static RClusterQueryStatistics createRQueryStats(QueryStats queryStats) {
     RClusterQueryStatistics res = new RClusterQueryStatistics();
     res.setNumberOfTemporaryColumnsCreated(queryStats.getNumberOfTemporaryColumnsCreated());
     res.setNumberOfThreads(queryStats.getNumberOfThreads());
     res.setStartedUntilDoneMs(queryStats.getStartedUntilDoneMs());
     res.setStepThreadActiveMs(queryStats.getStepThreadActiveMs());
+    res.setNumberOfPageAccesses(queryStats.getPageAccess());
+    res.setNumberOfTemporaryPageAccesses(queryStats.getTemporaryPageAccess());
+    res.setNumberOfPages(queryStats.getNumberOfPages());
+    res.setNumberOfTemporaryPages(queryStats.getNumberOfTemporaryPages());
+    res.setNumberOfTemporaryVersionsPerColName(queryStats.getNumberOfTemporaryVersionsPerColName());
+    return res;
+  }
+
+  public static QueryStats createQueryStats(RClusterQueryStatistics remote) {
+    QueryStats res = new QueryStats(remote.getStartedUntilDoneMs(), //
+        remote.getStepThreadActiveMs(), //
+        remote.getNumberOfThreads(), //
+        remote.getNumberOfTemporaryColumnsCreated(), //
+        remote.getNumberOfPageAccesses(), //
+        remote.getNumberOfTemporaryPageAccesses(), //
+        remote.getNumberOfPages(), //
+        remote.getNumberOfTemporaryPages(), //
+        remote.getNumberOfTemporaryVersionsPerColName());
     return res;
   }
 }

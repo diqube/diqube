@@ -24,10 +24,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.diqube.data.ColumnType;
 import org.diqube.data.TableShard;
+import org.diqube.data.colshard.ColumnPage;
 import org.diqube.data.lng.LongStandardColumnShard;
 import org.diqube.data.util.RepeatedColumnNameGenerator;
 import org.diqube.util.BigByteBuffer;
@@ -297,7 +299,10 @@ public class JsonLoaderTest {
   }
 
   private Long resolveSingleRowValue(LongStandardColumnShard col, long rowId) {
+    Entry<Long, ColumnPage> activeEntry = col.getPages().floorEntry(rowId);
+    int idx = (int) (rowId - activeEntry.getKey());
+    ColumnPage page = activeEntry.getValue();
     return col.getColumnShardDictionary()
-        .decompressValue(col.resolveColumnValueIdsForRowsFlat(new Long[] { rowId })[0]);
+        .decompressValue(page.getColumnPageDict().decompressValue(page.getValues().get(idx)));
   }
 }

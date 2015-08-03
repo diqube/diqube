@@ -50,6 +50,8 @@ import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.env.VersionedExecutionEnvironment;
 import org.diqube.execution.exception.ExecutablePlanBuildException;
 import org.diqube.queries.QueryRegistry;
+import org.diqube.queries.QueryUuid;
+import org.diqube.queries.QueryUuid.QueryUuidThreadState;
 import org.diqube.util.Pair;
 import org.diqube.util.Triple;
 import org.slf4j.Logger;
@@ -183,51 +185,57 @@ public class ResolveValuesStep extends AbstractThreadedExecutablePlanStep {
 
     if (activeColsAndRows.size() > 0) {
       logger.debug("Starting to resolve values...");
+      QueryUuidThreadState uuidState = QueryUuid.getCurrentThreadState();
       Map<String, Map<Long, Object>> valuesPerColumn = activeColsAndRows.entrySet().stream() //
           .parallel().flatMap( //
               new Function<Entry<String, ConcurrentMap<Long, Pair<ExecutionEnvironment, Long>>>, Stream<Triple<String, Long, Object>>>() {
                 @Override
                 public Stream<Triple<String, Long, Object>> apply(
                     Entry<String, ConcurrentMap<Long, Pair<ExecutionEnvironment, Long>>> e) {
-                  String colName = e.getKey();
+                  QueryUuid.setCurrentThreadState(uuidState);
+                  try {
+                    String colName = e.getKey();
 
-                  List<Triple<String, Long, Object>> res = new ArrayList<>();
+                    List<Triple<String, Long, Object>> res = new ArrayList<>();
 
-                  // group by ExecutionEnvs and columnValueIds, so we do not have to decompress specific colValueIds
-                  // multiple times
-                  Map<ExecutionEnvironment, SortedMap<Long, List<Long>>> envToColumnValueIdToRowId = new HashMap<>();
+                    // group by ExecutionEnvs and columnValueIds, so we do not have to decompress specific colValueIds
+                    // multiple times
+                    Map<ExecutionEnvironment, SortedMap<Long, List<Long>>> envToColumnValueIdToRowId = new HashMap<>();
 
-                  for (Entry<Long, Pair<ExecutionEnvironment, Long>> rowIdColValueIdEntry : e.getValue().entrySet()) {
-                    Long rowId = rowIdColValueIdEntry.getKey();
-                    Long columnValueId = rowIdColValueIdEntry.getValue().getRight();
-                    ExecutionEnvironment env = rowIdColValueIdEntry.getValue().getLeft();
+                    for (Entry<Long, Pair<ExecutionEnvironment, Long>> rowIdColValueIdEntry : e.getValue().entrySet()) {
+                      Long rowId = rowIdColValueIdEntry.getKey();
+                      Long columnValueId = rowIdColValueIdEntry.getValue().getRight();
+                      ExecutionEnvironment env = rowIdColValueIdEntry.getValue().getLeft();
 
-                    if (!envToColumnValueIdToRowId.containsKey(env))
-                      envToColumnValueIdToRowId.put(env, new TreeMap<>());
+                      if (!envToColumnValueIdToRowId.containsKey(env))
+                        envToColumnValueIdToRowId.put(env, new TreeMap<>());
 
-                    if (!envToColumnValueIdToRowId.get(env).containsKey(columnValueId))
-                      envToColumnValueIdToRowId.get(env).put(columnValueId, new ArrayList<>());
-                    envToColumnValueIdToRowId.get(env).get(columnValueId).add(rowId);
-                  }
-
-                  for (ExecutionEnvironment env : envToColumnValueIdToRowId.keySet()) {
-                    SortedMap<Long, List<Long>> columnValueIdToRowId = envToColumnValueIdToRowId.get(env);
-                    Long[] sortedColumnValueIds =
-                        columnValueIdToRowId.keySet().toArray(new Long[columnValueIdToRowId.keySet().size()]);
-
-                    ColumnShard columnShard = env.getColumnShard(colName);
-                    Object[] values = columnShard.getColumnShardDictionary().decompressValues(sortedColumnValueIds);
-
-                    for (int i = 0; i < sortedColumnValueIds.length; i++) {
-                      Long columnValueId = sortedColumnValueIds[i];
-                      Object value = values[i];
-
-                      for (Long rowId : columnValueIdToRowId.get(columnValueId))
-                        res.add(new Triple<>(colName, rowId, value));
+                      if (!envToColumnValueIdToRowId.get(env).containsKey(columnValueId))
+                        envToColumnValueIdToRowId.get(env).put(columnValueId, new ArrayList<>());
+                      envToColumnValueIdToRowId.get(env).get(columnValueId).add(rowId);
                     }
-                  }
 
-                  return res.stream();
+                    for (ExecutionEnvironment env : envToColumnValueIdToRowId.keySet()) {
+                      SortedMap<Long, List<Long>> columnValueIdToRowId = envToColumnValueIdToRowId.get(env);
+                      Long[] sortedColumnValueIds =
+                          columnValueIdToRowId.keySet().toArray(new Long[columnValueIdToRowId.keySet().size()]);
+
+                      ColumnShard columnShard = env.getColumnShard(colName);
+                      Object[] values = columnShard.getColumnShardDictionary().decompressValues(sortedColumnValueIds);
+
+                      for (int i = 0; i < sortedColumnValueIds.length; i++) {
+                        Long columnValueId = sortedColumnValueIds[i];
+                        Object value = values[i];
+
+                        for (Long rowId : columnValueIdToRowId.get(columnValueId))
+                          res.add(new Triple<>(colName, rowId, value));
+                      }
+                    }
+
+                    return res.stream();
+                  } finally {
+                    QueryUuid.clearCurrent();
+                  }
                 }
 
               })
@@ -245,6 +253,8 @@ public class ResolveValuesStep extends AbstractThreadedExecutablePlanStep {
               map1.get(colName).putAll(map2.get(colName));
             }
           });
+
+      QueryUuid.setCurrentThreadState(uuidState);
 
       for (String colName : valuesPerColumn.keySet()) {
         logger.trace("Resolved values, sending them out now (limit): {}, {}", colName,

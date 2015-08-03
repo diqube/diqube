@@ -24,10 +24,10 @@ import java.util.Collection;
 import java.util.NavigableSet;
 import java.util.Set;
 
-import org.diqube.data.colshard.ColumnShard;
 import org.diqube.execution.consumers.ColumnVersionBuiltConsumer;
 import org.diqube.execution.consumers.GenericConsumer;
 import org.diqube.execution.env.ExecutionEnvironment;
+import org.diqube.execution.env.querystats.QueryableColumnShard;
 
 /**
  * Helper class providing methods for handling row IDs when a {@link ColumnVersionBuiltConsumer} is in place.
@@ -56,7 +56,7 @@ public class ColumnVersionBuiltHelper {
   public long publishActiveRowIds(ExecutionEnvironment env, NavigableSet<Long> activeRowIds,
       NavigableSet<Long> notYetProcessedRowIds) {
     long maxRowId;
-    Collection<ColumnShard> cols = env.getAllColumnShards().values();
+    Collection<QueryableColumnShard> cols = env.getAllColumnShards().values();
     if (cols.stream().anyMatch(col -> env.getPureStandardColumnShard(col.getName()) != null)) {
       maxRowId = cols.stream().filter(col -> env.getPureStandardColumnShard(col.getName()) != null)
           .mapToLong(column -> column.getFirstRowId()

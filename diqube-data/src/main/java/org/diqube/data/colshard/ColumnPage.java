@@ -43,10 +43,13 @@ public class ColumnPage {
 
   private long firstRowId;
 
-  /* package */ ColumnPage(LongDictionary columnPageDict, CompressedLongArray values, long firstRowId) {
+  private String name;
+
+  /* package */ ColumnPage(LongDictionary columnPageDict, CompressedLongArray values, long firstRowId, String name) {
     this.columnPageDict = columnPageDict;
     this.values = values;
     this.firstRowId = firstRowId;
+    this.name = name;
   }
 
   public LongDictionary getColumnPageDict() {
@@ -69,5 +72,9 @@ public class ColumnPage {
    */
   public int size() {
     return values.size();
+  }
+
+  public String getName() {
+    return name;
   }
 }
