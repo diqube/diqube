@@ -183,7 +183,7 @@ public class RemoteExecutionPlanExecutor {
           try {
             f.get();
           } catch (ExecutionException e) {
-            callback.exceptionThrown(e);
+            // swallow, the exception will be handled by the "unhandedExceptionHandler" of the steps thread.
             return;
           } catch (InterruptedException e) {
             // interrupted, stop quietly.

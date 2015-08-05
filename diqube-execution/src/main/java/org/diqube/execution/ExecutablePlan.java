@@ -108,10 +108,16 @@ public class ExecutablePlan {
       executor.execute(new Runnable() {
         @Override
         public void run() {
+          boolean isException = false;
           try {
             step.run();
+          } catch (RuntimeException e) {
+            future.oneStepIsException();
+            isException = true;
+            throw e;
           } finally {
-            future.oneStepIsDone();
+            if (!isException)
+              future.oneStepIsDone();
           }
         }
       });
@@ -148,6 +154,7 @@ public class ExecutablePlan {
     private int numberOfStepsToWaitFor;
     private AtomicInteger stepsDone = new AtomicInteger(0);
     private Object getWait = new Object();
+    private boolean isException = false;
 
     public ExecutionFuture(int numberOfStepsToWaitFor) {
       this.numberOfStepsToWaitFor = numberOfStepsToWaitFor;
@@ -172,6 +179,8 @@ public class ExecutablePlan {
     @Override
     public Void get() throws InterruptedException, ExecutionException {
       while (!isDone()) {
+        if (isException)
+          throw new ExecutionException("There was an exception executing the plan", null);
         synchronized (getWait) {
           getWait.wait(500);
         }
@@ -184,6 +193,8 @@ public class ExecutablePlan {
       synchronized (getWait) {
         if (isDone())
           return null;
+        if (isException)
+          throw new ExecutionException("There was an exception executing the plan", null);
 
         getWait.wait(unit.toMillis(timeout));
       }
@@ -192,6 +203,13 @@ public class ExecutablePlan {
 
     private void oneStepIsDone() {
       stepsDone.incrementAndGet();
+      synchronized (getWait) {
+        getWait.notifyAll();
+      }
+    }
+
+    private void oneStepIsException() {
+      isException = true;
       synchronized (getWait) {
         getWait.notifyAll();
       }

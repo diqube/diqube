@@ -94,7 +94,8 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
 
     @Override
     public void oneRemoteException(String msg) {
-      exceptionMessage = msg;
+      exceptionMessage = (msg == null) ? "null" : msg; // msg may be null, but we know there was an exception (perhaps
+                                                       // NPE?)
       logger.trace("One remote is exception");
       synchronized (wait) {
         wait.notifyAll();
