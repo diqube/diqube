@@ -20,10 +20,10 @@
  */
 package org.diqube.loader.columnshard;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.diqube.data.TableShard;
 import org.diqube.data.colshard.ColumnPageFactory;
@@ -41,9 +41,9 @@ import org.diqube.loader.LoaderColumnInfo;
  * @author Bastian Gloeckle
  */
 public class ColumnShardBuilderManager {
-  private volatile Map<String, ColumnShardBuilder<String>> stringBuilders = new HashMap<>();
-  private volatile Map<String, ColumnShardBuilder<Long>> longBuilders = new HashMap<>();
-  private volatile Map<String, ColumnShardBuilder<Double>> doubleBuilders = new HashMap<>();
+  private volatile Map<String, ColumnShardBuilder<String>> stringBuilders = new ConcurrentHashMap<>();
+  private volatile Map<String, ColumnShardBuilder<Long>> longBuilders = new ConcurrentHashMap<>();
+  private volatile Map<String, ColumnShardBuilder<Double>> doubleBuilders = new ConcurrentHashMap<>();
 
   private ColumnShardFactory columnShardFactory;
   private ColumnPageFactory columnPageFactory;

@@ -45,6 +45,8 @@ import org.diqube.loader.compression.CompressedDoubleDictionaryBuilder;
 import org.diqube.loader.compression.CompressedLongDictionaryBuilder;
 import org.diqube.loader.compression.CompressedStringDictionaryBuilder;
 import org.diqube.util.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Builds {@link ColumnShard}s and corresponding {@link ColumnPage}s.
@@ -64,6 +66,7 @@ import org.diqube.util.Pair;
  * @author Bastian Gloeckle
  */
 public class ColumnShardBuilder<T> {
+  private static final Logger logger = LoggerFactory.getLogger(ColumnShardBuilder.class);
   public static final int PROPOSAL_ROWS = 50_000;
 
   /** Name of the Column to be created */
@@ -137,7 +140,11 @@ public class ColumnShardBuilder<T> {
    */
   public void addValues(T[] values, Long firstValueRowId) {
     // Add values to columnDict if needed, transform all values to column value IDs
-    long[] valueIds = Arrays.stream(values).parallel().mapToLong(new ToLongFunction<T>() {
+    // Be aware that this here is a sequential stream! If using a parallel one, this method tries to acquire the same
+    // few threads of the common ForkJoin thread pool, which the Parser might already use. We might then endup in a
+    // somewhat deadlock situation.
+    // TODO #47 rework the parallel streams architecture.
+    long[] valueIds = Arrays.stream(values).sequential().mapToLong(new ToLongFunction<T>() {
       @Override
       public long applyAsLong(T value) {
         Long id = columnDict.get(value);

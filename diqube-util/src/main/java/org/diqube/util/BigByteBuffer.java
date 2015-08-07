@@ -27,6 +27,8 @@ import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileChannel.MapMode;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
@@ -37,9 +39,10 @@ import java.util.stream.Stream;
  * @author Bastian Gloeckle
  */
 public class BigByteBuffer implements Closeable {
-  private static final int DEFAULT_MAX_SINGLE_SIZE = Integer.MAX_VALUE;
+  private static final int DEFAULT_MAX_SINGLE_SIZE = 100 * 1024 * 1024; // 100 MB, to facilitate parallelism.
 
   private ByteBuffer[] byteBuffers;
+  private Lock[] byteBufferLocks;
   private long totalSize;
 
   private long shardSize;
@@ -70,6 +73,9 @@ public class BigByteBuffer implements Closeable {
     this.byteBuffers = bufs;
     this.totalSize = channel.size();
     this.shardSize = maxSingleShardSize;
+    this.byteBufferLocks = new Lock[byteBuffers.length];
+    for (int i = 0; i < byteBufferLocks.length; i++)
+      byteBufferLocks[i] = new ReentrantLock();
   }
 
   public BigByteBuffer(byte[] bytes) {
@@ -84,6 +90,9 @@ public class BigByteBuffer implements Closeable {
     this.byteBuffers = byteBuffers;
     this.shardSize = bufferSize;
     this.totalSize = Stream.<ByteBuffer> of(byteBuffers).mapToLong(buf -> buf.limit()).sum();
+    this.byteBufferLocks = new Lock[byteBuffers.length];
+    for (int i = 0; i < byteBufferLocks.length; i++)
+      byteBufferLocks[i] = new ReentrantLock();
   }
 
   private static int findShardSize(ByteBuffer[] bufs) throws IllegalArgumentException {
@@ -139,18 +148,27 @@ public class BigByteBuffer implements Closeable {
 
     if (idx <= shardSize - length) {
       // single ByteBuffer contains result.
-      synchronized (this) {
+      byteBufferLocks[bufIdx].lock();
+      try {
         byteBuffers[bufIdx].position(idx);
         byteBuffers[bufIdx].get(target, targetOffset, length);
         byteBuffers[bufIdx].rewind();
+      } finally {
+        byteBufferLocks[bufIdx].unlock();
       }
     } else {
       // multiple ByteBuffers contain result.
       synchronized (this) {
         int firstLength = (int) (shardSize - idx);
-        byteBuffers[bufIdx].position(idx);
-        byteBuffers[bufIdx].get(target, targetOffset, firstLength);
-        byteBuffers[bufIdx].rewind();
+
+        byteBufferLocks[bufIdx].lock();
+        try {
+          byteBuffers[bufIdx].position(idx);
+          byteBuffers[bufIdx].get(target, targetOffset, firstLength);
+          byteBuffers[bufIdx].rewind();
+        } finally {
+          byteBufferLocks[bufIdx].unlock();
+        }
         int lengthLeft = length - firstLength;
         int i = 1;
         targetOffset += firstLength;
@@ -161,9 +179,14 @@ public class BigByteBuffer implements Closeable {
           else
             lengthThisBuf = byteBuffers[bufIdx + i].limit();
 
-          byteBuffers[bufIdx + i].rewind();
-          byteBuffers[bufIdx + i].get(target, targetOffset, lengthThisBuf);
-          byteBuffers[bufIdx + i].rewind();
+          byteBufferLocks[bufIdx + i].lock();
+          try {
+            byteBuffers[bufIdx + i].rewind();
+            byteBuffers[bufIdx + i].get(target, targetOffset, lengthThisBuf);
+            byteBuffers[bufIdx + i].rewind();
+          } finally {
+            byteBufferLocks[bufIdx + i].unlock();
+          }
           targetOffset += lengthThisBuf;
           lengthLeft -= lengthThisBuf;
           i++;

@@ -28,6 +28,8 @@ import org.diqube.loader.LoadException;
 import org.diqube.loader.LoaderColumnInfo;
 import org.diqube.loader.columnshard.ColumnShardBuilderManager;
 import org.diqube.threads.ExecutorManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Helper for transposing row-wise data into columnar format and applying the transformation functions on the columnar
@@ -36,6 +38,8 @@ import org.diqube.threads.ExecutorManager;
  * @author Bastian Gloeckle
  */
 public class ParallelLoadAndTransposeHelper {
+  private static final Logger logger = LoggerFactory.getLogger(ParallelLoadAndTransposeHelper.class);
+
   private LoaderColumnInfo columnInfo;
   private ColumnShardBuilderManager columnBuilderManager;
   private String[] colNames;
@@ -105,15 +109,22 @@ public class ParallelLoadAndTransposeHelper {
       rowWiseLoader.accept(rowWiseData);
     } finally {
       // try to gracefully shut down the thread and wait for it.
-      transposeThread.initiateGracefulShutdown();
-      boolean interruptedException = false;
-      try {
-        transposeThread.join((TransposeThread.GRACEFUL_SHUTDOWN_PERIOD_SECONDS + 10) * 1000);
-      } catch (InterruptedException e) {
-        interruptedException = true;
+      logger.trace("Read all row-wise data, waiting for transposing to be done...");
+      Object notifyObject = new Object();
+      transposeThread.inputDequeIsFilledNotifyWhenTransposed(notifyObject);
+
+      synchronized (notifyObject) {
+        while (!transposeThread.isTransposeDone()) {
+          try {
+            notifyObject.wait(1000);
+          } catch (InterruptedException e) {
+            throw new LoadException("Interrupted while waiting for transposing to be done.");
+          }
+        }
       }
-      // If the thread did not finish successfully, make sure to not continue processing the CSV.
-      if (!transposeThread.wasGoodShutdown() || interruptedException)
+
+      // If the thread did not finish successfully, make sure to not continue processing the input.
+      if (!transposeThread.wasGoodShutdown())
         if (transposeThread.getShutdownExceptionMessage() != null)
           throw new LoadException(transposeThread.getShutdownExceptionMessage());
         else

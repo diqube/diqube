@@ -35,7 +35,10 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.PostConstruct;
@@ -99,6 +102,31 @@ public class ExecutorManager {
     threadFactoryBuilder.setNameFormat(nameFormat);
     threadFactoryBuilder.setUncaughtExceptionHandler(uncaughtExceptionHandler);
     return Executors.newCachedThreadPool(threadFactoryBuilder.build());
+  }
+
+  /**
+   * Create a new {@link ExecutorService} that does create threads as needed, but contains a maxmimum number of threads.
+   * 
+   * @param nameFormat
+   *          a {@link String#format(String, Object...)}-compatible format String, to which a unique integer (0, 1,
+   *          etc.) will be supplied as the single parameter. This integer will be unique to the built instance of the
+   *          ThreadFactory and will be assigned sequentially. For example, {@code "rpc-pool-%d"} will generate thread
+   *          names like {@code "rpc-pool-0"}, {@code "rpc-pool-1"}, {@code "rpc-pool-2"}, etc.
+   * @param uncaughtExceptionHandler
+   *          This will be called in case any of the threads of the ExecutorService ends because an exception was
+   *          thrown.
+   * @param maxPoolSize
+   *          Maximum number of threads.
+   * @return The new {@link ExecutorService}.
+   */
+  public ExecutorService newCachedThreadPoolWithMax(String nameFormat,
+      UncaughtExceptionHandler uncaughtExceptionHandler, int maxPoolSize) {
+    ThreadFactoryBuilder threadFactoryBuilder = new ThreadFactoryBuilder();
+    threadFactoryBuilder.setNameFormat(nameFormat);
+    threadFactoryBuilder.setUncaughtExceptionHandler(uncaughtExceptionHandler);
+
+    return new ThreadPoolExecutor(0, maxPoolSize, 10, TimeUnit.SECONDS, new SynchronousQueue<>(),
+        threadFactoryBuilder.build());
   }
 
   /**

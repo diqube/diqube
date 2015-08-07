@@ -235,8 +235,7 @@ public class JsonLoader implements Loader {
       @Override
       public void valueString(String colName, JsonParser parser) throws LoadException {
         try {
-          // TODO "intern"alize the strings returned here
-          res[colToColIndex.get(colName)] = parser.getValueAsString();
+          res[colToColIndex.get(colName)] = parser.getValueAsString().intern();
         } catch (IOException e) {
           throw new LoadException("Could not parse value of column " + colName + ": " + e.getMessage(), e);
         }
@@ -245,7 +244,7 @@ public class JsonLoader implements Loader {
       @Override
       public void valueLong(String colName, JsonParser parser) throws LoadException {
         try {
-          res[colToColIndex.get(colName)] = Long.valueOf(parser.getValueAsLong()).toString();
+          res[colToColIndex.get(colName)] = Long.valueOf(parser.getValueAsLong()).toString().intern();
         } catch (IOException e) {
           throw new LoadException("Could not parse value of column " + colName + ": " + e.getMessage(), e);
         }
@@ -254,7 +253,7 @@ public class JsonLoader implements Loader {
       @Override
       public void valueDouble(String colName, JsonParser parser) throws LoadException {
         try {
-          res[colToColIndex.get(colName)] = Double.valueOf(parser.getValueAsDouble()).toString();
+          res[colToColIndex.get(colName)] = Double.valueOf(parser.getValueAsDouble()).toString().intern();
         } catch (IOException e) {
           throw new LoadException("Could not parse value of column " + colName + ": " + e.getMessage(), e);
         }
@@ -350,8 +349,9 @@ public class JsonLoader implements Loader {
      * Parse the JSON stream, create correct column names and call the {@link Handler} to handle those.
      */
     public void parse(Handler handler) throws LoadException {
+      JsonParser parser = null;
       try {
-        JsonParser parser = factory.createParser(jsonStream);
+        parser = factory.createParser(jsonStream);
 
         Deque<String> colNameStack = new LinkedList<>();
         boolean directlyInArray = false;
@@ -464,6 +464,13 @@ public class JsonLoader implements Loader {
         }
       } catch (IOException e) {
         throw new LoadException("Could not parse column names from JSON: " + e.getMessage(), e);
+      } finally {
+        if (parser != null)
+          try {
+            parser.close();
+          } catch (IOException e) {
+            // swallow.
+          }
       }
     }
 

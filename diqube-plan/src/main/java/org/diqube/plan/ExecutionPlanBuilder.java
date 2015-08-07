@@ -136,7 +136,8 @@ public class ExecutionPlanBuilder {
   }
 
   private DiqlStmtContext parseWithAntlr() throws ParseException {
-    // TODO #20 make ANTLR provide better error messages
+    // TODO #20 make ANTLR provide better error messages, show error if not the while diql was parsed (e.g. WHERE after
+    // ORDER).
     ANTLRInputStream input = new ANTLRInputStream(diql.toCharArray(), diql.length());
     DiqlLexer lexer = new DiqlLexer(input);
     lexer.addErrorListener(new BaseErrorListener() {

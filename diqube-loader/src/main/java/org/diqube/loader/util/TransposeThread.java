@@ -20,9 +20,11 @@
  */
 package org.diqube.loader.util;
 
+import java.util.Deque;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
@@ -47,12 +49,13 @@ public class TransposeThread extends Thread {
 
   public static final int GRACEFUL_SHUTDOWN_PERIOD_SECONDS = 30;
 
+  private static final int MAX_TRANSPOSE_WORKERS = 10;
+
   private ConcurrentLinkedDeque<String[][]> deque;
   private ExecutorService executorService;
   private Function<Integer, Long> provideRowIdsFn;
   private String[] columnNames;
   private TransposeThread.ColumnValuesReadyCallback columnValuesReadyCallbacks;
-  private boolean gracefulShutdown;
   private volatile boolean wasGoodShutdown;
   private String shutdownExceptionMessage = null;
 
@@ -60,8 +63,14 @@ public class TransposeThread extends Thread {
   private AtomicInteger batchesWorkedOn = new AtomicInteger(0);
   /** Number of batches that started o hand over to the {@link ExecutorService}. */
   private int batchesReceived = 0;
-  /** sync/notify object for batches - wheneven {@link #batchesWorkedOn} is changed this should be notified. */
+  /** sync/notify object for batches - whenever {@link #batchesWorkedOn} is changed this should be notified. */
   private Object batchNotify = new Object();
+
+  private boolean dequeFilled = false;
+
+  private Object resultNotifyObject;
+
+  private boolean transposeDone = false;
 
   /**
    * Create new thread.
@@ -88,7 +97,8 @@ public class TransposeThread extends Thread {
     this.provideRowIdsFn = provideRowIdsFn;
     this.columnValuesReadyCallbacks = columnValuesReadyCallbacks;
     this.columnNames = columnNames;
-    executorService = executorManager.newCachedThreadPool("transpose-worker-" + tableName + "-%d",
+
+    executorService = executorManager.newCachedThreadPoolWithMax("transpose-worker-" + tableName + "-%d",
         new Thread.UncaughtExceptionHandler() {
           @Override
           public void uncaughtException(Thread t, Throwable e) {
@@ -104,20 +114,18 @@ public class TransposeThread extends Thread {
               batchNotify.notifyAll();
             }
           }
-        });
-    gracefulShutdown = false;
+        }, MAX_TRANSPOSE_WORKERS);
     wasGoodShutdown = true;
   }
 
   /**
-   * Tell this thread to try to stop as soon as possible.
+   * Tell this thread that the {@link Deque} that was passed to the constructor now contains all input data.
    * 
-   * <p>
-   * If it is not possible to shutdown nicely within {@link #GRACEFUL_SHUTDOWN_PERIOD_SECONDS}, the Thread will
-   * forcefully shut down everything. Check {@link #wasGoodShutdown()} afterwards.
+   * AFter the transposing is done, the {@link Object#notifyAll()} method will be called on the given object.
    */
-  public void initiateGracefulShutdown() {
-    gracefulShutdown = true;
+  public void inputDequeIsFilledNotifyWhenTransposed(Object notifyObject) {
+    this.resultNotifyObject = notifyObject;
+    dequeFilled = true;
     this.interrupt();
   }
 
@@ -140,13 +148,17 @@ public class TransposeThread extends Thread {
     return shutdownExceptionMessage;
   }
 
+  /**
+   * @return <code>true</code> if the transpose is done.
+   */
+  public boolean isTransposeDone() {
+    return transposeDone;
+  }
+
   @Override
   public void run() {
     try {
-      boolean keepIterating = true;
-      boolean lastGracefulRun = false;
-
-      while (keepIterating || lastGracefulRun) {
+      while (!dequeFilled || !deque.isEmpty()) {
         if (deque.peek() != null) {
           for (Iterator<String[][]> it = deque.iterator(); it.hasNext();) {
             String[][] batch = it.next();
@@ -166,46 +178,54 @@ public class TransposeThread extends Thread {
             // executor service: We count the number of batches handed over to the executorService and the ones that we
             // processed (either successfully at the end of the run method, or if an exception is thrown in the
             // UncaughtExceptionHandler, see constructor).
-            executorService.execute(new Runnable() {
-              @Override
-              public void run() {
-                long baseRowId = provideRowIdsFn.apply(batch.length);
+            try {
+              executorService.execute(new Runnable() {
+                @Override
+                public void run() {
+                  long baseRowId = provideRowIdsFn.apply(batch.length);
 
-                String[][] columns = new String[columnNames.length][];
-                for (int col = 0; col < columns.length; col++)
-                  columns[col] = new String[batch.length];
+                  String[][] columns = new String[columnNames.length][];
+                  for (int col = 0; col < columns.length; col++)
+                    columns[col] = new String[batch.length];
 
-                for (int row = 0; row < batch.length; row++) {
-                  for (int col = 0; col < columnNames.length; col++)
-                    columns[col][row] = batch[row][col];
+                  for (int row = 0; row < batch.length; row++) {
+                    for (int col = 0; col < columnNames.length; col++)
+                      columns[col][row] = batch[row][col];
+                  }
+
+                  logger.trace("Transposed {} values of columns {} (firstRowId {}).", batch.length, columnNames,
+                      baseRowId);
+
+                  for (int col = 0; col < columns.length; col++)
+                    columnValuesReadyCallbacks.columnValuesReady(columnNames[col], columns[col], baseRowId);
+
+                  // if everything went well (= no exception), then we have fully worked on this batch. Remember that
+                  // and
+                  // wake up any threads that might be waiting.
+                  batchesWorkedOn.incrementAndGet();
+                  synchronized (batchNotify) {
+                    batchNotify.notifyAll();
+                  }
                 }
-
-                for (int col = 0; col < columns.length; col++)
-                  columnValuesReadyCallbacks.columnValuesReady(columnNames[col], columns[col], baseRowId);
-
-                // if everything went well (= no exception), then we have fully worked on this batch. Remember that and
-                // wake up any threads that might be waiting.
-                batchesWorkedOn.incrementAndGet();
-                synchronized (batchNotify) {
-                  batchNotify.notifyAll();
-                }
-              }
-            });
-            it.remove();
+              });
+              it.remove();
+            } catch (RejectedExecutionException e) {
+              // swallow. Execution was rejected, because the executorService is full currently. We just retry next
+              // time.
+              logger.trace("Executor rejected to execute something. Will try again later...");
+              batchesReceived--; // we will retry this batch!
+              break;
+            }
           }
         }
-        if (lastGracefulRun)
-          return;
 
         try {
           Thread.sleep(100);
         } catch (InterruptedException e) {
-          if (!gracefulShutdown) {
+          if (!dequeFilled) {
             wasGoodShutdown = false;
             return;
           }
-          keepIterating = false;
-          lastGracefulRun = true; // clear deque once more, to fetch any remaining objects, then terminate gracefully.
         }
       }
     } finally {
@@ -226,6 +246,11 @@ public class TransposeThread extends Thread {
 
       // All executor threads /should/ be stopped by now, but let's make absolutely sure....
       executorService.shutdownNow();
+
+      transposeDone = true;
+      synchronized (resultNotifyObject) {
+        resultNotifyObject.notifyAll();
+      }
     }
   }
 
