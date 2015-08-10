@@ -24,31 +24,46 @@
 <html lang="en" ng-app="diqube">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <script type="text/javascript">
     var globalContextPath = "{{globalContextPath}}";
+    // redirect to URL wih trailing /, otherwise all our relative URLs don't work...
+    if (window.location.href.lastIndexOf(globalContextPath) == window.location.href.length - globalContextPath.length) {
+	    window.location.href=window.location.href + "/";
+    }
 </script>
 <title>diqube</title>
-<link rel="stylesheet"
-	href="bower_components/html5-boilerplate/dist/css/normalize.css">
-<link rel="stylesheet"
-	href="bower_components/html5-boilerplate/dist/css/main.css">
+<link rel="stylesheet" href="bower_components/html5-boilerplate/dist/css/normalize.css">
+<link rel="stylesheet" href="bower_components/html5-boilerplate/dist/css/main.css">
+<link href="bower_components/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="app.css">
-<script
-	src="bower_components/html5-boilerplate/dist/js/vendor/modernizr-2.8.3.min.js"></script>
+<script src="bower_components/html5-boilerplate/dist/js/vendor/modernizr-2.8.3.min.js"></script>
 </head>
 <body>
-	<ul class="menu">
-		<li><a href="#/query">Query</a></li>
-	</ul>
+  <nav class="navbar navbar-inverse navbar-fixed-top">
+    <div class="container-fluid">
+      <div class="navbar-header">
+        <a class="navbar-brand" href="#">diqube</a>
+      </div>
+      <div id="navbar" class="navbar-collapse collapse">
+        <ul class="nav navbar-nav navbar-right">
+          <li><a href="#/query">Execute query</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
 
-	<div ng-view></div>
+  <div class="container-fluid">
+    <div ng-view></div>
+  </div>
 
-	<script src="bower_components/angular/angular.js"></script>
-	<script src="bower_components/angular-route/angular-route.js"></script>
-	<script src="bower_components/ng-websocket/ng-websocket.js"></script>
-	<script src="app.js"></script>
-	<script src="route.js"></script>
-	<script src="remote/remote.service.js"></script>
-	<script src="query/query.controller.js"></script>
+  <script src="bower_components/angular/angular.js"></script>
+  <script src="bower_components/angular-route/angular-route.js"></script>
+  <script src="bower_components/ng-websocket/ng-websocket.js"></script>
+  <script src="app.js"></script>
+  <script src="route.js"></script>
+  <script src="remote/remote.service.js"></script>
+  <script src="query/query.controller.js"></script>
 </body>
 </html>

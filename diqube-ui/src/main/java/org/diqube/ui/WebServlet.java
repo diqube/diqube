@@ -52,7 +52,12 @@ public class WebServlet extends HttpServlet {
   @Override
   protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
     String path = req.getPathInfo();
-    if (path == null || "".equals(path) || "/".equals(path))
+    if (path == null || "".equals(path)) {
+      resp.sendRedirect("/");
+      return;
+    }
+
+    if ("/".equals(path))
       path = DEFAULT_RESOURCE;
 
     try {

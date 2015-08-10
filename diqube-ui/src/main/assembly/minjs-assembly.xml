@@ -74,6 +74,10 @@
       <source>bower_components/node-uuid/uuid.js</source>
       <destName>bower_components/node-uuid/uuid.js</destName>
     </file>
+    <file>
+      <source>bower_components/bootstrap/dist/css/bootstrap.min.css</source>
+      <destName>bower_components/bootstrap/dist/css/bootstrap.min.css</destName>
+    </file>
   </files>
 </assembly>
 

@@ -16,8 +16,16 @@
         * Modernizr, http://modernizr.com/
 
     MIT License (node-uuid) [node-uuid-mit.txt]:
-    
+
         * node-uuid, https://github.com/broofa/node-uuid
+
+    MIT License (normalize.css) [normalize-mit.txt]:
+
+        * normalize.css, https://github.com/necolas/normalize.css
+    
+    MIT License (bootstrap) [bootstrap-mit.txt]:
+    
+        * Bootstrap, http://getbootstrap.com
 
     BSD License (D3) [d3-bsd.txt]:
 

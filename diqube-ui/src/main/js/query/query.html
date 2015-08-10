@@ -20,7 +20,22 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -->
-<p><textarea ng-model="query.diql" class="diql diql-full"> </textarea></p>
-<button ng-click="query.execute()">Execute</button>
+<h1 class="page-header">Query</h1>
 
-<div>{{query.result | json}}</div>
+<span class="text-muted">Execute a single query.</span>
+
+<p><textarea ng-model="query.diql" rows="3" class="diql-full"> </textarea></p>
+<p><button class="btn btn-primary" ng-click="query.execute()">Execute</button></p>
+
+<table style="visibility: {{ query.result ? 'visible' : 'hidden'}}" class="table table-striped">
+  <thead>
+    <tr>
+      <th ng-repeat="colName in query.result.columnNames">{{colName}}</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr ng-repeat="row in query.result.rows">
+      <td ng-repeat="col in row">{{col}}</td>
+    </tr>
+  </tbody>
+</table>
