@@ -13,6 +13,7 @@ diqube source code.
         * HttpClient (org.apache.httpcomponents:httpclient:4.2.5 - http://hc.apache.org/httpcomponents-client)
         * HttpCore (org.apache.httpcomponents:httpcore:4.2.4 - http://hc.apache.org/httpcomponents-core-ga)
         * JCommander (com.beust:jcommander:1.48 - http://beust.com/jcommander)
+        * Jackson-annotations (com.fasterxml.jackson.core:jackson-annotations:2.5.0 - http://github.com/FasterXML/jackson)
         * Jackson-core (com.fasterxml.jackson.core:jackson-core:2.5.3 - https://github.com/FasterXML/jackson)
         * Spring AOP (org.springframework:spring-aop:4.1.6.RELEASE - https://github.com/spring-projects/spring-framework)
         * Spring Beans (org.springframework:spring-beans:4.1.6.RELEASE - https://github.com/spring-projects/spring-framework)
@@ -20,6 +21,7 @@ diqube source code.
         * Spring Core (org.springframework:spring-core:4.1.6.RELEASE - https://github.com/spring-projects/spring-framework)
         * Spring Expression Language (SpEL) (org.springframework:spring-expression:4.1.6.RELEASE - https://github.com/spring-projects/spring-framework)
         * TestNG (org.testng:testng:6.9.4 - http://testng.org)
+        * jackson-databind (com.fasterxml.jackson.core:jackson-databind:2.5.3 - http://github.com/FasterXML/jackson)
         * javax.inject (javax.inject:javax.inject:1 - http://code.google.com/p/atinject/)
         * opencsv (com.opencsv:opencsv:3.3 - http://opencsv.sf.net)
 
@@ -34,6 +36,7 @@ diqube source code.
     GPLv2 with classpath exception [gpl-20-classpath.txt]:
 
         * Java Servlet API (javax.servlet:javax.servlet-api:3.1.0 - http://servlet-spec.java.net)
+        * WebSocket server API (javax.websocket:javax.websocket-api:1.1 - http://websocket-spec.java.net)
 
     LGPL [lgpl.txt]:
 
@@ -53,3 +56,32 @@ diqube source code.
     Public Domain:
 
         * AOP alliance (aopalliance:aopalliance:1.0 - http://aopalliance.sourceforge.net)
+
+    MIT License (AngularJS) [angular-mit.txt]:
+
+        * AngularJS, http://angularjs.org
+
+    MIT License (ng-websocket) [ng-websocket-mit.txt]:
+
+        * ng-websocket, https://github.com/wilk/ng-websocket
+
+    MIT License (html5boilerplate) [html5boilerplate-mit.txt]:
+
+        * html5boilerplate, https://html5boilerplate.com
+
+    MIT License (modernizr) [modernizr-mit.txt]:
+
+        * Modernizr, http://modernizr.com/
+
+    MIT License (node-uuid) [node-uuid-mit.txt]:
+    
+        * node-uuid, https://github.com/broofa/node-uuid
+
+    BSD License (D3) [d3-bsd.txt]:
+
+        * D3.js, http://d3js.org/
+
+    Apache License 2.0 [apache-20.txt]:
+
+        * NVD3, http://nvd3.org/
+        * angularjs-nvd3-directives, http://angularjs-nvd3-directives.github.io/angularjs-nvd3-directives/

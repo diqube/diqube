@@ -1,0 +1,29 @@
+
+    MIT License (AngularJS) [angular-mit.txt]:
+
+        * AngularJS, http://angularjs.org
+
+    MIT License (ng-websocket) [ng-websocket-mit.txt]:
+
+        * ng-websocket, https://github.com/wilk/ng-websocket
+
+    MIT License (html5boilerplate) [html5boilerplate-mit.txt]:
+
+        * html5boilerplate, https://html5boilerplate.com
+
+    MIT License (modernizr) [modernizr-mit.txt]:
+
+        * Modernizr, http://modernizr.com/
+
+    MIT License (node-uuid) [node-uuid-mit.txt]:
+    
+        * node-uuid, https://github.com/broofa/node-uuid
+
+    BSD License (D3) [d3-bsd.txt]:
+
+        * D3.js, http://d3js.org/
+
+    Apache License 2.0 [apache-20.txt]:
+
+        * NVD3, http://nvd3.org/
+        * angularjs-nvd3-directives, http://angularjs-nvd3-directives.github.io/angularjs-nvd3-directives/

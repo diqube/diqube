@@ -115,6 +115,11 @@
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-assembly-plugin</artifactId>
+          <version>2.5.5</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
           <version>2.18.1</version>
           <configuration>
@@ -146,6 +151,11 @@
           <groupId>com.mycila</groupId>
           <artifactId>license-maven-plugin</artifactId>
           <version>2.11</version>
+        </plugin>
+        <plugin>
+          <groupId>com.github.eirslett</groupId>
+          <artifactId>frontend-maven-plugin</artifactId>
+          <version>0.0.22</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -241,6 +251,10 @@
                 <exclude>**/*.control</exclude>
                 <exclude>diqube-loader/src/test/resources/*.csv</exclude>
                 <exclude>build/third-party-template.ftl</exclude>
+                <exclude>build/third-party-manual.txt</exclude>
+                <exclude>diqube-ui/bower_components/**</exclude>
+                <exclude>diqube-ui/node_modules/**</exclude>
+                <exclude>diqube-ui/node/**</exclude>
               </excludes>
               <mapping>
                 <g4>DOUBLESLASH_STYLE</g4>
@@ -312,6 +326,11 @@
         <version>2.5.3</version>
       </dependency>
       <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-databind</artifactId>
+        <version>2.5.3</version>
+      </dependency>
+      <dependency>
         <groupId>org.mockito</groupId>
         <artifactId>mockito-all</artifactId>
         <version>1.9.5</version>
@@ -321,6 +340,12 @@
         <groupId>javax.servlet</groupId>
         <artifactId>javax.servlet-api</artifactId>
         <version>3.1.0</version>
+        <scope>provided</scope>
+      </dependency>
+      <dependency>
+        <groupId>javax.websocket</groupId>
+        <artifactId>javax.websocket-api</artifactId>
+        <version>1.1</version>
         <scope>provided</scope>
       </dependency>
 
@@ -405,8 +430,8 @@
                     <!-- "BeanShell" uses the LGPL, make it clear. Additionally, "Logback" uses either LGPL or EPL, we choose 
                       LGPL, so merge EPL to LGPL, too. -->
                     <licenseMerge>LGPL [lgpl.txt]|GNU Lesser General Public License|GNU LESSER GENERAL PUBLIC LICENSE|Eclipse Public License - v 1.0</licenseMerge>
-                    <!-- Servlet API uses either CDDL or GPLv2, choose GPLv2 (with classpath exception). -->
-                    <licenseMerge>GPLv2 with classpath exception [gpl-20-classpath.txt]|CDDL + GPLv2 with classpath exception</licenseMerge>
+                    <!-- Servlet API & Websocket API uses either CDDL or GPLv2, choose GPLv2 (with classpath exception). -->
+                    <licenseMerge>GPLv2 with classpath exception [gpl-20-classpath.txt]|Dual license consisting of the CDDL v1.1 and GPL v2|CDDL + GPLv2 with classpath exception</licenseMerge>
                     <!-- @formatter:on -->
                   </licenseMerges>
                 </configuration>

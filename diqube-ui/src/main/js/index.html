@@ -1,0 +1,54 @@
+<!--
+
+    diqube: Distributed Query Base.
+
+    Copyright (C) 2015 Bastian Gloeckle
+
+    This file is part of diqube.
+
+    diqube is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as
+    published by the Free Software Foundation, either version 3 of the
+    License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+-->
+<!DOCTYPE html>
+<html lang="en" ng-app="diqube">
+<head>
+<meta charset="utf-8">
+<script type="text/javascript">
+    var globalContextPath = "{{globalContextPath}}";
+</script>
+<title>diqube</title>
+<link rel="stylesheet"
+	href="bower_components/html5-boilerplate/dist/css/normalize.css">
+<link rel="stylesheet"
+	href="bower_components/html5-boilerplate/dist/css/main.css">
+<link rel="stylesheet" href="app.css">
+<script
+	src="bower_components/html5-boilerplate/dist/js/vendor/modernizr-2.8.3.min.js"></script>
+</head>
+<body>
+	<ul class="menu">
+		<li><a href="#/query">Query</a></li>
+	</ul>
+
+	<div ng-view></div>
+
+	<script src="bower_components/angular/angular.js"></script>
+	<script src="bower_components/angular-route/angular-route.js"></script>
+	<script src="bower_components/ng-websocket/ng-websocket.js"></script>
+	<script src="app.js"></script>
+	<script src="route.js"></script>
+	<script src="remote/remote.service.js"></script>
+	<script src="query/query.controller.js"></script>
+</body>
+</html>

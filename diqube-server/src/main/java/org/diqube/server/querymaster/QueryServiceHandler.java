@@ -147,6 +147,7 @@ public class QueryServiceHandler implements Iface {
     } catch (ParseException | ValidationException e) {
       logger.warn("Exception while preparing the query execution of {} execution {}: {}", queryUuid, executionUuid,
           e.getMessage());
+      queryRegistry.unregisterQueryExecution(queryUuid, executionUuid);
       throw new RQueryException(e.getMessage());
     }
 
@@ -243,7 +244,7 @@ public class QueryServiceHandler implements Iface {
           synchronized (resultConnection) {
             resultService.queryException(queryRUuid, new RQueryException(t.getMessage()));
           }
-        } catch (TException e) {
+        } catch (TException | RuntimeException e) {
           logger.warn("Was not able to send out exception to " + resultAddress.toString() + " for " + queryUuid, e);
         }
 
@@ -364,22 +365,17 @@ public class QueryServiceHandler implements Iface {
     queryRegistry.registerQueryExecution(queryUuid, executionUuid, exceptionHandler);
 
     Runnable execute;
-    try
-
-    {
+    try {
       Triple<Runnable, ExecutablePlan, ExecuteRemotePlanOnShardsStep> t =
           queryExecutor.prepareExecution(queryUuid, executionUuid, diql);
       execute = t.getLeft();
       masterPlanHolder.setValue(t.getMiddle());
       if (t.getRight() != null)
         remoteExecutionStepHolder.setValue(t.getRight());
-
-    } catch (ParseException |
-
-    ValidationException e)
-
-    {
+    } catch (ParseException | ValidationException e) {
       logger.warn("Exception while preparing the query execution of {}: {}", queryUuid, e.getMessage());
+      connectionPool.releaseConnection(resultConnection);
+      queryRegistry.unregisterQueryExecution(queryUuid, executionUuid);
       throw new RQueryException(e.getMessage());
     }
 

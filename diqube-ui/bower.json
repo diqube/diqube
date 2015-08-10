@@ -1,0 +1,25 @@
+{
+  "name": "diqube-ui",
+  "description": "",
+  "version": "0.0.0",
+  "homepage": "",
+  "license": "",
+  "private": true,
+  "dependencies": {
+    "angular": "1.4.0",
+    "angular-route": "1.4.0",
+    "angular-loader": "1.4.0",
+    "angular-mocks": "1.4.0",
+    "html5-boilerplate": "5.2.0",
+    "ng-websocket": "git://github.com/wilk/ng-websocket.git#ecbdac7ec14aa0e47b9dad4cb29152c658ddaad3",
+    "d3": "3.5.6",
+    "nvd3": "1.8.1",
+    "angularjs-nvd3-directives": "0.0.7",
+    "node-uuid": "1.4.2"
+  },
+  "resolutions": {
+    "angular": "1.4.0",
+    "d3": "3.5.6",
+    "nvd3": "1.8.1"
+  }
+}

@@ -44,24 +44,32 @@ public class QueryResultServiceHandler implements Iface {
   public void partialUpdate(RUUID queryRUuid, RResultTable partialResult, short percentComplete) throws TException {
     UUID queryUuid = RUuidUtil.toUuid(queryRUuid);
     logger.debug("Received partial update for {}, percent {}: {}", queryUuid, percentComplete, partialResult);
+    if (QueryResultRegistry.getHandler(queryUuid) != null)
+      QueryResultRegistry.getHandler(queryUuid).partialUpdate(queryRUuid, partialResult, percentComplete);
   }
 
   @Override
   public void queryResults(RUUID queryRUuid, RResultTable finalResult) throws TException {
     UUID queryUuid = RUuidUtil.toUuid(queryRUuid);
     logger.debug("Received FINAL update for {}: {}", queryUuid, finalResult);
+    if (QueryResultRegistry.getHandler(queryUuid) != null)
+      QueryResultRegistry.getHandler(queryUuid).queryResults(queryRUuid, finalResult);
   }
 
   @Override
   public void queryException(RUUID queryRUuid, RQueryException exceptionThrown) throws TException {
     UUID queryUuid = RUuidUtil.toUuid(queryRUuid);
     logger.debug("Received EXCEPTION {}: {}", queryUuid, exceptionThrown.getMessage());
+    if (QueryResultRegistry.getHandler(queryUuid) != null)
+      QueryResultRegistry.getHandler(queryUuid).queryException(queryRUuid, exceptionThrown);
   }
 
   @Override
   public void queryStatistics(RUUID queryRuuid, RQueryStatistics stats) throws TException {
     UUID queryUuid = RUuidUtil.toUuid(queryRuuid);
     logger.debug("Received STATS {}: {}", queryUuid, stats.toString());
+    if (QueryResultRegistry.getHandler(queryUuid) != null)
+      QueryResultRegistry.getHandler(queryUuid).queryStatistics(queryRuuid, stats);
   }
 
 }

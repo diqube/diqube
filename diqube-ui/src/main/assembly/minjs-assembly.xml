@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    diqube: Distributed Query Base.
+
+    Copyright (C) 2015 Bastian Gloeckle
+
+    This file is part of diqube.
+
+    diqube is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as
+    published by the Free Software Foundation, either version 3 of the
+    License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+-->
+<assembly xmlns="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.3"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.3 http://maven.apache.org/xsd/assembly-1.1.3.xsd">
+  <id>minjs-assembly</id>
+  <formats>
+    <format>dir</format>
+  </formats>
+  <includeBaseDirectory>false</includeBaseDirectory>
+  <files>
+    <file>
+      <source>bower_components/angular/angular.min.js</source>
+      <destName>bower_components/angular/angular.js</destName>
+    </file>
+    <file>
+      <source>bower_components/angular-loader/angular-loader.min.js</source>
+      <destName>bower_components/angular-loader/angular-loader.js</destName>
+    </file>
+    <file>
+      <source>bower_components/angular-route/angular-route.min.js</source>
+      <destName>bower_components/angular-route/angular-route.js</destName>
+    </file>
+    <file>
+      <source>bower_components/angularjs-nvd3-directives/dist/angularjs-nvd3-directives.min.js</source>
+      <destName>bower_components/angularjs-nvd3-directives/dist/angularjs-nvd3-directives.js</destName>
+    </file>
+    <file>
+      <source>bower_components/d3/d3.min.js</source>
+      <destName>bower_components/d3/d3.js</destName>
+    </file>
+    <file>
+      <source>bower_components/html5-boilerplate/dist/css/main.css</source>
+      <destName>bower_components/html5-boilerplate/dist/css/main.css</destName>
+    </file>
+    <file>
+      <source>bower_components/html5-boilerplate/dist/css/normalize.css</source>
+      <destName>bower_components/html5-boilerplate/dist/css/normalize.css</destName>
+    </file>
+    <file>
+      <source>bower_components/html5-boilerplate/dist/js/vendor/modernizr-2.8.3.min.js</source>
+      <destName>bower_components/html5-boilerplate/dist/js/vendor/modernizr-2.8.3.min.js</destName>
+    </file>
+    <file>
+      <source>bower_components/ng-websocket/ng-websocket.js</source>
+      <destName>bower_components/ng-websocket/ng-websocket.js</destName>
+    </file>
+    <file>
+      <source>bower_components/nvd3/build/nv.d3.min.js</source>
+      <destName>bower_components/nvd3/build/nv.d3.js</destName>
+    </file>
+    <file>
+      <source>bower_components/node-uuid/uuid.js</source>
+      <destName>bower_components/node-uuid/uuid.js</destName>
+    </file>
+  </files>
+</assembly>
+

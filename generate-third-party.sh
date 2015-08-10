@@ -24,4 +24,5 @@
 cd "$(dirname "$0")"
 rm THIRD-PARTY.txt
 mvn -Pgenerate-third-party clean generate-resources
+cat build/third-party-manual.txt >> THIRD-PARTY.txt
 cd -
