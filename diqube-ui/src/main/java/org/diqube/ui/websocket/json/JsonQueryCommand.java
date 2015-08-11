@@ -61,6 +61,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 public class JsonQueryCommand extends JsonCommand {
 
+  public static final String PAYLOAD_TYPE = "query";
+
   @JsonProperty
   public String diql;
 
@@ -181,6 +183,11 @@ public class JsonQueryCommand extends JsonCommand {
     res.setHttpAddr(new RNodeHttpAddress());
     res.getHttpAddr().setUrl(DiqubeServletContextListener.clusterResponseAddr + ThriftServlet.URL_PATTERN);
     return res;
+  }
+
+  @Override
+  public String getPayloadType() {
+    return PAYLOAD_TYPE;
   }
 
 }

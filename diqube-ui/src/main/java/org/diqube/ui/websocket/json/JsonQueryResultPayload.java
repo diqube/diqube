@@ -29,7 +29,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * @author Bastian Gloeckle
  */
 public class JsonQueryResultPayload implements JsonPayload {
-  public static final String TYPE = "result";
+  public static final String PAYLOAD_TYPE = "result";
 
   @JsonProperty
   public List<String> columnNames;
@@ -54,6 +54,6 @@ public class JsonQueryResultPayload implements JsonPayload {
 
   @Override
   public String getPayloadType() {
-    return TYPE;
+    return PAYLOAD_TYPE;
   }
 }

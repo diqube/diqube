@@ -21,9 +21,15 @@
 package org.diqube.ui.websocket.json;
 
 /**
- *
+ * JSON data that is transferred between the browser and the UI server on websockets is deserialized into
+ * {@link JsonPayload} objects.
+ * 
  * @author Bastian Gloeckle
  */
 public interface JsonPayload {
+  /**
+   * @return unique string identifying the type of payload. This string will be used in JavaScript, too, to identify
+   *         different types of payloads.
+   */
   public String getPayloadType();
 }

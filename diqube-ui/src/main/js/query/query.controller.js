@@ -25,7 +25,7 @@
 	    [ "remoteService", "$scope", function(remoteService, $scope) {
 		var me = this;
 		me.diql = "";
-		me.result = "";
+		me.result = null;
 		me.exception = null;
 		me.execute = execute;
 
@@ -36,8 +36,8 @@
 		    me.exception = null;
 		    var ws = remoteService.getSocket();
 		    ws.$$send({
-			cmd : "query",
-			param : {
+			type : "query",
+			data : {
 			    diql : me.diql
 			}
 		    });
@@ -49,7 +49,7 @@
 			} else if (data.type == "exception") {
 			    $scope.$apply(function() {
 				me.exception = data.data.text
-				me.data = null;
+				me.result = null;
 			    });
 			}
 

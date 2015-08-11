@@ -28,23 +28,30 @@ import javax.websocket.Session;
 import javax.websocket.server.ServerEndpoint;
 
 import org.diqube.ui.websocket.json.JsonCommand;
-import org.diqube.ui.websocket.json.JsonCommandFactory;
+import org.diqube.ui.websocket.json.JsonPayload;
+import org.diqube.ui.websocket.json.JsonPayloadDeserializer;
+import org.diqube.ui.websocket.json.JsonPayloadDeserializer.JsonPayloadDeserializerException;
 
 /**
+ * Websocket endpoint that will be used by the JavaScript UI.
  *
  * @author Bastian Gloeckle
  */
 @ServerEndpoint("/socket")
 public class WebSocketEndpoint {
 
-  private JsonCommandFactory commandFactory = new JsonCommandFactory();
+  private JsonPayloadDeserializer payloadDeserializer = new JsonPayloadDeserializer();
 
   @OnMessage
   public void onMessage(String msg, Session session) {
-    JsonCommand cmd = commandFactory.createCommand(msg, session);
-    if (cmd == null)
+    try {
+      JsonPayload payload = payloadDeserializer.deserialize(msg, session);
+      if (!(payload instanceof JsonCommand))
+        throw new RuntimeException("Could not correctly deserialize command!");
+      ((JsonCommand) payload).execute();
+    } catch (JsonPayloadDeserializerException e) {
       throw new RuntimeException("Could not correctly deserialize command!");
-    cmd.execute();
+    }
   }
 
   @OnClose

@@ -25,14 +25,18 @@ import javax.websocket.Session;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /**
+ * A command that was sent by the browser encoded in JSON.
+ * 
+ * The command typically contains some parameters which are deserialized into the fields of a JsonCommand and then the
+ * {@link #execute()} method is called to actually execute the logic requested by the browser.
  *
  * @author Bastian Gloeckle
  */
-public abstract class JsonCommand {
+public abstract class JsonCommand implements JsonPayload {
   @JsonIgnore
   protected Session websocketSession;
 
-  public Session getWebsocketSession() {
+  protected Session getWebsocketSession() {
     return websocketSession;
   }
 
@@ -40,5 +44,13 @@ public abstract class JsonCommand {
     this.websocketSession = websocketSession;
   }
 
+  /**
+   * Execute this command. This can be used after the command has been created and initialized fully by
+   * {@link JsonPayloadDeserializer}.
+   * 
+   * @throws RuntimeException
+   *           is thrown if anything goes wrong.
+   */
   public abstract void execute() throws RuntimeException;
+
 }

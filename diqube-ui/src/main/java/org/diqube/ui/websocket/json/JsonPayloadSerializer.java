@@ -28,12 +28,20 @@ import java.nio.charset.Charset;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
+ * Serializes arbitrary {@link JsonPayload} objects to JSON.
  *
  * @author Bastian Gloeckle
  */
 public class JsonPayloadSerializer {
+  private ObjectMapper mapper = new ObjectMapper();
+
+  /**
+   * Serialize the given JsonPayload.
+   * 
+   * @throws JsonPayloadSerializerException
+   *           If anything goes wrong.
+   */
   public String serialize(JsonPayload payload) throws JsonPayloadSerializerException {
-    ObjectMapper mapper = new ObjectMapper();
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     OutputStreamWriter osw = new OutputStreamWriter(baos, Charset.forName("UTF-8"));
     String objectJson;

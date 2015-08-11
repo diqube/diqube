@@ -27,14 +27,14 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * @author Bastian Gloeckle
  */
 public class JsonQueryExceptionPayload implements JsonPayload {
-  public static final String TYPE = "exception";
+  public static final String PAYLOAD_TYPE = "exception";
 
   @JsonProperty
   public String text;
 
   @Override
   public String getPayloadType() {
-    return TYPE;
+    return PAYLOAD_TYPE;
   }
 
   public void setText(String text) {
