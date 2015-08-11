@@ -27,20 +27,25 @@
 <p><textarea ng-model="query.diql" rows="3" class="diql-full"> </textarea></p>
 <p><button class="btn btn-primary" ng-click="query.execute()">Execute</button></p>
 
-<table style="visibility: {{ query.result ? 'visible' : 'hidden'}}" class="table table-striped">
-  <thead>
-    <tr>
-      <th ng-repeat="colName in query.result.columnNames">{{colName}}</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr ng-repeat="row in query.result.rows">
-      <td ng-repeat="col in row">{{col}}</td>
-    </tr>
-  </tbody>
-</table>
+<div style="display: {{ query.result ? 'block' : 'none'}}">
+  <div class="progress">
+    <div class="progress-bar" style="min-width: 2em; width: {{query.result.percentComplete}}%;">{{query.result.percentComplete}}%</div>
+  </div>
+  <table  class="table table-striped">
+    <thead>
+      <tr>
+        <th ng-repeat="colName in query.result.columnNames">{{colName}}</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr ng-repeat="row in query.result.rows">
+        <td ng-repeat="col in row">{{col}}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
 
-<div style="visibility: {{ query.exception ? 'visible' : 'hidden'}}" class="alert alert-danger">
+<div style="display: {{ query.exception ? 'block' : 'none'}}" class="alert alert-danger">
   <span class="glyphicon glyphicon-exclamation-sign"></span>
   {{ query.exception }}
 </div>
