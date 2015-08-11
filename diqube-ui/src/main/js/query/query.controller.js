@@ -21,27 +21,41 @@
 (function() {
     "use strict";
 
-    angular.module("diqube.query", [ "diqube.remote" ]).controller("QueryCtrl", [ "remoteService", "$scope", function(remoteService, $scope) {
-	var me = this;
-	me.diql = "";
-	me.result = "";
-	me.execute = execute;
+    angular.module("diqube.query", [ "diqube.remote" ]).controller("QueryCtrl",
+	    [ "remoteService", "$scope", function(remoteService, $scope) {
+		var me = this;
+		me.diql = "";
+		me.result = "";
+		me.exception = null;
+		me.execute = execute;
 
-	// ====
+		// ====
 
-	function execute() {
-	    var ws = remoteService.getSocket();
-	    ws.$$send({
-		    cmd: "query",
-		    param: {
-			diql: me.diql
-		    }
-		});
-	    ws.$on("$message", function(data) {
-		$scope.$apply(function() { me.result = data });
-	    });
-	    ws.$on("$close", function() {
-	    });
-	}
-    } ]);
+		function execute() {
+		    me.data = "";
+		    me.exception = null;
+		    var ws = remoteService.getSocket();
+		    ws.$$send({
+			cmd : "query",
+			param : {
+			    diql : me.diql
+			}
+		    });
+		    ws.$on("$message", function(data) {
+			if (data.type == "result" && me.exception === null) {
+			    $scope.$apply(function() {
+				me.result = data.data
+			    });
+			} else if (data.type == "exception") {
+			    $scope.$apply(function() {
+				me.exception = data.data.text
+				me.data = null;
+			    });
+			}
+
+		    });
+		    ws.$on("$close", function() {
+		    });
+		}
+	    } ]);
 })();

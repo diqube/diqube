@@ -39,3 +39,8 @@
     </tr>
   </tbody>
 </table>
+
+<div style="visibility: {{ query.exception ? 'visible' : 'hidden'}}" class="alert alert-danger">
+  <span class="glyphicon glyphicon-exclamation-sign"></span>
+  {{ query.exception }}
+</div>

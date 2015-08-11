@@ -20,10 +20,7 @@
  */
 package org.diqube.ui.websocket.json;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -53,10 +50,10 @@ import org.diqube.remote.query.thrift.RResultTable;
 import org.diqube.ui.DiqubeServletContextListener;
 import org.diqube.ui.QueryResultRegistry;
 import org.diqube.ui.ThriftServlet;
+import org.diqube.ui.websocket.json.JsonPayloadSerializer.JsonPayloadSerializerException;
 import org.diqube.util.Pair;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  *
@@ -88,29 +85,26 @@ public class JsonQueryCommand extends JsonCommand {
 
             @Override
             public void queryResults(RUUID queryRUuid, RResultTable finalResult) throws TException {
-              sendResult(RUuidUtil.toUuid(queryRUuid), finalResult, true);
+              sendResult(RUuidUtil.toUuid(queryRUuid), finalResult, 100, true);
             }
 
-            private void sendResult(UUID queryUuid, RResultTable finalResult, boolean doUnregister) {
-              JsonQueryResultCommand resCommand = new JsonQueryResultCommand();
-              resCommand.setColumnNames(finalResult.getColumnNames());
+            private void sendResult(UUID queryUuid, RResultTable finalResult, int percentComplete,
+                boolean doUnregister) {
+              JsonQueryResultPayload res = new JsonQueryResultPayload();
+              res.setColumnNames(finalResult.getColumnNames());
               List<List<Object>> rows = new ArrayList<>();
               for (List<RValue> incomingResultRow : finalResult.getRows()) {
                 List<Object> row = incomingResultRow.stream().map(rValue -> RValueUtil.createValue(rValue))
                     .collect(Collectors.toList());
                 rows.add(row);
               }
-              resCommand.setRows(rows);
+              res.setRows(rows);
+              res.setPercentComplete((short) percentComplete);
 
-              ObjectMapper mapper = new ObjectMapper();
-              ByteArrayOutputStream baos = new ByteArrayOutputStream();
-              OutputStreamWriter osw = new OutputStreamWriter(baos, Charset.forName("UTF-8"));
               try {
-                mapper.writerFor(JsonQueryResultCommand.class).writeValue(osw, resCommand);
-                osw.close();
+                String resString = new JsonPayloadSerializer().serialize(res);
 
-                getWebsocketSession().getAsyncRemote()
-                    .sendText(new String(baos.toByteArray(), Charset.forName("UTF-8")));
+                getWebsocketSession().getAsyncRemote().sendText(resString);
 
                 if (doUnregister) {
                   QueryResultRegistry.unregister(queryUuid);
@@ -120,26 +114,38 @@ public class JsonQueryCommand extends JsonCommand {
                 // Session seems to be closed.
                 System.out.println("Session seems to be closed.");
               } catch (IOException e) {
-                e.printStackTrace();
+                System.out.println("Could not close session: " + e);
+              } catch (JsonPayloadSerializerException e) {
+                System.err.println("Could not serialize result: " + e);
               }
             }
 
             @Override
             public void queryException(RUUID queryRUuid, RQueryException exceptionThrown) throws TException {
-              QueryResultRegistry.unregister(RUuidUtil.toUuid(queryRUuid));
-              try {
-                getWebsocketSession().close();
-              } catch (IOException e) {
-                // TODO
-              }
+              sendError(RUuidUtil.toUuid(queryRUuid), exceptionThrown);
             }
 
             @Override
             public void partialUpdate(RUUID queryRUuid, RResultTable partialResult, short percentComplete)
                 throws TException {
-              sendResult(RUuidUtil.toUuid(queryRUuid), partialResult, false);
+              sendResult(RUuidUtil.toUuid(queryRUuid), partialResult, percentComplete, false);
             }
           });
+    }
+  }
+
+  private void sendError(UUID queryUuid, RQueryException exceptionThrown) {
+    QueryResultRegistry.unregister(queryUuid);
+    JsonQueryExceptionPayload res = new JsonQueryExceptionPayload();
+    res.setText(exceptionThrown.getMessage());
+    try {
+      String resString = new JsonPayloadSerializer().serialize(res);
+      getWebsocketSession().getAsyncRemote().sendText(resString);
+      getWebsocketSession().close();
+    } catch (IOException e) {
+      System.out.println("Could not close session: " + e);
+    } catch (JsonPayloadSerializerException e) {
+      System.err.println("Could not serialize result: " + e);
     }
   }
 
@@ -162,8 +168,8 @@ public class JsonQueryCommand extends JsonCommand {
           true, createOurAddress());
       return queryUuid;
     } catch (RQueryException e) {
-      QueryResultRegistry.unregister(queryUuid);
-      throw new RuntimeException("Query error: " + e.getMessage());
+      sendError(queryUuid, e);
+      throw new RuntimeException("Bad query");
     } catch (TException e) {
       QueryResultRegistry.unregister(queryUuid);
       return null;
