@@ -50,8 +50,8 @@ The diqube server itself does not contain the diqube UI. The UI is available as 
 can be deployed to a [Apache Tomcat 8.0.24][3]. You can find the .war in diqube-ui/target after building. Please note 
 that currently only Apache Tomcat 8.0.24 is supported, as there is a bug in Tomcat and diqube has implemented a 
 work-around. Configuration of the UI can be done via [context init parameters][5], see 
-[DiqubeServletConfig](blob/master/diqube-ui/src/main/java/org/diqube/ui/DiqubeServletConfig.java) for configuration 
-options.
+[DiqubeServletConfig](diqube-ui/src/main/java/org/diqube/ui/DiqubeServletConfig.java) for configuration 
+options. The UI only supports current versions of Chrome.
 
 ##Documentation##
 
