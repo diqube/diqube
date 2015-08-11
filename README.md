@@ -46,9 +46,12 @@ Execute the following after building:
 The server will then start and watch the 'data' directory inside diqube-server for any new data to be loaded (.control
 files). There is some sample data already provided. For more information see [Operating a cluster](/docs/OperatingCluster.md).
 
-The diqube server itself does not contain the diqube UI (will be implemented soon, currently you need to watch the log
-output!). The UI is available as standard web archive (.war file) which can be deployed e.g. to a standard 
-[Apache Tomcat][3]. You can find the .war in diqube-ui/target after building.
+The diqube server itself does not contain the diqube UI. The UI is available as standard web archive (.war file) which 
+can be deployed to a [Apache Tomcat 8.0.24][3]. You can find the .war in diqube-ui/target after building. Please note 
+that currently only Apache Tomcat 8.0.24 is supported, as there is a bug in Tomcat and diqube has implemented a 
+work-around. Configuration of the UI can be done via [context init parameters][5], see 
+[DiqubeServletConfig](blob/master/diqube-ui/src/main/java/org/diqube/ui/DiqubeServletConfig.java) for configuration 
+options.
 
 ##Documentation##
 
@@ -62,3 +65,4 @@ diqube is distributed under the terms of the [GNU Affero General Public License 
 [2]: https://thrift.apache.org
 [3]: https://tomcat.apache.org
 [4]: http://www.gnu.org/licenses/agpl-3.0.html
+[5]: http://tomcat.apache.org/tomcat-8.0-doc/config/context.html#Context_Parameters
