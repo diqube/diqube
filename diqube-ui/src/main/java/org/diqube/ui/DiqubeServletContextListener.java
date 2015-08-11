@@ -20,55 +20,65 @@
  */
 package org.diqube.ui;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
+import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
-import javax.servlet.annotation.WebListener;
+import javax.websocket.DeploymentException;
+import javax.websocket.server.ServerContainer;
+import javax.websocket.server.ServerEndpointConfig;
 
-import org.diqube.util.Pair;
+import org.apache.tomcat.websocket.pojo.PojoEndpointServer;
+import org.apache.tomcat.websocket.pojo.PojoMethodMapping;
+import org.diqube.ui.websocket.WebSocketEndpoint;
+import org.springframework.web.context.ContextLoaderListener;
+import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.context.support.WebApplicationContextUtils;
 
 /**
+ * Simple {@link ServletContextListener} which initializes {@link DiqubeServletConfig}.
+ * 
+ * Needs to be executed after the Spring context has been instantiated already (the {@link ContextLoaderListener} ).
  *
  * @author Bastian Gloeckle
  */
-@WebListener
 public class DiqubeServletContextListener implements ServletContextListener {
 
-  public static final String INIT_PARAM_CLUSTER = "diqube.cluster";
-  public static final String INIT_PARAM_CLUSTER_RESPONSE = "diqube.clusterresponse";
-  public static final String DEFAULT_CLUSTER = "localhost:5101";
-  public static final String DEFAULT_CLUSTER_RESPONSE = "http://localhost:8080";
-
-  // TODO remove static access, but provide a real context.
-  public static List<Pair<String, Short>> clusterServers;
-
-  public static String clusterResponseAddr;
-
-  @Override
-  public void contextInitialized(ServletContextEvent sce) {
-    String clusterLocation = sce.getServletContext().getInitParameter(INIT_PARAM_CLUSTER);
-    if (clusterLocation == null)
-      clusterLocation = DEFAULT_CLUSTER;
-
-    clusterServers = new ArrayList<>();
-    for (String hostPortStr : clusterLocation.split(",")) {
-      String[] split = hostPortStr.split(":");
-      clusterServers.add(new Pair<>(split[0], Short.valueOf(split[1])));
-    }
-    clusterServers = Collections.unmodifiableList(clusterServers);
-
-    String clusterResponse = sce.getServletContext().getInitParameter(INIT_PARAM_CLUSTER_RESPONSE);
-    if (clusterResponse == null)
-      clusterResponse = DEFAULT_CLUSTER_RESPONSE;
-
-    clusterResponseAddr = clusterResponse + sce.getServletContext().getContextPath();
-  }
+  /**
+   * Attribute name of a {@link ServletContext} attribute containing the {@link ServerContainer} as specified in JSR 356
+   * Websocket API 1.1, 6.4 "Programmatic Server Deployment"
+   */
+  private static final String ATTR_SERVER_CONTAINER = "javax.websocket.server.ServerContainer";
 
   @Override
   public void contextDestroyed(ServletContextEvent sce) {
+  }
+
+  @Override
+  public void contextInitialized(ServletContextEvent sce) {
+    // initialize DiqubeServletConfig
+    WebApplicationContext ctx = WebApplicationContextUtils.getRequiredWebApplicationContext(sce.getServletContext());
+    ctx.getBean(DiqubeServletConfig.class).initialize(sce.getServletContext());
+
+    // register our Websocket Endpoint
+    ServerContainer serverContainer = (ServerContainer) sce.getServletContext().getAttribute(ATTR_SERVER_CONTAINER);
+
+    ServerEndpointConfig sec =
+        ServerEndpointConfig.Builder.create(WebSocketEndpoint.class, WebSocketEndpoint.ENDPOINT_URL_MAPPING).build();
+    sec.getUserProperties().put(WebSocketEndpoint.PROP_BEAN_CONTEXT, ctx);
+
+    try {
+      // TODO remove as soon as https://bz.apache.org/bugzilla/show_bug.cgi?id=58232 is fixed
+      @SuppressWarnings("unchecked")
+      PojoMethodMapping tomcatPojoMethodMapping =
+          new PojoMethodMapping(WebSocketEndpoint.class, new Class[0], WebSocketEndpoint.ENDPOINT_URL_MAPPING);
+      sec.getUserProperties().put(PojoEndpointServer.POJO_METHOD_MAPPING_KEY, tomcatPojoMethodMapping);
+
+      // ---
+
+      serverContainer.addEndpoint(sec);
+    } catch (DeploymentException e) {
+      throw new RuntimeException("DeploymentException when deploying Websocket endpoint", e);
+    }
   }
 
 }

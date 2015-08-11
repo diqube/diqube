@@ -40,7 +40,7 @@ public abstract class JsonCommand implements JsonPayload {
     return websocketSession;
   }
 
-  public void setWebsocketSession(Session websocketSession) {
+  /* package */ void setWebsocketSession(Session websocketSession) {
     this.websocketSession = websocketSession;
   }
 

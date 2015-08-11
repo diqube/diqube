@@ -21,6 +21,7 @@
 package org.diqube.ui;
 
 import org.apache.thrift.TException;
+import org.diqube.context.AutoInstatiate;
 import org.diqube.remote.query.thrift.KeepAliveService;
 
 /**
@@ -28,6 +29,7 @@ import org.diqube.remote.query.thrift.KeepAliveService;
  *
  * @author Bastian Gloeckle
  */
+@AutoInstatiate
 public class KeepAliveServiceHandler implements KeepAliveService.Iface {
 
   @Override

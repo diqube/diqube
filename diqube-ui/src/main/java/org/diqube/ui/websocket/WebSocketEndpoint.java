@@ -21,33 +21,53 @@
 package org.diqube.ui.websocket;
 
 import javax.websocket.CloseReason;
+import javax.websocket.EndpointConfig;
 import javax.websocket.OnClose;
 import javax.websocket.OnError;
 import javax.websocket.OnMessage;
+import javax.websocket.OnOpen;
 import javax.websocket.Session;
-import javax.websocket.server.ServerEndpoint;
 
+import org.diqube.ui.DiqubeServletContextListener;
+import org.diqube.ui.QueryResultRegistry;
 import org.diqube.ui.websocket.json.JsonCommand;
 import org.diqube.ui.websocket.json.JsonPayload;
 import org.diqube.ui.websocket.json.JsonPayloadDeserializer;
 import org.diqube.ui.websocket.json.JsonPayloadDeserializer.JsonPayloadDeserializerException;
+import org.springframework.context.ApplicationContext;
 
 /**
  * Websocket endpoint that will be used by the JavaScript UI.
+ * 
+ * This endpoint is instantiated programatically, see {@link DiqubeServletContextListener}. For more information, see
+ * JSR 356, v1.1, 6.4 "Programmatic Server Deployment".
  *
  * @author Bastian Gloeckle
  */
-@ServerEndpoint("/socket")
 public class WebSocketEndpoint {
+  /** The URL mapping under which this endpoint will be available */
+  public static final String ENDPOINT_URL_MAPPING = "/socket";
 
-  private JsonPayloadDeserializer payloadDeserializer = new JsonPayloadDeserializer();
+  /**
+   * Property name in this endpoints {@link EndpointConfig#getUserProperties()} and in all
+   * {@link Session#getUserProperties()} whose value is an {@link ApplicationContext}.
+   */
+  public static final String PROP_BEAN_CONTEXT = "diqube.springContext";
+
+  @OnOpen
+  public void onOpen(Session session, EndpointConfig config) {
+    ApplicationContext ctx = (ApplicationContext) config.getUserProperties().get(PROP_BEAN_CONTEXT);
+    session.getUserProperties().put(PROP_BEAN_CONTEXT, ctx);
+  }
 
   @OnMessage
   public void onMessage(String msg, Session session) {
     try {
-      JsonPayload payload = payloadDeserializer.deserialize(msg, session);
+      JsonPayload payload = getBeanCtx(session).getBean(JsonPayloadDeserializer.class).deserialize(msg, session);
+
       if (!(payload instanceof JsonCommand))
         throw new RuntimeException("Could not correctly deserialize command!");
+
       ((JsonCommand) payload).execute();
     } catch (JsonPayloadDeserializerException e) {
       throw new RuntimeException("Could not correctly deserialize command!");
@@ -57,6 +77,7 @@ public class WebSocketEndpoint {
   @OnClose
   public void onClose(Session session, CloseReason reason) {
     System.out.println("Received CLOSE (" + session + "): " + reason);
+    getBeanCtx(session).getBean(QueryResultRegistry.class).unregisterSession(session);
   }
 
   @OnError
@@ -64,4 +85,7 @@ public class WebSocketEndpoint {
     System.out.println("Received ERROR (" + session + "): " + throwable.toString());
   }
 
+  private ApplicationContext getBeanCtx(Session session) {
+    return (ApplicationContext) session.getUserProperties().get(PROP_BEAN_CONTEXT);
+  }
 }

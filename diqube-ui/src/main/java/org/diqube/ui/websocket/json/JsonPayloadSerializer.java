@@ -25,6 +25,8 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
 
+import org.diqube.context.AutoInstatiate;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
@@ -32,6 +34,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  *
  * @author Bastian Gloeckle
  */
+@AutoInstatiate
 public class JsonPayloadSerializer {
   private ObjectMapper mapper = new ObjectMapper();
 

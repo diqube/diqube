@@ -22,9 +22,13 @@ package org.diqube.ui;
 
 import java.util.UUID;
 
+import javax.inject.Inject;
+
 import org.apache.thrift.TException;
+import org.diqube.context.AutoInstatiate;
 import org.diqube.remote.base.thrift.RUUID;
 import org.diqube.remote.base.util.RUuidUtil;
+import org.diqube.remote.query.thrift.QueryResultService;
 import org.diqube.remote.query.thrift.QueryResultService.Iface;
 import org.diqube.remote.query.thrift.RQueryException;
 import org.diqube.remote.query.thrift.RQueryStatistics;
@@ -33,43 +37,56 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * Handler for {@link QueryResultService}.
  *
  * @author Bastian Gloeckle
  */
+@AutoInstatiate
 public class QueryResultServiceHandler implements Iface {
 
   private static final Logger logger = LoggerFactory.getLogger(QueryResultServiceHandler.class);
+
+  @Inject
+  private QueryResultRegistry queryResultRegistry;
 
   @Override
   public void partialUpdate(RUUID queryRUuid, RResultTable partialResult, short percentComplete) throws TException {
     UUID queryUuid = RUuidUtil.toUuid(queryRUuid);
     logger.debug("Received partial update for {}, percent {}: {}", queryUuid, percentComplete, partialResult);
-    if (QueryResultRegistry.getHandler(queryUuid) != null)
-      QueryResultRegistry.getHandler(queryUuid).partialUpdate(queryRUuid, partialResult, percentComplete);
+
+    QueryResultService.Iface handler = queryResultRegistry.getHandler(queryUuid);
+    if (handler != null)
+      handler.partialUpdate(queryRUuid, partialResult, percentComplete);
   }
 
   @Override
   public void queryResults(RUUID queryRUuid, RResultTable finalResult) throws TException {
     UUID queryUuid = RUuidUtil.toUuid(queryRUuid);
     logger.debug("Received FINAL update for {}: {}", queryUuid, finalResult);
-    if (QueryResultRegistry.getHandler(queryUuid) != null)
-      QueryResultRegistry.getHandler(queryUuid).queryResults(queryRUuid, finalResult);
+
+    QueryResultService.Iface handler = queryResultRegistry.getHandler(queryUuid);
+    if (handler != null)
+      handler.queryResults(queryRUuid, finalResult);
   }
 
   @Override
   public void queryException(RUUID queryRUuid, RQueryException exceptionThrown) throws TException {
     UUID queryUuid = RUuidUtil.toUuid(queryRUuid);
     logger.debug("Received EXCEPTION {}: {}", queryUuid, exceptionThrown.getMessage());
-    if (QueryResultRegistry.getHandler(queryUuid) != null)
-      QueryResultRegistry.getHandler(queryUuid).queryException(queryRUuid, exceptionThrown);
+
+    QueryResultService.Iface handler = queryResultRegistry.getHandler(queryUuid);
+    if (handler != null)
+      handler.queryException(queryRUuid, exceptionThrown);
   }
 
   @Override
   public void queryStatistics(RUUID queryRuuid, RQueryStatistics stats) throws TException {
     UUID queryUuid = RUuidUtil.toUuid(queryRuuid);
     logger.debug("Received STATS {}: {}", queryUuid, stats.toString());
-    if (QueryResultRegistry.getHandler(queryUuid) != null)
-      QueryResultRegistry.getHandler(queryUuid).queryStatistics(queryRuuid, stats);
+
+    QueryResultService.Iface handler = queryResultRegistry.getHandler(queryUuid);
+    if (handler != null)
+      handler.queryStatistics(queryRuuid, stats);
   }
 
 }

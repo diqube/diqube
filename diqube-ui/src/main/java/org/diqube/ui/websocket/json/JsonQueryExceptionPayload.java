@@ -23,6 +23,7 @@ package org.diqube.ui.websocket.json;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
+ * A simple {@link JsonPayload} containing information about an exception that occured while executing a query.
  *
  * @author Bastian Gloeckle
  */

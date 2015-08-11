@@ -25,6 +25,7 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
+ * A simple {@link JsonPayload} containing information about results of a query.
  *
  * @author Bastian Gloeckle
  */

@@ -20,9 +20,17 @@
  */
 package org.diqube.ui.websocket.json;
 
+import javax.inject.Inject;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 /**
  * JSON data that is transferred between the browser and the UI server on websockets is deserialized into
  * {@link JsonPayload} objects.
+ * 
+ * Implementing classes may contain fields annotated with both, {@link Inject} and {@link JsonIgnore} in which case the
+ * {@link JsonPayloadDeserializer} will wire beans from the bean context accordingly. This is probably most interesting
+ * for classes implementing the sub-interface {@link JsonCommand}.
  * 
  * @author Bastian Gloeckle
  */
