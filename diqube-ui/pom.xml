@@ -220,7 +220,7 @@
             <artifactId>build-helper-maven-plugin</artifactId>
             <executions>
               <execution>
-                <id>add-resources</id>
+                <id>add-resources-min</id>
                 <goals>
                   <goal>add-resource</goal>
                 </goals>
