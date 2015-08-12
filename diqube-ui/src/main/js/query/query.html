@@ -25,27 +25,89 @@
 <span class="text-muted">Execute a single query.</span>
 
 <p><textarea ng-model="query.diql" rows="6" class="diql-full"> </textarea></p>
-<p><button class="btn btn-primary" ng-click="query.execute()">Execute</button></p>
+<div class="execute-buttons">
+  <button class="btn btn-primary" ng-click="query.execute()">Execute</button>
 
-<div style="display: {{ query.result ? 'block' : 'none'}}">
+  <div class="btn-toolbar pull-right"  style="{{ query.stats ? '' : 'display: none'}}">
+    <div class="btn-group">
+      <button type="button" class="btn btn-default" ng-click="query.displayResults()">Results</button>
+      <button type="button" class="btn btn-default" ng-click="query.displayStats()">Statistics</button>
+    </div>
+  </div>
+</div>
+
+<div style="{{ query.result ? '' : 'display: none'}}">
   <div class="progress">
     <div class="progress-bar" style="min-width: 2em; width: {{query.result.percentComplete}}%;">{{query.result.percentComplete}}%</div>
   </div>
-  <table  class="table table-striped">
+  
+  <table  class="table table-striped" style="{{ (query.displayResultsOrStats === 'results') ? '' : 'display: none'}}">
     <thead>
       <tr>
         <th ng-repeat="colName in query.result.columnNames">{{colName}}</th>
       </tr>
     </thead>
     <tbody>
-      <tr ng-repeat="row in query.result.rows">
-        <td ng-repeat="col in row">{{col}}</td>
+      <tr ng-repeat="row in query.result.rows track by $index">
+        <td ng-repeat="col in row track by $index2">{{col}}</td>
+      </tr>
+    </tbody>
+  </table>
+  
+  <table  class="table table-striped" style="{{ (query.displayResultsOrStats === 'stats') ? '' : 'display: none'}}">
+    <thead>
+      <tr>
+        <th></th>
+        <th></th>
+        <th ng-repeat="nodeName in query.stats.nodeNames track by $index">{{nodeName}}</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td colspan="2">startedUntilDoneMs</td>
+        <td ng-repeat="val in query.stats.startedUntilDoneMs track by $index">{{val}}</td>
+      </tr>
+      <tr>
+        <td colspan="2">numberOfThreads</td>
+        <td ng-repeat="val in query.stats.numberOfThreads track by $index">{{val}}</td>
+      </tr>    
+      <tr>
+        <td colspan="2">numberOfTemporaryColumnsCreated</td>
+        <td ng-repeat="val in query.stats.numberOfTemporaryColumnsCreated track by $index">{{val}}</td>
+      </tr>    
+      <tr>
+        <td colspan="2">numberOfPages</td>
+        <td ng-repeat="val in query.stats.numberOfPages track by $index">{{val}}</td>
+      </tr>    
+      <tr>
+        <td colspan="2">numberOfTemporaryPages</td>
+        <td ng-repeat="val in query.stats.numberOfTemporaryPages track by $index">{{val}}</td>
+      </tr>
+      <tr ng-repeat="item in itemsPage = (query.stats.numberOfPageAccesses | toArray | orderBy: '$key') track by $index">
+        <td rowspan="{{ itemsPage.length }}" ng-if="$first">numberOfPageAccesses</td>
+        <td title="{{ item.$key }}">{{item.$key | limitTo: 100}}</td>
+        <td ng-repeat="val in item track by $index">{{val}}</td>
+      </tr>
+      <tr ng-repeat="item in itemsTempPage = (query.stats.numberOfTemporaryPageAccesses | toArray | orderBy: '$key') track by $index">
+        <td rowspan="{{ itemsTempPage.length }}" ng-if="$first">numberOfTemporaryPageAccesses</td>
+        <td title="{{ item.$key }}">{{item.$key | limitTo: 100}}</td>
+        <td ng-repeat="val in item track by $index">{{val}}</td>
+      </tr>
+      <tr ng-repeat="item in itemsCols = (query.stats.numberOfTemporaryVersionsPerColName | toArray | orderBy: '$key') track by $index">
+        <td rowspan="{{ itemsCols.length }}" ng-if="$first">numberOfTemporaryVersionsPerColName</td>
+        <td title="{{ item.$key }}">{{item.$key | limitTo: 100}}</td>
+        <td ng-repeat="val in item track by $index">{{val}}</td>
+      </tr>
+      <tr ng-repeat="item in itemsSteps = (query.stats.stepsActiveMs | toArray | orderBy: '$key') track by $index">
+        <td rowspan="{{ itemsSteps.length }}" ng-if="$first">stepsActiveMs</td>
+        <td title="{{ item.$key }}">{{item.$key | limitTo: 100}}</td>
+        <td ng-repeat="val in item track by $index">{{val}}</td>
       </tr>
     </tbody>
   </table>
 </div>
 
-<div style="display: {{ query.exception ? 'block' : 'none'}}" class="alert alert-danger">
+<div style="{{ query.exception ? '' : 'display: none'}}" class="alert alert-danger">
   <span class="glyphicon glyphicon-exclamation-sign"></span>
   {{ query.exception }}
 </div>

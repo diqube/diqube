@@ -305,4 +305,9 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
     }
 
   }
+
+  @Override
+  public String getDetailsDescription() {
+    return null;
+  }
 }

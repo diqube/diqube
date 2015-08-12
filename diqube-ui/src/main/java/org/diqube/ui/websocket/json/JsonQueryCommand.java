@@ -101,14 +101,37 @@ public class JsonQueryCommand extends JsonCommand {
       queryUuid = sendDiqlQuery(config.getClusterServers().get(nextIdx), new QueryResultService.Iface() {
         @Override
         public void queryStatistics(RUUID queryRuuid, RQueryStatistics stats) throws TException {
+          JsonQueryStatsPayload statsPayload = new JsonQueryStatsPayload();
+          statsPayload.loadFromQueryStatRes(stats);
+
+          // TODO handle case where we do not receive STATS - who closes the websocket?
+          try {
+            String statsString = serializer.serialize(statsPayload);
+
+            getWebsocketSession().getAsyncRemote().sendText(statsString);
+            queryResultRegistry.unregisterQuery(RUuidUtil.toUuid(queryRuuid));
+            getWebsocketSession().close();
+          } catch (IllegalStateException e) {
+            // Session seems to be closed.
+            logger.info("Session seems to be closed.");
+          } catch (IOException e) {
+            logger.warn("Could not close session", e);
+          } catch (JsonPayloadSerializerException e) {
+            logger.error("Could not serialize result", e);
+            try {
+              getWebsocketSession().close();
+            } catch (IOException e1) {
+              logger.warn("Could not close session", e);
+            }
+          }
         }
 
         @Override
         public void queryResults(RUUID queryRUuid, RResultTable finalResult) throws TException {
-          sendResult(RUuidUtil.toUuid(queryRUuid), finalResult, 100, true);
+          sendResult(RUuidUtil.toUuid(queryRUuid), finalResult, 100);
         }
 
-        private void sendResult(UUID queryUuid, RResultTable finalResult, int percentComplete, boolean doUnregister) {
+        private void sendResult(UUID queryUuid, RResultTable finalResult, int percentComplete) {
           JsonQueryResultPayload res = new JsonQueryResultPayload();
           res.setColumnNames(finalResult.getColumnNames());
           List<List<Object>> rows = new ArrayList<>();
@@ -124,17 +147,9 @@ public class JsonQueryCommand extends JsonCommand {
             String resString = serializer.serialize(res);
 
             getWebsocketSession().getAsyncRemote().sendText(resString);
-
-            if (doUnregister) {
-              queryResultRegistry.unregisterQuery(queryUuid);
-              getWebsocketSession().close();
-            }
           } catch (IllegalStateException e) {
             // Session seems to be closed.
             logger.info("Session seems to be closed.");
-          } catch (IOException e) {
-            logger.warn("Could not close session", e);
-            System.out.println("Could not close session: " + e);
           } catch (JsonPayloadSerializerException e) {
             logger.error("Could not serialize result", e);
           }
@@ -148,7 +163,7 @@ public class JsonQueryCommand extends JsonCommand {
         @Override
         public void partialUpdate(RUUID queryRUuid, RResultTable partialResult, short percentComplete)
             throws TException {
-          sendResult(RUuidUtil.toUuid(queryRUuid), partialResult, percentComplete, false);
+          sendResult(RUuidUtil.toUuid(queryRUuid), partialResult, percentComplete);
         }
 
         private void sendError(UUID queryUuid, RQueryException exceptionThrown) {

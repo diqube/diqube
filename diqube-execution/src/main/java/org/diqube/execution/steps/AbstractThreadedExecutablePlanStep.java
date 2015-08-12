@@ -248,4 +248,9 @@ public abstract class AbstractThreadedExecutablePlanStep implements ExecutablePl
         + "]";
   }
 
+  @Override
+  public String getDetailsDescription() {
+    return getAdditionalToStringDetails();
+  }
+
 }

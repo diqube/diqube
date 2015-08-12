@@ -21,7 +21,6 @@
 package org.diqube.listeners;
 
 import org.diqube.context.AutoInstatiate;
-import org.diqube.remote.base.thrift.RNodeAddress;
 
 /**
  * A listener for events of the ClusterManager.
@@ -37,9 +36,4 @@ public interface ClusterManagerListener {
    * The ClusterManager is initialized and we're ready to interact with the cluster.
    */
   public void clusterInitialized();
-
-  /**
-   * A specific node in the cluster died.
-   */
-  public void nodeDied(RNodeAddress nodeAddr);
 }

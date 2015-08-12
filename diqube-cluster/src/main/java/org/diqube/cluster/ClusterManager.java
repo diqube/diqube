@@ -44,6 +44,7 @@ import org.diqube.context.InjectOptional;
 import org.diqube.listeners.ClusterManagerListener;
 import org.diqube.listeners.ServingListener;
 import org.diqube.listeners.TableLoadListener;
+import org.diqube.listeners.providers.OurNodeAddressProvider;
 import org.diqube.remote.base.thrift.RNodeAddress;
 import org.diqube.remote.base.util.RNodeAddressUtil;
 import org.diqube.remote.cluster.ClusterManagementServiceConstants;
@@ -59,7 +60,7 @@ import org.slf4j.LoggerFactory;
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
-public class ClusterManager implements ServingListener, TableLoadListener {
+public class ClusterManager implements ServingListener, TableLoadListener, OurNodeAddressProvider {
   private static final Logger logger = LoggerFactory.getLogger(ClusterManager.class);
 
   private static final String OUR_HOST_AUTOMATIC = "*";
@@ -80,6 +81,9 @@ public class ClusterManager implements ServingListener, TableLoadListener {
 
   @InjectOptional
   private List<ClusterManagerListener> clusterManagerListeners;
+
+  @InjectOptional
+  private List<ClusterNodeDiedListener> clusterNodeDiedListeners;
 
   @Inject
   private RandomManager randomManager;
@@ -311,7 +315,7 @@ public class ClusterManager implements ServingListener, TableLoadListener {
         // to the third node, although that node might be up and running for us (if there are network segment failures
         // etc.). But as this scenario cannot happen currently (see JavaDoc of this method), we're fine to fire the
         // event and ConnectionPool to listen to it.
-        clusterManagerListeners.forEach(l -> l.nodeDied(diedAddr));
+        clusterNodeDiedListeners.forEach(l -> l.nodeDied(diedAddr));
     }
   }
 
@@ -379,5 +383,10 @@ public class ClusterManager implements ServingListener, TableLoadListener {
 
   public NodeAddress getOurHostAddr() {
     return ourHostAddr;
+  }
+
+  @Override
+  public String getOurNodeAddress() {
+    return ourHostAddr.toString();
   }
 }

@@ -30,6 +30,7 @@ import org.diqube.remote.cluster.thrift.RClusterQueryStatistics;
 public class RClusterQueryStatsUtil {
   public static RClusterQueryStatistics createRQueryStats(QueryStats queryStats) {
     RClusterQueryStatistics res = new RClusterQueryStatistics();
+    res.setNodeName(queryStats.getNodeName());
     res.setNumberOfTemporaryColumnsCreated(queryStats.getNumberOfTemporaryColumnsCreated());
     res.setNumberOfThreads(queryStats.getNumberOfThreads());
     res.setStartedUntilDoneMs(queryStats.getStartedUntilDoneMs());
@@ -43,7 +44,8 @@ public class RClusterQueryStatsUtil {
   }
 
   public static QueryStats createQueryStats(RClusterQueryStatistics remote) {
-    QueryStats res = new QueryStats(remote.getStartedUntilDoneMs(), //
+    QueryStats res = new QueryStats(remote.getNodeName(), //
+        remote.getStartedUntilDoneMs(), //
         remote.getStepThreadActiveMs(), //
         remote.getNumberOfThreads(), //
         remote.getNumberOfTemporaryColumnsCreated(), //

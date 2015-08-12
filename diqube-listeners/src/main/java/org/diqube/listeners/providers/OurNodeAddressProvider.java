@@ -1,4 +1,4 @@
-/*
+/**
  * diqube: Distributed Query Base.
  *
  * Copyright (C) 2015 Bastian Gloeckle
@@ -18,13 +18,20 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-"use strict";
+package org.diqube.listeners.providers;
 
-(function() {
-    angular.module("diqube", [ "ngRoute", 
-                               "ngWebsocket", 
-                               "angular-toArrayFilter",
-                               "diqube.route", 
-                               "diqube.query", 
-                               "diqube.remote" ]);
-})();
+/**
+ * A {@link OurNodeAddressProvider} provides a string representing the address of our cluster node with which other
+ * cluster nodes can reach us.
+ * 
+ * The implementing class is part of the bean context.
+ *
+ * @author Bastian Gloeckle
+ */
+public interface OurNodeAddressProvider {
+  /**
+   * @return A string representing the address of our cluster node. The format of the string is not defined further and
+   *         could be arbitrary.
+   */
+  public String getOurNodeAddress();
+}

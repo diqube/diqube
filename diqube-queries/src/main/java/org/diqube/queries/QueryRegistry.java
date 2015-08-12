@@ -32,8 +32,12 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 
+import org.diqube.config.Config;
+import org.diqube.config.ConfigKey;
 import org.diqube.context.AutoInstatiate;
+import org.diqube.context.InjectOptional;
 import org.diqube.function.IntermediaryResult;
+import org.diqube.listeners.providers.OurNodeAddressProvider;
 import org.diqube.util.Pair;
 
 /**
@@ -53,6 +57,15 @@ public class QueryRegistry {
   private Map<UUID, Deque<QueryResultHandler>> resultHandlers = new ConcurrentHashMap<>();
   private Map<UUID, QueryStatsManager> queryStats = new ConcurrentHashMap<>();
   private ConcurrentMap<UUID, Map<UUID, QueryStatsListener>> queryStatsListeners = new ConcurrentHashMap<>();;
+
+  @Config(ConfigKey.OUR_HOST)
+  private String ourHost;
+
+  @Config(ConfigKey.PORT)
+  private int ourPort;
+
+  @InjectOptional
+  private OurNodeAddressProvider ourNodeAddressProvider;
 
   /**
    * Register a query, its execution and its exception handler. Note that for the query
@@ -180,8 +193,15 @@ public class QueryRegistry {
   public QueryStatsManager getOrCreateStatsManager(UUID queryUuid, UUID executionUuid) {
     if (!queryStats.containsKey(executionUuid)) {
       synchronized (queryStats) {
-        if (!queryStats.containsKey(executionUuid))
-          queryStats.put(executionUuid, new QueryStatsManager());
+        if (!queryStats.containsKey(executionUuid)) {
+          String ourAddr;
+          if (ourNodeAddressProvider != null)
+            ourAddr = ourNodeAddressProvider.getOurNodeAddress();
+          else
+            ourAddr = ourHost + ":" + ourPort;
+
+          queryStats.put(executionUuid, new QueryStatsManager(ourAddr));
+        }
       }
     }
 

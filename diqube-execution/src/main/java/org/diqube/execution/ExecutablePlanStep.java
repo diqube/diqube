@@ -82,4 +82,10 @@ public interface ExecutablePlanStep extends Runnable {
    * only accept a specific implementation of {@link GenericConsumer} here, see the class comments accordingly.
    */
   public void addOutputConsumer(GenericConsumer consumer);
+
+  /**
+   * @return A descriptional string about the details that the step works on (e.g. which column is created by the step).
+   *         This is used for displaying purposes only. Can be <code>null</code>.
+   */
+  public String getDetailsDescription();
 }

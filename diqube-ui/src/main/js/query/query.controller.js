@@ -21,18 +21,23 @@
 (function() {
     "use strict";
 
-    angular.module("diqube.query", [ "diqube.remote" ]).controller("QueryCtrl",
+    angular.module("diqube.query", [ "angular-toArrayFilter", "diqube.remote" ]).controller("QueryCtrl",
 	    [ "remoteService", "$scope", function(remoteService, $scope) {
 		var me = this;
 		me.diql = "";
 		me.result = null;
 		me.exception = null;
+		me.stats = null;
+		me.displayResultsOrStats = "";
 		me.execute = execute;
+		me.displayResults = displayResults;
+		me.displayStats = displayStats;
+		me.numberOfKeys = numberOfKeys;
 
 		// ====
 
 		function execute() {
-		    me.data = "";
+		    me.data = null;
 		    me.exception = null;
 		    var ws = remoteService.getSocket();
 		    ws.$$send({
@@ -44,18 +49,36 @@
 		    ws.$on("$message", function(data) {
 			if (data.type == "result" && me.exception === null) {
 			    $scope.$apply(function() {
-				me.result = data.data
+				me.result = data.data;
+				me.displayResultsOrStats = "results";
 			    });
 			} else if (data.type == "exception") {
 			    $scope.$apply(function() {
-				me.exception = data.data.text
+				me.exception = data.data.text;
 				me.result = null;
+				me.stats = null;
+			    });
+			} else if (data.type == "stats" && me.exception === null) {
+			    $scope.$apply(function() {
+				me.stats = data.data;
 			    });
 			}
 
 		    });
 		    ws.$on("$close", function() {
 		    });
+		}
+		
+		function displayResults() {
+		    me.displayResultsOrStats = "results";
+		}
+		
+		function displayStats() {
+		    me.displayResultsOrStats = "stats";
+		}
+		
+		function numberOfKeys(o) {
+		    return Object.keys(o).length;
 		}
 	    } ]);
 })();

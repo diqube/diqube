@@ -42,7 +42,8 @@ service QueryService {
 }
 
 struct RQueryStatisticsDetails {
-  1: i64 startedUntilDoneMs,
+  1: string node,
+  2: i64 startedUntilDoneMs,
   3: i32 numberOfThreads,
   4: i32 numberOfTemporaryColumnsCreated,
   5: map<string, i64> stepsActiveMs,

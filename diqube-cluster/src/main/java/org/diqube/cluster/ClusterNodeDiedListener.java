@@ -1,4 +1,4 @@
-/*
+/**
  * diqube: Distributed Query Base.
  *
  * Copyright (C) 2015 Bastian Gloeckle
@@ -18,13 +18,18 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-"use strict";
+package org.diqube.cluster;
 
-(function() {
-    angular.module("diqube", [ "ngRoute", 
-                               "ngWebsocket", 
-                               "angular-toArrayFilter",
-                               "diqube.route", 
-                               "diqube.query", 
-                               "diqube.remote" ]);
-})();
+import org.diqube.remote.base.thrift.RNodeAddress;
+
+/**
+ * Listener that is informed as soon as the {@link ClusterManager} identified that a node died.
+ *
+ * @author Bastian Gloeckle
+ */
+public interface ClusterNodeDiedListener {
+  /**
+   * A specific node in the cluster died.
+   */
+  public void nodeDied(RNodeAddress nodeAddr);
+}

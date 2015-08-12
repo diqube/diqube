@@ -25,6 +25,8 @@ body {
 
 textarea.diql-full {
 	width: 100%;
-	
 }
 
+.execute-buttons {
+	margin-bottom: 20px;
+}

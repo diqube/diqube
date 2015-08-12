@@ -46,9 +46,13 @@ public class QueryStats {
 
   private Map<String, Integer> numberOfTemporaryVersionsPerColName;
 
-  public QueryStats(long startedUntilDoneMs, Map<Integer, Long> stepThreadActiveMs, int numberOfThreads,
-      int numberOfTemporaryColumnsCreated, Map<String, Integer> pageAccess, Map<String, Integer> temporaryPageAccess,
-      int numberOfPages, int numberOfTemporaryPages, Map<String, Integer> numberOfTemporaryVersionsPerColName) {
+  private String nodeName;
+
+  public QueryStats(String nodeName, long startedUntilDoneMs, Map<Integer, Long> stepThreadActiveMs,
+      int numberOfThreads, int numberOfTemporaryColumnsCreated, Map<String, Integer> pageAccess,
+      Map<String, Integer> temporaryPageAccess, int numberOfPages, int numberOfTemporaryPages,
+      Map<String, Integer> numberOfTemporaryVersionsPerColName) {
+    this.nodeName = nodeName;
     this.startedUntilDoneMs = startedUntilDoneMs;
     this.stepThreadActiveMs = stepThreadActiveMs;
     this.numberOfThreads = numberOfThreads;
@@ -94,6 +98,10 @@ public class QueryStats {
 
   public Map<String, Integer> getNumberOfTemporaryVersionsPerColName() {
     return numberOfTemporaryVersionsPerColName;
+  }
+
+  public String getNodeName() {
+    return nodeName;
   }
 
 }

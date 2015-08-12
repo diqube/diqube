@@ -46,11 +46,6 @@
       <artifactId>diqube-context</artifactId>
       <version>${project.version}</version>
     </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>diqube-remote-cluster</artifactId>
-      <version>${project.version}</version>
-    </dependency>
   </dependencies>
 
   <build>

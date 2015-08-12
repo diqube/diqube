@@ -143,7 +143,7 @@ struct RExecutionPlanStep {
   1: i32 stepId,
   2: RExecutionPlanStepType type,
   3: map<i32, list<RExecutionPlanStepDataType>> provideDataForSteps,
-  4: optional RExecutionPlanStepDetailsRowId detailsRowId,          // set on type == ROW_ID_EQ
+  4: optional RExecutionPlanStepDetailsRowId detailsRowId,          // set on type == ROW_ID_EQ etc
   5: optional RExecutionPlanStepDetailsResolve detailsResolve,      // set on type == RESOLVE_COLUMN_DICT_IDS
   6: optional RExecutionPlanStepDetailsOrder detailsOrder,          // set on type == ORDER
   7: optional RExecutionPlanStepDetailsGroup detailsGroup,          // set on type == GROUP
@@ -157,15 +157,16 @@ struct RExecutionPlan {
 
 
 struct RClusterQueryStatistics {
-  1: i64 startedUntilDoneMs,
-  2: map<i32, i64> stepThreadActiveMs,
-  3: i32 numberOfThreads,
-  4: i32 numberOfTemporaryColumnsCreated,
-  5: map<string, i32> numberOfPageAccesses,
-  6: map<string, i32> numberOfTemporaryPageAccesses,
-  7: i32 numberOfPages,
-  8: i32 numberOfTemporaryPages,
-  9: map<string, i32> numberOfTemporaryVersionsPerColName
+  1: string nodeName,
+  2: i64 startedUntilDoneMs,
+  3: map<i32, i64> stepThreadActiveMs,
+  4: i32 numberOfThreads,
+  5: i32 numberOfTemporaryColumnsCreated,
+  6: map<string, i32> numberOfPageAccesses,
+  7: map<string, i32> numberOfTemporaryPageAccesses,
+  8: i32 numberOfPages,
+  9: i32 numberOfTemporaryPages,
+  10: map<string, i32> numberOfTemporaryVersionsPerColName
 }
 
 

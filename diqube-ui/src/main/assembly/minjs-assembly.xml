@@ -78,6 +78,10 @@
       <source>bower_components/bootstrap/dist/css/bootstrap.min.css</source>
       <destName>bower_components/bootstrap/dist/css/bootstrap.min.css</destName>
     </file>
+    <file>
+      <source>bower_components/angular-toArrayFilter/toArrayFilter.js</source>
+      <destName>bower_components/angular-toArrayFilter/toArrayFilter.js</destName>
+    </file>
   </files>
 </assembly>
 

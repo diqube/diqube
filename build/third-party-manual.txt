@@ -27,6 +27,10 @@
     
         * Bootstrap, http://getbootstrap.com
 
+    MIT License (toArrayFilter) [toarrayfilter-mit.txt]:
+    
+        * angular-toArrayFilter, https://github.com/petebacondarwin/angular-toArrayFilter
+
     BSD License (D3) [d3-bsd.txt]:
 
         * D3.js, http://d3js.org/

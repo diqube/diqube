@@ -60,6 +60,12 @@ public class QueryStatsManager {
 
   private Map<String, Integer> numberOfTemporaryVersionsPerColName = new ConcurrentHashMap<>();
 
+  private String nodeName;
+
+  public QueryStatsManager(String nodeName) {
+    this.nodeName = nodeName;
+  }
+
   public void addStepThreadActiveMs(int stepId, long activeMs) {
     stepThreadActiveMs.merge(stepId, activeMs, (oldActive, newActive) -> oldActive + newActive);
   }
@@ -131,7 +137,7 @@ public class QueryStatsManager {
 
     long startedUntilDoneMs = (long) ((completedNanos - startedNanos) / 1e6);
 
-    return new QueryStats(startedUntilDoneMs, new HashMap<>(stepThreadActiveMs), numberOfThreads,
+    return new QueryStats(nodeName, startedUntilDoneMs, new HashMap<>(stepThreadActiveMs), numberOfThreads,
         numberOfTemporaryColumnsCreated.get(), pageAccess, temporaryPageAccess, numberOfPages, numberOfTemporaryPages,
         numberOfTemporaryVersionsPerColName);
   }
@@ -150,6 +156,10 @@ public class QueryStatsManager {
 
   public Map<String, Integer> getNumberOfTemporaryVersionsPerColName() {
     return numberOfTemporaryVersionsPerColName;
+  }
+
+  public String getNodeName() {
+    return nodeName;
   }
 
 }

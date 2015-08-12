@@ -40,10 +40,10 @@ import javax.inject.Inject;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
 import org.diqube.cluster.ClusterManager;
+import org.diqube.cluster.ClusterNodeDiedListener;
 import org.diqube.config.Config;
 import org.diqube.config.ConfigKey;
 import org.diqube.context.AutoInstatiate;
-import org.diqube.listeners.ClusterManagerListener;
 import org.diqube.queries.QueryUuid;
 import org.diqube.remote.base.thrift.RNodeAddress;
 import org.diqube.remote.query.KeepAliveServiceConstants;
@@ -70,7 +70,7 @@ import com.google.common.math.IntMath;
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
-public class ConnectionPool implements ClusterManagerListener {
+public class ConnectionPool implements ClusterNodeDiedListener {
   static final Logger logger = LoggerFactory.getLogger(ConnectionPool.class);
 
   @Config(ConfigKey.CLIENT_SOCKET_TIMEOUT_MS)
@@ -481,11 +481,6 @@ public class ConnectionPool implements ClusterManagerListener {
    */
   /* package */ void setConnectionFactory(ConnectionFactory connectionFactory) {
     this.connectionFactory = connectionFactory;
-  }
-
-  @Override
-  public void clusterInitialized() {
-    // noop.
   }
 
   @Override
