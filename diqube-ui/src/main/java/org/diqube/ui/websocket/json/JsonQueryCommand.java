@@ -54,6 +54,8 @@ import org.diqube.ui.QueryResultRegistry;
 import org.diqube.ui.ThriftServlet;
 import org.diqube.ui.websocket.json.JsonPayloadSerializer.JsonPayloadSerializerException;
 import org.diqube.util.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -64,6 +66,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * @author Bastian Gloeckle
  */
 public class JsonQueryCommand extends JsonCommand {
+
+  private static final Logger logger = LoggerFactory.getLogger(JsonQueryCommand.class);
 
   public static final String PAYLOAD_TYPE = "query";
 
@@ -127,11 +131,12 @@ public class JsonQueryCommand extends JsonCommand {
             }
           } catch (IllegalStateException e) {
             // Session seems to be closed.
-            System.out.println("Session seems to be closed.");
+            logger.info("Session seems to be closed.");
           } catch (IOException e) {
+            logger.warn("Could not close session", e);
             System.out.println("Could not close session: " + e);
           } catch (JsonPayloadSerializerException e) {
-            System.err.println("Could not serialize result: " + e);
+            logger.error("Could not serialize result", e);
           }
         }
 
@@ -145,22 +150,22 @@ public class JsonQueryCommand extends JsonCommand {
             throws TException {
           sendResult(RUuidUtil.toUuid(queryRUuid), partialResult, percentComplete, false);
         }
-      });
-    }
-  }
 
-  private void sendError(UUID queryUuid, RQueryException exceptionThrown) {
-    queryResultRegistry.unregisterQuery(queryUuid);
-    JsonQueryExceptionPayload res = new JsonQueryExceptionPayload();
-    res.setText(exceptionThrown.getMessage());
-    try {
-      String resString = serializer.serialize(res);
-      getWebsocketSession().getAsyncRemote().sendText(resString);
-      getWebsocketSession().close();
-    } catch (IOException e) {
-      System.out.println("Could not close session: " + e);
-    } catch (JsonPayloadSerializerException e) {
-      System.err.println("Could not serialize result: " + e);
+        private void sendError(UUID queryUuid, RQueryException exceptionThrown) {
+          queryResultRegistry.unregisterQuery(queryUuid);
+          JsonExceptionPayload res = new JsonExceptionPayload();
+          res.setText(exceptionThrown.getMessage());
+          try {
+            String resString = serializer.serialize(res);
+            getWebsocketSession().getAsyncRemote().sendText(resString);
+            getWebsocketSession().close();
+          } catch (IOException e) {
+            logger.warn("Could not close session", e);
+          } catch (JsonPayloadSerializerException e) {
+            logger.error("Could not serialize error", e);
+          }
+        }
+      });
     }
   }
 
@@ -183,8 +188,7 @@ public class JsonQueryCommand extends JsonCommand {
           true, createOurAddress());
       return queryUuid;
     } catch (RQueryException e) {
-      sendError(queryUuid, e);
-      throw new RuntimeException("Bad query");
+      throw new RuntimeException(e.getMessage());
     } catch (TException e) {
       queryResultRegistry.unregisterQuery(queryUuid);
       return null;

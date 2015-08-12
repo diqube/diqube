@@ -27,7 +27,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  *
  * @author Bastian Gloeckle
  */
-public class JsonQueryExceptionPayload implements JsonPayload {
+public class JsonExceptionPayload implements JsonPayload {
   public static final String PAYLOAD_TYPE = "exception";
 
   @JsonProperty

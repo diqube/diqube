@@ -196,10 +196,12 @@ DOUBLE_LITERAL
  | '.' DIGIT+
  ; 
 
+// TODO negative numbers
 DECIMAL_LITERAL
  : DIGIT+
  ;
 
+// TODO empty string
 STRING_LITERAL
  : '\'' .*? ~('\\') '\''
  ;

@@ -71,7 +71,8 @@ public class FunctionFactory {
   @SuppressWarnings("unchecked")
   public <I, M extends IntermediaryResult<?, ?, ?>, O> AggregationFunction<I, M, O> createAggregationFunction(
       String functionNameLowerCase, ColumnType inputColumnType) {
-    if (!aggregationFunctionFactories.containsKey(functionNameLowerCase))
+    if (!aggregationFunctionFactories.containsKey(functionNameLowerCase)
+        || !aggregationFunctionFactories.get(functionNameLowerCase).containsKey(inputColumnType))
       return null;
     return (AggregationFunction<I, M, O>) aggregationFunctionFactories.get(functionNameLowerCase).get(inputColumnType)
         .get();

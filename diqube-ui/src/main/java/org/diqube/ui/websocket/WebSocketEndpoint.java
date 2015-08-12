@@ -31,9 +31,14 @@ import javax.websocket.Session;
 import org.diqube.ui.DiqubeServletContextListener;
 import org.diqube.ui.QueryResultRegistry;
 import org.diqube.ui.websocket.json.JsonCommand;
+import org.diqube.ui.websocket.json.JsonExceptionPayload;
 import org.diqube.ui.websocket.json.JsonPayload;
 import org.diqube.ui.websocket.json.JsonPayloadDeserializer;
 import org.diqube.ui.websocket.json.JsonPayloadDeserializer.JsonPayloadDeserializerException;
+import org.diqube.ui.websocket.json.JsonPayloadSerializer;
+import org.diqube.ui.websocket.json.JsonPayloadSerializer.JsonPayloadSerializerException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
 /**
@@ -45,6 +50,8 @@ import org.springframework.context.ApplicationContext;
  * @author Bastian Gloeckle
  */
 public class WebSocketEndpoint {
+  private static final Logger logger = LoggerFactory.getLogger(WebSocketEndpoint.class);
+
   /** The URL mapping under which this endpoint will be available */
   public static final String ENDPOINT_URL_MAPPING = "/socket";
 
@@ -71,6 +78,17 @@ public class WebSocketEndpoint {
       ((JsonCommand) payload).execute();
     } catch (JsonPayloadDeserializerException e) {
       throw new RuntimeException("Could not correctly deserialize command!");
+    } catch (RuntimeException e) {
+      JsonExceptionPayload exPayload = new JsonExceptionPayload();
+      exPayload.setText(e.getMessage());
+      try {
+        String serializedException = getBeanCtx(session).getBean(JsonPayloadSerializer.class).serialize(exPayload);
+        session.getAsyncRemote().sendText(serializedException);
+        logger.error("Uncaught RuntimeException", e);
+      } catch (JsonPayloadSerializerException e2) {
+        logger.error("Uncaught RuntimeException in onMessage and was not able to serialize the exception message", e,
+            e2);
+      }
     }
   }
 
