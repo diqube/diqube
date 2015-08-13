@@ -641,4 +641,61 @@ public class LongColumnAggregationAndRepeatedProjectionDiqlExecutionTest extends
       executor.shutdownNow();
     }
   }
+
+  @Test
+  public void colAggregationWithFunctionParam() throws LoadException, InterruptedException, ExecutionException {
+    initializeFromJson( //
+        "[ { \"a\": 1, \"b\": [ { \"c\": [ 20, 30 ] }, { \"c\": [ 100, 25, 75  ] } ] },"
+            + "{ \"a\": 2, \"b\": [ { \"c\": [ 400, 50, 150 ] }, { \"c\": [ 1050, 850 ] } ] }," //
+            + "{ \"a\": 2, \"b\": [ { \"c\": [ 10, 0, 3 ] }, { \"c\": [ 7, 20 ] } ] }" + //
+            " ]");
+    ExecutablePlan plan = buildExecutablePlan("select a from " + TABLE + " where any(7, b[*].c[*]) = 1 group by a");
+
+    ExecutorService executor = executors.newTestExecutor(plan.preferredExecutorServiceSize());
+    try {
+      Future<?> future = plan.executeAsynchronously(executor);
+      future.get();
+
+      Assert.assertTrue(columnValueConsumerIsDone, "Source should have reported 'done'");
+      Assert.assertTrue(future.isDone(), "Future should report done");
+      Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
+
+      Assert.assertTrue(resultValues.containsKey("a"), "Expected to have a result for col");
+      Assert.assertEquals(resultValues.get("a").size(), 1, "Expected to have specific number of results.");
+
+      Assert.assertEquals((long) resultValues.get("a").values().iterator().next(), 2L,
+          "Expected correct result values");
+    } finally {
+      executor.shutdownNow();
+    }
+  }
+
+  @Test
+  public void colAggregationWithFunctionParam2() throws LoadException, InterruptedException, ExecutionException {
+    initializeFromJson( //
+        "[ { \"a\": 1, \"b\": [ { \"c\": [ 20, 30 ] }, { \"c\": [ 100, 25, 75  ] } ] },"
+            + "{ \"a\": 2, \"b\": [ { \"c\": [ 400, 50, 150 ] }, { \"c\": [ 1050, 850 ] } ] }," //
+            + "{ \"a\": 2, \"b\": [ { \"c\": [ 10, 0, 3 ] }, { \"c\": [ 7, 20 ] } ] }" + //
+            " ]");
+    ExecutablePlan plan = buildExecutablePlan("select a from " + TABLE + " where any(75, b[*].c[*]) = 1");
+
+    ExecutorService executor = executors.newTestExecutor(plan.preferredExecutorServiceSize());
+    try {
+      Future<?> future = plan.executeAsynchronously(executor);
+      future.get();
+
+      Assert.assertTrue(columnValueConsumerIsDone, "Source should have reported 'done'");
+      Assert.assertTrue(future.isDone(), "Future should report done");
+      Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
+
+      Assert.assertTrue(resultValues.containsKey("a"), "Expected to have a result for col");
+      Assert.assertEquals(resultValues.get("a").size(), 1, "Expected to have specific number of results.");
+
+      Assert.assertEquals((long) resultValues.get("a").values().iterator().next(), 1L,
+          "Expected correct result values");
+
+    } finally {
+      executor.shutdownNow();
+    }
+  }
 }

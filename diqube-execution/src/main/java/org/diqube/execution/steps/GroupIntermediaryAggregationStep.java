@@ -103,14 +103,18 @@ public class GroupIntermediaryAggregationStep extends AbstractThreadedExecutable
   /** can be null if no parameter is specified for the aggregation function (e.g. count()) */
   private String inputColumnName;
 
+  private List<Object> constantFunctionParameters;
+
   public GroupIntermediaryAggregationStep(int stepId, QueryRegistry queryRegistry, ExecutionEnvironment env,
-      FunctionFactory functionFactory, String functionNameLowerCase, String outputColName, String inputColumnName) {
+      FunctionFactory functionFactory, String functionNameLowerCase, String outputColName, String inputColumnName,
+      List<Object> constantFunctionParameters) {
     super(stepId, queryRegistry);
     this.env = env;
     this.functionFactory = functionFactory;
     this.functionNameLowerCase = functionNameLowerCase;
     this.outputColName = outputColName;
     this.inputColumnName = inputColumnName;
+    this.constantFunctionParameters = constantFunctionParameters;
   }
 
   @Override
@@ -150,8 +154,12 @@ public class GroupIntermediaryAggregationStep extends AbstractThreadedExecutable
             inputColType = null;
           else
             inputColType = env.getColumnType(inputColumnName);
-          aggregationFunctions.put(groupId,
-              functionFactory.createAggregationFunction(functionNameLowerCase, inputColType));
+          AggregationFunction<Object, IntermediaryResult<Object, Object, Object>, Object> newFn =
+              functionFactory.createAggregationFunction(functionNameLowerCase, inputColType);
+          for (int i = 0; i < constantFunctionParameters.size(); i++)
+            newFn.provideConstantParameter(i, constantFunctionParameters.get(i));
+
+          aggregationFunctions.put(groupId, newFn);
         }
 
         IntermediaryResult<Object, Object, Object> oldIntermediary =

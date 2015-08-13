@@ -87,4 +87,9 @@ public class AvgDoubleFunction
     return ColumnType.DOUBLE;
   }
 
+  @Override
+  public void provideConstantParameter(int idx, Double value) {
+    // noop.
+  }
+
 }

@@ -86,4 +86,9 @@ public class AvgLongFunction implements AggregationFunction<Long, IntermediaryRe
     return ColumnType.LONG;
   }
 
+  @Override
+  public void provideConstantParameter(int idx, Long value) {
+    // noop.
+  }
+
 }

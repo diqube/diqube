@@ -123,9 +123,6 @@ public class AnyValueVisitor extends DiqlBaseVisitor<Pair<ColumnOrValue, Boolean
         else
           colNameBuilder.addParameterColumnName(childColName);
       } else {
-        if (functionRequest.getType().equals(Type.AGGREGATION_ROW))
-          throw new ParseException("Aggregation functions (like " + functionRequest.getFunctionName()
-              + ") only accept column names as parameter.");
         Object childValue = childResult.getLeft().getValue();
         if (childValue instanceof String)
           colNameBuilder.addParameterLiteralString((String) childValue);

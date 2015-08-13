@@ -484,4 +484,33 @@ public class LongGroupDiqlExecutionTest extends GroupDiqlExecutionTest<Long> {
     buildExecutablePlan("Select " + COL_A + ", count() from " + TABLE + " group by id(1)");
     // THEN: exception.
   }
+
+  @Test
+  public void aggregationFunctionWithConstantParam() throws InterruptedException, ExecutionException {
+    Object[] colAValues = dp.a(1, 5, 100, 1, 99, 1);
+    Object[] colBValues = dp.a(3, 0, 0, 2, 0, 10);
+    initializeSimpleTable(colAValues, colBValues);
+    // GIVEN
+    ExecutablePlan executablePlan = buildExecutablePlan(
+        "Select " + COL_A + " from " + TABLE + " group by " + COL_A + " having any(10, " + COL_B + ") = 1");
+    ExecutorService executor = executors.newTestExecutor(executablePlan.preferredExecutorServiceSize());
+    try {
+      // WHEN
+      // executing it on the sample table
+      Future<Void> future = executablePlan.executeAsynchronously(executor);
+      future.get(); // wait until done.
+
+      // THEN
+      Assert.assertTrue(columnValueConsumerIsDone, "Source should have reported 'done'");
+      Assert.assertTrue(future.isDone(), "Future should report done");
+      Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
+
+      Assert.assertEquals(resultHavingRowIds.length, 1, "Expected results for columns.");
+      Assert.assertNotNull(resultValues.get(COL_A), "Expected results for col A.");
+
+      Assert.assertEquals((long) resultValues.get(COL_A).get(resultHavingRowIds[0]), 1L, "Expected correct value.");
+    } finally {
+      executor.shutdownNow();
+    }
+  }
 }

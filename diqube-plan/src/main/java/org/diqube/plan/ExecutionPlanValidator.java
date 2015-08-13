@@ -53,6 +53,7 @@ public class ExecutionPlanValidator {
     validateLimit(executionRequest);
 
     anyResultColumn(executionRequest);
+
     noArrayResultResolveWhereHavingGroupOrder(executionRequest, colInfos);
 
     orderByColumnsOnly(executionRequest, colInfos);

@@ -43,6 +43,11 @@ import org.diqube.data.ColumnType;
  * type is supported by a specific class is identified by {@link #getInputType()}. There can be multiple classes with
  * the same function name, but different input column types.
  * 
+ * <p>
+ * In addition to that, there might be constant parameters provided to the aggregation function. These are typically the
+ * first parameters to the function in diql. That constant parameter always has to be of the same type as the input
+ * col-type to the aggregation function.
+ * 
  * 
  * @param <I>
  *          Input value type
@@ -58,6 +63,21 @@ public interface AggregationFunction<I, M extends IntermediaryResult<?, ?, ?>, O
    * @return Name of the function, lowercase.
    */
   public String getNameLowerCase();
+
+  /**
+   * Provide a specific constant parameter value to the function.
+   * 
+   * Note that, although a constant parameter might be given in the diql query, this function object might not receive
+   * its value (= this method will not be called). This happens if this instance does not get any values added (
+   * {@link #addValues(ValueProvider)}), but only intermediaries ({@link #addIntermediary(IntermediaryResult)} and
+   * {@link #removeIntermediary(IntermediaryResult)}).
+   * 
+   * @param idx
+   *          Index of the parameter.
+   * @param value
+   *          The parameter value.
+   */
+  public void provideConstantParameter(int idx, I value);
 
   /**
    * Add a specific intermediary to the internal value of this instance.

@@ -94,11 +94,12 @@ public class ColumnAggregationStep extends AbstractThreadedExecutablePlanStep {
   private String inputColumnNamePattern;
   private Function<ColumnType, ColumnShardBuilderManager> columnShardBuilderManagerSupplier;
   private ColumnPatternUtil columnPatternUtil;
+  private List<Object> constantFunctionParameters;
 
   public ColumnAggregationStep(int stepId, QueryRegistry queryRegistry, ExecutionEnvironment defaultEnv,
       ColumnPatternUtil columnPatternUtil, ColumnShardBuilderFactory columnShardBuilderFactory,
       FunctionFactory functionFactory, String functionNameLowerCase, String outputColName,
-      String inputColumnNamePattern) {
+      String inputColumnNamePattern, List<Object> constantFunctionParameters) {
     super(stepId, queryRegistry);
     this.defaultEnv = defaultEnv;
     this.columnPatternUtil = columnPatternUtil;
@@ -106,6 +107,7 @@ public class ColumnAggregationStep extends AbstractThreadedExecutablePlanStep {
     this.functionNameLowerCase = functionNameLowerCase;
     this.outputColName = outputColName;
     this.inputColumnNamePattern = inputColumnNamePattern;
+    this.constantFunctionParameters = constantFunctionParameters;
 
     columnShardBuilderManagerSupplier = (outputColType) -> {
       LoaderColumnInfo columnInfo = new LoaderColumnInfo(outputColType);
@@ -204,6 +206,9 @@ public class ColumnAggregationStep extends AbstractThreadedExecutablePlanStep {
 
                 AggregationFunction<Object, IntermediaryResult<Object, Object, Object>, Object> aggFunction =
                     functionFactory.createAggregationFunction(functionNameLowerCase, inputColType);
+
+                for (int i = 0; i < constantFunctionParameters.size(); i++)
+                  aggFunction.provideConstantParameter(i, constantFunctionParameters.get(i));
 
                 // add the values to the aggregation, resolve them using the pre-computed arrays from above.
                 aggFunction.addValues(new ValueProvider<Object>() {

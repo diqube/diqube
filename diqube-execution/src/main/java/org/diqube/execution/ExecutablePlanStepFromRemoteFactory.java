@@ -20,6 +20,7 @@
  */
 package org.diqube.execution;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -51,6 +52,7 @@ import org.diqube.function.FunctionFactory;
 import org.diqube.loader.columnshard.ColumnShardBuilderFactory;
 import org.diqube.queries.QueryRegistry;
 import org.diqube.remote.base.thrift.RValue;
+import org.diqube.remote.base.util.RValueUtil;
 import org.diqube.remote.cluster.thrift.RColOrValue;
 import org.diqube.remote.cluster.thrift.RExecutionPlanStep;
 import org.diqube.remote.cluster.thrift.RExecutionPlanStepDetailsOrderCol;
@@ -316,12 +318,17 @@ public class ExecutablePlanStepFromRemoteFactory {
     String outputColName = remoteStep.getDetailsFunction().getResultColumn().getColName();
 
     String inputColName = null;
-    if (remoteStep.getDetailsFunction().getFunctionArgumentsSize() > 0) {
-      inputColName = remoteStep.getDetailsFunction().getFunctionArguments().get(0).getColumn().getColName();
-    }
+    List<Object> constantParams = new ArrayList<>();
+    if (remoteStep.getDetailsFunction().getFunctionArguments() != null)
+      for (RColOrValue functionParam : remoteStep.getDetailsFunction().getFunctionArguments()) {
+        if (functionParam.isSetColumn())
+          inputColName = functionParam.getColumn().getColName();
+        else
+          constantParams.add(RValueUtil.createValue(functionParam.getValue()));
+      }
 
     return new GroupIntermediaryAggregationStep(remoteStep.getStepId(), queryRegistry, defaultEnv, functionFactory,
-        functionName, outputColName, inputColName);
+        functionName, outputColName, inputColName, constantParams);
   }
 
   private ExecutablePlanStep createColumnAggregation(ExecutionEnvironment defaultEnv, RExecutionPlanStep remoteStep) {
@@ -329,10 +336,17 @@ public class ExecutablePlanStepFromRemoteFactory {
     String outputColName = remoteStep.getDetailsFunction().getResultColumn().getColName();
 
     String inputColName = null;
-    inputColName = remoteStep.getDetailsFunction().getFunctionArguments().get(0).getColumn().getColName();
+    List<Object> constantParams = new ArrayList<>();
+    if (remoteStep.getDetailsFunction().getFunctionArguments() != null)
+      for (RColOrValue functionParam : remoteStep.getDetailsFunction().getFunctionArguments()) {
+        if (functionParam.isSetColumn())
+          inputColName = functionParam.getColumn().getColName();
+        else
+          constantParams.add(RValueUtil.createValue(functionParam.getValue()));
+      }
 
     return new ColumnAggregationStep(remoteStep.getStepId(), queryRegistry, defaultEnv, columnPatternUtil,
-        columnShardBuilderManagerFactory, functionFactory, functionName, outputColName, inputColName);
+        columnShardBuilderManagerFactory, functionFactory, functionName, outputColName, inputColName, constantParams);
   }
 
 }

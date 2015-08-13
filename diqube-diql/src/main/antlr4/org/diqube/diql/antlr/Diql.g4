@@ -124,6 +124,7 @@ binaryComparator
 aggregationFunctionName
  : F_COUNT
  | F_AVG
+ | F_ANY
  ;
 
 projectionFunctionName
@@ -186,6 +187,7 @@ F_ID: I D;
 F_CONCAT: C O N C A T;
 F_AVG: A V G;
 F_ROUND: R O U N D;
+F_ANY: A N Y;
 
 ID
  : [a-zA-Z_] [a-zA-Z_0-9]* 

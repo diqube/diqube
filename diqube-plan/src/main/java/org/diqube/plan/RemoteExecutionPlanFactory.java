@@ -75,22 +75,22 @@ public class RemoteExecutionPlanFactory {
   }
 
   private RExecutionPlanStep createFunctionStep(FunctionRequest fnReq, int stepId, RExecutionPlanStepType type) {
-    RExecutionPlanStep intermediaryStep = new RExecutionPlanStep();
-    intermediaryStep.setStepId(stepId);
-    intermediaryStep.setType(type);
-    intermediaryStep.setDetailsFunction(new RExecutionPlanStepDetailsFunction());
-    intermediaryStep.getDetailsFunction().setFunctionNameLowerCase(fnReq.getFunctionName());
-    intermediaryStep.getDetailsFunction().setResultColumn(new RCol(RCol._Fields.COL_NAME, fnReq.getOutputColumn()));
+    RExecutionPlanStep functionStep = new RExecutionPlanStep();
+    functionStep.setStepId(stepId);
+    functionStep.setType(type);
+    functionStep.setDetailsFunction(new RExecutionPlanStepDetailsFunction());
+    functionStep.getDetailsFunction().setFunctionNameLowerCase(fnReq.getFunctionName());
+    functionStep.getDetailsFunction().setResultColumn(new RCol(RCol._Fields.COL_NAME, fnReq.getOutputColumn()));
     for (ColumnOrValue param : fnReq.getInputParameters()) {
       if (param.getType().equals(ColumnOrValue.Type.COLUMN)) {
-        intermediaryStep.getDetailsFunction().addToFunctionArguments(
+        functionStep.getDetailsFunction().addToFunctionArguments(
             new RColOrValue(RColOrValue._Fields.COLUMN, new RCol(RCol._Fields.COL_NAME, param.getColumnName())));
       } else {
-        intermediaryStep.getDetailsFunction()
+        functionStep.getDetailsFunction()
             .addToFunctionArguments(new RColOrValue(RColOrValue._Fields.VALUE, parseRValue(param.getValue())));
       }
     }
-    return intermediaryStep;
+    return functionStep;
   }
 
   private RValue parseRValue(Object value) {

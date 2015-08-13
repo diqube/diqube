@@ -20,6 +20,9 @@
  */
 package org.diqube.function.aggregate;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.diqube.data.ColumnType;
 import org.diqube.function.AggregationFunction;
 import org.diqube.function.Function;
@@ -27,16 +30,20 @@ import org.diqube.function.FunctionException;
 import org.diqube.function.IntermediaryResult;
 
 /**
- * Count function.
+ * Function that creates a result of 0 or 1, depending on if a specific value was received.
+ * 
+ * The value everything is compared to is expected to be a constant parameter to the function.
  *
  * @author Bastian Gloeckle
  */
-@Function(name = CountFunction.NAME)
-public class CountFunction implements AggregationFunction<Object, IntermediaryResult<Long, Object, Object>, Long> {
+@Function(name = AnyLongFunction.NAME)
+public class AnyLongFunction implements AggregationFunction<Long, IntermediaryResult<Long, Object, Object>, Long> {
 
-  public static final String NAME = "count";
+  public static final String NAME = "any";
 
-  private long curCount = 0;
+  private List<Long> constantParameters = new ArrayList<>();
+
+  private int matched = 0;
 
   @Override
   public String getNameLowerCase() {
@@ -45,27 +52,28 @@ public class CountFunction implements AggregationFunction<Object, IntermediaryRe
 
   @Override
   public void addIntermediary(IntermediaryResult<Long, Object, Object> intermediary) {
-    curCount += intermediary.getLeft();
+    matched += intermediary.getLeft();
   }
 
   @Override
   public void removeIntermediary(IntermediaryResult<Long, Object, Object> intermediary) {
-    curCount -= intermediary.getLeft();
+    matched -= intermediary.getLeft();
   }
 
   @Override
-  public void addValues(ValueProvider<Object> valueProvider) {
-    curCount += valueProvider.size();
+  public void addValues(org.diqube.function.AggregationFunction.ValueProvider<Long> valueProvider) {
+    for (Long val : valueProvider.getValues())
+      matched += val.equals(constantParameters.get(0)) ? 1 : 0;
   }
 
   @Override
   public IntermediaryResult<Long, Object, Object> calculateIntermediary() throws FunctionException {
-    return new IntermediaryResult<Long, Object, Object>(curCount, null, null, null);
+    return new IntermediaryResult<Long, Object, Object>(calculate(), null, null, ColumnType.LONG);
   }
 
   @Override
   public Long calculate() throws FunctionException {
-    return curCount;
+    return (matched > 0) ? 1L : 0L;
   }
 
   @Override
@@ -75,13 +83,13 @@ public class CountFunction implements AggregationFunction<Object, IntermediaryRe
 
   @Override
   public ColumnType getInputType() {
-    // we do not expect a parameter, so input type is null.
-    return null;
+    return ColumnType.LONG;
   }
 
   @Override
-  public void provideConstantParameter(int idx, Object value) {
-    // noop.
+  public void provideConstantParameter(int idx, Long value) {
+    while (constantParameters.size() <= idx)
+      constantParameters.add(null);
+    constantParameters.set(idx, value);
   }
-
 }
