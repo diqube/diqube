@@ -237,4 +237,56 @@ public class DoubleGroupDiqlExecutionTest extends GroupDiqlExecutionTest<Double>
       executor.shutdownNow();
     }
   }
+
+  @Test
+  public void overflowAvgTest() throws InterruptedException, ExecutionException {
+    Object[] colAValues = dp.a(1, 5, 1, 5, 99, 1);
+    Object[] colBValues = new Double[] { Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE - 1, Double.MIN_VALUE, 0.,
+        Double.MAX_VALUE };
+    initializeSimpleTable(colAValues, colBValues);
+    // GIVEN
+    ExecutablePlan executablePlan =
+        buildExecutablePlan("Select " + COL_A + ", avg(" + COL_B + ") from " + TABLE + " group by " + COL_A);
+    ExecutorService executor = executors.newTestExecutor(executablePlan.preferredExecutorServiceSize());
+    try {
+      // WHEN
+      // executing it on the sample table
+      Future<Void> future = executablePlan.executeAsynchronously(executor);
+      future.get(); // wait until done.
+
+      // THEN
+      Assert.assertTrue(columnValueConsumerIsDone, "Source should have reported 'done'");
+      Assert.assertTrue(future.isDone(), "Future should report done");
+      Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
+
+      Assert.assertTrue(resultValues.containsKey(COL_A), "Result values should be available for result column a");
+
+      String resAvgColName =
+          functionBasedColumnNameBuilderFactory.create().withFunctionName("avg").addParameterColumnName(COL_B).build();
+
+      Assert.assertTrue(resultValues.containsKey(resAvgColName),
+          "Result values should be available for result avg column");
+      Assert.assertEquals(resultValues.size(), 2, "Result values should be available for two columns only");
+
+      // calculate result for dp.v(1) exactly the same way as the unction calculates it - to get the same inaccurancies
+      // in rounding etc.
+      Double resultOne = Double.MAX_VALUE;
+      Double resultTwo = resultOne / 2. + ((Double.MAX_VALUE - 1) / 2.);
+      Double resultThree = resultTwo * (2. / 3.) + (Double.MAX_VALUE / 3.);
+
+      Map<Double, Double> expected = new HashMap<>();
+      expected.put(dp.v(1), resultThree);
+      expected.put(dp.v(5), (Double.MAX_VALUE - Double.MIN_VALUE) / 2.);
+      expected.put(dp.v(99), 0.);
+
+      for (long rowId : resultValues.get(COL_A).keySet()) {
+        Double colA = resultValues.get(COL_A).get(rowId);
+        Double avg = resultValues.get(resAvgColName).get(rowId);
+        Assert.assertTrue(DoubleUtil.equals(expected.get(colA), avg),
+            "Expected correct value for colA " + colA + ". Expected " + expected.get(colA) + " but was " + avg);
+      }
+    } finally {
+      executor.shutdownNow();
+    }
+  }
 }

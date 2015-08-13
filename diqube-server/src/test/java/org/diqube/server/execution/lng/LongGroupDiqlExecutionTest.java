@@ -561,4 +561,50 @@ public class LongGroupDiqlExecutionTest extends GroupDiqlExecutionTest<Long> {
       executor.shutdownNow();
     }
   }
+
+  @Test
+  public void overflowAvgTest() throws InterruptedException, ExecutionException {
+    Object[] colAValues = dp.a(1, 5, 1, 5, 99, 1);
+    Object[] colBValues = dp.a(Long.MAX_VALUE, Long.MIN_VALUE, Long.MAX_VALUE - 1, Long.MAX_VALUE, 0, Long.MAX_VALUE);
+    initializeSimpleTable(colAValues, colBValues);
+    // GIVEN
+    ExecutablePlan executablePlan =
+        buildExecutablePlan("Select " + COL_A + ", round(avg(" + COL_B + ")) from " + TABLE + " group by " + COL_A);
+    ExecutorService executor = executors.newTestExecutor(executablePlan.preferredExecutorServiceSize());
+    try {
+      // WHEN
+      // executing it on the sample table
+      Future<Void> future = executablePlan.executeAsynchronously(executor);
+      future.get(); // wait until done.
+
+      // THEN
+      Assert.assertTrue(columnValueConsumerIsDone, "Source should have reported 'done'");
+      Assert.assertTrue(future.isDone(), "Future should report done");
+      Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
+
+      Assert.assertTrue(resultValues.containsKey(COL_A), "Result values should be available for result column a");
+
+      String resAvgColName = functionBasedColumnNameBuilderFactory.create().withFunctionName("round")
+          .addParameterColumnName(functionBasedColumnNameBuilderFactory.create().withFunctionName("avg")
+              .addParameterColumnName(COL_B).build())
+          .build();
+
+      Assert.assertTrue(resultValues.containsKey(resAvgColName),
+          "Result values should be available for result avg column");
+      Assert.assertEquals(resultValues.size(), 2, "Result values should be available for two columns only");
+
+      Set<Pair<Long, Long>> expected = new HashSet<>();
+      expected.add(new Pair<>(1L, Long.MAX_VALUE));
+      expected.add(new Pair<>(5L, (Long.MAX_VALUE - Long.MIN_VALUE) / 2));
+      expected.add(new Pair<>(99L, 0L));
+
+      Set<Pair<Long, Long>> actual = new HashSet<>();
+      for (long rowId : resultValues.get(COL_A).keySet())
+        actual.add(new Pair<>(resultValues.get(COL_A).get(rowId), resultValues.get(resAvgColName).get(rowId)));
+
+      Assert.assertEquals(actual, expected, "Expected correct values.");
+    } finally {
+      executor.shutdownNow();
+    }
+  }
 }

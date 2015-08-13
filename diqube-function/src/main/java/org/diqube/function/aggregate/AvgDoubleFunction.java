@@ -20,8 +20,6 @@
  */
 package org.diqube.function.aggregate;
 
-import java.util.stream.Stream;
-
 import org.diqube.data.ColumnType;
 import org.diqube.function.AggregationFunction;
 import org.diqube.function.Function;
@@ -39,7 +37,7 @@ public class AvgDoubleFunction
 
   public static final String NAME = "avg";
 
-  private double sum = .0;
+  private double avg = .0;
   private long count = 0L;
 
   @Override
@@ -49,37 +47,59 @@ public class AvgDoubleFunction
 
   @Override
   public void addIntermediary(IntermediaryResult<Double, Long, Object> intermediary) {
-    sum += intermediary.getLeft();
-    count += intermediary.getMiddle();
+    double otherAvg = intermediary.getLeft();
+    long otherCount = intermediary.getMiddle();
+
+    if (otherCount == 0)
+      return;
+
+    avg =
+        (avg * (((double) count) / (count + otherCount))) + (otherAvg * (((double) otherCount) / (count + otherCount)));
+    count += otherCount;
   }
 
   @Override
   public void removeIntermediary(IntermediaryResult<Double, Long, Object> intermediary) {
-    sum -= intermediary.getLeft();
-    count -= intermediary.getMiddle();
+    double otherAvg = intermediary.getLeft();
+    long otherCount = intermediary.getMiddle();
+
+    if (otherCount == 0)
+      return;
+
+    if (otherCount == count) {
+      avg = 0.;
+      count = 0;
+      return;
+    }
+
+    avg =
+        (avg * (((double) count) / (count - otherCount))) - (otherAvg * (((double) otherCount) / (count - otherCount)));
+    count -= otherCount;
   }
 
   @Override
   public void addValues(ValueProvider<Double> valueProvider) {
     Double[] values = valueProvider.getValues();
 
-    sum += Stream.of(values).mapToDouble(Double::doubleValue).sum();
-    count += values.length;
+    for (Double value : values) {
+      avg = (avg * (((double) count) / (count + 1))) + (value / (count + 1));
+      count++;
+    }
   }
 
   @Override
   public IntermediaryResult<Double, Long, Object> calculateIntermediary() throws FunctionException {
-    return new IntermediaryResult<Double, Long, Object>(sum, count, null, ColumnType.DOUBLE);
+    return new IntermediaryResult<Double, Long, Object>(avg, count, null, ColumnType.DOUBLE);
   }
 
   @Override
   public Double calculate() throws FunctionException {
-    return sum / count;
+    return avg;
   }
 
   @Override
   public ColumnType getOutputType() {
-    return ColumnType.LONG;
+    return ColumnType.DOUBLE;
   }
 
   @Override

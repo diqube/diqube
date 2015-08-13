@@ -20,8 +20,6 @@
  */
 package org.diqube.function.aggregate;
 
-import java.util.stream.Stream;
-
 import org.diqube.data.ColumnType;
 import org.diqube.function.AggregationFunction;
 import org.diqube.function.Function;
@@ -34,11 +32,11 @@ import org.diqube.function.IntermediaryResult;
  * @author Bastian Gloeckle
  */
 @Function(name = AvgLongFunction.NAME)
-public class AvgLongFunction implements AggregationFunction<Long, IntermediaryResult<Long, Long, Object>, Double> {
+public class AvgLongFunction implements AggregationFunction<Long, IntermediaryResult<Double, Long, Object>, Double> {
 
   public static final String NAME = "avg";
 
-  private long sum = 0L;
+  private double avg = 0.;
   private long count = 0L;
 
   @Override
@@ -47,33 +45,55 @@ public class AvgLongFunction implements AggregationFunction<Long, IntermediaryRe
   }
 
   @Override
-  public void addIntermediary(IntermediaryResult<Long, Long, Object> intermediary) {
-    sum += intermediary.getLeft();
-    count += intermediary.getMiddle();
+  public void addIntermediary(IntermediaryResult<Double, Long, Object> intermediary) {
+    double otherAvg = intermediary.getLeft();
+    long otherCount = intermediary.getMiddle();
+
+    if (otherCount == 0)
+      return;
+
+    avg =
+        (avg * (((double) count) / (count + otherCount))) + (otherAvg * (((double) otherCount) / (count + otherCount)));
+    count += otherCount;
   }
 
   @Override
-  public void removeIntermediary(IntermediaryResult<Long, Long, Object> intermediary) {
-    sum -= intermediary.getLeft();
-    count -= intermediary.getMiddle();
+  public void removeIntermediary(IntermediaryResult<Double, Long, Object> intermediary) {
+    double otherAvg = intermediary.getLeft();
+    long otherCount = intermediary.getMiddle();
+
+    if (otherCount == 0)
+      return;
+
+    if (otherCount == count) {
+      avg = 0.;
+      count = 0;
+      return;
+    }
+
+    avg =
+        (avg * (count / (((double) count) - otherCount))) - (otherAvg * (((double) otherCount) / (count - otherCount)));
+    count -= otherCount;
   }
 
   @Override
   public void addValues(ValueProvider<Long> valueProvider) {
     Long[] values = valueProvider.getValues();
 
-    sum += Stream.of(values).mapToLong(Long::longValue).sum();
-    count += values.length;
+    for (Long value : values) {
+      avg = (avg * (((double) count) / (count + 1))) + (((double) value) / (count + 1));
+      count++;
+    }
   }
 
   @Override
-  public IntermediaryResult<Long, Long, Object> calculateIntermediary() throws FunctionException {
-    return new IntermediaryResult<Long, Long, Object>(sum, count, null, ColumnType.LONG);
+  public IntermediaryResult<Double, Long, Object> calculateIntermediary() throws FunctionException {
+    return new IntermediaryResult<Double, Long, Object>(avg, count, null, ColumnType.LONG);
   }
 
   @Override
   public Double calculate() throws FunctionException {
-    return sum / (double) count;
+    return avg;
   }
 
   @Override
