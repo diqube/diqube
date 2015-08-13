@@ -253,4 +253,231 @@ public class LongProjectionDiqlExecutionTest extends AbstractDiqlExecutionTest<L
     }
   }
 
+  @Test
+  public void simpleProjectionMulTest() throws InterruptedException, ExecutionException {
+    initializeSimpleTable(COL_A_DEFAULT_VALUES, COL_B_DEFAULT_VALUES);
+    // GIVEN
+    // a simple select stmt
+    ExecutablePlan executablePlan = buildExecutablePlan("Select mul(" + COL_A + ", 10) from " + TABLE);
+    ExecutorService executor = executors.newTestExecutor(executablePlan.preferredExecutorServiceSize());
+    try {
+      // WHEN
+      // executing it on the sample table
+      Future<Void> future = executablePlan.executeAsynchronously(executor);
+      future.get(); // wait until done.
+
+      // THEN
+      Assert.assertTrue(columnValueConsumerIsDone, "Source should have reported 'done'");
+      Assert.assertTrue(future.isDone(), "Future should report done");
+      Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
+
+      String resColName = functionBasedColumnNameBuilderFactory.create().withFunctionName("mul")
+          .addParameterColumnName(COL_A).addParameterLiteralLong(10L).build();
+
+      Assert.assertTrue(resultValues.containsKey(resColName), "Result values should be available for result column");
+      Assert.assertEquals(resultValues.size(), 1, "Result values should be available for one column only");
+
+      Object[] expectedValues = dp.emptyArray(COL_A_DEFAULT_VALUES.length);
+      for (int i = 0; i < expectedValues.length; i++)
+        expectedValues[i] = (long) COL_A_DEFAULT_VALUES[i] * 10;
+
+      Assert.assertEquals(new HashSet<>(resultValues.get(resColName).values()),
+          new HashSet<>(Arrays.asList(expectedValues)), "Expected to get sum as result");
+
+      Assert.assertEquals(resultValues.get(resColName).size(), VALUE_LENGTH,
+          "Expected specific number of rows in result");
+    } finally {
+      executor.shutdownNow();
+    }
+  }
+
+  @Test
+  public void simpleProjectionDivTest() throws InterruptedException, ExecutionException {
+    initializeSimpleTable(COL_A_DEFAULT_VALUES, COL_B_DEFAULT_VALUES);
+    // GIVEN
+    // a simple select stmt
+    ExecutablePlan executablePlan = buildExecutablePlan("Select div(" + COL_A + ", 10) from " + TABLE);
+    ExecutorService executor = executors.newTestExecutor(executablePlan.preferredExecutorServiceSize());
+    try {
+      // WHEN
+      // executing it on the sample table
+      Future<Void> future = executablePlan.executeAsynchronously(executor);
+      future.get(); // wait until done.
+
+      // THEN
+      Assert.assertTrue(columnValueConsumerIsDone, "Source should have reported 'done'");
+      Assert.assertTrue(future.isDone(), "Future should report done");
+      Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
+
+      String resColName = functionBasedColumnNameBuilderFactory.create().withFunctionName("div")
+          .addParameterColumnName(COL_A).addParameterLiteralLong(10L).build();
+
+      Assert.assertTrue(resultValues.containsKey(resColName), "Result values should be available for result column");
+      Assert.assertEquals(resultValues.size(), 1, "Result values should be available for one column only");
+
+      Object[] expectedValues = dp.emptyArray(COL_A_DEFAULT_VALUES.length);
+      for (int i = 0; i < expectedValues.length; i++)
+        expectedValues[i] = (long) COL_A_DEFAULT_VALUES[i] / 10;
+
+      Assert.assertEquals(new HashSet<>(resultValues.get(resColName).values()),
+          new HashSet<>(Arrays.asList(expectedValues)), "Expected to get sum as result");
+
+      Assert.assertEquals(resultValues.get(resColName).size(), VALUE_LENGTH,
+          "Expected specific number of rows in result");
+    } finally {
+      executor.shutdownNow();
+    }
+  }
+
+  @Test
+  public void simpleProjectionSubTest() throws InterruptedException, ExecutionException {
+    initializeSimpleTable(COL_A_DEFAULT_VALUES, COL_B_DEFAULT_VALUES);
+    // GIVEN
+    // a simple select stmt
+    ExecutablePlan executablePlan = buildExecutablePlan("Select sub(" + COL_A + ", 10) from " + TABLE);
+    ExecutorService executor = executors.newTestExecutor(executablePlan.preferredExecutorServiceSize());
+    try {
+      // WHEN
+      // executing it on the sample table
+      Future<Void> future = executablePlan.executeAsynchronously(executor);
+      future.get(); // wait until done.
+
+      // THEN
+      Assert.assertTrue(columnValueConsumerIsDone, "Source should have reported 'done'");
+      Assert.assertTrue(future.isDone(), "Future should report done");
+      Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
+
+      String resColName = functionBasedColumnNameBuilderFactory.create().withFunctionName("sub")
+          .addParameterColumnName(COL_A).addParameterLiteralLong(10L).build();
+
+      Assert.assertTrue(resultValues.containsKey(resColName), "Result values should be available for result column");
+      Assert.assertEquals(resultValues.size(), 1, "Result values should be available for one column only");
+
+      Object[] expectedValues = dp.emptyArray(COL_A_DEFAULT_VALUES.length);
+      for (int i = 0; i < expectedValues.length; i++)
+        expectedValues[i] = (long) COL_A_DEFAULT_VALUES[i] - 10;
+
+      Assert.assertEquals(new HashSet<>(resultValues.get(resColName).values()),
+          new HashSet<>(Arrays.asList(expectedValues)), "Expected to get sum as result");
+
+      Assert.assertEquals(resultValues.get(resColName).size(), VALUE_LENGTH,
+          "Expected specific number of rows in result");
+    } finally {
+      executor.shutdownNow();
+    }
+  }
+
+  @Test
+  public void simpleProjectionMulTest2() throws InterruptedException, ExecutionException {
+    initializeSimpleTable(COL_A_DEFAULT_VALUES, COL_B_DEFAULT_VALUES);
+    // GIVEN
+    // a simple select stmt
+    ExecutablePlan executablePlan = buildExecutablePlan("Select mul(" + COL_A + ", " + COL_B + ") from " + TABLE);
+    ExecutorService executor = executors.newTestExecutor(executablePlan.preferredExecutorServiceSize());
+    try {
+      // WHEN
+      // executing it on the sample table
+      Future<Void> future = executablePlan.executeAsynchronously(executor);
+      future.get(); // wait until done.
+
+      // THEN
+      Assert.assertTrue(columnValueConsumerIsDone, "Source should have reported 'done'");
+      Assert.assertTrue(future.isDone(), "Future should report done");
+      Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
+
+      String resColName = functionBasedColumnNameBuilderFactory.create().withFunctionName("mul")
+          .addParameterColumnName(COL_A).addParameterColumnName(COL_B).build();
+
+      Assert.assertTrue(resultValues.containsKey(resColName), "Result values should be available for result column");
+      Assert.assertEquals(resultValues.size(), 1, "Result values should be available for one column only");
+
+      Object[] expectedValues = dp.emptyArray(COL_A_DEFAULT_VALUES.length);
+      for (int i = 0; i < expectedValues.length; i++)
+        expectedValues[i] = (long) COL_A_DEFAULT_VALUES[i] * (long) COL_B_DEFAULT_VALUES[i];
+
+      Assert.assertEquals(new HashSet<>(resultValues.get(resColName).values()),
+          new HashSet<>(Arrays.asList(expectedValues)), "Expected to get sum as result");
+
+      Assert.assertEquals(resultValues.get(resColName).size(), VALUE_LENGTH,
+          "Expected specific number of rows in result");
+    } finally {
+      executor.shutdownNow();
+    }
+  }
+
+  @Test
+  public void simpleProjectionDivTest2() throws InterruptedException, ExecutionException {
+    initializeSimpleTable(COL_A_DEFAULT_VALUES, COL_B_DEFAULT_VALUES);
+    // GIVEN
+    // a simple select stmt
+    ExecutablePlan executablePlan = buildExecutablePlan("Select div(" + COL_A + ", " + COL_B + ") from " + TABLE);
+    ExecutorService executor = executors.newTestExecutor(executablePlan.preferredExecutorServiceSize());
+    try {
+      // WHEN
+      // executing it on the sample table
+      Future<Void> future = executablePlan.executeAsynchronously(executor);
+      future.get(); // wait until done.
+
+      // THEN
+      Assert.assertTrue(columnValueConsumerIsDone, "Source should have reported 'done'");
+      Assert.assertTrue(future.isDone(), "Future should report done");
+      Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
+
+      String resColName = functionBasedColumnNameBuilderFactory.create().withFunctionName("div")
+          .addParameterColumnName(COL_A).addParameterColumnName(COL_B).build();
+
+      Assert.assertTrue(resultValues.containsKey(resColName), "Result values should be available for result column");
+      Assert.assertEquals(resultValues.size(), 1, "Result values should be available for one column only");
+
+      Object[] expectedValues = dp.emptyArray(COL_A_DEFAULT_VALUES.length);
+      for (int i = 0; i < expectedValues.length; i++)
+        expectedValues[i] = (long) COL_A_DEFAULT_VALUES[i] / (long) COL_B_DEFAULT_VALUES[i];
+
+      Assert.assertEquals(new HashSet<>(resultValues.get(resColName).values()),
+          new HashSet<>(Arrays.asList(expectedValues)), "Expected to get sum as result");
+
+      Assert.assertEquals(resultValues.get(resColName).size(), VALUE_LENGTH,
+          "Expected specific number of rows in result");
+    } finally {
+      executor.shutdownNow();
+    }
+  }
+
+  @Test
+  public void simpleProjectionSubTest2() throws InterruptedException, ExecutionException {
+    initializeSimpleTable(COL_A_DEFAULT_VALUES, COL_B_DEFAULT_VALUES);
+    // GIVEN
+    // a simple select stmt
+    ExecutablePlan executablePlan = buildExecutablePlan("Select sub(" + COL_A + ", " + COL_B + ") from " + TABLE);
+    ExecutorService executor = executors.newTestExecutor(executablePlan.preferredExecutorServiceSize());
+    try {
+      // WHEN
+      // executing it on the sample table
+      Future<Void> future = executablePlan.executeAsynchronously(executor);
+      future.get(); // wait until done.
+
+      // THEN
+      Assert.assertTrue(columnValueConsumerIsDone, "Source should have reported 'done'");
+      Assert.assertTrue(future.isDone(), "Future should report done");
+      Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
+
+      String resColName = functionBasedColumnNameBuilderFactory.create().withFunctionName("sub")
+          .addParameterColumnName(COL_A).addParameterColumnName(COL_B).build();
+
+      Assert.assertTrue(resultValues.containsKey(resColName), "Result values should be available for result column");
+      Assert.assertEquals(resultValues.size(), 1, "Result values should be available for one column only");
+
+      Object[] expectedValues = dp.emptyArray(COL_A_DEFAULT_VALUES.length);
+      for (int i = 0; i < expectedValues.length; i++)
+        expectedValues[i] = (long) COL_A_DEFAULT_VALUES[i] - (long) COL_B_DEFAULT_VALUES[i];
+
+      Assert.assertEquals(new HashSet<>(resultValues.get(resColName).values()),
+          new HashSet<>(Arrays.asList(expectedValues)), "Expected to get sum as result");
+
+      Assert.assertEquals(resultValues.get(resColName).size(), VALUE_LENGTH,
+          "Expected specific number of rows in result");
+    } finally {
+      executor.shutdownNow();
+    }
+  }
 }

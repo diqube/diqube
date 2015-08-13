@@ -21,7 +21,6 @@
 package org.diqube.function.projection;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -31,14 +30,14 @@ import org.diqube.function.FunctionException;
 import org.diqube.function.ProjectionFunction;
 
 /**
- * Calculate the sum of two double values.
+ * Subtract a value from another.
  *
  * @author Bastian Gloeckle
  */
-@Function(name = AddDoubleFunction.NAME)
-public class AddDoubleFunction implements ProjectionFunction<Double, Double> {
+@Function(name = SubDoubleFunction.NAME)
+public class SubDoubleFunction implements ProjectionFunction<Double, Double> {
 
-  public static final String NAME = "add";
+  public static final String NAME = "sub";
 
   @Override
   public String getNameLowerCase() {
@@ -64,14 +63,14 @@ public class AddDoubleFunction implements ProjectionFunction<Double, Double> {
   @Override
   public Double[] execute() throws FunctionException {
     if (!isArray[0] && !isArray[1])
-      return new Double[] { constantValues[0] + constantValues[1] };
+      return new Double[] { constantValues[0] - constantValues[1] };
 
     if (isArray[0] ^ isArray[1]) {
       Double[] array = (isArray[0]) ? arrayValues[0] : arrayValues[1];
       Double constant = (!isArray[0]) ? constantValues[0] : constantValues[1];
       Double[] res = new Double[array.length];
       for (int i = 0; i < res.length; i++)
-        res[i] = array[i] + constant;
+        res[i] = array[i] - constant;
       return res;
     }
 
@@ -81,7 +80,7 @@ public class AddDoubleFunction implements ProjectionFunction<Double, Double> {
     Double[] res = new Double[arrayValues[0].length];
 
     for (int i = 0; i < res.length; i++)
-      res[i] = arrayValues[0][i] + arrayValues[1][i];
+      res[i] = arrayValues[0][i] - arrayValues[1][i];
 
     return res;
   }
@@ -93,12 +92,7 @@ public class AddDoubleFunction implements ProjectionFunction<Double, Double> {
 
   @Override
   public List<Set<Integer>> exchangeableParameterIndices() {
-    Set<Integer> exchangeable = new HashSet<Integer>();
-    exchangeable.add(0);
-    exchangeable.add(1);
-    List<Set<Integer>> res = new ArrayList<>();
-    res.add(exchangeable);
-    return res;
+    return new ArrayList<>();
   }
 
   @Override

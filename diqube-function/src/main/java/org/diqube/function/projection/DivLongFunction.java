@@ -21,7 +21,6 @@
 package org.diqube.function.projection;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -31,14 +30,14 @@ import org.diqube.function.FunctionException;
 import org.diqube.function.ProjectionFunction;
 
 /**
- * Calculate the sum of two double values.
+ * Divide a value by another one.
  *
  * @author Bastian Gloeckle
  */
-@Function(name = AddDoubleFunction.NAME)
-public class AddDoubleFunction implements ProjectionFunction<Double, Double> {
+@Function(name = DivLongFunction.NAME)
+public class DivLongFunction implements ProjectionFunction<Long, Long> {
 
-  public static final String NAME = "add";
+  public static final String NAME = "div";
 
   @Override
   public String getNameLowerCase() {
@@ -46,42 +45,42 @@ public class AddDoubleFunction implements ProjectionFunction<Double, Double> {
   }
 
   private boolean[] isArray = new boolean[2];
-  private Double[][] arrayValues = new Double[2][];
-  private Double[] constantValues = new Double[2];
+  private Long[][] arrayValues = new Long[2][];
+  private Long[] constantValues = new Long[2];
 
   @Override
-  public void provideParameter(int parameterIdx, Double[] value) {
+  public void provideParameter(int parameterIdx, Long[] value) {
     arrayValues[parameterIdx] = value;
     isArray[parameterIdx] = true;
   }
 
   @Override
-  public void provideConstantParameter(int parameterIdx, Double value) {
+  public void provideConstantParameter(int parameterIdx, Long value) {
     constantValues[parameterIdx] = value;
     isArray[parameterIdx] = false;
   }
 
   @Override
-  public Double[] execute() throws FunctionException {
+  public Long[] execute() throws FunctionException {
     if (!isArray[0] && !isArray[1])
-      return new Double[] { constantValues[0] + constantValues[1] };
+      return new Long[] { constantValues[0] / constantValues[1] };
 
     if (isArray[0] ^ isArray[1]) {
-      Double[] array = (isArray[0]) ? arrayValues[0] : arrayValues[1];
-      Double constant = (!isArray[0]) ? constantValues[0] : constantValues[1];
-      Double[] res = new Double[array.length];
+      Long[] array = (isArray[0]) ? arrayValues[0] : arrayValues[1];
+      Long constant = (!isArray[0]) ? constantValues[0] : constantValues[1];
+      Long[] res = new Long[array.length];
       for (int i = 0; i < res.length; i++)
-        res[i] = array[i] + constant;
+        res[i] = array[i] / constant;
       return res;
     }
 
     if (arrayValues[0].length != arrayValues[1].length)
       throw new FunctionException("Arrays have to be of same length for " + NAME + "!");
 
-    Double[] res = new Double[arrayValues[0].length];
+    Long[] res = new Long[arrayValues[0].length];
 
     for (int i = 0; i < res.length; i++)
-      res[i] = arrayValues[0][i] + arrayValues[1][i];
+      res[i] = arrayValues[0][i] / arrayValues[1][i];
 
     return res;
   }
@@ -93,27 +92,22 @@ public class AddDoubleFunction implements ProjectionFunction<Double, Double> {
 
   @Override
   public List<Set<Integer>> exchangeableParameterIndices() {
-    Set<Integer> exchangeable = new HashSet<Integer>();
-    exchangeable.add(0);
-    exchangeable.add(1);
-    List<Set<Integer>> res = new ArrayList<>();
-    res.add(exchangeable);
-    return res;
+    return new ArrayList<>();
   }
 
   @Override
-  public Double[] createEmptyInputArray(int length) {
-    return new Double[length];
+  public Long[] createEmptyInputArray(int length) {
+    return new Long[length];
   }
 
   @Override
   public ColumnType getOutputType() {
-    return ColumnType.DOUBLE;
+    return ColumnType.LONG;
   }
 
   @Override
   public ColumnType getInputType() {
-    return ColumnType.DOUBLE;
+    return ColumnType.LONG;
   }
 
 }

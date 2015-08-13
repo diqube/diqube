@@ -76,7 +76,7 @@ public class AddLongFunction implements ProjectionFunction<Long, Long> {
     }
 
     if (arrayValues[0].length != arrayValues[1].length)
-      throw new FunctionException("Arrays have to be of same length for sum!");
+      throw new FunctionException("Arrays have to be of same length for " + NAME + "!");
 
     Long[] res = new Long[arrayValues[0].length];
 

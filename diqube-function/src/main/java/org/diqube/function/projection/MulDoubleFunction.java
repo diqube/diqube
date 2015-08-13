@@ -31,14 +31,14 @@ import org.diqube.function.FunctionException;
 import org.diqube.function.ProjectionFunction;
 
 /**
- * Calculate the sum of two double values.
+ * Multiplicate two values.
  *
  * @author Bastian Gloeckle
  */
-@Function(name = AddDoubleFunction.NAME)
-public class AddDoubleFunction implements ProjectionFunction<Double, Double> {
+@Function(name = MulDoubleFunction.NAME)
+public class MulDoubleFunction implements ProjectionFunction<Double, Double> {
 
-  public static final String NAME = "add";
+  public static final String NAME = "mul";
 
   @Override
   public String getNameLowerCase() {
@@ -64,14 +64,14 @@ public class AddDoubleFunction implements ProjectionFunction<Double, Double> {
   @Override
   public Double[] execute() throws FunctionException {
     if (!isArray[0] && !isArray[1])
-      return new Double[] { constantValues[0] + constantValues[1] };
+      return new Double[] { constantValues[0] * constantValues[1] };
 
     if (isArray[0] ^ isArray[1]) {
       Double[] array = (isArray[0]) ? arrayValues[0] : arrayValues[1];
       Double constant = (!isArray[0]) ? constantValues[0] : constantValues[1];
       Double[] res = new Double[array.length];
       for (int i = 0; i < res.length; i++)
-        res[i] = array[i] + constant;
+        res[i] = array[i] * constant;
       return res;
     }
 
@@ -81,7 +81,7 @@ public class AddDoubleFunction implements ProjectionFunction<Double, Double> {
     Double[] res = new Double[arrayValues[0].length];
 
     for (int i = 0; i < res.length; i++)
-      res[i] = arrayValues[0][i] + arrayValues[1][i];
+      res[i] = arrayValues[0][i] * arrayValues[1][i];
 
     return res;
   }

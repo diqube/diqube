@@ -135,6 +135,9 @@ projectionFunctionName
  | F_ID
  | F_CONCAT
  | F_ROUND
+ | F_DIV
+ | F_MUL
+ | F_SUB
  ;
 
 keyword
@@ -193,6 +196,9 @@ F_ROUND: R O U N D;
 F_ANY: A N Y;
 F_MIN: M I N;
 F_MAX: M A X;
+F_DIV: D I V;
+F_MUL: M U L;
+F_SUB: S U B;
 F_CONCATGROUP: C O N C A T G R O U P;
 
 ID
