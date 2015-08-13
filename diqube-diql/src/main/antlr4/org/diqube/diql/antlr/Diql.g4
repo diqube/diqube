@@ -125,6 +125,8 @@ aggregationFunctionName
  : F_COUNT
  | F_AVG
  | F_ANY
+ | F_MIN
+ | F_MAX
  ;
 
 projectionFunctionName
@@ -188,6 +190,8 @@ F_CONCAT: C O N C A T;
 F_AVG: A V G;
 F_ROUND: R O U N D;
 F_ANY: A N Y;
+F_MIN: M I N;
+F_MAX: M A X;
 
 ID
  : [a-zA-Z_] [a-zA-Z_0-9]* 

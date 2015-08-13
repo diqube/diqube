@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -509,6 +510,53 @@ public class LongGroupDiqlExecutionTest extends GroupDiqlExecutionTest<Long> {
       Assert.assertNotNull(resultValues.get(COL_A), "Expected results for col A.");
 
       Assert.assertEquals((long) resultValues.get(COL_A).get(resultHavingRowIds[0]), 1L, "Expected correct value.");
+    } finally {
+      executor.shutdownNow();
+    }
+  }
+
+  @Test
+  public void minMax() throws InterruptedException, ExecutionException {
+    Object[] colAValues = dp.a(1, 5, 100, 1, 99, 1);
+    Object[] colBValues = dp.a(3, 1, 50, 2, 0, 10);
+    initializeSimpleTable(colAValues, colBValues);
+    // GIVEN
+    ExecutablePlan executablePlan = buildExecutablePlan(
+        "Select " + COL_A + ", max(" + COL_B + "), min(" + COL_B + ") from " + TABLE + " group by " + COL_A);
+    ExecutorService executor = executors.newTestExecutor(executablePlan.preferredExecutorServiceSize());
+    try {
+      // WHEN
+      // executing it on the sample table
+      Future<Void> future = executablePlan.executeAsynchronously(executor);
+      future.get(); // wait until done.
+
+      // THEN
+      Assert.assertTrue(columnValueConsumerIsDone, "Source should have reported 'done'");
+      Assert.assertTrue(future.isDone(), "Future should report done");
+      Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
+
+      String resMaxColName =
+          functionBasedColumnNameBuilderFactory.create().withFunctionName("max").addParameterColumnName(COL_B).build();
+      String resMinColName =
+          functionBasedColumnNameBuilderFactory.create().withFunctionName("min").addParameterColumnName(COL_B).build();
+
+      Assert.assertNotNull(resultValues.get(COL_A), "Col A expected to be abailable");
+      Assert.assertNotNull(resultValues.get(resMinColName), "Min col expected to be abailable");
+      Assert.assertNotNull(resultValues.get(resMaxColName), "Max col expected to be abailable");
+
+      Set<Triple<Long, Long, Long>> expected = new HashSet<>();
+      expected.add(new Triple<>(1L, 10L, 2L));
+      expected.add(new Triple<>(5L, 1L, 1L));
+      expected.add(new Triple<>(100L, 50L, 50L));
+      expected.add(new Triple<>(99L, 0L, 0L));
+
+      Set<Triple<Long, Long, Long>> actual = new HashSet<>();
+      for (long rowId : resultValues.get(COL_A).keySet()) {
+        actual.add(new Triple<>(resultValues.get(COL_A).get(rowId), resultValues.get(resMaxColName).get(rowId),
+            resultValues.get(resMinColName).get(rowId)));
+      }
+
+      Assert.assertEquals(actual, expected, "Expected correct values");
     } finally {
       executor.shutdownNow();
     }

@@ -20,8 +20,14 @@
  */
 package org.diqube.server.execution.str;
 
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+
 import org.diqube.data.ColumnType;
+import org.diqube.execution.ExecutablePlan;
 import org.diqube.server.execution.GroupDiqlExecutionTest;
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
 /**
@@ -35,4 +41,32 @@ public class StringGroupDiqlExecutionTest extends GroupDiqlExecutionTest<String>
     super(ColumnType.STRING, new StringTestDataProvider());
   }
 
+  @Test
+  public void aggregationFunctionWithConstantParam() throws InterruptedException, ExecutionException {
+    Object[] colAValues = dp.a(1, 5, 100, 1, 99, 1);
+    Object[] colBValues = dp.a(3, 0, 0, 2, 0, 10);
+    initializeSimpleTable(colAValues, colBValues);
+    // GIVEN
+    ExecutablePlan executablePlan = buildExecutablePlan("Select " + COL_A + " from " + TABLE + " group by " + COL_A
+        + " having any('" + dp.v(10) + "', " + COL_B + ") = 1");
+    ExecutorService executor = executors.newTestExecutor(executablePlan.preferredExecutorServiceSize());
+    try {
+      // WHEN
+      // executing it on the sample table
+      Future<Void> future = executablePlan.executeAsynchronously(executor);
+      future.get(); // wait until done.
+
+      // THEN
+      Assert.assertTrue(columnValueConsumerIsDone, "Source should have reported 'done'");
+      Assert.assertTrue(future.isDone(), "Future should report done");
+      Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
+
+      Assert.assertEquals(resultHavingRowIds.length, 1, "Expected results for columns.");
+      Assert.assertNotNull(resultValues.get(COL_A), "Expected results for col A.");
+
+      Assert.assertEquals(resultValues.get(COL_A).get(resultHavingRowIds[0]), dp.v(1), "Expected correct value.");
+    } finally {
+      executor.shutdownNow();
+    }
+  }
 }

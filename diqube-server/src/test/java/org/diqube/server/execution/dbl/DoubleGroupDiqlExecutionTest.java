@@ -22,9 +22,11 @@ package org.diqube.server.execution.dbl;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -34,6 +36,7 @@ import org.diqube.execution.ExecutablePlan;
 import org.diqube.server.execution.GroupDiqlExecutionTest;
 import org.diqube.util.DoubleUtil;
 import org.diqube.util.Pair;
+import org.diqube.util.Triple;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -158,4 +161,80 @@ public class DoubleGroupDiqlExecutionTest extends GroupDiqlExecutionTest<Double>
     }
   }
 
+  @Test
+  public void aggregationFunctionWithConstantParam() throws InterruptedException, ExecutionException {
+    Object[] colAValues = dp.a(1, 5, 100, 1, 99, 1);
+    Object[] colBValues = dp.a(3, 0, 0, 2, 0, 10);
+    initializeSimpleTable(colAValues, colBValues);
+    // GIVEN
+    ExecutablePlan executablePlan = buildExecutablePlan("Select " + COL_A + " from " + TABLE + " group by " + COL_A
+        + " having any(" + dp.vDiql(10) + ", " + COL_B + ") = 1");
+    ExecutorService executor = executors.newTestExecutor(executablePlan.preferredExecutorServiceSize());
+    try {
+      // WHEN
+      // executing it on the sample table
+      Future<Void> future = executablePlan.executeAsynchronously(executor);
+      future.get(); // wait until done.
+
+      // THEN
+      Assert.assertTrue(columnValueConsumerIsDone, "Source should have reported 'done'");
+      Assert.assertTrue(future.isDone(), "Future should report done");
+      Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
+
+      Assert.assertEquals(resultHavingRowIds.length, 1, "Expected results for columns.");
+      Assert.assertNotNull(resultValues.get(COL_A), "Expected results for col A.");
+
+      Assert.assertEquals((double) resultValues.get(COL_A).get(resultHavingRowIds[0]), dp.v(1),
+          "Expected correct value.");
+    } finally {
+      executor.shutdownNow();
+    }
+  }
+
+  @Test
+  public void minMax() throws InterruptedException, ExecutionException {
+    Object[] colAValues = dp.a(1, 5, 100, 1, 99, 1);
+    Object[] colBValues = dp.a(3, 1, 50, 2, 0, 10);
+    initializeSimpleTable(colAValues, colBValues);
+    // GIVEN
+    ExecutablePlan executablePlan = buildExecutablePlan(
+        "Select " + COL_A + ", max(" + COL_B + "), min(" + COL_B + ") from " + TABLE + " group by " + COL_A);
+    ExecutorService executor = executors.newTestExecutor(executablePlan.preferredExecutorServiceSize());
+    try {
+      // WHEN
+      // executing it on the sample table
+      Future<Void> future = executablePlan.executeAsynchronously(executor);
+      future.get(); // wait until done.
+
+      // THEN
+      Assert.assertTrue(columnValueConsumerIsDone, "Source should have reported 'done'");
+      Assert.assertTrue(future.isDone(), "Future should report done");
+      Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
+
+      String resMaxColName =
+          functionBasedColumnNameBuilderFactory.create().withFunctionName("max").addParameterColumnName(COL_B).build();
+      String resMinColName =
+          functionBasedColumnNameBuilderFactory.create().withFunctionName("min").addParameterColumnName(COL_B).build();
+
+      Assert.assertNotNull(resultValues.get(COL_A), "Col A expected to be abailable");
+      Assert.assertNotNull(resultValues.get(resMinColName), "Min col expected to be abailable");
+      Assert.assertNotNull(resultValues.get(resMaxColName), "Max col expected to be abailable");
+
+      Set<Triple<Double, Double, Double>> expected = new HashSet<>();
+      expected.add(new Triple<>(dp.v(1), dp.v(10), dp.v(2)));
+      expected.add(new Triple<>(dp.v(5), dp.v(1), dp.v(1)));
+      expected.add(new Triple<>(dp.v(100), dp.v(50), dp.v(50)));
+      expected.add(new Triple<>(dp.v(99), dp.v(0), dp.v(0)));
+
+      Set<Triple<Double, Double, Double>> actual = new HashSet<>();
+      for (long rowId : resultValues.get(COL_A).keySet()) {
+        actual.add(new Triple<>(resultValues.get(COL_A).get(rowId), resultValues.get(resMaxColName).get(rowId),
+            resultValues.get(resMinColName).get(rowId)));
+      }
+
+      Assert.assertEquals(actual, expected, "Expected correct values");
+    } finally {
+      executor.shutdownNow();
+    }
+  }
 }
