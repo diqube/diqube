@@ -20,25 +20,21 @@
  */
 package org.diqube.function.projection;
 
+import java.util.function.BiFunction;
+
 import org.diqube.data.ColumnType;
-import org.diqube.function.Function;
 
 /**
- * Divide a value by another one.
- *
+ * Abstract implementation for projection functions with a two params and which produce the same output
+ * {@link ColumnType} as the input.
+ * 
  * @author Bastian Gloeckle
  */
-@Function(name = DivDoubleFunction.NAME)
-public class DivDoubleFunction extends AbstractTwoParamSameColTypeProjectionFunction<Double> {
+public abstract class AbstractTwoParamSameColTypeProjectionFunction<T>
+    extends AbstractTwoParamProjectionFunction<T, T> {
 
-  public static final String NAME = "div";
-
-  public DivDoubleFunction() {
-    super(NAME, ColumnType.DOUBLE, false, DivDoubleFunction::div);
+  protected AbstractTwoParamSameColTypeProjectionFunction(String nameLowercase, ColumnType inputAndOutputType,
+      boolean paramsAreExchangeable, BiFunction<T, T, T> fn) {
+    super(nameLowercase, inputAndOutputType, inputAndOutputType, paramsAreExchangeable, fn);
   }
-
-  public static Double div(Double a, Double b) {
-    return a / b;
-  }
-
 }

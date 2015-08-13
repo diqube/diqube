@@ -32,39 +32,40 @@ import org.diqube.function.FunctionException;
 import org.diqube.function.ProjectionFunction;
 
 /**
- * Abstract implementation for projection functions with a two params and which produce the same output
- * {@link ColumnType} as the input.
+ * Abstract implementation for projection functions with a two params.
  * 
  * @author Bastian Gloeckle
  */
-public abstract class AbstractTwoParamProjectionFunction<T> implements ProjectionFunction<T, T> {
+public abstract class AbstractTwoParamProjectionFunction<I, O> implements ProjectionFunction<I, O> {
 
   private String nameLowercase;
-  private BiFunction<T, T, T> fn;
-  private ColumnType inputAndOutputType;
+  private BiFunction<I, I, O> fn;
+  private ColumnType inputType;
+  private ColumnType outputType;
 
   private boolean[] isArray = new boolean[2];
-  private T[][] arrayValues;
-  private T[] values;
+  private I[][] arrayValues;
+  private I[] values;
   private boolean paramsAreExchangeable;
 
   @SuppressWarnings("unchecked")
-  protected AbstractTwoParamProjectionFunction(String nameLowercase, ColumnType inputAndOutputType,
-      boolean paramsAreExchangeable, BiFunction<T, T, T> fn) {
+  protected AbstractTwoParamProjectionFunction(String nameLowercase, ColumnType inputType, ColumnType outputType,
+      boolean paramsAreExchangeable, BiFunction<I, I, O> fn) {
     this.nameLowercase = nameLowercase;
-    this.inputAndOutputType = inputAndOutputType;
+    this.inputType = inputType;
+    this.outputType = outputType;
     this.fn = fn;
     this.paramsAreExchangeable = paramsAreExchangeable;
     values = this.createEmptyInputArray(2);
-    switch (inputAndOutputType) {
+    switch (inputType) {
     case LONG:
-      arrayValues = (T[][]) Array.newInstance(Long.class, 2, 0);
+      arrayValues = (I[][]) Array.newInstance(Long.class, 2, 0);
       break;
     case DOUBLE:
-      arrayValues = (T[][]) Array.newInstance(Double.class, 2, 0);
+      arrayValues = (I[][]) Array.newInstance(Double.class, 2, 0);
       break;
     default:
-      arrayValues = (T[][]) Array.newInstance(String.class, 2, 0);
+      arrayValues = (I[][]) Array.newInstance(String.class, 2, 0);
     }
   }
 
@@ -73,39 +74,43 @@ public abstract class AbstractTwoParamProjectionFunction<T> implements Projectio
     return nameLowercase;
   }
 
-  @SuppressWarnings("unchecked")
   @Override
-  public T[] createEmptyInputArray(int length) {
-    if (inputAndOutputType.equals(ColumnType.LONG))
+  public I[] createEmptyInputArray(int length) {
+    return createArray(inputType, length);
+  }
+
+  @SuppressWarnings("unchecked")
+  private <T> T[] createArray(ColumnType type, int length) {
+    if (type.equals(ColumnType.LONG))
       return (T[]) new Long[length];
-    if (inputAndOutputType.equals(ColumnType.DOUBLE))
+    if (type.equals(ColumnType.DOUBLE))
       return (T[]) new Double[length];
     return (T[]) new String[length];
   }
 
   @Override
-  public void provideParameter(int parameterIdx, T[] value) {
+  public void provideParameter(int parameterIdx, I[] value) {
     arrayValues[parameterIdx] = value;
     isArray[parameterIdx] = true;
   }
 
   @Override
-  public void provideConstantParameter(int parameterIdx, T value) {
+  public void provideConstantParameter(int parameterIdx, I value) {
     values[parameterIdx] = value;
     isArray[parameterIdx] = false;
   }
 
   @Override
-  public T[] execute() throws FunctionException {
+  public O[] execute() throws FunctionException {
     if (!isArray[0] && !isArray[1]) {
-      T[] res = createEmptyInputArray(1);
+      O[] res = createArray(outputType, 1);
       res[0] = fn.apply(values[0], values[1]);
       return res;
     }
 
     if (isArray[0] ^ isArray[1]) {
-      T[] array = (isArray[0]) ? arrayValues[0] : arrayValues[1];
-      T[] res = createEmptyInputArray(array.length);
+      I[] array = (isArray[0]) ? arrayValues[0] : arrayValues[1];
+      O[] res = createArray(outputType, array.length);
       if (isArray[0]) {
         for (int i = 0; i < res.length; i++)
           res[i] = fn.apply(array[i], values[1]);
@@ -119,7 +124,7 @@ public abstract class AbstractTwoParamProjectionFunction<T> implements Projectio
     if (arrayValues[0].length != arrayValues[1].length)
       throw new FunctionException("Arrays have to be of same length for " + getNameLowerCase() + "!");
 
-    T[] res = createEmptyInputArray(arrayValues[0].length);
+    O[] res = createArray(outputType, arrayValues[0].length);
 
     for (int i = 0; i < res.length; i++)
       res[i] = fn.apply(arrayValues[0][i], arrayValues[1][i]);
@@ -147,12 +152,12 @@ public abstract class AbstractTwoParamProjectionFunction<T> implements Projectio
 
   @Override
   public ColumnType getOutputType() {
-    return inputAndOutputType;
+    return inputType;
   }
 
   @Override
   public ColumnType getInputType() {
-    return inputAndOutputType;
+    return outputType;
   }
 
 }

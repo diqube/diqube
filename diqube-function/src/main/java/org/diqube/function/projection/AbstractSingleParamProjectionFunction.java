@@ -30,24 +30,25 @@ import org.diqube.function.FunctionException;
 import org.diqube.function.ProjectionFunction;
 
 /**
- * Abstract implementation for projection functions with a single param and which produce the same output
- * {@link ColumnType} as the input.
+ * Abstract implementation for projection functions with a single param.
  *
  * @author Bastian Gloeckle
  */
-public abstract class AbstractSingleParamProjectionFunction<T> implements ProjectionFunction<T, T> {
+public abstract class AbstractSingleParamProjectionFunction<I, O> implements ProjectionFunction<I, O> {
 
   private String nameLowercase;
-  private Function<T, T> fn;
-  private ColumnType inputAndOutputType;
+  private Function<I, O> fn;
 
-  private T value;
-  private T[] valueArray;
+  private I value;
+  private I[] valueArray;
+  private ColumnType inputType;
+  private ColumnType outputType;
 
-  protected AbstractSingleParamProjectionFunction(String nameLowercase, ColumnType inputAndOutputType,
-      Function<T, T> fn) {
+  protected AbstractSingleParamProjectionFunction(String nameLowercase, ColumnType inputType, ColumnType outputType,
+      Function<I, O> fn) {
     this.nameLowercase = nameLowercase;
-    this.inputAndOutputType = inputAndOutputType;
+    this.inputType = inputType;
+    this.outputType = outputType;
     this.fn = fn;
   }
 
@@ -56,37 +57,41 @@ public abstract class AbstractSingleParamProjectionFunction<T> implements Projec
     return nameLowercase;
   }
 
-  @SuppressWarnings("unchecked")
   @Override
-  public T[] createEmptyInputArray(int length) {
-    if (inputAndOutputType.equals(ColumnType.LONG))
+  public I[] createEmptyInputArray(int length) {
+    return createArray(inputType, length);
+  }
+
+  @SuppressWarnings("unchecked")
+  private <T> T[] createArray(ColumnType type, int length) {
+    if (type.equals(ColumnType.LONG))
       return (T[]) new Long[length];
-    if (inputAndOutputType.equals(ColumnType.DOUBLE))
+    if (type.equals(ColumnType.DOUBLE))
       return (T[]) new Double[length];
     return (T[]) new String[length];
   }
 
   @Override
-  public void provideParameter(int parameterIdx, T[] value) {
+  public void provideParameter(int parameterIdx, I[] value) {
     valueArray = value;
     this.value = null;
   }
 
   @Override
-  public void provideConstantParameter(int parameterIdx, T value) {
+  public void provideConstantParameter(int parameterIdx, I value) {
     this.value = value;
     valueArray = null;
   }
 
   @Override
-  public T[] execute() throws FunctionException {
+  public O[] execute() throws FunctionException {
     if (value != null) {
-      T[] res = createEmptyInputArray(1);
+      O[] res = createArray(outputType, 1);
       res[0] = fn.apply(value);
       return res;
     }
 
-    T[] res = createEmptyInputArray(valueArray.length);
+    O[] res = createArray(outputType, valueArray.length);
     for (int i = 0; i < res.length; i++)
       res[i] = fn.apply(valueArray[i]);
 
@@ -105,12 +110,12 @@ public abstract class AbstractSingleParamProjectionFunction<T> implements Projec
 
   @Override
   public ColumnType getOutputType() {
-    return inputAndOutputType;
+    return outputType;
   }
 
   @Override
   public ColumnType getInputType() {
-    return inputAndOutputType;
+    return inputType;
   }
 
 }

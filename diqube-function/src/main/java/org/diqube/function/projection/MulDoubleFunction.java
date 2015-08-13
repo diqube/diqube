@@ -29,7 +29,7 @@ import org.diqube.function.Function;
  * @author Bastian Gloeckle
  */
 @Function(name = MulDoubleFunction.NAME)
-public class MulDoubleFunction extends AbstractTwoParamProjectionFunction<Double> {
+public class MulDoubleFunction extends AbstractTwoParamSameColTypeProjectionFunction<Double> {
 
   public static final String NAME = "mul";
 

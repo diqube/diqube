@@ -29,7 +29,7 @@ import org.diqube.function.Function;
  * @author Bastian Gloeckle
  */
 @Function(name = AddLongFunction.NAME)
-public class AddLongFunction extends AbstractTwoParamProjectionFunction<Long> {
+public class AddLongFunction extends AbstractTwoParamSameColTypeProjectionFunction<Long> {
 
   public static final String NAME = "add";
 

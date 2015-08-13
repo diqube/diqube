@@ -29,7 +29,7 @@ import org.diqube.function.Function;
  * @author Bastian Gloeckle
  */
 @Function(name = IdStringFunction.NAME)
-public class IdStringFunction extends AbstractSingleParamProjectionFunction<String> {
+public class IdStringFunction extends AbstractSingleParamSameColTypeProjectionFunction<String> {
 
   public static final String NAME = "id";
 

@@ -29,7 +29,7 @@ import org.diqube.function.Function;
  * @author Bastian Gloeckle
  */
 @Function(name = ConcatFunction.NAME)
-public class ConcatFunction extends AbstractTwoParamProjectionFunction<String> {
+public class ConcatFunction extends AbstractTwoParamSameColTypeProjectionFunction<String> {
 
   public static final String NAME = "concat";
 

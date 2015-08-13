@@ -20,14 +20,8 @@
  */
 package org.diqube.function.projection;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-
 import org.diqube.data.ColumnType;
 import org.diqube.function.Function;
-import org.diqube.function.FunctionException;
-import org.diqube.function.ProjectionFunction;
 
 /**
  * Round a double value to Long.
@@ -35,63 +29,11 @@ import org.diqube.function.ProjectionFunction;
  * @author Bastian Gloeckle
  */
 @Function(name = RoundToLongFunction.NAME)
-public class RoundToLongFunction implements ProjectionFunction<Double, Long> {
+public class RoundToLongFunction extends AbstractSingleParamProjectionFunction<Double, Long> {
 
   public static final String NAME = "round";
 
-  private Double[] values;
-  private Double constantValue;
-
-  @Override
-  public String getNameLowerCase() {
-    return NAME;
+  public RoundToLongFunction() {
+    super(NAME, ColumnType.DOUBLE, ColumnType.LONG, Math::round);
   }
-
-  @Override
-  public Double[] createEmptyInputArray(int length) {
-    return new Double[length];
-  }
-
-  @Override
-  public void provideParameter(int parameterIdx, Double[] value) {
-    constantValue = null;
-    values = value;
-  }
-
-  @Override
-  public void provideConstantParameter(int parameterIdx, Double value) {
-    values = null;
-    constantValue = value;
-  }
-
-  @Override
-  public Long[] execute() throws FunctionException {
-    if (constantValue != null)
-      return new Long[] { Math.round(constantValue) };
-    Long[] res = new Long[values.length];
-    for (int i = 0; i < values.length; i++)
-      res[i] = Math.round(values[i]);
-    return res;
-  }
-
-  @Override
-  public int numberOfParameters() {
-    return 1;
-  }
-
-  @Override
-  public List<Set<Integer>> exchangeableParameterIndices() {
-    return new ArrayList<>();
-  }
-
-  @Override
-  public ColumnType getOutputType() {
-    return ColumnType.LONG;
-  }
-
-  @Override
-  public ColumnType getInputType() {
-    return ColumnType.DOUBLE;
-  }
-
 }

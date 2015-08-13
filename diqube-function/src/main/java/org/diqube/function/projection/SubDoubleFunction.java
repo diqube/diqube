@@ -29,7 +29,7 @@ import org.diqube.function.Function;
  * @author Bastian Gloeckle
  */
 @Function(name = SubDoubleFunction.NAME)
-public class SubDoubleFunction extends AbstractTwoParamProjectionFunction<Double> {
+public class SubDoubleFunction extends AbstractTwoParamSameColTypeProjectionFunction<Double> {
 
   public static final String NAME = "sub";
 
