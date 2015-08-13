@@ -20,14 +20,8 @@
  */
 package org.diqube.function.projection;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-
 import org.diqube.data.ColumnType;
 import org.diqube.function.Function;
-import org.diqube.function.FunctionException;
-import org.diqube.function.ProjectionFunction;
 
 /**
  * Subtract a value from another.
@@ -35,79 +29,16 @@ import org.diqube.function.ProjectionFunction;
  * @author Bastian Gloeckle
  */
 @Function(name = SubLongFunction.NAME)
-public class SubLongFunction implements ProjectionFunction<Long, Long> {
+public class SubLongFunction extends AbstractTwoParamProjectionFunction<Long> {
 
   public static final String NAME = "sub";
 
-  @Override
-  public String getNameLowerCase() {
-    return NAME;
+  public SubLongFunction() {
+    super(NAME, ColumnType.LONG, false, SubLongFunction::sub);
   }
 
-  private boolean[] isArray = new boolean[2];
-  private Long[][] arrayValues = new Long[2][];
-  private Long[] constantValues = new Long[2];
-
-  @Override
-  public void provideParameter(int parameterIdx, Long[] value) {
-    arrayValues[parameterIdx] = value;
-    isArray[parameterIdx] = true;
-  }
-
-  @Override
-  public void provideConstantParameter(int parameterIdx, Long value) {
-    constantValues[parameterIdx] = value;
-    isArray[parameterIdx] = false;
-  }
-
-  @Override
-  public Long[] execute() throws FunctionException {
-    if (!isArray[0] && !isArray[1])
-      return new Long[] { constantValues[0] - constantValues[1] };
-
-    if (isArray[0] ^ isArray[1]) {
-      Long[] array = (isArray[0]) ? arrayValues[0] : arrayValues[1];
-      Long constant = (!isArray[0]) ? constantValues[0] : constantValues[1];
-      Long[] res = new Long[array.length];
-      for (int i = 0; i < res.length; i++)
-        res[i] = array[i] - constant;
-      return res;
-    }
-
-    if (arrayValues[0].length != arrayValues[1].length)
-      throw new FunctionException("Arrays have to be of same length for " + NAME + "!");
-
-    Long[] res = new Long[arrayValues[0].length];
-
-    for (int i = 0; i < res.length; i++)
-      res[i] = arrayValues[0][i] - arrayValues[1][i];
-
-    return res;
-  }
-
-  @Override
-  public int numberOfParameters() {
-    return 2;
-  }
-
-  @Override
-  public List<Set<Integer>> exchangeableParameterIndices() {
-    return new ArrayList<>();
-  }
-
-  @Override
-  public Long[] createEmptyInputArray(int length) {
-    return new Long[length];
-  }
-
-  @Override
-  public ColumnType getOutputType() {
-    return ColumnType.LONG;
-  }
-
-  @Override
-  public ColumnType getInputType() {
-    return ColumnType.LONG;
+  public static Long sub(Long a, Long b) {
+    return a - b;
   }
 
 }

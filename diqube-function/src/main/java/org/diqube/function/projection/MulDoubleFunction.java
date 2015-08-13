@@ -20,15 +20,8 @@
  */
 package org.diqube.function.projection;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
 import org.diqube.data.ColumnType;
 import org.diqube.function.Function;
-import org.diqube.function.FunctionException;
-import org.diqube.function.ProjectionFunction;
 
 /**
  * Multiplicate two values.
@@ -36,84 +29,15 @@ import org.diqube.function.ProjectionFunction;
  * @author Bastian Gloeckle
  */
 @Function(name = MulDoubleFunction.NAME)
-public class MulDoubleFunction implements ProjectionFunction<Double, Double> {
+public class MulDoubleFunction extends AbstractTwoParamProjectionFunction<Double> {
 
   public static final String NAME = "mul";
 
-  @Override
-  public String getNameLowerCase() {
-    return NAME;
+  public MulDoubleFunction() {
+    super(NAME, ColumnType.DOUBLE, true, MulDoubleFunction::mul);
   }
 
-  private boolean[] isArray = new boolean[2];
-  private Double[][] arrayValues = new Double[2][];
-  private Double[] constantValues = new Double[2];
-
-  @Override
-  public void provideParameter(int parameterIdx, Double[] value) {
-    arrayValues[parameterIdx] = value;
-    isArray[parameterIdx] = true;
+  public static Double mul(Double a, Double b) {
+    return a * b;
   }
-
-  @Override
-  public void provideConstantParameter(int parameterIdx, Double value) {
-    constantValues[parameterIdx] = value;
-    isArray[parameterIdx] = false;
-  }
-
-  @Override
-  public Double[] execute() throws FunctionException {
-    if (!isArray[0] && !isArray[1])
-      return new Double[] { constantValues[0] * constantValues[1] };
-
-    if (isArray[0] ^ isArray[1]) {
-      Double[] array = (isArray[0]) ? arrayValues[0] : arrayValues[1];
-      Double constant = (!isArray[0]) ? constantValues[0] : constantValues[1];
-      Double[] res = new Double[array.length];
-      for (int i = 0; i < res.length; i++)
-        res[i] = array[i] * constant;
-      return res;
-    }
-
-    if (arrayValues[0].length != arrayValues[1].length)
-      throw new FunctionException("Arrays have to be of same length for " + NAME + "!");
-
-    Double[] res = new Double[arrayValues[0].length];
-
-    for (int i = 0; i < res.length; i++)
-      res[i] = arrayValues[0][i] * arrayValues[1][i];
-
-    return res;
-  }
-
-  @Override
-  public int numberOfParameters() {
-    return 2;
-  }
-
-  @Override
-  public List<Set<Integer>> exchangeableParameterIndices() {
-    Set<Integer> exchangeable = new HashSet<Integer>();
-    exchangeable.add(0);
-    exchangeable.add(1);
-    List<Set<Integer>> res = new ArrayList<>();
-    res.add(exchangeable);
-    return res;
-  }
-
-  @Override
-  public Double[] createEmptyInputArray(int length) {
-    return new Double[length];
-  }
-
-  @Override
-  public ColumnType getOutputType() {
-    return ColumnType.DOUBLE;
-  }
-
-  @Override
-  public ColumnType getInputType() {
-    return ColumnType.DOUBLE;
-  }
-
 }

@@ -20,14 +20,8 @@
  */
 package org.diqube.function.projection;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-
 import org.diqube.data.ColumnType;
 import org.diqube.function.Function;
-import org.diqube.function.FunctionException;
-import org.diqube.function.ProjectionFunction;
 
 /**
  * Concatenation function.
@@ -35,83 +29,15 @@ import org.diqube.function.ProjectionFunction;
  * @author Bastian Gloeckle
  */
 @Function(name = ConcatFunction.NAME)
-public class ConcatFunction implements ProjectionFunction<String, String> {
+public class ConcatFunction extends AbstractTwoParamProjectionFunction<String> {
 
   public static final String NAME = "concat";
 
-  private boolean[] isArray = new boolean[2];
-  private String[][] arrayValues = new String[2][];
-  private String[] constantValues = new String[2];
-
-  @Override
-  public String getNameLowerCase() {
-    return NAME;
+  public ConcatFunction() {
+    super(NAME, ColumnType.STRING, false, ConcatFunction::concat);
   }
 
-  @Override
-  public String[] createEmptyInputArray(int length) {
-    return new String[length];
+  public static String concat(String a, String b) {
+    return a + b;
   }
-
-  @Override
-  public void provideParameter(int parameterIdx, String[] value) {
-    arrayValues[parameterIdx] = value;
-    isArray[parameterIdx] = true;
-  }
-
-  @Override
-  public void provideConstantParameter(int parameterIdx, String value) {
-    constantValues[parameterIdx] = value;
-    isArray[parameterIdx] = false;
-  }
-
-  @Override
-  public String[] execute() throws FunctionException {
-    if (!isArray[0] && !isArray[1])
-      return new String[] { constantValues[0] + constantValues[1] };
-
-    if (isArray[0] ^ isArray[1]) {
-      String[] array = (isArray[0]) ? arrayValues[0] : arrayValues[1];
-      String constant = (!isArray[0]) ? constantValues[0] : constantValues[1];
-      String[] res = new String[array.length];
-      for (int i = 0; i < res.length; i++) {
-        if (isArray[0])
-          res[i] = array[i] + constant;
-        else
-          res[i] = constant + array[i];
-      }
-      return res;
-    }
-
-    if (arrayValues[0].length != arrayValues[1].length)
-      throw new FunctionException("Arrays have to be of same length for concat!");
-
-    String[] res = new String[arrayValues[0].length];
-
-    for (int i = 0; i < res.length; i++)
-      res[i] = arrayValues[0][i] + arrayValues[1][i];
-
-    return res;
-  }
-
-  @Override
-  public int numberOfParameters() {
-    return 2;
-  }
-
-  @Override
-  public List<Set<Integer>> exchangeableParameterIndices() {
-    return new ArrayList<>();
-  }
-
-  @Override
-  public ColumnType getOutputType() {
-    return ColumnType.STRING;
-  }
-
-  @Override
-  public ColumnType getInputType() {
-    return ColumnType.STRING;
-  }
-
 }

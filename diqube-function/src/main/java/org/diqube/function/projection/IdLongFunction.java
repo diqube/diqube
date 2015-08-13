@@ -20,13 +20,8 @@
  */
 package org.diqube.function.projection;
 
-import java.util.List;
-import java.util.Set;
-
 import org.diqube.data.ColumnType;
 import org.diqube.function.Function;
-import org.diqube.function.FunctionException;
-import org.diqube.function.ProjectionFunction;
 
 /**
  * Simple identity function
@@ -34,59 +29,15 @@ import org.diqube.function.ProjectionFunction;
  * @author Bastian Gloeckle
  */
 @Function(name = IdLongFunction.NAME)
-public class IdLongFunction implements ProjectionFunction<Long, Long> {
+public class IdLongFunction extends AbstractSingleParamProjectionFunction<Long> {
 
   public static final String NAME = "id";
 
-  private Long[] param = null;
-
-  @Override
-  public String getNameLowerCase() {
-    return NAME;
+  public IdLongFunction() {
+    super(NAME, ColumnType.LONG, IdLongFunction::id);
   }
 
-  @Override
-  public Long[] createEmptyInputArray(int length) {
-    return new Long[length];
+  public static Long id(Long l) {
+    return l;
   }
-
-  @Override
-  public void provideParameter(int parameterIdx, Long[] value) {
-    if (parameterIdx != 0)
-      return;
-    param = value;
-  }
-
-  @Override
-  public void provideConstantParameter(int parameterIdx, Long value) {
-    if (parameterIdx != 0)
-      return;
-    param = new Long[] { value };
-  }
-
-  @Override
-  public Long[] execute() throws FunctionException {
-    return param;
-  }
-
-  @Override
-  public int numberOfParameters() {
-    return 1;
-  }
-
-  @Override
-  public List<Set<Integer>> exchangeableParameterIndices() {
-    return null;
-  }
-
-  @Override
-  public ColumnType getOutputType() {
-    return ColumnType.LONG;
-  }
-
-  @Override
-  public ColumnType getInputType() {
-    return ColumnType.LONG;
-  }
-
 }

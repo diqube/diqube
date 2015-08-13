@@ -24,20 +24,20 @@ import org.diqube.data.ColumnType;
 import org.diqube.function.Function;
 
 /**
- * Multiplicate two values.
+ * Simple identity function
  *
  * @author Bastian Gloeckle
  */
-@Function(name = MulLongFunction.NAME)
-public class MulLongFunction extends AbstractTwoParamProjectionFunction<Long> {
+@Function(name = IdStringFunction.NAME)
+public class IdStringFunction extends AbstractSingleParamProjectionFunction<String> {
 
-  public static final String NAME = "mul";
+  public static final String NAME = "id";
 
-  public MulLongFunction() {
-    super(NAME, ColumnType.LONG, true, MulLongFunction::mul);
+  public IdStringFunction() {
+    super(NAME, ColumnType.STRING, IdStringFunction::id);
   }
 
-  public static Long mul(Long a, Long b) {
-    return a * b;
+  public static String id(String a) {
+    return a;
   }
 }
