@@ -67,11 +67,6 @@ public interface AggregationFunction<I, M extends IntermediaryResult<?, ?, ?>, O
   /**
    * Provide a specific constant parameter value to the function.
    * 
-   * Note that, although a constant parameter might be given in the diql query, this function object might not receive
-   * its value (= this method will not be called). This happens if this instance does not get any values added (
-   * {@link #addValues(ValueProvider)}), but only intermediaries ({@link #addIntermediary(IntermediaryResult)} and
-   * {@link #removeIntermediary(IntermediaryResult)}).
-   * 
    * @param idx
    *          Index of the parameter.
    * @param value

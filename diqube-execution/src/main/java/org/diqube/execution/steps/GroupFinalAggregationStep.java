@@ -104,9 +104,12 @@ public class GroupFinalAggregationStep extends AbstractThreadedExecutablePlanSte
 
   private ColumnVersionManager columnVersionManager;
 
+  private List<Object> constantFunctionParameters;
+
   public GroupFinalAggregationStep(int stepId, QueryRegistry queryRegistry, ExecutionEnvironment defaultEnv,
       FunctionFactory functionFactory, ColumnShardBuilderFactory columnShardBuilderFactory,
-      String functionNameLowerCase, String outputColName, ColumnVersionManager columnVersionManager) {
+      String functionNameLowerCase, String outputColName, ColumnVersionManager columnVersionManager,
+      List<Object> constantFunctionParameters) {
     super(stepId, queryRegistry);
     this.defaultEnv = defaultEnv;
     this.functionFactory = functionFactory;
@@ -114,6 +117,7 @@ public class GroupFinalAggregationStep extends AbstractThreadedExecutablePlanSte
     this.functionNameLowerCase = functionNameLowerCase;
     this.outputColName = outputColName;
     this.columnVersionManager = columnVersionManager;
+    this.constantFunctionParameters = constantFunctionParameters;
   }
 
   @Override
@@ -148,6 +152,10 @@ public class GroupFinalAggregationStep extends AbstractThreadedExecutablePlanSte
         if (!aggregationFunctions.containsKey(groupId)) {
           AggregationFunction<Object, IntermediaryResult<Object, Object, Object>, Object> fn =
               functionFactory.createAggregationFunction(functionNameLowerCase, newIntermediary.getInputColumnType());
+
+          for (int i = 0; i < constantFunctionParameters.size(); i++)
+            fn.provideConstantParameter(i, constantFunctionParameters.get(i));
+
           fn.addIntermediary(newIntermediary);
           aggregationFunctions.put(groupId, fn);
         } else {

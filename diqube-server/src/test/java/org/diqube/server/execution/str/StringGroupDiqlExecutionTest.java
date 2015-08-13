@@ -20,10 +20,14 @@
  */
 package org.diqube.server.execution.str;
 
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
+import org.antlr.v4.runtime.misc.Pair;
 import org.diqube.data.ColumnType;
 import org.diqube.execution.ExecutablePlan;
 import org.diqube.server.execution.GroupDiqlExecutionTest;
@@ -65,6 +69,96 @@ public class StringGroupDiqlExecutionTest extends GroupDiqlExecutionTest<String>
       Assert.assertNotNull(resultValues.get(COL_A), "Expected results for col A.");
 
       Assert.assertEquals(resultValues.get(COL_A).get(resultHavingRowIds[0]), dp.v(1), "Expected correct value.");
+    } finally {
+      executor.shutdownNow();
+    }
+  }
+
+  @Test
+  public void concatGroupWithCustomDelim() throws InterruptedException, ExecutionException {
+    Object[] colAValues = dp.a(1, 5, 100, 1, 99, 1);
+    Object[] colBValues = dp.a(3, 0, 1, 2, 55, 10);
+    initializeSimpleTable(colAValues, colBValues);
+    // GIVEN
+    ExecutablePlan executablePlan = buildExecutablePlan(
+        "Select " + COL_A + ", concatgroup('?', " + COL_B + ") from " + TABLE + " group by " + COL_A);
+    ExecutorService executor = executors.newTestExecutor(executablePlan.preferredExecutorServiceSize());
+    try {
+      // WHEN
+      // executing it on the sample table
+      Future<Void> future = executablePlan.executeAsynchronously(executor);
+      future.get(); // wait until done.
+
+      // THEN
+      Assert.assertTrue(columnValueConsumerIsDone, "Source should have reported 'done'");
+      Assert.assertTrue(future.isDone(), "Future should report done");
+      Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
+
+      String aggCol = functionBasedColumnNameBuilderFactory.create().withFunctionName("concatgroup")
+          .addParameterLiteralString("?").addParameterColumnName(COL_B).build();
+
+      Assert.assertNotNull(resultValues.get(COL_A), "Expected results for col A.");
+      Assert.assertNotNull(resultValues.get(aggCol), "Expected results for aggregation col.");
+
+      Set<Pair<String, Set<String>>> expected = new HashSet<>();
+      expected.add(new Pair<>(dp.v(1), new HashSet<>(Arrays.asList(dp.v(3), dp.v(2), dp.v(10)))));
+      expected.add(new Pair<>(dp.v(5), new HashSet<>(Arrays.asList(dp.v(0)))));
+      expected.add(new Pair<>(dp.v(100), new HashSet<>(Arrays.asList(dp.v(1)))));
+      expected.add(new Pair<>(dp.v(99), new HashSet<>(Arrays.asList(dp.v(55)))));
+
+      Set<Pair<String, Set<String>>> actual = new HashSet<>();
+      for (long rowId : resultValues.get(COL_A).keySet()) {
+        String colAValue = resultValues.get(COL_A).get(rowId);
+        String concatValue = resultValues.get(aggCol).get(rowId);
+        actual.add(new Pair<>(colAValue, new HashSet<>(Arrays.asList(concatValue.split("\\?")))));
+      }
+
+      Assert.assertEquals(actual, expected, "Expected correct values.");
+    } finally {
+      executor.shutdownNow();
+    }
+  }
+
+  @Test
+  public void concatGroupWithDefaultDelim() throws InterruptedException, ExecutionException {
+    Object[] colAValues = dp.a(1, 5, 100, 1, 99, 1);
+    Object[] colBValues = dp.a(3, 0, 1, 2, 55, 10);
+    initializeSimpleTable(colAValues, colBValues);
+    // GIVEN
+    ExecutablePlan executablePlan =
+        buildExecutablePlan("Select " + COL_A + ", concatgroup(" + COL_B + ") from " + TABLE + " group by " + COL_A);
+    ExecutorService executor = executors.newTestExecutor(executablePlan.preferredExecutorServiceSize());
+    try {
+      // WHEN
+      // executing it on the sample table
+      Future<Void> future = executablePlan.executeAsynchronously(executor);
+      future.get(); // wait until done.
+
+      // THEN
+      Assert.assertTrue(columnValueConsumerIsDone, "Source should have reported 'done'");
+      Assert.assertTrue(future.isDone(), "Future should report done");
+      Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
+
+      String aggCol = functionBasedColumnNameBuilderFactory.create().withFunctionName("concatgroup")
+          .addParameterColumnName(COL_B).build();
+
+      Assert.assertNotNull(resultValues.get(COL_A), "Expected results for col A.");
+      Assert.assertNotNull(resultValues.get(aggCol), "Expected results for aggregation col.");
+
+      Set<Pair<String, Set<String>>> expected = new HashSet<>();
+      expected.add(new Pair<>(dp.v(1), new HashSet<>(Arrays.asList(dp.v(3), dp.v(2), dp.v(10)))));
+      expected.add(new Pair<>(dp.v(5), new HashSet<>(Arrays.asList(dp.v(0)))));
+      expected.add(new Pair<>(dp.v(100), new HashSet<>(Arrays.asList(dp.v(1)))));
+      expected.add(new Pair<>(dp.v(99), new HashSet<>(Arrays.asList(dp.v(55)))));
+
+      Set<Pair<String, Set<String>>> actual = new HashSet<>();
+      for (long rowId : resultValues.get(COL_A).keySet()) {
+        String colAValue = resultValues.get(COL_A).get(rowId);
+        String concatValue = resultValues.get(aggCol).get(rowId);
+        actual.add(new Pair<>(colAValue, new HashSet<>(Arrays.asList(concatValue.split(", ")))));
+      }
+
+      Assert.assertEquals(actual, expected, "Expected correct values.");
     } finally {
       executor.shutdownNow();
     }

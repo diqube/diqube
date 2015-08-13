@@ -127,6 +127,7 @@ aggregationFunctionName
  | F_ANY
  | F_MIN
  | F_MAX
+ | F_CONCATGROUP
  ;
 
 projectionFunctionName
@@ -192,6 +193,7 @@ F_ROUND: R O U N D;
 F_ANY: A N Y;
 F_MIN: M I N;
 F_MAX: M A X;
+F_CONCATGROUP: C O N C A T G R O U P;
 
 ID
  : [a-zA-Z_] [a-zA-Z_0-9]* 

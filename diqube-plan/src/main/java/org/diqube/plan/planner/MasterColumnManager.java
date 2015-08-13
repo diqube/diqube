@@ -103,13 +103,20 @@ public class MasterColumnManager implements ColumnManager<ExecutablePlanStep> {
       functionMasterSteps.put(fnReq.getOutputColumn(),
           new ArrayList<>(Arrays.asList(new ExecutablePlanStep[] { projectStep })));
     } else if (fnReq.getType().equals(FunctionRequest.Type.AGGREGATION_ROW)) {
+      List<Object> constantFunctionParams = new ArrayList<>();
+      for (ColumnOrValue param : fnReq.getInputParameters()) {
+        if (param.getType().equals(ColumnOrValue.Type.LITERAL))
+          constantFunctionParams.add(param.getValue());
+      }
+
       // TODO #28 do NOT calculate all Grouped results on query master, but distribute groups according to group hash
       // along all cluster nodes. That means that those clusternodes would fully process specific sets of groups and
       // they would need to have all the data needed for calculating those groups transferred to them. This though
       // would decrease the load on the query master heavily, especially if the results are ordered by grouped
       // columns early.
-      GroupFinalAggregationStep finalStep = executablePlanFactory.createGroupFinalAggregationStep(
-          nextMasterStepIdSupplier.get(), env, fnReq.getFunctionName(), fnReq.getOutputColumn(), columnVersionManager);
+      GroupFinalAggregationStep finalStep =
+          executablePlanFactory.createGroupFinalAggregationStep(nextMasterStepIdSupplier.get(), env,
+              fnReq.getFunctionName(), fnReq.getOutputColumn(), columnVersionManager, constantFunctionParams);
 
       functionMasterSteps.put(fnReq.getOutputColumn(),
           new ArrayList<>(Arrays.asList(new ExecutablePlanStep[] { finalStep })));

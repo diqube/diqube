@@ -30,7 +30,6 @@ import org.diqube.cluster.connection.ConnectionPool;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.context.InjectOptional;
 import org.diqube.data.colshard.ColumnShardFactory;
-import org.diqube.data.util.RepeatedColumnNameGenerator;
 import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.steps.BuildColumnFromValuesStep;
 import org.diqube.execution.steps.ExecuteRemotePlanOnShardsStep;
@@ -48,7 +47,6 @@ import org.diqube.execution.steps.ResolveValuesStep;
 import org.diqube.execution.steps.RowIdEqualsStep;
 import org.diqube.execution.steps.RowIdInequalStep;
 import org.diqube.execution.steps.RowIdInequalStep.RowIdComparator;
-import org.diqube.execution.util.ColumnPatternUtil;
 import org.diqube.function.FunctionFactory;
 import org.diqube.loader.columnshard.ColumnShardBuilderFactory;
 import org.diqube.queries.QueryRegistry;
@@ -82,19 +80,14 @@ public class ExecutablePlanFactory {
   @Inject
   private ConnectionPool connectionPool;
 
-  @Inject
-  private ColumnPatternUtil columnPatternUtil;
-
-  @Inject
-  private RepeatedColumnNameGenerator repeatedColNameGen;
-
   @InjectOptional // not available in tests
   private ClusterQueryService.Iface localClusterQueryService;
 
   public GroupFinalAggregationStep createGroupFinalAggregationStep(int stepId, ExecutionEnvironment env,
-      String functionNameLowerCase, String outputColName, ColumnVersionManager columnVersionManager) {
+      String functionNameLowerCase, String outputColName, ColumnVersionManager columnVersionManager,
+      List<Object> constantFunctionParameters) {
     return new GroupFinalAggregationStep(stepId, queryRegistry, env, functionFactory, columnShardBuilderFactory,
-        functionNameLowerCase, outputColName, columnVersionManager);
+        functionNameLowerCase, outputColName, columnVersionManager, constantFunctionParameters);
   }
 
   public ProjectStep createProjectStep(int stepId, ExecutionEnvironment env, String functionNameLowerCase,
