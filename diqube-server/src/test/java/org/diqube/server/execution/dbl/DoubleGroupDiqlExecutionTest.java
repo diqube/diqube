@@ -289,4 +289,48 @@ public class DoubleGroupDiqlExecutionTest extends GroupDiqlExecutionTest<Double>
       executor.shutdownNow();
     }
   }
+
+  @Test
+  public void sumTest() throws InterruptedException, ExecutionException {
+    Object[] colAValues = dp.a(1, 5, 1, 5, 99, 1);
+    Object[] colBValues = dp.a(1, 5, 2, 6, -500, 3);
+    initializeSimpleTable(colAValues, colBValues);
+    // GIVEN
+    ExecutablePlan executablePlan =
+        buildExecutablePlan("Select " + COL_A + ", sum(" + COL_B + ") from " + TABLE + " group by " + COL_A);
+    ExecutorService executor = executors.newTestExecutor(executablePlan.preferredExecutorServiceSize());
+    try {
+      // WHEN
+      // executing it on the sample table
+      Future<Void> future = executablePlan.executeAsynchronously(executor);
+      future.get(); // wait until done.
+
+      // THEN
+      Assert.assertTrue(columnValueConsumerIsDone, "Source should have reported 'done'");
+      Assert.assertTrue(future.isDone(), "Future should report done");
+      Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
+
+      Assert.assertTrue(resultValues.containsKey(COL_A), "Result values should be available for result column a");
+
+      String resAvgColName =
+          functionBasedColumnNameBuilderFactory.create().withFunctionName("sum").addParameterColumnName(COL_B).build();
+
+      Assert.assertTrue(resultValues.containsKey(resAvgColName),
+          "Result values should be available for result avg column");
+      Assert.assertEquals(resultValues.size(), 2, "Result values should be available for two columns only");
+
+      Set<Pair<Double, Double>> expected = new HashSet<>();
+      expected.add(new Pair<>(dp.v(1), dp.v(1) + dp.v(2) + dp.v(3)));
+      expected.add(new Pair<>(dp.v(5), dp.v(5) + dp.v(6)));
+      expected.add(new Pair<>(dp.v(99), dp.v(-500)));
+
+      Set<Pair<Double, Double>> actual = new HashSet<>();
+      for (long rowId : resultValues.get(COL_A).keySet())
+        actual.add(new Pair<>(resultValues.get(COL_A).get(rowId), resultValues.get(resAvgColName).get(rowId)));
+
+      Assert.assertEquals(actual, expected, "Expected correct values.");
+    } finally {
+      executor.shutdownNow();
+    }
+  }
 }

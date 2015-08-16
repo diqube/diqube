@@ -128,6 +128,7 @@ aggregationFunctionName
  | F_MIN
  | F_MAX
  | F_CONCATGROUP
+ | F_SUM
  ;
 
 projectionFunctionName
@@ -200,6 +201,7 @@ F_DIV: D I V;
 F_MUL: M U L;
 F_SUB: S U B;
 F_CONCATGROUP: C O N C A T G R O U P;
+F_SUM: S U M;
 
 ID
  : [a-zA-Z_] [a-zA-Z_0-9]* 

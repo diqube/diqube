@@ -698,4 +698,47 @@ public class LongColumnAggregationAndRepeatedProjectionDiqlExecutionTest extends
       executor.shutdownNow();
     }
   }
+
+  @Test
+  public void sumTest() throws LoadException, InterruptedException, ExecutionException {
+    initializeFromJson( //
+        "[ { \"a\": 1, \"b\": [ { \"c\": [ 20, 30 ] }, { \"c\": [ 100, 25, 75  ] } ] },"
+            + "{ \"a\": 2, \"b\": [ { \"c\": [ 400, 50, 150 ] }, { \"c\": [ 1050, 850 ] } ] }" //
+            + " ]");
+    ExecutablePlan plan = buildExecutablePlan("select a, sum(b[*].c[*]) from " + TABLE);
+
+    ExecutorService executor = executors.newTestExecutor(plan.preferredExecutorServiceSize());
+    try {
+      Future<?> future = plan.executeAsynchronously(executor);
+      future.get();
+
+      Assert.assertTrue(columnValueConsumerIsDone, "Source should have reported 'done'");
+      Assert.assertTrue(future.isDone(), "Future should report done");
+      Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
+
+      String resAggColName = functionBasedColumnNameBuilderFactory.create().withFunctionName("sum") //
+          .addParameterColumnName("b[*].c[*]").build();
+
+      Assert.assertTrue(resultValues.containsKey("a"), "Expected to have a result for col");
+      Assert.assertTrue(resultValues.containsKey(resAggColName),
+          "Expected that there's results for the aggregation func");
+      Assert.assertEquals(resultValues.keySet().size(), 2, "Expected to have results for correct number of cols");
+
+      Assert.assertEquals(resultValues.get("a").size(), 2, "Expected correct number of res rows");
+
+      Set<Pair<Long, Long>> expected = new HashSet<>();
+      expected.add(new Pair<>(1L, 20L + 30L + 100L + 25L + 75L));
+      expected.add(new Pair<>(2L, 400L + 50L + 150L + 1050L + 850L));
+
+      Set<Pair<Long, Long>> actual = new HashSet<>();
+
+      for (long rowId : resultValues.get("a").keySet())
+        actual.add(new Pair<>(resultValues.get("a").get(rowId), resultValues.get(resAggColName).get(rowId)));
+
+      Assert.assertEquals(actual, expected, "Expected correct result values");
+
+    } finally {
+      executor.shutdownNow();
+    }
+  }
 }
