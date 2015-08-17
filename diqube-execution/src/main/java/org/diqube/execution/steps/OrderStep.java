@@ -40,6 +40,7 @@ import org.diqube.execution.consumers.AbstractThreadedColumnVersionBuiltConsumer
 import org.diqube.execution.consumers.AbstractThreadedRowIdConsumer;
 import org.diqube.execution.consumers.ColumnBuiltConsumer;
 import org.diqube.execution.consumers.ColumnVersionBuiltConsumer;
+import org.diqube.execution.consumers.DoneConsumer;
 import org.diqube.execution.consumers.GenericConsumer;
 import org.diqube.execution.consumers.OrderedRowIdConsumer;
 import org.diqube.execution.consumers.RowIdConsumer;
@@ -264,7 +265,8 @@ public class OrderStep extends AbstractThreadedExecutablePlanStep {
 
   @Override
   protected void validateOutputConsumer(GenericConsumer consumer) throws IllegalArgumentException {
-    if (!(consumer instanceof OrderedRowIdConsumer) && !(consumer instanceof RowIdConsumer))
+    if (!(consumer instanceof DoneConsumer) && !(consumer instanceof OrderedRowIdConsumer)
+        && !(consumer instanceof RowIdConsumer))
       throw new IllegalArgumentException("Only OrderedRowIdConsumer and RowIdConsumer accepted.");
   }
 

@@ -38,6 +38,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.diqube.execution.ExecutablePlan;
 import org.diqube.execution.ExecutablePlanStep;
+import org.diqube.execution.ExecutionPercentage;
+import org.diqube.execution.RemotesTriggeredListener;
 import org.diqube.execution.consumers.AbstractThreadedColumnValueConsumer;
 import org.diqube.execution.consumers.AbstractThreadedOrderedRowIdConsumer;
 import org.diqube.execution.consumers.AbstractThreadedOverwritingRowIdConsumer;
@@ -48,6 +50,7 @@ import org.diqube.plan.ExecutionPlanBuilderFactory;
 import org.diqube.plan.exception.ParseException;
 import org.diqube.plan.exception.ValidationException;
 import org.diqube.queries.QueryRegistry;
+import org.diqube.queries.QueryRegistry.QueryPercentHandler;
 import org.diqube.remote.base.thrift.RValue;
 import org.diqube.remote.base.util.RValueUtil;
 import org.diqube.remote.query.thrift.RResultTable;
@@ -95,6 +98,18 @@ class MasterQueryExecutor {
   private boolean isHaving;
 
   private QueryRegistry queryRegistry;
+
+  private int numberOfRemotesTriggered = -1;
+  private AtomicInteger percentDoneRemotesSum = new AtomicInteger(0);
+
+  private ExecutionPercentage masterExecutionPercentage;
+
+  private QueryPercentHandler remotePercentHandler = new QueryPercentHandler() {
+    @Override
+    public void newRemoteCompletionPercentDelta(short percentDeltaOfSingleRemote) {
+      percentDoneRemotesSum.addAndGet(percentDeltaOfSingleRemote);
+    }
+  };
 
   public MasterQueryExecutor(ExecutorManager executorManager, ExecutionPlanBuilderFactory executionPlanBuildeFactory,
       QueryRegistry queryRegistry, MasterQueryExecutor.QueryExecutorCallback callback,
@@ -182,6 +197,13 @@ class MasterQueryExecutor {
       }
     });
 
+    planBuilder.withRemotesTriggeredListener(new RemotesTriggeredListener() {
+      @Override
+      public void numberOfRemotesTriggered(int numberOfRemotes) {
+        numberOfRemotesTriggered = numberOfRemotes;
+      }
+    });
+
     ExecutablePlan plan = planBuilder.build();
     selectedColumnsSet = new HashSet<>(plan.getInfo().getSelectedColumnNames());
     selectedColumns = plan.getInfo().getSelectedColumnNames();
@@ -192,10 +214,15 @@ class MasterQueryExecutor {
     if (!isHaving)
       havingDone.set(true);
 
+    masterExecutionPercentage = new ExecutionPercentage(plan);
+    masterExecutionPercentage.attach();
+
     Runnable r = new Runnable() {
       @Override
       public void run() {
         queryRegistry.getOrCreateCurrentStatsManager().setNumberOfThreads(plan.preferredExecutorServiceSize());
+
+        queryRegistry.addRemotePercentHandler(queryUuid, remotePercentHandler);
 
         Executor executor = executorManager.newQueryFixedThreadPool(plan.preferredExecutorServiceSize(),
             "query-master-worker-" + queryUuid + "-%d", //
@@ -203,7 +230,7 @@ class MasterQueryExecutor {
 
         Future<Void> planFuture = plan.executeAsynchronously(executor);
 
-        processUntilPlanIsExecuted(planFuture);
+        processUntilPlanIsExecuted(queryUuid, planFuture);
       }
     };
     Optional<ExecutablePlanStep> executeRemoteStep =
@@ -217,7 +244,7 @@ class MasterQueryExecutor {
    * Keeps waiting for updates, potentially generates partial udpates of results and will work until all data has been
    * provided by the source steps and the final data update has been sent to the callback.
    */
-  private void processUntilPlanIsExecuted(Future<Void> planFuture) {
+  private void processUntilPlanIsExecuted(UUID queryUuid, Future<Void> planFuture) {
     while (true) {
       boolean thereAreUpdates = false;
       try {
@@ -245,14 +272,18 @@ class MasterQueryExecutor {
       }
 
       if (valuesDone.get() && orderedDone.get() && havingDone.get() && planFuture.isDone()) {
+        queryRegistry.removeRemotePercentHanlder(queryUuid, remotePercentHandler);
         callback.finalResultTableAvailable(createRResultTableFromCurrentValues());
         return;
       }
 
       if (createIntermediaryUpdates && thereAreUpdates) {
         RResultTable table = createRResultTableFromCurrentValues();
-        if (table != null)
-          callback.intermediaryResultTableAvailable(table);
+        if (table != null) {
+          short percentDone = (short) ((percentDoneRemotesSum.get() + masterExecutionPercentage.calculatePercentDone())
+              / (numberOfRemotesTriggered + 1));
+          callback.intermediaryResultTableAvailable(table, percentDone);
+        }
       }
     }
   }
@@ -293,6 +324,8 @@ class MasterQueryExecutor {
       synchronized (havingRowIdsSync) {
         activeHavingRowIds = havingRowIds;
       }
+      if (activeHavingRowIds == null)
+        return null;
       Set<Long> havingRowIds = new HashSet<>(Arrays.asList(activeHavingRowIds));
 
       for (Iterator<Long> rowIdIt = rowIds.iterator(); rowIdIt.hasNext();) {
@@ -331,8 +364,10 @@ class MasterQueryExecutor {
      * 
      * @param resultTable
      *          may be <code>null</code>.
+     * @param percentDone
+     *          approximatin of how much of the executable plan has already been executed to produce this result.
      */
-    public void intermediaryResultTableAvailable(RResultTable resultTable);
+    public void intermediaryResultTableAvailable(RResultTable resultTable, short percentDone);
 
     /**
      * The final version of the result table is available.

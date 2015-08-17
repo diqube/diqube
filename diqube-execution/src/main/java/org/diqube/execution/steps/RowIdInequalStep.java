@@ -50,6 +50,7 @@ import org.diqube.execution.consumers.AbstractThreadedColumnVersionBuiltConsumer
 import org.diqube.execution.consumers.AbstractThreadedRowIdConsumer;
 import org.diqube.execution.consumers.ColumnBuiltConsumer;
 import org.diqube.execution.consumers.ColumnVersionBuiltConsumer;
+import org.diqube.execution.consumers.DoneConsumer;
 import org.diqube.execution.consumers.GenericConsumer;
 import org.diqube.execution.consumers.OverwritingRowIdConsumer;
 import org.diqube.execution.consumers.RowIdConsumer;
@@ -539,7 +540,8 @@ public class RowIdInequalStep extends AbstractThreadedExecutablePlanStep {
 
   @Override
   protected void validateOutputConsumer(GenericConsumer consumer) throws IllegalArgumentException {
-    if (!(consumer instanceof RowIdConsumer) && !(consumer instanceof OverwritingRowIdConsumer))
+    if (!(consumer instanceof DoneConsumer) && !(consumer instanceof RowIdConsumer)
+        && !(consumer instanceof OverwritingRowIdConsumer))
       throw new IllegalArgumentException("Only RowIdConsumers and OverwritingRowIdConsumer accepted!");
   }
 

@@ -27,10 +27,10 @@ import org.diqube.remote.base.thrift.RNodeAddress;
 import org.diqube.remote.base.thrift.RUUID;
 import org.diqube.remote.base.thrift.RValue;
 import org.diqube.remote.cluster.thrift.ClusterQueryService;
+import org.diqube.remote.cluster.thrift.RClusterQueryStatistics;
 import org.diqube.remote.cluster.thrift.RExecutionException;
 import org.diqube.remote.cluster.thrift.RExecutionPlan;
 import org.diqube.remote.cluster.thrift.ROldNewIntermediateAggregationResult;
-import org.diqube.remote.cluster.thrift.RClusterQueryStatistics;
 import org.diqube.server.queryremote.ClusterQueryServiceHandler;
 
 /**
@@ -48,11 +48,12 @@ public class NoopClusterQueryService implements ClusterQueryService.Iface {
 
   @Override
   public void groupIntermediateAggregationResultAvailable(RUUID queryId, long groupId, String colName,
-      ROldNewIntermediateAggregationResult result) throws TException {
+      ROldNewIntermediateAggregationResult result, short percentDoneDelta) throws TException {
   }
 
   @Override
-  public void columnValueAvailable(RUUID queryId, String colName, Map<Long, RValue> valuesByRowId) throws TException {
+  public void columnValueAvailable(RUUID queryId, String colName, Map<Long, RValue> valuesByRowId,
+      short percentDoneDelta) throws TException {
   }
 
   @Override

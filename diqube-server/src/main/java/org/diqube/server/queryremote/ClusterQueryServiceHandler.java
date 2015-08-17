@@ -44,6 +44,7 @@ import org.diqube.execution.TableRegistry;
 import org.diqube.function.IntermediaryResult;
 import org.diqube.queries.QueryRegistry;
 import org.diqube.queries.QueryRegistry.QueryExceptionHandler;
+import org.diqube.queries.QueryRegistry.QueryPercentHandler;
 import org.diqube.queries.QueryRegistry.QueryResultHandler;
 import org.diqube.queries.QueryStats;
 import org.diqube.queries.QueryUuidProvider;
@@ -202,10 +203,11 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
         executor.prepareExecution(queryUuid, executionUuid, executionPlan, new RemoteExecutionPlanExecutionCallback() {
           @Override
           public void newGroupIntermediaryAggregration(long groupId, String colName,
-              ROldNewIntermediateAggregationResult result) {
+              ROldNewIntermediateAggregationResult result, short percentDone) {
             synchronized (connSync) {
               try {
-                resultService.groupIntermediateAggregationResultAvailable(remoteQueryUuid, groupId, colName, result);
+                resultService.groupIntermediateAggregationResultAvailable(remoteQueryUuid, groupId, colName, result,
+                    percentDone);
               } catch (TException e) {
                 logger.error("Could not send new group intermediaries to client for query {}", queryUuid, e);
                 exceptionHandler.handleException(null);
@@ -214,11 +216,11 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
           }
 
           @Override
-          public void newColumnValues(String colName, Map<Long, RValue> values) {
+          public void newColumnValues(String colName, Map<Long, RValue> values, short percentDone) {
             synchronized (connSync) {
               try {
                 logger.trace("Constructed final column values, sending them now.");
-                resultService.columnValueAvailable(remoteQueryUuid, colName, values);
+                resultService.columnValueAvailable(remoteQueryUuid, colName, values, percentDone);
               } catch (TException e) {
                 logger.error("Could not send new group intermediaries to client for query {}", queryUuid, e);
                 exceptionHandler.handleException(null);
@@ -288,7 +290,7 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
    */
   @Override
   public void groupIntermediateAggregationResultAvailable(RUUID remoteQueryUuid, long groupId, String colName,
-      ROldNewIntermediateAggregationResult result) throws TException {
+      ROldNewIntermediateAggregationResult result, short percentDoneDelta) throws TException {
     logger.trace("Received new group intermediary values in service. Constructing final objects to work on...");
 
     IntermediaryResult<Object, Object, Object> oldRes = null;
@@ -298,7 +300,12 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
     if (result.isSetNewResult())
       newRes = RIntermediateAggregationResultUtil.buildIntermediateAggregationResult(result.getNewResult());
 
-    for (QueryResultHandler handler : queryRegistry.getQueryResultHandlers(RUuidUtil.toUuid(remoteQueryUuid)))
+    UUID queryUuid = RUuidUtil.toUuid(remoteQueryUuid);
+
+    for (QueryPercentHandler handler : queryRegistry.getQueryPercentHandlers(queryUuid))
+      handler.newRemoteCompletionPercentDelta(percentDoneDelta);
+
+    for (QueryResultHandler handler : queryRegistry.getQueryResultHandlers(queryUuid))
       handler.newIntermediaryAggregationResult(groupId, colName, oldRes, newRes);
   }
 
@@ -309,14 +316,19 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
    * {@link #executeOnAllShards(RExecutionPlan, RUUID, RNodeAddress, boolean)} on another node.
    */
   @Override
-  public void columnValueAvailable(RUUID remoteQueryUuid, String colName, Map<Long, RValue> valuesByRowId)
-      throws TException {
+  public void columnValueAvailable(RUUID remoteQueryUuid, String colName, Map<Long, RValue> valuesByRowId,
+      short percentDoneDelta) throws TException {
     logger.trace("Received new column values in service. Constructing final objects to work on...");
     Map<Long, Object> values = new HashMap<>();
     for (Entry<Long, RValue> remoteEntry : valuesByRowId.entrySet())
       values.put(remoteEntry.getKey(), RValueUtil.createValue(remoteEntry.getValue()));
 
-    for (QueryResultHandler handler : queryRegistry.getQueryResultHandlers(RUuidUtil.toUuid(remoteQueryUuid)))
+    UUID queryUuid = RUuidUtil.toUuid(remoteQueryUuid);
+
+    for (QueryPercentHandler handler : queryRegistry.getQueryPercentHandlers(queryUuid))
+      handler.newRemoteCompletionPercentDelta(percentDoneDelta);
+
+    for (QueryResultHandler handler : queryRegistry.getQueryResultHandlers(queryUuid))
       handler.newColumnValues(colName, values);
   }
 

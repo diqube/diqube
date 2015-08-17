@@ -179,9 +179,9 @@ service ClusterQueryService {
     1:RExecutionPlan executionPlan, 2: base.RUUID queryId, 3: base.RNodeAddress resultAddress),
   
   oneway void groupIntermediateAggregationResultAvailable(
-    1: base.RUUID queryId, 2:i64 groupId, 3:string colName, 4: ROldNewIntermediateAggregationResult result),
+    1: base.RUUID queryId, 2:i64 groupId, 3:string colName, 4: ROldNewIntermediateAggregationResult result, 5:i16 percentDoneDelta),
     
-  oneway void columnValueAvailable(1: base.RUUID queryId, 2:string colName, 3: map<i64, base.RValue> valuesByRowId),
+  oneway void columnValueAvailable(1: base.RUUID queryId, 2:string colName, 3: map<i64, base.RValue> valuesByRowId, 4:i16 percentDoneDelta),
   
   oneway void executionDone(1: base.RUUID queryId),
   

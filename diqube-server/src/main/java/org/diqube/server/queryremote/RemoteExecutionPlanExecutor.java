@@ -30,11 +30,13 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.diqube.data.TableShard;
 import org.diqube.execution.ExecutablePlan;
 import org.diqube.execution.ExecutablePlanFromRemoteBuilder;
 import org.diqube.execution.ExecutablePlanFromRemoteBuilderFactory;
+import org.diqube.execution.ExecutionPercentage;
 import org.diqube.execution.TableRegistry;
 import org.diqube.execution.consumers.AbstractThreadedColumnValueConsumer;
 import org.diqube.execution.consumers.AbstractThreadedGroupIntermediaryAggregationConsumer;
@@ -47,6 +49,7 @@ import org.diqube.remote.cluster.RIntermediateAggregationResultUtil;
 import org.diqube.remote.cluster.thrift.RExecutionPlan;
 import org.diqube.remote.cluster.thrift.ROldNewIntermediateAggregationResult;
 import org.diqube.threads.ExecutorManager;
+import org.diqube.util.Holder;
 import org.diqube.util.Pair;
 
 /**
@@ -66,6 +69,7 @@ public class RemoteExecutionPlanExecutor {
   private AtomicBoolean groupIntermediateDone = new AtomicBoolean(false);
   private Object doneSync = new Object();
   private volatile boolean doneSent = false;
+  private AtomicInteger previousPercentDone = new AtomicInteger(0);
 
   private ExecutorManager executorManager;
 
@@ -77,6 +81,20 @@ public class RemoteExecutionPlanExecutor {
     this.executablePlanBuilderFactory = executablePlanBuilderFactory;
     this.executorManager = executorManager;
     this.queryRegistry = queryRegistry;
+  }
+
+  private short calculatePercentDoneDelta(List<ExecutionPercentage> executionPercentages) {
+    int sum = 0;
+    for (ExecutionPercentage perc : executionPercentages)
+      sum += perc.calculatePercentDone();
+    short newPercentDone = (short) (sum / executionPercentages.size());
+
+    short previousValue = (short) previousPercentDone.getAndAccumulate(newPercentDone, (a, b) -> Math.max(a, b));
+
+    if (previousValue >= newPercentDone)
+      return (short) 0;
+
+    return (short) (newPercentDone - previousValue);
   }
 
   /**
@@ -94,6 +112,8 @@ public class RemoteExecutionPlanExecutor {
    */
   public Pair<Runnable, List<ExecutablePlan>> prepareExecution(UUID queryUuid, UUID executionUuid,
       RExecutionPlan executionPlan, RemoteExecutionPlanExecutionCallback callback) {
+    Holder<List<ExecutionPercentage>> executionPercentageHolder = new Holder<>();
+
     ExecutablePlanFromRemoteBuilder executablePlanBuilder =
         executablePlanBuilderFactory.createExecutablePlanFromRemoteBuilder();
     executablePlanBuilder.withRemoteExecutionPlan(executionPlan);
@@ -117,7 +137,7 @@ public class RemoteExecutionPlanExecutor {
         for (Entry<Long, Object> inputEntry : values.entrySet())
           res.put(inputEntry.getKey(), RValueUtil.createRValue(inputEntry.getValue()));
 
-        callback.newColumnValues(colName, res);
+        callback.newColumnValues(colName, res, calculatePercentDoneDelta(executionPercentageHolder.getValue()));
       }
     });
     executablePlanBuilder
@@ -147,10 +167,19 @@ public class RemoteExecutionPlanExecutor {
               res.setNewResult(
                   RIntermediateAggregationResultUtil.buildRIntermediateAggregationResult(newIntermediaryResult));
 
-            callback.newGroupIntermediaryAggregration(groupId, colName, res);
+            callback.newGroupIntermediaryAggregration(groupId, colName, res,
+                calculatePercentDoneDelta(executionPercentageHolder.getValue()));
           }
         });
     List<ExecutablePlan> executablePlans = executablePlanBuilder.build();
+
+    List<ExecutionPercentage> executionPercentages = new ArrayList<>();
+    for (ExecutablePlan plan : executablePlans) {
+      ExecutionPercentage newPercentage = new ExecutionPercentage(plan);
+      newPercentage.attach();
+      executionPercentages.add(newPercentage);
+    }
+    executionPercentageHolder.setValue(executionPercentages);
 
     if (!executablePlans.iterator().next().getInfo().isGrouped() || //
         !executablePlans.iterator().next().getSteps().stream()
@@ -206,13 +235,13 @@ public class RemoteExecutionPlanExecutor {
     /**
      * New column values are available.
      */
-    public void newColumnValues(String colName, Map<Long, RValue> values);
+    public void newColumnValues(String colName, Map<Long, RValue> values, short percentDone);
 
     /**
      * A new intermediary result from an aggregation function is available.
      */
     public void newGroupIntermediaryAggregration(long groupId, String colName,
-        ROldNewIntermediateAggregationResult result);
+        ROldNewIntermediateAggregationResult result, short percentDone);
 
     /**
      * An exception was thrown during execution.

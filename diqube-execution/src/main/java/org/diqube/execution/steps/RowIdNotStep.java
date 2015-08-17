@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.LongStream;
 
 import org.diqube.execution.consumers.AbstractThreadedRowIdConsumer;
+import org.diqube.execution.consumers.DoneConsumer;
 import org.diqube.execution.consumers.GenericConsumer;
 import org.diqube.execution.consumers.RowIdConsumer;
 import org.diqube.execution.env.ExecutionEnvironment;
@@ -95,7 +96,7 @@ public class RowIdNotStep extends AbstractThreadedExecutablePlanStep {
 
   @Override
   protected void validateOutputConsumer(GenericConsumer consumer) throws IllegalArgumentException {
-    if (!(consumer instanceof RowIdConsumer))
+    if (!(consumer instanceof DoneConsumer) && !(consumer instanceof RowIdConsumer))
       throw new IllegalArgumentException("Only RowIdConsumer supported.");
   }
 

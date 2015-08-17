@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.diqube.execution.consumers.AbstractThreadedOverwritingRowIdConsumer;
+import org.diqube.execution.consumers.DoneConsumer;
 import org.diqube.execution.consumers.GenericConsumer;
 import org.diqube.execution.consumers.OverwritingRowIdConsumer;
 import org.diqube.execution.env.ExecutionEnvironment;
@@ -89,7 +90,7 @@ public class HavingResultStep extends AbstractThreadedExecutablePlanStep {
 
   @Override
   protected void validateOutputConsumer(GenericConsumer consumer) throws IllegalArgumentException {
-    if (!(consumer instanceof OverwritingRowIdConsumer))
+    if (!(consumer instanceof DoneConsumer) && !(consumer instanceof OverwritingRowIdConsumer))
       throw new IllegalArgumentException("Only OverwritingRowIdConsumer supported!");
   }
 

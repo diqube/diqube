@@ -33,11 +33,13 @@ import org.diqube.diql.antlr.DiqlParser;
 import org.diqube.diql.antlr.DiqlParser.DiqlStmtContext;
 import org.diqube.execution.ExecutablePlan;
 import org.diqube.execution.ExecutablePlanStep;
+import org.diqube.execution.RemotesTriggeredListener;
 import org.diqube.execution.consumers.ColumnValueConsumer;
 import org.diqube.execution.consumers.OrderedRowIdConsumer;
 import org.diqube.execution.consumers.OverwritingRowIdConsumer;
 import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.env.ExecutionEnvironmentFactory;
+import org.diqube.execution.steps.ExecuteRemotePlanOnShardsStep;
 import org.diqube.execution.steps.FilterRequestedColumnsAndActiveRowIdsStep;
 import org.diqube.execution.steps.HavingResultStep;
 import org.diqube.execution.steps.OrderStep;
@@ -70,6 +72,8 @@ public class ExecutionPlanBuilder {
 
   private FunctionBasedColumnNameBuilderFactory functionBasedColumnNameBuilderFactory;
 
+  private RemotesTriggeredListener remotesTriggeredListener;
+
   public ExecutionPlanBuilder(ExecutionPlannerFactory executionPlannerFactory,
       ExecutionEnvironmentFactory executionEnvironmentFactory, RepeatedColumnNameGenerator repeatedColNames,
       FunctionBasedColumnNameBuilderFactory functionBasedColumnNameBuilderFactory) {
@@ -96,6 +100,11 @@ public class ExecutionPlanBuilder {
 
   public ExecutionPlanBuilder withHavingResultConsumer(OverwritingRowIdConsumer havingResultsConsumer) {
     this.havingResultsConsumer = havingResultsConsumer;
+    return this;
+  }
+
+  public ExecutionPlanBuilder withRemotesTriggeredListener(RemotesTriggeredListener remotesTriggeredListener) {
+    this.remotesTriggeredListener = remotesTriggeredListener;
     return this;
   }
 
@@ -130,6 +139,9 @@ public class ExecutionPlanBuilder {
 
       if (havingResultsConsumer != null && (step instanceof HavingResultStep))
         step.addOutputConsumer(havingResultsConsumer);
+
+      if (remotesTriggeredListener != null && (step instanceof ExecuteRemotePlanOnShardsStep))
+        ((ExecuteRemotePlanOnShardsStep) step).addRemotesTriggeredListener(remotesTriggeredListener);
     }
 
     return plan;

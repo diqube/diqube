@@ -20,6 +20,7 @@
  */
 package org.diqube.execution;
 
+import org.diqube.execution.consumers.DoneConsumer;
 import org.diqube.execution.consumers.GenericConsumer;
 import org.diqube.execution.exception.ExecutablePlanBuildException;
 import org.diqube.remote.cluster.thrift.RExecutionPlanStep;
@@ -36,6 +37,9 @@ import org.diqube.remote.cluster.thrift.RExecutionPlanStep;
  * For each implementation of this interface, there might be a different number of input {@link GenericConsumer}s
  * needed, for convenience they can be wired with {@link #wireOneInputConsumerToOutputOf(Class, ExecutablePlanStep)}.
  *
+ * <p>
+ * All {@link ExecutablePlanStep}s accept a {@link DoneConsumer} as output.
+ * 
  * @author Bastian Gloeckle
  */
 public interface ExecutablePlanStep extends Runnable {

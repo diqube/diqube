@@ -45,6 +45,7 @@ import org.diqube.execution.consumers.AbstractThreadedColumnDictIdConsumer;
 import org.diqube.execution.consumers.ColumnDictIdConsumer;
 import org.diqube.execution.consumers.ColumnValueConsumer;
 import org.diqube.execution.consumers.ColumnVersionBuiltConsumer;
+import org.diqube.execution.consumers.DoneConsumer;
 import org.diqube.execution.consumers.GenericConsumer;
 import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.env.VersionedExecutionEnvironment;
@@ -276,7 +277,7 @@ public class ResolveValuesStep extends AbstractThreadedExecutablePlanStep {
 
   @Override
   protected void validateOutputConsumer(GenericConsumer consumer) throws IllegalArgumentException {
-    if (!(consumer instanceof ColumnValueConsumer))
+    if (!(consumer instanceof DoneConsumer) && !(consumer instanceof ColumnValueConsumer))
       throw new IllegalArgumentException("Only ColumnValueConsumer supported!");
   }
 

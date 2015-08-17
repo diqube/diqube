@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -55,6 +56,7 @@ import org.diqube.util.Pair;
 public class QueryRegistry {
   private Map<Pair<UUID, UUID>, QueryExceptionHandler> exceptionHandlers = new ConcurrentHashMap<>();
   private Map<UUID, Deque<QueryResultHandler>> resultHandlers = new ConcurrentHashMap<>();
+  private Map<UUID, Deque<QueryPercentHandler>> percentHandlers = new ConcurrentHashMap<>();
   private Map<UUID, QueryStatsManager> queryStats = new ConcurrentHashMap<>();
   private ConcurrentMap<UUID, Map<UUID, QueryStatsListener>> queryStatsListeners = new ConcurrentHashMap<>();;
 
@@ -74,6 +76,44 @@ public class QueryRegistry {
    */
   public void registerQueryExecution(UUID queryUuid, UUID executionUuid, QueryExceptionHandler exceptionHandler) {
     exceptionHandlers.put(new Pair<>(queryUuid, executionUuid), exceptionHandler);
+  }
+
+  /**
+   * Add a handler for percentages that were reported by remotes.
+   * 
+   * Be sure to call {@link #removeRemotePercentHanlder(UUID, QueryPercentHandler)}.
+   */
+  public void addRemotePercentHandler(UUID queryUuid, QueryPercentHandler percentHandler) {
+    synchronized (percentHandlers) {
+      if (!percentHandlers.containsKey(queryUuid))
+        percentHandlers.put(queryUuid, new ConcurrentLinkedDeque<>());
+      percentHandlers.get(queryUuid).add(percentHandler);
+    }
+  }
+
+  /**
+   * Removes a {@link QueryPercentHandler} and releases any reserved resources.
+   */
+  public void removeRemotePercentHanlder(UUID queryUuid, QueryPercentHandler percentHandler) {
+    if (percentHandlers.containsKey(queryUuid)) {
+      synchronized (percentHandlers) {
+        if (percentHandlers.containsKey(queryUuid)) {
+          percentHandlers.get(queryUuid).remove(percentHandler);
+          if (percentHandlers.get(queryUuid).isEmpty())
+            percentHandlers.remove(queryUuid);
+        }
+      }
+    }
+  }
+
+  /**
+   * Get the registered {@link QueryPercentHandler}s for a query or return an empty list.
+   */
+  public List<QueryPercentHandler> getQueryPercentHandlers(UUID queryUuid) {
+    Deque<QueryPercentHandler> handlers = percentHandlers.get(queryUuid);
+    if (handlers == null)
+      return new ArrayList<>();
+    return new ArrayList<>(handlers);
   }
 
   /**
@@ -140,6 +180,31 @@ public class QueryRegistry {
             queryStatsListeners.remove(queryUuid);
         }
       }
+    }
+  }
+
+  /**
+   * Cleans up any resources that might be remaining for the given query. THis should only be called on the query
+   * master: There might be a query remote being executed on the same node as the master and that node must not clear
+   * any resources of the master!
+   * 
+   * <p>
+   * Note that this will not clear any exceptionHandlers that were installed with
+   * {@link #registerQueryExecution(UUID, UUID, QueryExceptionHandler)}! Please call
+   * {@link #unregisterQueryExecution(UUID, UUID)} before this method!
+   */
+  public void cleanupQueryFully(UUID queryUuid) {
+    synchronized (percentHandlers) {
+      percentHandlers.remove(queryUuid);
+    }
+    synchronized (queryStats) {
+      queryStats.remove(queryUuid);
+    }
+    synchronized (queryUuid) {
+      resultHandlers.remove(queryUuid);
+    }
+    synchronized (queryStatsListeners) {
+      queryStatsListeners.remove(queryUuid);
     }
   }
 
@@ -275,5 +340,15 @@ public class QueryRegistry {
    */
   public static interface QueryStatsListener {
     public void queryStatistics(QueryStats stats);
+  }
+
+  /**
+   * Listener for data about how much of an executablePlan was calculated by remotes already.
+   */
+  public static interface QueryPercentHandler {
+    /**
+     * A single remote reported a new percent-delta.
+     */
+    public void newRemoteCompletionPercentDelta(short percentDeltaOfSingleRemote);
   }
 }

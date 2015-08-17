@@ -34,6 +34,7 @@ import org.diqube.execution.consumers.AbstractThreadedColumnBuiltConsumer;
 import org.diqube.execution.consumers.AbstractThreadedGroupDeltaConsumer;
 import org.diqube.execution.consumers.ColumnBuiltConsumer;
 import org.diqube.execution.consumers.ColumnVersionBuiltConsumer;
+import org.diqube.execution.consumers.DoneConsumer;
 import org.diqube.execution.consumers.GenericConsumer;
 import org.diqube.execution.consumers.GroupDeltaConsumer;
 import org.diqube.execution.consumers.GroupIntermediaryAggregationConsumer;
@@ -119,7 +120,7 @@ public class GroupIntermediaryAggregationStep extends AbstractThreadedExecutable
 
   @Override
   protected void validateOutputConsumer(GenericConsumer consumer) throws IllegalArgumentException {
-    if (!(consumer instanceof GroupIntermediaryAggregationConsumer))
+    if (!(consumer instanceof DoneConsumer) && !(consumer instanceof GroupIntermediaryAggregationConsumer))
       throw new IllegalArgumentException("Only GroupIntermediaryAggregationConsumer supported.");
   }
 

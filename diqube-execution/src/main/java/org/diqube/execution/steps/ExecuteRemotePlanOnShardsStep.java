@@ -40,7 +40,9 @@ import org.diqube.cluster.connection.SocketListener;
 import org.diqube.execution.ExecutablePlan;
 import org.diqube.execution.ExecutablePlanFromRemoteBuilder;
 import org.diqube.execution.ExecutablePlanFromRemoteBuilderFactory;
+import org.diqube.execution.RemotesTriggeredListener;
 import org.diqube.execution.consumers.ColumnValueConsumer;
+import org.diqube.execution.consumers.DoneConsumer;
 import org.diqube.execution.consumers.GenericConsumer;
 import org.diqube.execution.consumers.GroupIntermediaryAggregationConsumer;
 import org.diqube.execution.consumers.RowIdConsumer;
@@ -73,6 +75,8 @@ import com.google.common.collect.Iterables;
 public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePlanStep {
 
   private static final Logger logger = LoggerFactory.getLogger(ExecuteRemotePlanOnShardsStep.class);
+
+  private List<RemotesTriggeredListener> remotesTriggeredListeners = new ArrayList<>();
 
   private RExecutionPlan remoteExecutionPlan;
   private ClusterManager clusterManager;
@@ -154,8 +158,8 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
 
   @Override
   protected void validateOutputConsumer(GenericConsumer consumer) throws IllegalArgumentException {
-    if (!(consumer instanceof GroupIntermediaryAggregationConsumer) && !(consumer instanceof ColumnValueConsumer)
-        && !(consumer instanceof RowIdConsumer))
+    if (!(consumer instanceof DoneConsumer) && !(consumer instanceof GroupIntermediaryAggregationConsumer)
+        && !(consumer instanceof ColumnValueConsumer) && !(consumer instanceof RowIdConsumer))
       throw new IllegalArgumentException(
           "Only ColumnValueConsumer, RowIdConsumer and GroupIntermediaryAggregationConsumer supported.");
   }
@@ -185,6 +189,8 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
     };
 
     numberOfRemotesInformed = remoteNodes.size();
+    remotesTriggeredListeners.forEach(l -> l.numberOfRemotesTriggered(numberOfRemotesInformed));
+
     queryRegistry.addQueryResultHandler(QueryUuid.getCurrentQueryUuid(), resultHandler);
     try {
       // distribute query execution
@@ -309,5 +315,9 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
   @Override
   public String getDetailsDescription() {
     return null;
+  }
+
+  public void addRemotesTriggeredListener(RemotesTriggeredListener listener) {
+    remotesTriggeredListeners.add(listener);
   }
 }

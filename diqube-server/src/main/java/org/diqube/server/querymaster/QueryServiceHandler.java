@@ -123,7 +123,7 @@ public class QueryServiceHandler implements Iface {
     MasterQueryExecutor queryExecutor = new MasterQueryExecutor(executorManager, executionPlanBuilderFactory,
         queryRegistry, new MasterQueryExecutor.QueryExecutorCallback() {
           @Override
-          public void intermediaryResultTableAvailable(RResultTable resultTable) {
+          public void intermediaryResultTableAvailable(RResultTable resultTable, short percentDone) {
             // noop
           }
 
@@ -221,6 +221,7 @@ public class QueryServiceHandler implements Iface {
         }
 
         queryRegistry.unregisterQueryExecution(queryUuid, executionUuid);
+        queryRegistry.cleanupQueryFully(queryUuid);
         executorManager.shutdownEverythingOfQueryExecution(queryUuid, executionUuid);
       }
     };
@@ -251,6 +252,7 @@ public class QueryServiceHandler implements Iface {
         // shutdown everything.
         connectionPool.releaseConnection(resultConnection);
         queryRegistry.unregisterQueryExecution(queryUuid, executionUuid);
+        queryRegistry.cleanupQueryFully(queryUuid);
         executorManager.shutdownEverythingOfQueryExecution(queryUuid, executionUuid);
       }
     };
@@ -273,12 +275,12 @@ public class QueryServiceHandler implements Iface {
         queryRegistry, new MasterQueryExecutor.QueryExecutorCallback() {
 
           @Override
-          public void intermediaryResultTableAvailable(RResultTable resultTable) {
+          public void intermediaryResultTableAvailable(RResultTable resultTable, short percentDone) {
             logger.trace("New intermediary result for {}: {}", queryUuid, resultTable);
             try {
               synchronized (resultConnection) {
                 // TODO #31 calculate percentages
-                resultService.partialUpdate(queryRUuid, resultTable, (short) 1);
+                resultService.partialUpdate(queryRUuid, resultTable, percentDone);
               }
             } catch (TException e) {
               logger.warn(
@@ -305,6 +307,7 @@ public class QueryServiceHandler implements Iface {
             // be sure to clean up everything.
             connectionPool.releaseConnection(resultConnection);
             queryRegistry.unregisterQueryExecution(queryUuid, executionUuid);
+            queryRegistry.cleanupQueryFully(queryUuid);
             executorManager.shutdownEverythingOfQueryExecution(queryUuid, executionUuid); // this will kill our thread,
                                                                                           // too!
           }
@@ -376,6 +379,7 @@ public class QueryServiceHandler implements Iface {
       logger.warn("Exception while preparing the query execution of {}: {}", queryUuid, e.getMessage());
       connectionPool.releaseConnection(resultConnection);
       queryRegistry.unregisterQueryExecution(queryUuid, executionUuid);
+      queryRegistry.cleanupQueryFully(queryUuid);
       throw new RQueryException(e.getMessage());
     }
 

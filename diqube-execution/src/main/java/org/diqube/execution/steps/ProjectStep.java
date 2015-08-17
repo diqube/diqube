@@ -45,6 +45,7 @@ import org.diqube.execution.consumers.AbstractThreadedColumnBuiltConsumer;
 import org.diqube.execution.consumers.AbstractThreadedColumnVersionBuiltConsumer;
 import org.diqube.execution.consumers.ColumnBuiltConsumer;
 import org.diqube.execution.consumers.ColumnVersionBuiltConsumer;
+import org.diqube.execution.consumers.DoneConsumer;
 import org.diqube.execution.consumers.GenericConsumer;
 import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.env.VersionedExecutionEnvironment;
@@ -203,7 +204,8 @@ public class ProjectStep extends AbstractThreadedExecutablePlanStep {
 
   @Override
   protected void validateOutputConsumer(GenericConsumer consumer) throws IllegalArgumentException {
-    if (!(consumer instanceof ColumnBuiltConsumer) && !(consumer instanceof ColumnVersionBuiltConsumer))
+    if (!(consumer instanceof DoneConsumer) && !(consumer instanceof ColumnBuiltConsumer)
+        && !(consumer instanceof ColumnVersionBuiltConsumer))
       throw new IllegalArgumentException("Only ColumnBuiltConsumer and ColumnVersionBuiltConsumer supported.");
   }
 

@@ -35,6 +35,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.diqube.execution.consumers.AbstractThreadedColumnValueConsumer;
 import org.diqube.execution.consumers.AbstractThreadedGroupIntermediaryAggregationConsumer;
 import org.diqube.execution.consumers.ColumnValueConsumer;
+import org.diqube.execution.consumers.DoneConsumer;
 import org.diqube.execution.consumers.GenericConsumer;
 import org.diqube.execution.consumers.GroupIntermediaryAggregationConsumer;
 import org.diqube.execution.consumers.RowIdConsumer;
@@ -125,7 +126,8 @@ public class GroupIdAdjustingStep extends AbstractThreadedExecutablePlanStep {
 
   @Override
   protected void validateOutputConsumer(GenericConsumer consumer) throws IllegalArgumentException {
-    if (!(consumer instanceof GroupIntermediaryAggregationConsumer) && !(consumer instanceof RowIdConsumer))
+    if (!(consumer instanceof DoneConsumer) && !(consumer instanceof GroupIntermediaryAggregationConsumer)
+        && !(consumer instanceof RowIdConsumer))
       throw new IllegalArgumentException("Only GroupIntermediaryAggregationConsumer and RowIdConsumer supported.");
   }
 

@@ -32,6 +32,7 @@ import java.util.function.Consumer;
 import org.diqube.execution.ExecutablePlanStep;
 import org.diqube.execution.consumers.AbstractPlanStepBasedGenericConsumer;
 import org.diqube.execution.consumers.ContinuousConsumer;
+import org.diqube.execution.consumers.DoneConsumer;
 import org.diqube.execution.consumers.GenericConsumer;
 import org.diqube.execution.exception.ExecutablePlanBuildException;
 import org.diqube.queries.QueryRegistry;
@@ -142,6 +143,8 @@ public abstract class AbstractThreadedExecutablePlanStep implements ExecutablePl
 
   /**
    * Called when a new Output consumer is added, should throw an exception if this step cannot handle the consumer.
+   * 
+   * Please note that all steps /must/ accept {@link DoneConsumer}.
    */
   abstract protected void validateOutputConsumer(GenericConsumer consumer) throws IllegalArgumentException;
 

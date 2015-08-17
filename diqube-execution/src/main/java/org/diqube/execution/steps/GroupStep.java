@@ -38,6 +38,7 @@ import org.diqube.data.colshard.StandardColumnShard;
 import org.diqube.execution.consumers.AbstractThreadedColumnBuiltConsumer;
 import org.diqube.execution.consumers.AbstractThreadedRowIdConsumer;
 import org.diqube.execution.consumers.ColumnBuiltConsumer;
+import org.diqube.execution.consumers.DoneConsumer;
 import org.diqube.execution.consumers.GenericConsumer;
 import org.diqube.execution.consumers.GroupConsumer;
 import org.diqube.execution.consumers.GroupDeltaConsumer;
@@ -204,8 +205,8 @@ public class GroupStep extends AbstractThreadedExecutablePlanStep {
 
   @Override
   protected void validateOutputConsumer(GenericConsumer consumer) throws IllegalArgumentException {
-    if (!(consumer instanceof RowIdConsumer) && !(consumer instanceof GroupConsumer)
-        && !(consumer instanceof GroupDeltaConsumer))
+    if (!(consumer instanceof DoneConsumer) && !(consumer instanceof RowIdConsumer)
+        && !(consumer instanceof GroupConsumer) && !(consumer instanceof GroupDeltaConsumer))
       throw new IllegalArgumentException("Only RowIdConsumer, GroupConsumer and GroupDeltaConsumer accepted.");
   }
 

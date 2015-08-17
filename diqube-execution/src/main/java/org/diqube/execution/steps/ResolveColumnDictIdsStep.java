@@ -39,6 +39,7 @@ import org.diqube.execution.consumers.AbstractThreadedRowIdConsumer;
 import org.diqube.execution.consumers.ColumnBuiltConsumer;
 import org.diqube.execution.consumers.ColumnDictIdConsumer;
 import org.diqube.execution.consumers.ColumnVersionBuiltConsumer;
+import org.diqube.execution.consumers.DoneConsumer;
 import org.diqube.execution.consumers.GenericConsumer;
 import org.diqube.execution.consumers.RowIdConsumer;
 import org.diqube.execution.env.ExecutionEnvironment;
@@ -258,7 +259,7 @@ public class ResolveColumnDictIdsStep extends AbstractThreadedExecutablePlanStep
 
   @Override
   protected void validateOutputConsumer(GenericConsumer consumer) throws IllegalArgumentException {
-    if (!(consumer instanceof ColumnDictIdConsumer))
+    if (!(consumer instanceof DoneConsumer) && !(consumer instanceof ColumnDictIdConsumer))
       throw new IllegalArgumentException("Only ColumnDictIdConsumer supported!");
   }
 

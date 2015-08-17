@@ -38,6 +38,7 @@ import org.diqube.execution.ColumnVersionManager;
 import org.diqube.execution.consumers.AbstractThreadedGroupIntermediaryAggregationConsumer;
 import org.diqube.execution.consumers.ColumnBuiltConsumer;
 import org.diqube.execution.consumers.ColumnVersionBuiltConsumer;
+import org.diqube.execution.consumers.DoneConsumer;
 import org.diqube.execution.consumers.GenericConsumer;
 import org.diqube.execution.consumers.GroupFinalAggregationConsumer;
 import org.diqube.execution.consumers.GroupIntermediaryAggregationConsumer;
@@ -122,8 +123,8 @@ public class GroupFinalAggregationStep extends AbstractThreadedExecutablePlanSte
 
   @Override
   protected void validateOutputConsumer(GenericConsumer consumer) throws IllegalArgumentException {
-    if (!(consumer instanceof GroupFinalAggregationConsumer) && !(consumer instanceof ColumnBuiltConsumer)
-        && !(consumer instanceof ColumnVersionBuiltConsumer))
+    if (!(consumer instanceof DoneConsumer) && !(consumer instanceof GroupFinalAggregationConsumer)
+        && !(consumer instanceof ColumnBuiltConsumer) && !(consumer instanceof ColumnVersionBuiltConsumer))
       throw new IllegalArgumentException(
           "Only GroupFinalAggregationConsumer, ColumnBuiltConsumer " + "and ColumnVersionBuiltConsumer supported.");
   }

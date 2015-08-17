@@ -37,6 +37,7 @@ import java.util.stream.Stream;
 import org.diqube.execution.consumers.AbstractThreadedColumnValueConsumer;
 import org.diqube.execution.consumers.AbstractThreadedRowIdConsumer;
 import org.diqube.execution.consumers.ColumnValueConsumer;
+import org.diqube.execution.consumers.DoneConsumer;
 import org.diqube.execution.consumers.GenericConsumer;
 import org.diqube.execution.consumers.RowIdConsumer;
 import org.diqube.execution.exception.ExecutablePlanBuildException;
@@ -120,7 +121,7 @@ public class FilterRequestedColumnsAndActiveRowIdsStep extends AbstractThreadedE
 
   @Override
   protected void validateOutputConsumer(GenericConsumer consumer) throws IllegalArgumentException {
-    if (!(consumer instanceof ColumnValueConsumer))
+    if (!(consumer instanceof DoneConsumer) && !(consumer instanceof ColumnValueConsumer))
       throw new IllegalArgumentException("Only ColumnValueConsumer accepted.");
   }
 
