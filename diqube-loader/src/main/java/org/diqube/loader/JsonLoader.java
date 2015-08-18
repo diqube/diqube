@@ -200,7 +200,7 @@ public class JsonLoader implements Loader {
     }
 
     logger.info("Columns for table {} created, creating TableShard...", tableName);
-    TableShard tableShard = tableFactory.createTableShard(columns);
+    TableShard tableShard = tableFactory.createTableShard(tableName, columns);
 
     logger.info("Table shard for table {} created successfully, it contains {} rows starting from rowId {}", tableName,
         tableShard.getNumberOfRowsInShard(), tableShard.getLowestRowId());

@@ -29,6 +29,11 @@ import java.util.stream.LongStream;
 
 import org.diqube.data.Dictionary;
 import org.diqube.data.lng.array.CompressedLongArray;
+import org.diqube.data.serialize.DataSerializable;
+import org.diqube.data.serialize.DeserializationException;
+import org.diqube.data.serialize.SerializationException;
+import org.diqube.data.serialize.thrift.v1.SLongCompressedArray;
+import org.diqube.data.serialize.thrift.v1.SLongDictionaryArray;
 
 /**
  * A {@link LongDictionary} based on a {@link CompressedLongArray}.
@@ -37,9 +42,15 @@ import org.diqube.data.lng.array.CompressedLongArray;
  *
  * @author Bastian Gloeckle
  */
-public class ArrayCompressedLongDictionary implements LongDictionary {
+@DataSerializable(thriftClass = SLongDictionaryArray.class)
+public class ArrayCompressedLongDictionary implements LongDictionary<SLongDictionaryArray> {
 
-  private CompressedLongArray sortedValues;
+  private CompressedLongArray<?> sortedValues;
+
+  /** for deserialization */
+  public ArrayCompressedLongDictionary() {
+
+  }
 
   /**
    * Create a new object.
@@ -48,7 +59,7 @@ public class ArrayCompressedLongDictionary implements LongDictionary {
    *          The values in a sorted array. The index of a value in the array will be its 'id' used by the dictionary.
    *          The array is expected to not have the same value twice, but it's values to be pair-wise different.
    */
-  public ArrayCompressedLongDictionary(CompressedLongArray sortedValues) {
+  public ArrayCompressedLongDictionary(CompressedLongArray<?> sortedValues) {
     this.sortedValues = sortedValues;
   }
 
@@ -178,7 +189,7 @@ public class ArrayCompressedLongDictionary implements LongDictionary {
     NavigableMap<Long, Long> res = new TreeMap<>();
 
     if (otherDict instanceof ArrayCompressedLongDictionary) {
-      CompressedLongArray otherSortedValues = ((ArrayCompressedLongDictionary) otherDict).sortedValues;
+      CompressedLongArray<?> otherSortedValues = ((ArrayCompressedLongDictionary) otherDict).sortedValues;
       if (sortedValues.size() == 0 || otherSortedValues.size() == 0)
         return res;
 
@@ -320,7 +331,7 @@ public class ArrayCompressedLongDictionary implements LongDictionary {
     NavigableMap<Long, Long> res = new TreeMap<>();
 
     if (otherDict instanceof ArrayCompressedLongDictionary) {
-      CompressedLongArray otherSortedValues = ((ArrayCompressedLongDictionary) otherDict).sortedValues;
+      CompressedLongArray<?> otherSortedValues = ((ArrayCompressedLongDictionary) otherDict).sortedValues;
       if (sortedValues.size() == 0 || otherSortedValues.size() == 0)
         return res;
 
@@ -406,7 +417,7 @@ public class ArrayCompressedLongDictionary implements LongDictionary {
     NavigableMap<Long, Long> res = new TreeMap<>();
 
     if (otherDict instanceof ArrayCompressedLongDictionary) {
-      CompressedLongArray otherSortedValues = ((ArrayCompressedLongDictionary) otherDict).sortedValues;
+      CompressedLongArray<?> otherSortedValues = ((ArrayCompressedLongDictionary) otherDict).sortedValues;
       if (sortedValues.size() == 0 || otherSortedValues.size() == 0)
         return res;
 
@@ -473,6 +484,17 @@ public class ArrayCompressedLongDictionary implements LongDictionary {
     }
 
     return res;
+  }
+
+  @Override
+  public void serialize(DataSerializationHelper mgr, SLongDictionaryArray target) throws SerializationException {
+    target.setArr(mgr.serializeChild(SLongCompressedArray.class, sortedValues));
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public void deserialize(DataSerializationHelper mgr, SLongDictionaryArray source) throws DeserializationException {
+    sortedValues = mgr.deserializeChild(CompressedLongArray.class, source.getArr());
   }
 
 }

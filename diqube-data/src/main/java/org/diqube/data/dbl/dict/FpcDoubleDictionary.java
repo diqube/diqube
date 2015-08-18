@@ -36,6 +36,11 @@ import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
 import org.diqube.data.Dictionary;
+import org.diqube.data.serialize.DataSerializable;
+import org.diqube.data.serialize.DeserializationException;
+import org.diqube.data.serialize.SerializationException;
+import org.diqube.data.serialize.thrift.v1.SDoubleDictionaryFpc;
+import org.diqube.data.serialize.thrift.v1.SDoubleDictionaryFpcPage;
 import org.diqube.util.DiqubeCollectors;
 import org.diqube.util.DoubleUtil;
 
@@ -55,12 +60,18 @@ import com.google.common.collect.PeekingIterator;
  *
  * @author Bastian Gloeckle
  */
-public class FpcDoubleDictionary implements DoubleDictionary {
+@DataSerializable(thriftClass = SDoubleDictionaryFpc.class)
+public class FpcDoubleDictionary implements DoubleDictionary<SDoubleDictionaryFpc> {
 
   private NavigableMap<Long, FpcPage> pages;
   private double lowestValue;
   private double highestValue;
   private long highestId;
+
+  /** for deserialization */
+  public FpcDoubleDictionary() {
+
+  }
 
   public FpcDoubleDictionary(NavigableMap<Long, FpcPage> pages, double lowestValue, double highestValue) {
     this.pages = pages;
@@ -545,6 +556,29 @@ public class FpcDoubleDictionary implements DoubleDictionary {
             callback.foundSmallerId(ourFirstIdx + i, otherFirstIdx + otherIdx - 1);
         }
       }
+    }
+  }
+
+  @Override
+  public void serialize(DataSerializationHelper mgr, SDoubleDictionaryFpc target) throws SerializationException {
+    target.setLowestValue(lowestValue);
+    target.setHighestValue(highestValue);
+    target.setHighestId(highestId);
+    List<SDoubleDictionaryFpcPage> serializedPages = new ArrayList<>();
+    for (FpcPage page : pages.values())
+      serializedPages.add(mgr.serializeChild(SDoubleDictionaryFpcPage.class, page));
+    target.setPages(serializedPages);
+  }
+
+  @Override
+  public void deserialize(DataSerializationHelper mgr, SDoubleDictionaryFpc source) throws DeserializationException {
+    lowestValue = source.getLowestValue();
+    highestValue = source.getHighestValue();
+    highestId = source.getHighestId();
+    pages = new TreeMap<>();
+    for (SDoubleDictionaryFpcPage serializedPage : source.getPages()) {
+      FpcPage deserializedPage = mgr.deserializeChild(FpcPage.class, serializedPage);
+      pages.put(deserializedPage.getFirstId(), deserializedPage);
     }
   }
 

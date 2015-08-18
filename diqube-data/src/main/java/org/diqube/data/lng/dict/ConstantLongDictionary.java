@@ -27,16 +27,26 @@ import java.util.Set;
 import java.util.TreeMap;
 
 import org.diqube.data.Dictionary;
+import org.diqube.data.serialize.DataSerializable;
+import org.diqube.data.serialize.DeserializationException;
+import org.diqube.data.serialize.SerializationException;
+import org.diqube.data.serialize.thrift.v1.SLongDictionaryConstant;
 
 /**
  * A {@link LongDictionary} which was found to contain only a single value/id combination during compression.
  *
  * @author Bastian Gloeckle
  */
-public class ConstantLongDictionary implements LongDictionary {
+@DataSerializable(thriftClass = SLongDictionaryConstant.class)
+public class ConstantLongDictionary implements LongDictionary<SLongDictionaryConstant> {
 
   private long decompressedValue;
   private long id;
+
+  /** for deserialization */
+  public ConstantLongDictionary() {
+
+  }
 
   public ConstantLongDictionary(long decompressedValue, long id) {
     this.decompressedValue = decompressedValue;
@@ -190,6 +200,18 @@ public class ConstantLongDictionary implements LongDictionary {
   @Override
   public Long getMaxId() {
     return id;
+  }
+
+  @Override
+  public void serialize(DataSerializationHelper mgr, SLongDictionaryConstant target) throws SerializationException {
+    target.setId(id);
+    target.setValue(decompressedValue);
+  }
+
+  @Override
+  public void deserialize(DataSerializationHelper mgr, SLongDictionaryConstant source) throws DeserializationException {
+    id = source.getId();
+    decompressedValue = source.getValue();
   }
 
 }

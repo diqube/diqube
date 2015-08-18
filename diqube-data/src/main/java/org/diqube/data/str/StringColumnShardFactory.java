@@ -38,7 +38,7 @@ import org.diqube.data.str.dict.StringDictionary;
 @AutoInstatiate
 public class StringColumnShardFactory {
   public StringStandardColumnShard createStandardStringColumnShard(String colName, NavigableMap<Long, ColumnPage> pages,
-      StringDictionary columnDictionary) {
+      StringDictionary<?> columnDictionary) {
     return new StringStandardColumnShard(colName, pages, columnDictionary);
   }
 

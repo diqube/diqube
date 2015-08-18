@@ -26,9 +26,6 @@ import java.util.Collection;
 import java.util.Deque;
 import java.util.LinkedList;
 
-import org.diqube.data.str.dict.TrieNode.ParentNode;
-import org.diqube.data.str.dict.TrieNode.TerminalNode;
-
 /**
  * Helper class to analyze the values of two tries and compare them to each other.
  *
@@ -96,10 +93,10 @@ public class TrieValueAnalyzer {
     while (ourIdx < ourNode.getChildNodes().length && otherIdx < otherNode.getChildNodes().length) {
       // match the children of ourNode and otherNode - try to find matching pairs at ourIdx/otherIdx.
 
-      TrieNode ourChild = ourNode.getChildNodes()[ourIdx];
+      TrieNode<?> ourChild = ourNode.getChildNodes()[ourIdx];
       // the other side needs to have a specific prefix. So lets prefix ourChildChars accordingly.
       char[] ourChildChars = prefixIfNonNull(otherRequiredPrefix, ourNode.getChildChars()[ourIdx]);
-      TrieNode otherChild = otherNode.getChildNodes()[otherIdx];
+      TrieNode<?> otherChild = otherNode.getChildNodes()[otherIdx];
       // our side needs to have a specific prefix. So lets prefix otherChildChars accordingly.
       char[] otherChildChars = prefixIfNonNull(ourRequiredPrefix, otherNode.getChildChars()[otherIdx]);
 
@@ -292,12 +289,12 @@ public class TrieValueAnalyzer {
     return res;
   }
 
-  private Collection<TerminalNode> findAllTerminalNodes(TrieNode node) {
+  private Collection<TerminalNode> findAllTerminalNodes(TrieNode<?> node) {
     Collection<TerminalNode> res = new ArrayList<>();
-    Deque<TrieNode> queue = new LinkedList<>();
+    Deque<TrieNode<?>> queue = new LinkedList<>();
     queue.add(node);
     while (!queue.isEmpty()) {
-      TrieNode cur = queue.poll();
+      TrieNode<?> cur = queue.poll();
       if (cur instanceof TerminalNode)
         res.add((TerminalNode) cur);
       else
@@ -306,13 +303,13 @@ public class TrieValueAnalyzer {
     return res;
   }
 
-  private long getMinId(TrieNode node) {
+  private long getMinId(TrieNode<?> node) {
     if (node instanceof TerminalNode)
       return ((TerminalNode) node).getTerminalId();
     return ((ParentNode) node).getMinId();
   }
 
-  private long getMaxId(TrieNode node) {
+  private long getMaxId(TrieNode<?> node) {
     if (node instanceof TerminalNode)
       return ((TerminalNode) node).getTerminalId();
     return ((ParentNode) node).getMaxId();

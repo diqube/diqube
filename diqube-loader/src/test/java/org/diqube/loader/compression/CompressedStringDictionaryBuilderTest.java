@@ -53,9 +53,9 @@ public class CompressedStringDictionaryBuilderTest {
     input.put("c", 1L);
 
     // WHEN
-    Pair<StringDictionary, Map<Long, Long>> res = builder.fromEntityMap(input).build();
+    Pair<StringDictionary<?>, Map<Long, Long>> res = builder.fromEntityMap(input).build();
     Map<Long, Long> idMap = res.getRight();
-    StringDictionary dict = res.getLeft();
+    StringDictionary<?> dict = res.getLeft();
 
     // THEN
     Map<Long, Long> expectedId = new HashMap<>();
@@ -77,9 +77,9 @@ public class CompressedStringDictionaryBuilderTest {
     input.put("ac", 2L);
 
     // WHEN
-    Pair<StringDictionary, Map<Long, Long>> res = builder.fromEntityMap(input).build();
+    Pair<StringDictionary<?>, Map<Long, Long>> res = builder.fromEntityMap(input).build();
     Map<Long, Long> idMap = res.getRight();
-    StringDictionary dict = res.getLeft();
+    StringDictionary<?> dict = res.getLeft();
 
     // THEN
     Map<Long, Long> expectedId = new HashMap<>();
@@ -90,7 +90,7 @@ public class CompressedStringDictionaryBuilderTest {
     assertTuple(dict, 2, "ac");
   }
 
-  private void assertTuple(StringDictionary dict, long id, String value) {
+  private void assertTuple(StringDictionary<?> dict, long id, String value) {
     Assert.assertEquals(dict.decompressValue(id), value, "Correct value/id tuples expected");
     Assert.assertEquals(dict.findIdOfValue(value), id, "Correct value/id tuples expected");
   }

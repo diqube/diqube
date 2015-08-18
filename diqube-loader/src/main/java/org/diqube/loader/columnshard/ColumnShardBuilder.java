@@ -187,27 +187,27 @@ public class ColumnShardBuilder<T> {
     if (columnValueClass.equals(String.class)) {
       CompressedStringDictionaryBuilder builder = new CompressedStringDictionaryBuilder();
       builder.fromEntityMap((ConcurrentNavigableMap<String, Long>) columnDict);
-      Pair<StringDictionary, Map<Long, Long>> builderRes = builder.build();
+      Pair<StringDictionary<?>, Map<Long, Long>> builderRes = builder.build();
 
-      StringDictionary columnShardDictionary = builderRes.getLeft();
+      StringDictionary<?> columnShardDictionary = builderRes.getLeft();
       idChangeMap = builderRes.getRight();
 
       res = columnShardFactory.createStandardStringColumnShard(name, pages, columnShardDictionary);
     } else if (columnValueClass.equals(Long.class)) {
       CompressedLongDictionaryBuilder builder = new CompressedLongDictionaryBuilder();
       builder.withDictionaryName(name).fromEntityMap((ConcurrentNavigableMap<Long, Long>) columnDict);
-      Pair<LongDictionary, Map<Long, Long>> builderRes = builder.build();
+      Pair<LongDictionary<?>, Map<Long, Long>> builderRes = builder.build();
 
-      LongDictionary columnShardDictionary = builderRes.getLeft();
+      LongDictionary<?> columnShardDictionary = builderRes.getLeft();
       idChangeMap = builderRes.getRight();
 
       res = columnShardFactory.createStandardLongColumnShard(name, pages, columnShardDictionary);
     } else if (columnValueClass.equals(Double.class)) {
       CompressedDoubleDictionaryBuilder builder = new CompressedDoubleDictionaryBuilder();
       builder.fromEntityMap((ConcurrentNavigableMap<Double, Long>) columnDict);
-      Pair<DoubleDictionary, Map<Long, Long>> builderRes = builder.build();
+      Pair<DoubleDictionary<?>, Map<Long, Long>> builderRes = builder.build();
 
-      DoubleDictionary columnShardDictionary = builderRes.getLeft();
+      DoubleDictionary<?> columnShardDictionary = builderRes.getLeft();
       idChangeMap = builderRes.getRight();
 
       res = columnShardFactory.createStandardDoubleColumnShard(name, pages, columnShardDictionary);

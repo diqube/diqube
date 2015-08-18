@@ -286,7 +286,7 @@ public class GroupStepTest {
     ColumnPage page = column.getPages().floorEntry(rowId).getValue();
     long columPageValueId = page.getValues().get((int) (rowId - page.getFirstRowId()));
     long columnValueId = page.getColumnPageDict().decompressValue(columPageValueId);
-    long value = ((LongDictionary) column.getColumnShardDictionary()).decompressValue(columnValueId);
+    long value = ((LongDictionary<?>) column.getColumnShardDictionary()).decompressValue(columnValueId);
     return value;
   }
 
@@ -297,7 +297,7 @@ public class GroupStepTest {
       columns.put(colName, newColumn);
     }
 
-    return tableFactory.createTableShard(columns.values());
+    return tableFactory.createTableShard("table", columns.values());
   }
 
   private List<AbstractThreadedExecutablePlanStep> createExecutableSteps(ExecutionEnvironment env, String[] resolveCols,

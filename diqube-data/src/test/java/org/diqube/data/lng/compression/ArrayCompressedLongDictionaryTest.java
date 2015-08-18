@@ -50,7 +50,7 @@ public class ArrayCompressedLongDictionaryTest {
 
   @BeforeMethod
   public void before() {
-    CompressedLongArray array =
+    CompressedLongArray<?> array =
         new BitEfficientLongArray(LongStream.range(ID_VALUE_DELTA, ID_VALUE_DELTA + MAX_ID + 1).toArray(), true);
 
     dict = new ArrayCompressedLongDictionary(array);
@@ -118,8 +118,8 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void ltEq1Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 0, 5 }, true);
-    CompressedLongArray array2 = new BitEfficientLongArray(new long[] { 1, 2, 3 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 0, 5 }, true);
+    CompressedLongArray<?> array2 = new BitEfficientLongArray(new long[] { 1, 2, 3 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
     ArrayCompressedLongDictionary dict2 = new ArrayCompressedLongDictionary(array2);
 
@@ -136,8 +136,8 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void ltEq2Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 0, 5 }, true);
-    CompressedLongArray array2 = new BitEfficientLongArray(new long[] { 1, 2, 3, 6 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 0, 5 }, true);
+    CompressedLongArray<?> array2 = new BitEfficientLongArray(new long[] { 1, 2, 3, 6 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
     ArrayCompressedLongDictionary dict2 = new ArrayCompressedLongDictionary(array2);
 
@@ -155,8 +155,8 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void ltEq3Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 0, 5 }, true);
-    CompressedLongArray array2 = new BitEfficientLongArray(new long[] { 1, 2, 3, 5 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 0, 5 }, true);
+    CompressedLongArray<?> array2 = new BitEfficientLongArray(new long[] { 1, 2, 3, 5 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
     ArrayCompressedLongDictionary dict2 = new ArrayCompressedLongDictionary(array2);
 
@@ -174,8 +174,8 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void ltEq4Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
-    CompressedLongArray array2 = new BitEfficientLongArray(new long[] { 0, 1, 2, 3, 5 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
+    CompressedLongArray<?> array2 = new BitEfficientLongArray(new long[] { 0, 1, 2, 3, 5 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
     ArrayCompressedLongDictionary dict2 = new ArrayCompressedLongDictionary(array2);
 
@@ -193,8 +193,8 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void ltEq5Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 5, 6 }, true);
-    CompressedLongArray array2 = new BitEfficientLongArray(new long[] { 1, 2, 3, 4 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 5, 6 }, true);
+    CompressedLongArray<?> array2 = new BitEfficientLongArray(new long[] { 1, 2, 3, 4 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
     ArrayCompressedLongDictionary dict2 = new ArrayCompressedLongDictionary(array2);
 
@@ -211,8 +211,8 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void ltEq6Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 5, 6 }, true);
-    CompressedLongArray array2 = new BitEfficientLongArray(new long[] { 1, 2, 3, 4, 7 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 5, 6 }, true);
+    CompressedLongArray<?> array2 = new BitEfficientLongArray(new long[] { 1, 2, 3, 4, 7 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
     ArrayCompressedLongDictionary dict2 = new ArrayCompressedLongDictionary(array2);
 
@@ -230,8 +230,8 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void ltEq7Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 0, 1 }, true);
-    CompressedLongArray array2 = new BitEfficientLongArray(new long[] { 2, 3, 4 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 0, 1 }, true);
+    CompressedLongArray<?> array2 = new BitEfficientLongArray(new long[] { 2, 3, 4 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
     ArrayCompressedLongDictionary dict2 = new ArrayCompressedLongDictionary(array2);
 
@@ -249,7 +249,7 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void ltEqValue1Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 0, 5 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 0, 5 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
 
     // WHEN
@@ -265,7 +265,7 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void ltEqValue2Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 0, 5 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 0, 5 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
 
     // WHEN
@@ -281,7 +281,7 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void ltEqValue3Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
 
     // WHEN
@@ -297,7 +297,7 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void ltEqValue4Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
 
     // WHEN
@@ -313,7 +313,7 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void ltValue1Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 0, 5 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 0, 5 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
 
     // WHEN
@@ -329,7 +329,7 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void ltValue2Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 0, 5 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 0, 5 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
 
     // WHEN
@@ -345,7 +345,7 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void ltValue3Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
 
     // WHEN
@@ -361,7 +361,7 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void ltValue4Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
 
     // WHEN
@@ -377,7 +377,7 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void ltValue5Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
 
     // WHEN
@@ -393,8 +393,8 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void gtEq1Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 0, 5 }, true);
-    CompressedLongArray array2 = new BitEfficientLongArray(new long[] { 1, 2, 3 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 0, 5 }, true);
+    CompressedLongArray<?> array2 = new BitEfficientLongArray(new long[] { 1, 2, 3 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
     ArrayCompressedLongDictionary dict2 = new ArrayCompressedLongDictionary(array2);
 
@@ -411,8 +411,8 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void gtEq2Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 0, 5 }, true);
-    CompressedLongArray array2 = new BitEfficientLongArray(new long[] { 1, 2, 3, 6 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 0, 5 }, true);
+    CompressedLongArray<?> array2 = new BitEfficientLongArray(new long[] { 1, 2, 3, 6 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
     ArrayCompressedLongDictionary dict2 = new ArrayCompressedLongDictionary(array2);
 
@@ -429,8 +429,8 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void gtEq3Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 0, 5 }, true);
-    CompressedLongArray array2 = new BitEfficientLongArray(new long[] { 1, 2, 3, 5 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 0, 5 }, true);
+    CompressedLongArray<?> array2 = new BitEfficientLongArray(new long[] { 1, 2, 3, 5 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
     ArrayCompressedLongDictionary dict2 = new ArrayCompressedLongDictionary(array2);
 
@@ -447,8 +447,8 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void gtEq4Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
-    CompressedLongArray array2 = new BitEfficientLongArray(new long[] { 0, 1, 2, 3, 5 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
+    CompressedLongArray<?> array2 = new BitEfficientLongArray(new long[] { 0, 1, 2, 3, 5 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
     ArrayCompressedLongDictionary dict2 = new ArrayCompressedLongDictionary(array2);
 
@@ -466,8 +466,8 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void gtEq5Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 5, 6 }, true);
-    CompressedLongArray array2 = new BitEfficientLongArray(new long[] { 1, 2, 3, 4 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 5, 6 }, true);
+    CompressedLongArray<?> array2 = new BitEfficientLongArray(new long[] { 1, 2, 3, 4 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
     ArrayCompressedLongDictionary dict2 = new ArrayCompressedLongDictionary(array2);
 
@@ -485,8 +485,8 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void gtEq6Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 5, 6 }, true);
-    CompressedLongArray array2 = new BitEfficientLongArray(new long[] { 1, 2, 3, 4, 7 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 5, 6 }, true);
+    CompressedLongArray<?> array2 = new BitEfficientLongArray(new long[] { 1, 2, 3, 4, 7 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
     ArrayCompressedLongDictionary dict2 = new ArrayCompressedLongDictionary(array2);
 
@@ -504,8 +504,8 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void eq1Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 0, 5 }, true);
-    CompressedLongArray array2 = new BitEfficientLongArray(new long[] { 1, 2, 3, 5 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 0, 5 }, true);
+    CompressedLongArray<?> array2 = new BitEfficientLongArray(new long[] { 1, 2, 3, 5 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
     ArrayCompressedLongDictionary dict2 = new ArrayCompressedLongDictionary(array2);
 
@@ -524,8 +524,8 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void eq2Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
-    CompressedLongArray array2 = new BitEfficientLongArray(new long[] { 0, 1, 3, 7 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
+    CompressedLongArray<?> array2 = new BitEfficientLongArray(new long[] { 0, 1, 3, 7 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
     ArrayCompressedLongDictionary dict2 = new ArrayCompressedLongDictionary(array2);
 
@@ -544,8 +544,8 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void eq3Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
-    CompressedLongArray array2 = new BitEfficientLongArray(new long[] { 0, 1, 5, 7 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
+    CompressedLongArray<?> array2 = new BitEfficientLongArray(new long[] { 0, 1, 5, 7 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
     ArrayCompressedLongDictionary dict2 = new ArrayCompressedLongDictionary(array2);
 
@@ -565,8 +565,8 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void eq4Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 1, 5, 8 }, true);
-    CompressedLongArray array2 = new BitEfficientLongArray(new long[] { 0, 1, 5, 7 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 1, 5, 8 }, true);
+    CompressedLongArray<?> array2 = new BitEfficientLongArray(new long[] { 0, 1, 5, 7 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
     ArrayCompressedLongDictionary dict2 = new ArrayCompressedLongDictionary(array2);
 
@@ -586,7 +586,7 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void gtEqValue1Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 0, 5 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 0, 5 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
 
     // WHEN
@@ -602,7 +602,7 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void gtEqValue2Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 0, 5 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 0, 5 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
 
     // WHEN
@@ -618,7 +618,7 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void gtEqValue3Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
 
     // WHEN
@@ -634,7 +634,7 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void gtEqValue4Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
 
     // WHEN
@@ -650,7 +650,7 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void gtEqValue5Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
 
     // WHEN
@@ -666,7 +666,7 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void gtValue1Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 0, 5 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 0, 5 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
 
     // WHEN
@@ -682,7 +682,7 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void gtValue2Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 0, 5 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 0, 5 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
 
     // WHEN
@@ -698,7 +698,7 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void gtValue3Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
 
     // WHEN
@@ -714,7 +714,7 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void gtValue4Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
 
     // WHEN
@@ -730,7 +730,7 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void gtValue5Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
 
     // WHEN
@@ -746,7 +746,7 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void idGtEq1Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
 
     // WHEN
@@ -759,7 +759,7 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void idGtEq2Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
 
     // WHEN
@@ -772,7 +772,7 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void idGtEq4Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
 
     // WHEN
@@ -785,7 +785,7 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void idGtEq5Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
 
     // WHEN
@@ -798,7 +798,7 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void idGtEq6Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
 
     // WHEN
@@ -811,7 +811,7 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void idGtEq7Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
 
     // WHEN
@@ -824,7 +824,7 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void idLtEq1Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
 
     // WHEN
@@ -837,7 +837,7 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void idLtEq2Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
 
     // WHEN
@@ -850,7 +850,7 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void idLtEq4Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
 
     // WHEN
@@ -863,7 +863,7 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void idLtEq5Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
 
     // WHEN
@@ -876,7 +876,7 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void idLtEq6Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
 
     // WHEN
@@ -889,7 +889,7 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void idLtEq7Test() {
     // GIVEN
-    CompressedLongArray array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
+    CompressedLongArray<?> array1 = new BitEfficientLongArray(new long[] { 1, 5 }, true);
     ArrayCompressedLongDictionary dict1 = new ArrayCompressedLongDictionary(array1);
 
     // WHEN
@@ -902,7 +902,7 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void ltEqToConstantDictTest() {
     // GIVEN
-    CompressedLongArray array = new BitEfficientLongArray(new long[] { 0, 3 }, true);
+    CompressedLongArray<?> array = new BitEfficientLongArray(new long[] { 0, 3 }, true);
     ArrayCompressedLongDictionary compressedDict = new ArrayCompressedLongDictionary(array);
 
     ConstantLongDictionary constantDict = new ConstantLongDictionary(2, 0);
@@ -925,7 +925,7 @@ public class ArrayCompressedLongDictionaryTest {
   @Test
   public void gtEqToConstantDictTest() {
     // GIVEN
-    CompressedLongArray array = new BitEfficientLongArray(new long[] { 0, 3 }, true);
+    CompressedLongArray<?> array = new BitEfficientLongArray(new long[] { 0, 3 }, true);
     ArrayCompressedLongDictionary compressedDict = new ArrayCompressedLongDictionary(array);
 
     ConstantLongDictionary constantDict = new ConstantLongDictionary(2, 0);

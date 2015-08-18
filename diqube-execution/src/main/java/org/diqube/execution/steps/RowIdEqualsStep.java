@@ -270,21 +270,22 @@ public class RowIdEqualsStep extends AbstractThreadedExecutablePlanStep {
             if (!(values instanceof Long[]))
               throw new ExecutablePlanExecutionException(
                   "Cannot compare column " + colName + " with non-number values.");
-            columnValueIdsOfSearchedValues = ((LongDictionary) columnShardDictionary).findIdsOfValues((Long[]) values);
+            columnValueIdsOfSearchedValues =
+                ((LongDictionary<?>) columnShardDictionary).findIdsOfValues((Long[]) values);
             break;
           case STRING:
             if (!(values instanceof String[]))
               throw new ExecutablePlanExecutionException(
                   "Cannot compare column " + colName + " with non-string values.");
             columnValueIdsOfSearchedValues =
-                ((StringDictionary) columnShardDictionary).findIdsOfValues((String[]) values);
+                ((StringDictionary<?>) columnShardDictionary).findIdsOfValues((String[]) values);
             break;
           case DOUBLE:
             if (!(values instanceof Double[]))
               throw new ExecutablePlanExecutionException(
                   "Cannot compare column " + colName + " with non-floating point values.");
             columnValueIdsOfSearchedValues =
-                ((DoubleDictionary) columnShardDictionary).findIdsOfValues((Double[]) values);
+                ((DoubleDictionary<?>) columnShardDictionary).findIdsOfValues((Double[]) values);
             break;
           }
         }

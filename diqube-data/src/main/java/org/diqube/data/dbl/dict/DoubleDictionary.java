@@ -20,12 +20,14 @@
  */
 package org.diqube.data.dbl.dict;
 
+import org.apache.thrift.TBase;
 import org.diqube.data.Dictionary;
+import org.diqube.data.SerializableDictionary;
 
 /**
  * A {@link Dictionary} for double values.
  *
  * @author Bastian Gloeckle
  */
-public interface DoubleDictionary extends Dictionary<Double> {
+public interface DoubleDictionary<S extends TBase<?, ?>> extends SerializableDictionary<Double, S> {
 }

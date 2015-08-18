@@ -22,6 +22,14 @@ package org.diqube.data.lng.array;
 
 import java.util.Arrays;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.LongStream;
+
+import org.diqube.data.serialize.DataSerializable;
+import org.diqube.data.serialize.DeserializationException;
+import org.diqube.data.serialize.SerializationException;
+import org.diqube.data.serialize.thrift.v1.SLongCompressedArrayBitEfficient;
 
 /**
  * A {@link CompressedLongArray} that stores the long values in a bit-efficient way.
@@ -39,7 +47,8 @@ import java.util.function.Function;
  *
  * @author Bastian Gloeckle
  */
-public class BitEfficientLongArray extends AbstractExplorableCompressedLongArray {
+@DataSerializable(thriftClass = SLongCompressedArrayBitEfficient.class)
+public class BitEfficientLongArray extends AbstractExplorableCompressedLongArray<SLongCompressedArrayBitEfficient> {
 
   /** Number of elements in the array. Available after {@link #prepareCompression(long[], boolean)}. */
   private int size;
@@ -452,6 +461,40 @@ public class BitEfficientLongArray extends AbstractExplorableCompressedLongArray
     return value;
   }
 
+  @Override
+  public void serialize(DataSerializationHelper mgr, SLongCompressedArrayBitEfficient target)
+      throws SerializationException {
+
+    target.setSize(size);
+    target.setNumberOfBitsPerValue(numberOfBitsPerValue);
+    target.setIsSorted(isSorted);
+    target.setIsSameValue(isSameValue);
+    target.setContainsSignBit(containsSignBit);
+    target.setMinValue(minValue);
+    target.setAbsoluteMinValue(absoluteMinValue);
+    target.setMaxValue(maxValue);
+    if (longMinValueLocations != null)
+      target.setLongMinValueLocations(IntStream.of(longMinValueLocations).boxed().collect(Collectors.toList()));
+    target.setCompressedValues(LongStream.of(compressedValues).boxed().collect(Collectors.toList()));
+  }
+
+  @Override
+  public void deserialize(DataSerializationHelper mgr, SLongCompressedArrayBitEfficient source)
+      throws DeserializationException {
+    size = source.getSize();
+    numberOfBitsPerValue = source.getNumberOfBitsPerValue();
+    isSorted = source.isIsSorted();
+    isSameValue = source.isIsSameValue();
+    containsSignBit = source.isContainsSignBit();
+    compressedValues = source.getCompressedValues().stream().mapToLong(Long::longValue).toArray();
+    if (source.isSetLongMinValueLocations())
+      longMinValueLocations = source.getLongMinValueLocations().stream().mapToInt(Integer::intValue).toArray();
+    numberOfLongMinValues = (longMinValueLocations != null) ? longMinValueLocations.length : 0;
+    minValue = source.getMinValue();
+    absoluteMinValue = source.getAbsoluteMinValue();
+    maxValue = source.getMaxValue();
+  }
+
   /**
    * @return A long having the bits at the specific locations set (lower- and upper-bound indices included)
    */
@@ -506,4 +549,5 @@ public class BitEfficientLongArray extends AbstractExplorableCompressedLongArray
     return calculateApproxCompressionRatio(Math.max(1, Math.max(numberOfBitsPerMinValue, numberOfBitsPerMaxValue)),
         sameValue, size, numberOfLongMinValues);
   }
+
 }

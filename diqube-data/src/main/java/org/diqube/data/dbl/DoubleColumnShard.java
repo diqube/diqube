@@ -32,5 +32,5 @@ import org.diqube.data.dbl.dict.DoubleDictionary;
 public interface DoubleColumnShard extends ColumnShard {
 
   @Override
-  public DoubleDictionary getColumnShardDictionary();
+  public DoubleDictionary<?> getColumnShardDictionary();
 }

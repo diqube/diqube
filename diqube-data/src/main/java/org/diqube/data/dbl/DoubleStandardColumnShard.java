@@ -35,12 +35,18 @@ import org.diqube.data.dbl.dict.DoubleDictionary;
  */
 public class DoubleStandardColumnShard extends AbstractStandardColumnShard implements DoubleColumnShard {
 
-  DoubleStandardColumnShard(String name, NavigableMap<Long, ColumnPage> pages, DoubleDictionary columnDictionary) {
+  /** for deserialization */
+  public DoubleStandardColumnShard() {
+    super();
+  }
+
+  DoubleStandardColumnShard(String name, NavigableMap<Long, ColumnPage> pages, DoubleDictionary<?> columnDictionary) {
     super(ColumnType.DOUBLE, name, pages, columnDictionary);
   }
 
   @Override
-  public DoubleDictionary getColumnShardDictionary() {
-    return (DoubleDictionary) super.getColumnShardDictionary();
+  public DoubleDictionary<?> getColumnShardDictionary() {
+    return (DoubleDictionary<?>) super.getColumnShardDictionary();
   }
+
 }

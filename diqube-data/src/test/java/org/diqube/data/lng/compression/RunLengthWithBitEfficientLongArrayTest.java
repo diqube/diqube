@@ -33,7 +33,7 @@ public class RunLengthWithBitEfficientLongArrayTest extends AbstractCompressedLo
   public RunLengthWithBitEfficientLongArrayTest() {
     super(() -> new RunLengthLongArray(), new TestCompressor() {
       @Override
-      public void compress(ExplorableCompressedLongArray longArray, long[] values, boolean isSorted) {
+      public void compress(ExplorableCompressedLongArray<?> longArray, long[] values, boolean isSorted) {
         ((RunLengthLongArray) longArray).compress(values, isSorted, () -> new BitEfficientLongArray());
       }
     });

@@ -289,7 +289,7 @@ public abstract class AbstractDiqlExecutionTest<T> {
       List<StandardColumnShard> columns = new ArrayList<>();
       for (String colName : columnShardBuilderManager.getAllColumnsWithValues())
         columns.add(columnShardBuilderManager.build(colName));
-      TableShard tableShard = tableFactory.createTableShard(columns);
+      TableShard tableShard = tableFactory.createTableShard(TABLE, columns);
       tableShards.add(tableShard);
 
       firstRowId += colAValues.length;

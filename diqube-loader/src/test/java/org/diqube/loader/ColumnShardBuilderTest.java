@@ -158,7 +158,7 @@ public class ColumnShardBuilderTest {
 
   private static Set<String> resolveValues(ColumnPage page, Dictionary<?> columnDictionary) {
     Set<String> res = new HashSet<String>();
-    StringDictionary dict = (StringDictionary) columnDictionary;
+    StringDictionary<?> dict = (StringDictionary<?>) columnDictionary;
     for (long pageValueId : page.getValues().decompressedArray()) {
       long columnValueId = page.getColumnPageDict().decompressValue(pageValueId);
       String value = dict.decompressValue(columnValueId);

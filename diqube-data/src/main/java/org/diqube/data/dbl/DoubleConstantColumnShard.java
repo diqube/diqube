@@ -38,13 +38,13 @@ public class DoubleConstantColumnShard extends AbstractConstantColumnShard imple
   }
 
   @Override
-  protected DoubleDictionary createColumnShardDictionary(Object value) {
+  protected DoubleDictionary<?> createColumnShardDictionary(Object value) {
     return new ConstantDoubleDictionary((Double) value, 0L);
   }
 
   @Override
-  public DoubleDictionary getColumnShardDictionary() {
-    return (DoubleDictionary) super.getColumnShardDictionary();
+  public DoubleDictionary<?> getColumnShardDictionary() {
+    return (DoubleDictionary<?>) super.getColumnShardDictionary();
   }
 
 }

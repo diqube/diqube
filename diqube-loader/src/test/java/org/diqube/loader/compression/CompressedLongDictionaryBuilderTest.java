@@ -53,8 +53,8 @@ public class CompressedLongDictionaryBuilderTest {
     values.put(10L, 2L);
 
     // WHEN
-    Pair<LongDictionary, Map<Long, Long>> res = builder.fromEntityMap(values).build();
-    LongDictionary dict = res.getLeft();
+    Pair<LongDictionary<?>, Map<Long, Long>> res = builder.fromEntityMap(values).build();
+    LongDictionary<?> dict = res.getLeft();
 
     // THEN
     Assert.assertEquals(res.getRight(), new HashMap<Long, Long>(), "Expected no ID changes");
@@ -73,8 +73,8 @@ public class CompressedLongDictionaryBuilderTest {
     values.put(1002L, 2L);
 
     // WHEN
-    Pair<LongDictionary, Map<Long, Long>> res = builder.fromEntityMap(values).build();
-    LongDictionary dict = res.getLeft();
+    Pair<LongDictionary<?>, Map<Long, Long>> res = builder.fromEntityMap(values).build();
+    LongDictionary<?> dict = res.getLeft();
 
     // THEN
     Assert.assertEquals(res.getRight(), new HashMap<Long, Long>(), "Expected no ID changes");
@@ -93,8 +93,8 @@ public class CompressedLongDictionaryBuilderTest {
     values.put(1002L, 0L);
 
     // WHEN
-    Pair<LongDictionary, Map<Long, Long>> res = builder.fromEntityMap(values).build();
-    LongDictionary dict = res.getLeft();
+    Pair<LongDictionary<?>, Map<Long, Long>> res = builder.fromEntityMap(values).build();
+    LongDictionary<?> dict = res.getLeft();
 
     // THEN
     Map<Long, Long> expectedId = new HashMap<Long, Long>();
@@ -116,8 +116,8 @@ public class CompressedLongDictionaryBuilderTest {
     values.put(10L, 0L);
 
     // WHEN
-    Pair<LongDictionary, Map<Long, Long>> res = builder.fromEntityMap(values).build();
-    LongDictionary dict = res.getLeft();
+    Pair<LongDictionary<?>, Map<Long, Long>> res = builder.fromEntityMap(values).build();
+    LongDictionary<?> dict = res.getLeft();
 
     // THEN
     Map<Long, Long> expectedId = new HashMap<Long, Long>();
@@ -129,7 +129,7 @@ public class CompressedLongDictionaryBuilderTest {
     assertTuple(dict, 2L, 10L);
   }
 
-  private void assertTuple(LongDictionary dict, long id, long value) {
+  private void assertTuple(LongDictionary<?> dict, long id, long value) {
     Assert.assertEquals((long) dict.decompressValue(id), value, "Correct value/id tuples expected");
     Assert.assertEquals(dict.findIdOfValue(value), id, "Correct value/id tuples expected");
   }

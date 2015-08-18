@@ -31,9 +31,13 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+import org.apache.thrift.TBase;
+import org.diqube.data.serialize.DeserializationException;
+import org.diqube.data.serialize.SerializationException;
+import org.diqube.data.str.dict.ParentNode;
 import org.diqube.data.str.dict.StringDictionary;
+import org.diqube.data.str.dict.TerminalNode;
 import org.diqube.data.str.dict.TrieNode;
-import org.diqube.data.str.dict.TrieNode.TerminalNode;
 import org.diqube.data.str.dict.TrieStringDictionary;
 import org.diqube.util.Pair;
 import org.diqube.util.SortedSetUnionStreamSupplier;
@@ -63,7 +67,7 @@ public class CompressedStringDictionaryBuilder {
    * @return {@link Pair} containing the new {@link StringDictionary} and an ID change map (maps from temporary ID that
    *         was provided in {@link #fromEntityMap(Map)} to the final ID assigned in the resulting dict).
    */
-  public Pair<StringDictionary, Map<Long, Long>> build() {
+  public Pair<StringDictionary<?>, Map<Long, Long>> build() {
     SortedSet<String> keys = (SortedSet<String>) entityMap.keySet();
 
     Map<Long, Long> idMap = new HashMap<>();
@@ -161,7 +165,7 @@ public class CompressedStringDictionaryBuilder {
    * After building the trie, for an instance of this class the real {@link ParentNode} can be created using
    * {@link #constructFinalNode()}.
    */
-  private static class ConstructionParentNode extends TrieNode {
+  private static class ConstructionParentNode extends TrieNode<TBase<?, ?>> {
     private int parentToThisStringLength;
     private ConstructionParentNode parent;
     private NavigableMap<String, ConstructionParentNode> childNodes = new TreeMap<>();
@@ -197,9 +201,9 @@ public class CompressedStringDictionaryBuilder {
      *         course.
      */
     public ParentNode constructFinalNode() {
-      Function<String, TrieNode> getFinalTrieNode = new Function<String, TrieNode>() {
+      Function<String, TrieNode<?>> getFinalTrieNode = new Function<String, TrieNode<?>>() {
         @Override
-        public TrieNode apply(String key) {
+        public TrieNode<?> apply(String key) {
           if (childTerminals.containsKey(key))
             return childTerminals.get(key);
           return childNodes.get(key).constructFinalNode();
@@ -209,7 +213,7 @@ public class CompressedStringDictionaryBuilder {
       Supplier<Stream<String>> allKeyStream = new SortedSetUnionStreamSupplier<>( //
           (SortedSet<String>) this.childNodes.keySet(), (SortedSet<String>) this.childTerminals.keySet());
 
-      TrieNode[] childNodes = allKeyStream.get().map(getFinalTrieNode).toArray(l -> new TrieNode[l]);
+      TrieNode<?>[] childNodes = allKeyStream.get().map(getFinalTrieNode).toArray(l -> new TrieNode[l]);
       char[][] childChars = allKeyStream.get().map(s -> s.toCharArray()).toArray(l -> new char[l][]);
 
       long minId, maxId;
@@ -224,6 +228,18 @@ public class CompressedStringDictionaryBuilder {
         maxId = ((ParentNode) childNodes[childNodes.length - 1]).getMaxId();
 
       return new ParentNode(childChars, childNodes, minId, maxId);
+    }
+
+    @Override
+    public void serialize(org.diqube.data.serialize.DataSerialization.DataSerializationHelper mgr, TBase<?, ?> target)
+        throws SerializationException {
+      // noop
+    }
+
+    @Override
+    public void deserialize(org.diqube.data.serialize.DataSerialization.DataSerializationHelper mgr, TBase<?, ?> source)
+        throws DeserializationException {
+      // noop
     }
   }
 }

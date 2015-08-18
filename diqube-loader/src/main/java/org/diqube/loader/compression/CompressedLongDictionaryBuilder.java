@@ -98,12 +98,12 @@ public class CompressedLongDictionaryBuilder {
    * @return A {@link Pair} of the newly built {@link LongDictionary} and the ID map (from temporary IDs to final IDs,
    *         containing the tuples where the ID was actually changed).
    */
-  public Pair<LongDictionary, Map<Long, Long>> build() {
+  public Pair<LongDictionary<?>, Map<Long, Long>> build() {
     if (entityMap.size() == 0) {
       return new Pair<>(new EmptyLongDictionary(), new HashMap<>());
     } else if (entityMap.size() == 1) {
       Entry<Long, Long> entry = entityMap.entrySet().iterator().next();
-      LongDictionary dict = new ConstantLongDictionary(entry.getKey(), entry.getValue());
+      LongDictionary<?> dict = new ConstantLongDictionary(entry.getKey(), entry.getValue());
       return new Pair<>(dict, new HashMap<>());
     }
 
@@ -136,12 +136,12 @@ public class CompressedLongDictionaryBuilder {
       }
     }
 
-    LongDictionary dictRes = null;
+    LongDictionary<?> dictRes = null;
     try {
       logger.debug("Compressing dictionary '{}' using {} (expected ratio {})",
           new Object[] { name, bestStrat.getClass().getSimpleName(), bestRatio });
 
-      CompressedLongArray compressedArray = bestStrat.compress(uncompressed);
+      CompressedLongArray<?> compressedArray = bestStrat.compress(uncompressed);
       dictRes = new ArrayCompressedLongDictionary(compressedArray);
       return new Pair<>(dictRes, idMap);
     } finally {
@@ -164,7 +164,7 @@ public class CompressedLongDictionaryBuilder {
     double compressionRatio(long[] sortedInArray);
 
     /** Compress using this strategy. The array is expected that it's values are pair-wise different. */
-    CompressedLongArray compress(long[] sortedArray);
+    CompressedLongArray<?> compress(long[] sortedArray);
 
     /** Clear thread local information that was stored when calling {@link #compressionRatio(long[])}. */
     void clear();
@@ -183,7 +183,7 @@ public class CompressedLongDictionaryBuilder {
     }
 
     @Override
-    public CompressedLongArray compress(long[] sortedArray) {
+    public CompressedLongArray<?> compress(long[] sortedArray) {
       BitEfficientLongArray be = threadLocalArray.get();
       if (be == null)
         be = new BitEfficientLongArray();
@@ -224,7 +224,7 @@ public class CompressedLongDictionaryBuilder {
     }
 
     @Override
-    public CompressedLongArray compress(long[] sortedArray) {
+    public CompressedLongArray<?> compress(long[] sortedArray) {
       ReferenceBasedLongArray refBased = threadLocalArray.get();
       if (refBased == null)
         refBased = new ReferenceBasedLongArray();

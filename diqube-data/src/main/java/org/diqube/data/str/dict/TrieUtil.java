@@ -20,9 +20,6 @@
  */
 package org.diqube.data.str.dict;
 
-import org.diqube.data.str.dict.TrieNode.ParentNode;
-import org.diqube.data.str.dict.TrieNode.TerminalNode;
-
 /**
  * Utility class for handling tries (see {@link TrieNode}).
  *
@@ -45,7 +42,7 @@ public class TrieUtil {
    *         searched value is not contained in the trie. The result is then -(ip +1), where <code>ip</code> is the
    *         insertion point at which the searched value should be inserted (-> ip = ID of next greater terminal id).
    */
-  public static long findIdOfValue(char[] str, int fromIndex, TrieNode curNode) {
+  public static long findIdOfValue(char[] str, int fromIndex, TrieNode<?> curNode) {
     if (curNode instanceof TerminalNode) {
       if (fromIndex == str.length)
         return ((TerminalNode) curNode).getTerminalId();

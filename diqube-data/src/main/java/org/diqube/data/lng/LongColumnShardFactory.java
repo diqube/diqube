@@ -38,7 +38,7 @@ import org.diqube.data.lng.dict.LongDictionary;
 @AutoInstatiate
 public class LongColumnShardFactory {
   public LongStandardColumnShard createStandardLongColumnShard(String colName, NavigableMap<Long, ColumnPage> pages,
-      LongDictionary columnDictionary) {
+      LongDictionary<?> columnDictionary) {
     return new LongStandardColumnShard(colName, pages, columnDictionary);
   }
 

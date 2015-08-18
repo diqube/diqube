@@ -32,6 +32,6 @@ import org.diqube.data.lng.dict.LongDictionary;
 public interface LongColumnShard extends ColumnShard {
 
   @Override
-  public LongDictionary getColumnShardDictionary();
+  public LongDictionary<?> getColumnShardDictionary();
 
 }

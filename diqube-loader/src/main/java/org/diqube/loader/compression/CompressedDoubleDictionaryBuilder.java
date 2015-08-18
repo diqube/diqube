@@ -58,7 +58,7 @@ public class CompressedDoubleDictionaryBuilder {
    * @return {@link Pair} containing the new {@link DoubleDictionary} and an ID change map (maps from temporary ID that
    *         was provided in {@link #fromEntityMap(Map)} to the final ID assigned in the resulting dict).
    */
-  public Pair<DoubleDictionary, Map<Long, Long>> build() {
+  public Pair<DoubleDictionary<?>, Map<Long, Long>> build() {
     SortedSet<Double> keys = (SortedSet<Double>) entityMap.keySet();
 
     Map<Long, Long> idMap = new HashMap<>();
@@ -96,7 +96,7 @@ public class CompressedDoubleDictionaryBuilder {
       firstId += valueArray.length;
     }
 
-    DoubleDictionary res = new FpcDoubleDictionary(pages, keys.first(), keys.last());
+    DoubleDictionary<?> res = new FpcDoubleDictionary(pages, keys.first(), keys.last());
 
     return new Pair<>(res, idMap);
   }

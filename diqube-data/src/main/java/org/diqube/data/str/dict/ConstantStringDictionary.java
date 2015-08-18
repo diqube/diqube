@@ -26,15 +26,26 @@ import java.util.Set;
 import java.util.TreeMap;
 
 import org.diqube.data.Dictionary;
+import org.diqube.data.serialize.DataSerializable;
+import org.diqube.data.serialize.DeserializationException;
+import org.diqube.data.serialize.SerializationException;
+import org.diqube.data.serialize.thrift.v1.SStringDictionaryConstant;
 
 /**
  * A {@link StringDictionary} that can hold a single constant value/id pair.
  *
  * @author Bastian Gloeckle
  */
-public class ConstantStringDictionary implements StringDictionary {
+@DataSerializable(thriftClass = SStringDictionaryConstant.class)
+public class ConstantStringDictionary implements StringDictionary<SStringDictionaryConstant> {
+
   private String value;
   private long id;
+
+  /** for deserialization */
+  public ConstantStringDictionary() {
+
+  }
 
   public ConstantStringDictionary(String value, long id) {
     this.value = value;
@@ -200,6 +211,19 @@ public class ConstantStringDictionary implements StringDictionary {
 
   public long getId() {
     return id;
+  }
+
+  @Override
+  public void serialize(DataSerializationHelper mgr, SStringDictionaryConstant target) throws SerializationException {
+    target.setId(id);
+    target.setValue(value);
+  }
+
+  @Override
+  public void deserialize(DataSerializationHelper mgr, SStringDictionaryConstant source)
+      throws DeserializationException {
+    id = source.getId();
+    value = source.getValue();
   }
 
 }

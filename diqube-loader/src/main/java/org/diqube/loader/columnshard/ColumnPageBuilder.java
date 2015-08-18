@@ -102,9 +102,9 @@ public class ColumnPageBuilder {
     // Build a LongDictionary from the values we want to store in the page. This might re-assign IDs.
     CompressedLongDictionaryBuilder columnPageDictBuilder = new CompressedLongDictionaryBuilder();
     columnPageDictBuilder.withDictionaryName(name).fromEntityMap(this.valueMap);
-    Pair<LongDictionary, Map<Long, Long>> builderRes = columnPageDictBuilder.build();
+    Pair<LongDictionary<?>, Map<Long, Long>> builderRes = columnPageDictBuilder.build();
 
-    LongDictionary columnPageDict = builderRes.getLeft();
+    LongDictionary<?> columnPageDict = builderRes.getLeft();
     Map<Long, Long> columnPageIdAdjust = builderRes.getRight();
 
     // If the builder of the columnPage dict decided to adjust the IDs, we need to integrate those changes into
@@ -134,7 +134,7 @@ public class ColumnPageBuilder {
       logger.debug("Compressing values of '{}' using {} (expected ratio {})",
           new Object[] { name, bestStrat.getClass().getSimpleName(), bestRatio });
 
-      CompressedLongArray compressedValues = bestStrat.compress(values);
+      CompressedLongArray<?> compressedValues = bestStrat.compress(values);
 
       // build final ColumnPage
       ColumnPage page = columnPageFactory.createColumnPage(columnPageDict, compressedValues, firstRowId, name);
@@ -159,7 +159,7 @@ public class ColumnPageBuilder {
     double compressionRatio(long[] array);
 
     /** Compress using this strategy. */
-    CompressedLongArray compress(long[] array);
+    CompressedLongArray<?> compress(long[] array);
 
     /** Clear thread local information that was stored when calling {@link #compressionRatio(long[])}. */
     void clear();
@@ -178,7 +178,7 @@ public class ColumnPageBuilder {
     }
 
     @Override
-    public CompressedLongArray compress(long[] array) {
+    public CompressedLongArray<?> compress(long[] array) {
       BitEfficientLongArray be = threadLocalArray.get();
       if (be == null)
         be = new BitEfficientLongArray();
@@ -219,7 +219,7 @@ public class ColumnPageBuilder {
     }
 
     @Override
-    public CompressedLongArray compress(long[] array) {
+    public CompressedLongArray<?> compress(long[] array) {
       RunLengthLongArray refBased = threadLocalArray.get();
       if (refBased == null)
         refBased = new RunLengthLongArray();

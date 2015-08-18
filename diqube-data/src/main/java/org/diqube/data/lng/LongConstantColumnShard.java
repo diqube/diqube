@@ -38,13 +38,13 @@ public class LongConstantColumnShard extends AbstractConstantColumnShard impleme
   }
 
   @Override
-  protected LongDictionary createColumnShardDictionary(Object value) {
+  protected LongDictionary<?> createColumnShardDictionary(Object value) {
     return new ConstantLongDictionary((Long) value, 0L);
   }
 
   @Override
-  public LongDictionary getColumnShardDictionary() {
-    return (LongDictionary) super.getColumnShardDictionary();
+  public LongDictionary<?> getColumnShardDictionary() {
+    return (LongDictionary<?>) super.getColumnShardDictionary();
   }
 
 }

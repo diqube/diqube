@@ -20,6 +20,8 @@
  */
 package org.diqube.data.lng.array;
 
+import org.apache.thrift.TBase;
+
 /**
  * Instances can be used to not directly compress an input array, but retrieve the compression ratio beforehand.
  * 
@@ -36,9 +38,12 @@ package org.diqube.data.lng.array;
  * <p>
  * Methods of {@link CompressedLongArray} implemented can only be called when in compressed state.
  *
+ * @param <T>
+ *          Thrift class this long array can be serialized to/from.
+ * 
  * @author Bastian Gloeckle
  */
-public interface ExplorableCompressedLongArray extends CompressedLongArray {
+public interface ExplorableCompressedLongArray<T extends TBase<?, ?>> extends CompressedLongArray<T> {
   public enum State {
     EXPLORING, COMPRESSED
   }

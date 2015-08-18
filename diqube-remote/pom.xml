@@ -46,10 +46,6 @@
     <module>diqube-remote-query</module>
   </modules>
 
-  <properties>
-    <thrift.version.required>0.9.2</thrift.version.required>
-  </properties>
-
   <build>
     <plugins>
       <!-- Validate that Thrift compiler is available. -->
@@ -73,14 +69,14 @@
                     </not>
                   </condition>
                 </fail>
-                <echo message="Verifying version of Apache Thrift compiler (${thrift.version.required} needed)..." />
+                <echo message="Verifying version of Apache Thrift compiler (${thrift.version} needed)..." />
                 <exec executable="${thrift.executable}" outputproperty="thrift.actual.version">
                   <arg value="--version" />
                 </exec>
-                <fail message="Thrift compiler found, but wrong version. Need version ${thrift.version.required}!">
+                <fail message="Thrift compiler found, but wrong version. Need version ${thrift.version}!">
                   <condition>
                     <not>
-                      <equals arg1="Thrift version ${thrift.version.required}" arg2="${thrift.actual.version}" />
+                      <equals arg1="${thrift.version.executable.string}" arg2="${thrift.actual.version}" />
                     </not>
                   </condition>
                 </fail>

@@ -23,7 +23,15 @@ package org.diqube.data.dbl.dict;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.LongStream;
 
+import org.diqube.data.serialize.DataSerializable;
+import org.diqube.data.serialize.DataSerialization;
+import org.diqube.data.serialize.DeserializationException;
+import org.diqube.data.serialize.SerializationException;
+import org.diqube.data.serialize.thrift.v1.SDoubleDictionaryFpcPage;
+import org.diqube.data.serialize.thrift.v1.SDoubleDictionaryFpcState;
 import org.diqube.util.DoubleUtil;
 
 /**
@@ -45,7 +53,8 @@ import org.diqube.util.DoubleUtil;
  *
  * @author Bastian Gloeckle
  */
-public class FpcPage {
+@DataSerializable(thriftClass = SDoubleDictionaryFpcPage.class)
+public class FpcPage implements DataSerialization<SDoubleDictionaryFpcPage> {
   public static final int HASH_TABLE_SIZE = 16; // 1 kB, needs to be a power of 2.
 
   private static final byte FCM = 0;
@@ -58,6 +67,11 @@ public class FpcPage {
   private int size;
 
   private long firstId;
+
+  /** for deserialization */
+  public FpcPage() {
+
+  }
 
   /**
    * Set up a new page as a follow-up one of another one that has been {@link #compress(double[])}ed - the state
@@ -307,6 +321,23 @@ public class FpcPage {
       res.add(restByte);
   }
 
+  @Override
+  public void serialize(DataSerializationHelper mgr, SDoubleDictionaryFpcPage target) throws SerializationException {
+    target.setFirstId(firstId);
+    target.setSize(size);
+    target.setData(data);
+    target.setStartState(mgr.serializeChild(SDoubleDictionaryFpcState.class, startState));
+  }
+
+  @Override
+  public void deserialize(DataSerializationHelper mgr, SDoubleDictionaryFpcPage source)
+      throws DeserializationException {
+    firstId = source.getFirstId();
+    size = source.getSize();
+    data = source.getData();
+    startState = mgr.deserializeChild(State.class, source.getStartState());
+  }
+
   /**
    * Internally used callback interface for decompressing.
    */
@@ -324,12 +355,32 @@ public class FpcPage {
    * Identifies a state of the compression algorithm, which can be used to both, compress the next value(s) or
    * decompress the next value(s).
    */
-  public static class State {
+  @DataSerializable(thriftClass = SDoubleDictionaryFpcState.class)
+  public static class State implements DataSerialization<SDoubleDictionaryFpcState> {
     private long[] fcmHashTable;
     private long[] dfcmHashTable;
     private byte fcmHash; // byte is enough for up to 16kB of hash tables
     private byte dfcmHash;
     private long lastValue;
+
+    @Override
+    public void serialize(DataSerializationHelper mgr, SDoubleDictionaryFpcState target) throws SerializationException {
+      target.setDfcmHash(dfcmHash);
+      target.setFcmHash(fcmHash);
+      target.setLastValue(lastValue);
+      target.setFcmHashTable(LongStream.of(fcmHashTable).boxed().collect(Collectors.toList()));
+      target.setDfcmHashTable(LongStream.of(dfcmHashTable).boxed().collect(Collectors.toList()));
+    }
+
+    @Override
+    public void deserialize(DataSerializationHelper mgr, SDoubleDictionaryFpcState source)
+        throws DeserializationException {
+      fcmHash = source.getFcmHash();
+      dfcmHash = source.getDfcmHash();
+      lastValue = source.getLastValue();
+      fcmHashTable = source.getFcmHashTable().stream().mapToLong(Long::longValue).toArray();
+      dfcmHashTable = source.getDfcmHashTable().stream().mapToLong(Long::longValue).toArray();
+    }
   }
 
 }

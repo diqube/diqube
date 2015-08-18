@@ -24,12 +24,11 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.stream.Stream;
 
 import org.diqube.data.str.dict.ConstantStringDictionary;
+import org.diqube.data.str.dict.ParentNode;
+import org.diqube.data.str.dict.TerminalNode;
 import org.diqube.data.str.dict.TrieNode;
-import org.diqube.data.str.dict.TrieNode.ParentNode;
-import org.diqube.data.str.dict.TrieNode.TerminalNode;
 import org.diqube.data.str.dict.TrieStringDictionary;
 import org.diqube.util.Pair;
 import org.testng.Assert;
@@ -1541,25 +1540,11 @@ public class TrieStringDictionaryTest {
     Assert.assertEquals(ltEqIds, expected);
   }
 
-  private ParentNode parent(Pair<String, TrieNode>... children) {
-    char[][] childChars =
-        Stream.of(children).map(p -> p.getLeft()).map(s -> s.toCharArray()).toArray(l -> new char[l][]);
-    TrieNode[] childNodes = Stream.of(children).map(p -> p.getRight()).toArray(l -> new TrieNode[l]);
-    long minId, maxId;
-    if (childNodes[0] instanceof TerminalNode)
-      minId = ((TerminalNode) childNodes[0]).getTerminalId();
-    else
-      minId = ((ParentNode) childNodes[0]).getMinId();
-
-    if (childNodes[childNodes.length - 1] instanceof TerminalNode)
-      maxId = ((TerminalNode) childNodes[childNodes.length - 1]).getTerminalId();
-    else
-      maxId = ((ParentNode) childNodes[childNodes.length - 1]).getMaxId();
-
-    return new ParentNode(childChars, childNodes, minId, maxId);
+  private ParentNode parent(Pair<String, TrieNode<?>>... children) {
+    return TrieTestUtil.parent(children);
   }
 
   private TerminalNode terminal(long terminalId) {
-    return new TerminalNode(terminalId);
+    return TrieTestUtil.terminal(terminalId);
   }
 }

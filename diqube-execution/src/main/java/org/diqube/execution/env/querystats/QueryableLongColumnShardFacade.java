@@ -42,7 +42,7 @@ public class QueryableLongColumnShardFacade extends AbstractQueryableColumnShard
   }
 
   @Override
-  public LongDictionary getColumnShardDictionary() {
-    return (LongDictionary) super.getColumnShardDictionary();
+  public LongDictionary<?> getColumnShardDictionary() {
+    return (LongDictionary<?>) super.getColumnShardDictionary();
   }
 }

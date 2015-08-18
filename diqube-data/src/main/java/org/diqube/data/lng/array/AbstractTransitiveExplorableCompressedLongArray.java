@@ -20,13 +20,18 @@
  */
 package org.diqube.data.lng.array;
 
+import org.apache.thrift.TBase;
+
 /**
  * Abstract base implementation for {@link TransitiveExplorableCompressedLongArray}.
  *
+ * @param <T>
+ *          Thrift class this long array can be serialized to/from.
+ * 
  * @author Bastian Gloeckle
  */
-public abstract class AbstractTransitiveExplorableCompressedLongArray extends AbstractExplorableCompressedLongArray
-    implements TransitiveExplorableCompressedLongArray {
+public abstract class AbstractTransitiveExplorableCompressedLongArray<T extends TBase<?, ?>>
+    extends AbstractExplorableCompressedLongArray<T>implements TransitiveExplorableCompressedLongArray<T> {
 
   @Override
   public double expectedCompressionRatio(long[] inputArray, boolean isSorted,

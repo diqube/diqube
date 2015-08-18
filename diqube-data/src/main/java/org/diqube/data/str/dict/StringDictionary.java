@@ -20,12 +20,14 @@
  */
 package org.diqube.data.str.dict;
 
+import org.apache.thrift.TBase;
 import org.diqube.data.Dictionary;
+import org.diqube.data.SerializableDictionary;
 
 /**
  * A {@link Dictionary} for string values.
  *
  * @author Bastian Gloeckle
  */
-public interface StringDictionary extends Dictionary<String> {
+public interface StringDictionary<S extends TBase<?, ?>> extends SerializableDictionary<String, S> {
 }

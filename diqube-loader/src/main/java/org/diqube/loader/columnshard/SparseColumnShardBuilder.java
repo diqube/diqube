@@ -103,8 +103,8 @@ public class SparseColumnShardBuilder<T> {
 
       CompressedLongDictionaryBuilder builder = new CompressedLongDictionaryBuilder();
       builder.withDictionaryName(name).fromEntityMap(entityMap);
-      Pair<LongDictionary, Map<Long, Long>> builderRes = builder.build();
-      LongDictionary columnShardDictionary = builderRes.getLeft();
+      Pair<LongDictionary<?>, Map<Long, Long>> builderRes = builder.build();
+      LongDictionary<?> columnShardDictionary = builderRes.getLeft();
       idChangeMap = builderRes.getRight();
 
       res = columnShardFactory.createStandardLongColumnShard(name, pages, columnShardDictionary);
@@ -126,8 +126,8 @@ public class SparseColumnShardBuilder<T> {
 
       CompressedStringDictionaryBuilder builder = new CompressedStringDictionaryBuilder();
       builder.fromEntityMap(entityMap);
-      Pair<StringDictionary, Map<Long, Long>> builderRes = builder.build();
-      StringDictionary columnShardDictionary = builderRes.getLeft();
+      Pair<StringDictionary<?>, Map<Long, Long>> builderRes = builder.build();
+      StringDictionary<?> columnShardDictionary = builderRes.getLeft();
       idChangeMap = builderRes.getRight();
 
       res = columnShardFactory.createStandardStringColumnShard(name, pages, columnShardDictionary);
@@ -149,8 +149,8 @@ public class SparseColumnShardBuilder<T> {
 
       CompressedDoubleDictionaryBuilder builder = new CompressedDoubleDictionaryBuilder();
       builder.fromEntityMap(entityMap);
-      Pair<DoubleDictionary, Map<Long, Long>> builderRes = builder.build();
-      DoubleDictionary columnShardDictionary = builderRes.getLeft();
+      Pair<DoubleDictionary<?>, Map<Long, Long>> builderRes = builder.build();
+      DoubleDictionary<?> columnShardDictionary = builderRes.getLeft();
       idChangeMap = builderRes.getRight();
 
       res = columnShardFactory.createStandardDoubleColumnShard(name, pages, columnShardDictionary);

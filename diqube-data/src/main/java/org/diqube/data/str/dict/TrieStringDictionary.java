@@ -34,8 +34,11 @@ import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
 import org.diqube.data.Dictionary;
-import org.diqube.data.str.dict.TrieNode.ParentNode;
-import org.diqube.data.str.dict.TrieNode.TerminalNode;
+import org.diqube.data.serialize.DataSerializable;
+import org.diqube.data.serialize.DeserializationException;
+import org.diqube.data.serialize.SerializationException;
+import org.diqube.data.serialize.thrift.v1.SStringDictionaryTrie;
+import org.diqube.data.serialize.thrift.v1.SStringDictionaryTrieNode;
 import org.diqube.data.str.dict.TrieValueAnalyzer.TrieValueAnalyzerCallback;
 
 import com.google.common.collect.Sets;
@@ -73,13 +76,19 @@ import com.google.common.collect.Sets;
  *
  * @author Bastian Gloeckle
  */
-public class TrieStringDictionary implements StringDictionary {
+@DataSerializable(thriftClass = SStringDictionaryTrie.class)
+public class TrieStringDictionary implements StringDictionary<SStringDictionaryTrie> {
 
   private ParentNode root;
 
   private String firstValue;
   private String lastValue;
   private long lastId;
+
+  /** for deserialization */
+  public TrieStringDictionary() {
+
+  }
 
   /**
    * Create a new Trie dictionary.
@@ -109,12 +118,12 @@ public class TrieStringDictionary implements StringDictionary {
   public String decompressValue(long id) throws IllegalArgumentException {
     List<char[]> traversedCharSequences = new LinkedList<>();
 
-    TrieNode curNode = root;
+    TrieNode<?> curNode = root;
     if (root.getMinId() > id || root.getMaxId() < id)
       throw new IllegalArgumentException(
           "Id " + id + "out of range; available range " + root.getMinId() + "-" + root.getMaxId());
 
-    Function<TrieNode, Integer> nodeCheckFn = (node) -> {
+    Function<TrieNode<?>, Integer> nodeCheckFn = (node) -> {
       if (node instanceof TerminalNode) {
         return Long.compare(id, ((TerminalNode) node).getTerminalId());
       }
@@ -149,7 +158,7 @@ public class TrieStringDictionary implements StringDictionary {
           }
           if (proceedIntoIdx == -1) {
             for (int i = lo; i <= high; i++) {
-              TrieNode child = parent.getChildNodes()[i];
+              TrieNode<?> child = parent.getChildNodes()[i];
               int compareRes = nodeCheckFn.apply(child);
               if (compareRes == 0) {
                 proceedIntoIdx = i;
@@ -528,6 +537,23 @@ public class TrieStringDictionary implements StringDictionary {
       }
     }
     return res;
+  }
+
+  @Override
+  public void serialize(DataSerializationHelper mgr, SStringDictionaryTrie target) throws SerializationException {
+    target.setFirstValue(firstValue);
+    target.setLastValue(lastValue);
+    target.setLastId(lastId);
+    target.setRootNode(mgr.serializeChild(SStringDictionaryTrieNode.class, root));
+  }
+
+  @Override
+  public void deserialize(org.diqube.data.serialize.DataSerialization.DataSerializationHelper mgr,
+      SStringDictionaryTrie source) throws DeserializationException {
+    firstValue = source.getFirstValue();
+    lastValue = source.getLastValue();
+    lastId = source.getLastId();
+    root = mgr.deserializeChild(ParentNode.class, source.getRootNode());
   }
 
 }

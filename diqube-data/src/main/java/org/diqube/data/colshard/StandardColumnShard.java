@@ -23,6 +23,9 @@ package org.diqube.data.colshard;
 import java.util.NavigableMap;
 
 import org.diqube.data.TableShard;
+import org.diqube.data.serialize.DataSerializable;
+import org.diqube.data.serialize.DataSerialization;
+import org.diqube.data.serialize.thrift.v1.SColumnShard;
 
 /**
  * A {@link StandardColumnShard} contains separate values for each row of a single column of a {@link TableShard}.
@@ -49,7 +52,9 @@ import org.diqube.data.TableShard;
  * 
  * @author Bastian Gloeckle
  */
-public interface StandardColumnShard extends ColumnShard {
+@DataSerializable(thriftClass = SColumnShard.class,
+    deserializationDelegationManager = StandardColumnShardDeserializationDelegationManager.class)
+public interface StandardColumnShard extends ColumnShard, DataSerialization<SColumnShard> {
   /**
    * The {@link ColumnPage}s that effectively contain the Column (Shard) Value IDs which then can be used to resolve
    * actual values using {@link #getColumnShardDictionary()}.

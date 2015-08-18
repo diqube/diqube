@@ -21,6 +21,14 @@
 package org.diqube.data.lng.array;
 
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.LongStream;
+
+import org.diqube.data.serialize.DataSerializable;
+import org.diqube.data.serialize.DeserializationException;
+import org.diqube.data.serialize.SerializationException;
+import org.diqube.data.serialize.thrift.v1.SLongCompressedArray;
+import org.diqube.data.serialize.thrift.v1.SLongCompressedArrayReference;
 
 /**
  * Compresses a long array by finding the avg value and then only storing the deltas to this avg value in another long
@@ -35,7 +43,9 @@ import java.util.function.Supplier;
  *
  * @author Bastian Gloeckle
  */
-public class ReferenceBasedLongArray extends AbstractTransitiveExplorableCompressedLongArray {
+@DataSerializable(thriftClass = SLongCompressedArrayReference.class)
+public class ReferenceBasedLongArray
+    extends AbstractTransitiveExplorableCompressedLongArray<SLongCompressedArrayReference> {
 
   private boolean isSorted;
   private boolean isSameValue;
@@ -52,7 +62,7 @@ public class ReferenceBasedLongArray extends AbstractTransitiveExplorableCompres
    * The compressed values as stored in another {@link CompressedLongArray}. This is <code>null</code> if the compressed
    * values are stored in {@link #compressedValues}.
    */
-  private ExplorableCompressedLongArray delegateCompressedValueLongArray = null;
+  private ExplorableCompressedLongArray<?> delegateCompressedValueLongArray = null;
 
   public ReferenceBasedLongArray(long[] inputArray, boolean isSorted) {
     super();
@@ -148,8 +158,8 @@ public class ReferenceBasedLongArray extends AbstractTransitiveExplorableCompres
   }
 
   @Override
-  public void compress(long[] inputArray, boolean isSorted, Supplier<ExplorableCompressedLongArray> transitiveSupplier)
-      throws IllegalStateException {
+  public void compress(long[] inputArray, boolean isSorted,
+      Supplier<ExplorableCompressedLongArray<?>> transitiveSupplier) throws IllegalStateException {
     compress(inputArray, isSorted);
     delegateCompressedValueLongArray = transitiveSupplier.get();
     delegateCompressedValueLongArray.compress(compressedValues, isSorted);
@@ -193,6 +203,44 @@ public class ReferenceBasedLongArray extends AbstractTransitiveExplorableCompres
     if (compressedValues != null)
       return compressedValues[index] + refPoint;
     return delegateCompressedValueLongArray.get(index) + refPoint;
+  }
+
+  @Override
+  public void serialize(DataSerializationHelper mgr, SLongCompressedArrayReference target)
+      throws SerializationException {
+    target.setIsSorted(isSorted);
+    target.setIsSameValue(isSameValue);
+    target.setRefPoint(refPoint);
+    target.setMin(min);
+    target.setSecondMin(secondMin);
+    target.setMax(max);
+
+    if (compressedValues != null) {
+      target.setCompressedValues(LongStream.of(compressedValues).boxed().collect(Collectors.toList()));
+    } else {
+      target.setDelegateCompressedValues(
+          mgr.serializeChild(SLongCompressedArray.class, delegateCompressedValueLongArray));
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public void deserialize(DataSerializationHelper mgr, SLongCompressedArrayReference source)
+      throws DeserializationException {
+    isSorted = source.isIsSorted();
+    isSameValue = source.isIsSameValue();
+    refPoint = source.getRefPoint();
+    min = source.getMin();
+    secondMin = source.getSecondMin();
+    max = source.getMax();
+    if (source.isSetCompressedValues()) {
+      compressedValues = source.getCompressedValues().stream().mapToLong(Long::longValue).toArray();
+      delegateCompressedValueLongArray = null;
+    } else {
+      delegateCompressedValueLongArray =
+          mgr.deserializeChild(ExplorableCompressedLongArray.class, source.getDelegateCompressedValues());
+      compressedValues = null;
+    }
   }
 
 }

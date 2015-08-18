@@ -20,12 +20,18 @@
  */
 package org.diqube.data.lng.dict;
 
+import org.apache.thrift.TBase;
 import org.diqube.data.Dictionary;
+import org.diqube.data.SerializableDictionary;
+import org.diqube.data.serialize.DataSerializable;
+import org.diqube.data.serialize.thrift.v1.SLongDictionary;
 
 /**
  * A {@link Dictionary} for long values.
  *
  * @author Bastian Gloeckle
  */
-public interface LongDictionary extends Dictionary<Long> {
+@DataSerializable(thriftClass = SLongDictionary.class,
+    deserializationDelegationManager = LongDictionarySerializationDelegationManager.class)
+public interface LongDictionary<S extends TBase<?, ?>> extends SerializableDictionary<Long, S> {
 }

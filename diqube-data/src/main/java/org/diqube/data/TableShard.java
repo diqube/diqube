@@ -20,15 +20,25 @@
  */
 package org.diqube.data;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.diqube.data.colshard.ColumnShard;
 import org.diqube.data.colshard.StandardColumnShard;
 import org.diqube.data.dbl.DoubleStandardColumnShard;
 import org.diqube.data.lng.LongStandardColumnShard;
+import org.diqube.data.serialize.DataSerializable;
+import org.diqube.data.serialize.DataSerialization;
+import org.diqube.data.serialize.DeserializationException;
+import org.diqube.data.serialize.SerializationException;
+import org.diqube.data.serialize.thrift.v1.SColumnShard;
+import org.diqube.data.serialize.thrift.v1.STableShard;
 import org.diqube.data.str.StringStandardColumnShard;
+
+import com.google.common.collect.Iterables;
 
 /**
  * A {@link TableShard} contains all data of a specific consecutive subset of rows of a {@link Table}.
@@ -38,12 +48,20 @@ import org.diqube.data.str.StringStandardColumnShard;
  *
  * @author Bastian Gloeckle
  */
-public class TableShard {
+@DataSerializable(thriftClass = STableShard.class)
+public class TableShard implements DataSerialization<STableShard> {
   private Map<String, StringStandardColumnShard> stringColumns = new HashMap<>();
   private Map<String, DoubleStandardColumnShard> doubleColumns = new HashMap<>();
   private Map<String, LongStandardColumnShard> longColumns = new HashMap<>();
 
-  /* package */ TableShard(Collection<StandardColumnShard> columns) {
+  private String tableName;
+
+  /** for deserialization only */
+  public TableShard() {
+  }
+
+  /* package */ TableShard(String tableName, Collection<StandardColumnShard> columns) {
+    this.tableName = tableName;
     for (ColumnShard col : columns) {
       switch (col.getColumnType()) {
       case STRING:
@@ -106,4 +124,29 @@ public class TableShard {
     return -1;
   }
 
+  @Override
+  public void serialize(DataSerializationHelper mgr, STableShard target) throws SerializationException {
+    target.setTableName(tableName);
+    List<SColumnShard> serializedCols = new ArrayList<>();
+    for (StandardColumnShard shard : Iterables.concat(stringColumns.values(), longColumns.values(),
+        doubleColumns.values()))
+      serializedCols.add(mgr.serializeChild(SColumnShard.class, shard));
+    target.setColumnShards(serializedCols);
+  }
+
+  @Override
+  public void deserialize(DataSerializationHelper mgr, STableShard source) throws DeserializationException {
+    this.tableName = source.getTableName();
+    for (SColumnShard serCol : source.getColumnShards()) {
+      StandardColumnShard de = mgr.deserializeChild(StandardColumnShard.class, serCol);
+      if (de instanceof StringStandardColumnShard)
+        stringColumns.put(de.getName(), (StringStandardColumnShard) de);
+      else if (de instanceof LongStandardColumnShard)
+        longColumns.put(de.getName(), (LongStandardColumnShard) de);
+      else if (de instanceof DoubleStandardColumnShard)
+        doubleColumns.put(de.getName(), (DoubleStandardColumnShard) de);
+      else
+        throw new DeserializationException("Cannot deserialize column " + de.getName());
+    }
+  }
 }

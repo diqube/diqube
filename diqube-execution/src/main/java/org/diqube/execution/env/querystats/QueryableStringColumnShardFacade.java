@@ -43,7 +43,7 @@ public class QueryableStringColumnShardFacade extends AbstractQueryableColumnSha
   }
 
   @Override
-  public StringDictionary getColumnShardDictionary() {
-    return (StringDictionary) super.getColumnShardDictionary();
+  public StringDictionary<?> getColumnShardDictionary() {
+    return (StringDictionary<?>) super.getColumnShardDictionary();
   }
 }

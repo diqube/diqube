@@ -22,6 +22,13 @@ package org.diqube.data.colshard;
 
 import org.diqube.data.lng.array.CompressedLongArray;
 import org.diqube.data.lng.dict.LongDictionary;
+import org.diqube.data.serialize.DataSerializable;
+import org.diqube.data.serialize.DataSerialization;
+import org.diqube.data.serialize.DeserializationException;
+import org.diqube.data.serialize.SerializationException;
+import org.diqube.data.serialize.thrift.v1.SColumnPage;
+import org.diqube.data.serialize.thrift.v1.SLongCompressedArray;
+import org.diqube.data.serialize.thrift.v1.SLongDictionary;
 
 /**
  * {@link ColumnPage} holds the data of a specific set of consecutive rows of one {@link ColumnShard}.
@@ -36,27 +43,34 @@ import org.diqube.data.lng.dict.LongDictionary;
  *
  * @author Bastian Gloeckle
  */
-public class ColumnPage {
-  private LongDictionary columnPageDict;
+@DataSerializable(thriftClass = SColumnPage.class)
+public class ColumnPage implements DataSerialization<SColumnPage> {
+  private LongDictionary<?> columnPageDict;
 
-  private CompressedLongArray values;
+  private CompressedLongArray<?> values;
 
   private long firstRowId;
 
   private String name;
 
-  /* package */ ColumnPage(LongDictionary columnPageDict, CompressedLongArray values, long firstRowId, String name) {
+  /** for deserialization */
+  public ColumnPage() {
+
+  }
+
+  /* package */ ColumnPage(LongDictionary<?> columnPageDict, CompressedLongArray<?> values, long firstRowId,
+      String name) {
     this.columnPageDict = columnPageDict;
     this.values = values;
     this.firstRowId = firstRowId;
     this.name = name;
   }
 
-  public LongDictionary getColumnPageDict() {
+  public LongDictionary<?> getColumnPageDict() {
     return columnPageDict;
   }
 
-  public CompressedLongArray getValues() {
+  public CompressedLongArray<?> getValues() {
     return values;
   }
 
@@ -76,5 +90,22 @@ public class ColumnPage {
 
   public String getName() {
     return name;
+  }
+
+  @Override
+  public void serialize(DataSerializationHelper mgr, SColumnPage target) throws SerializationException {
+    target.setName(name);
+    target.setFirstRowId(firstRowId);
+    target.setPageDict(mgr.serializeChild(SLongDictionary.class, columnPageDict));
+    target.setValues(mgr.serializeChild(SLongCompressedArray.class, values));
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public void deserialize(DataSerializationHelper mgr, SColumnPage source) throws DeserializationException {
+    name = source.getName();
+    firstRowId = source.getFirstRowId();
+    columnPageDict = mgr.deserializeChild(LongDictionary.class, source.getPageDict());
+    values = mgr.deserializeChild(CompressedLongArray.class, source.getValues());
   }
 }

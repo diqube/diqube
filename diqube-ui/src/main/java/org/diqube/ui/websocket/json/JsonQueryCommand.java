@@ -104,7 +104,7 @@ public class JsonQueryCommand extends JsonCommand {
           JsonQueryStatsPayload statsPayload = new JsonQueryStatsPayload();
           statsPayload.loadFromQueryStatRes(stats);
 
-          // TODO handle case where we do not receive STATS - who closes the websocket?
+          // TODO #52: handle case where we do not receive STATS - who closes the websocket?
           try {
             String statsString = serializer.serialize(statsPayload);
 

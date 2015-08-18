@@ -20,10 +20,20 @@
  */
 package org.diqube.data.colshard;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.NavigableMap;
+import java.util.TreeMap;
 
 import org.diqube.data.ColumnType;
 import org.diqube.data.Dictionary;
+import org.diqube.data.SerializableDictionary;
+import org.diqube.data.serialize.DeserializationException;
+import org.diqube.data.serialize.SerializationException;
+import org.diqube.data.serialize.thrift.v1.SColumnPage;
+import org.diqube.data.serialize.thrift.v1.SColumnShard;
+import org.diqube.data.serialize.thrift.v1.SColumnType;
+import org.diqube.data.serialize.thrift.v1.SDictionary;
 
 /**
  * Abstract implementation of a {@link StandardColumnShard}.
@@ -31,7 +41,7 @@ import org.diqube.data.Dictionary;
  * @author Bastian Gloeckle
  */
 public abstract class AbstractStandardColumnShard implements StandardColumnShard {
-  protected Dictionary<?> columnShardDictionary;
+  protected SerializableDictionary<?, ?> columnShardDictionary;
 
   protected String name;
 
@@ -41,6 +51,11 @@ public abstract class AbstractStandardColumnShard implements StandardColumnShard
    * Map from firstId to {@link ColumnPage}
    */
   protected NavigableMap<Long, ColumnPage> pages;
+
+  /** for deserialization */
+  protected AbstractStandardColumnShard() {
+
+  }
 
   /**
    * Create a new column shard.
@@ -56,7 +71,7 @@ public abstract class AbstractStandardColumnShard implements StandardColumnShard
    *          The Column dictionary, see class comment.
    */
   protected AbstractStandardColumnShard(ColumnType columnType, String name, NavigableMap<Long, ColumnPage> pages,
-      Dictionary<?> columnShardDictionary) {
+      SerializableDictionary<?, ?> columnShardDictionary) {
     this.columnType = columnType;
     this.name = name;
     this.pages = pages;
@@ -94,6 +109,52 @@ public abstract class AbstractStandardColumnShard implements StandardColumnShard
   @Override
   public long getFirstRowId() {
     return pages.firstKey();
+  }
+
+  @Override
+  public void serialize(DataSerializationHelper mgr, SColumnShard target) throws SerializationException {
+    target.setName(name);
+    switch (columnType) {
+    case STRING:
+      target.setType(SColumnType.STRING);
+      break;
+    case LONG:
+      target.setType(SColumnType.LONG);
+      break;
+    case DOUBLE:
+      target.setType(SColumnType.DOUBLE);
+      break;
+    }
+    target.setDictionary(mgr.serializeChild(SDictionary.class, columnShardDictionary));
+    List<SColumnPage> serializedPages = new ArrayList<>();
+    for (ColumnPage page : pages.values())
+      serializedPages.add(mgr.serializeChild(SColumnPage.class, page));
+    target.setPages(serializedPages);
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public void deserialize(DataSerializationHelper mgr, SColumnShard source) throws DeserializationException {
+    name = source.getName();
+    switch (source.getType()) {
+    case STRING:
+      columnType = ColumnType.STRING;
+      break;
+    case LONG:
+      columnType = ColumnType.LONG;
+      break;
+    case DOUBLE:
+      columnType = ColumnType.DOUBLE;
+      break;
+    default:
+      throw new DeserializationException("Unknown type");
+    }
+    columnShardDictionary = mgr.deserializeChild(SerializableDictionary.class, source.getDictionary());
+    pages = new TreeMap<>();
+    for (SColumnPage serializedPage : source.getPages()) {
+      ColumnPage page = mgr.deserializeChild(ColumnPage.class, serializedPage);
+      pages.put(page.getFirstRowId(), page);
+    }
   }
 
 }

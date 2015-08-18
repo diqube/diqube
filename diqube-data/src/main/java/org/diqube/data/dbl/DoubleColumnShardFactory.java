@@ -38,7 +38,7 @@ import org.diqube.data.dbl.dict.DoubleDictionary;
 @AutoInstatiate
 public class DoubleColumnShardFactory {
   public DoubleStandardColumnShard createStandardDoubleColumnShard(String colName, NavigableMap<Long, ColumnPage> pages,
-      DoubleDictionary columnDictionary) {
+      DoubleDictionary<?> columnDictionary) {
     return new DoubleStandardColumnShard(colName, pages, columnDictionary);
   }
 

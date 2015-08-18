@@ -36,16 +36,16 @@ import org.testng.internal.junit.ArrayComparisonFailure;
  */
 public abstract class AbstractCompressedLongArrayTest {
 
-  private Supplier<ExplorableCompressedLongArray> longArraySupplier;
+  private Supplier<ExplorableCompressedLongArray<?>> longArraySupplier;
   private TestCompressor compressor;
 
-  public AbstractCompressedLongArrayTest(Supplier<ExplorableCompressedLongArray> longArraySupplier,
+  public AbstractCompressedLongArrayTest(Supplier<ExplorableCompressedLongArray<?>> longArraySupplier,
       TestCompressor compressor) {
     this.longArraySupplier = longArraySupplier;
     this.compressor = compressor;
   }
 
-  public AbstractCompressedLongArrayTest(Supplier<ExplorableCompressedLongArray> longArraySupplier) {
+  public AbstractCompressedLongArrayTest(Supplier<ExplorableCompressedLongArray<?>> longArraySupplier) {
     this(longArraySupplier, (longArray, values, isSorted) -> longArray.compress(values, isSorted));
   }
 
@@ -176,7 +176,7 @@ public abstract class AbstractCompressedLongArrayTest {
   }
 
   private void executeCompressionAndValidate(long[] values, String assertionText) throws ArrayComparisonFailure {
-    ExplorableCompressedLongArray longArray = longArraySupplier.get();
+    ExplorableCompressedLongArray<?> longArray = longArraySupplier.get();
     compressor.compress(longArray, values, false);
     long[] decompressed = longArray.decompressedArray();
 
@@ -210,7 +210,7 @@ public abstract class AbstractCompressedLongArrayTest {
   }
 
   protected static interface TestCompressor {
-    public void compress(ExplorableCompressedLongArray longArray, long[] values, boolean isSorted);
+    public void compress(ExplorableCompressedLongArray<?> longArray, long[] values, boolean isSorted);
   }
 
 }

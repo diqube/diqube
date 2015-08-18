@@ -26,15 +26,25 @@ import java.util.Set;
 import java.util.TreeMap;
 
 import org.diqube.data.Dictionary;
+import org.diqube.data.serialize.DataSerializable;
+import org.diqube.data.serialize.DeserializationException;
+import org.diqube.data.serialize.SerializationException;
+import org.diqube.data.serialize.thrift.v1.SDoubleDictionaryConstant;
 
 /**
  * A {@link DoubleDictionary} that can hold a single constant value/id pair.
  *
  * @author Bastian Gloeckle
  */
-public class ConstantDoubleDictionary implements DoubleDictionary {
+@DataSerializable(thriftClass = SDoubleDictionaryConstant.class)
+public class ConstantDoubleDictionary implements DoubleDictionary<SDoubleDictionaryConstant> {
   private Double value;
   private long id;
+
+  /** for deserialization */
+  public ConstantDoubleDictionary() {
+
+  }
 
   public ConstantDoubleDictionary(Double value, long id) {
     this.value = value;
@@ -200,6 +210,19 @@ public class ConstantDoubleDictionary implements DoubleDictionary {
   @Override
   public Long getMaxId() {
     return id;
+  }
+
+  @Override
+  public void serialize(DataSerializationHelper mgr, SDoubleDictionaryConstant target) throws SerializationException {
+    target.setId(id);
+    target.setValue(value);
+  }
+
+  @Override
+  public void deserialize(DataSerializationHelper mgr, SDoubleDictionaryConstant source)
+      throws DeserializationException {
+    id = source.getId();
+    value = source.getValue();
   }
 
 }

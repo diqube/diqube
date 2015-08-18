@@ -153,7 +153,7 @@ public class RowIdEqualsStepTest {
     for (String colName : columnShardBuilderManager.getAllColumnsWithValues())
       columns.add(columnShardBuilderManager.build(colName));
 
-    return tableFactory.createTableShard(columns);
+    return tableFactory.createTableShard("table", columns);
   }
 
   private List<AbstractThreadedExecutablePlanStep> createIdEqualsAndResolveSteps(ExecutionEnvironment env,
@@ -176,7 +176,7 @@ public class RowIdEqualsStepTest {
         Map<Long, Long> values = new HashMap<>();
         // resolve column dictionary id to actual value
         rowIdToColumnDictId.forEach((rowId, colDictValueId) -> {
-          LongDictionary columnValueDict = env.getLongColumnShard(colName).getColumnShardDictionary();
+          LongDictionary<?> columnValueDict = env.getLongColumnShard(colName).getColumnShardDictionary();
           values.put(rowId, columnValueDict.decompressValue(colDictValueId));
         });
 

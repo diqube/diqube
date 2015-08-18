@@ -46,7 +46,7 @@ public class ColumnPageFactory {
    *          column it is.
    * @return The new {@link ColumnPage}.
    */
-  public ColumnPage createColumnPage(LongDictionary columnPageDict, CompressedLongArray values, long firstRowId,
+  public ColumnPage createColumnPage(LongDictionary<?> columnPageDict, CompressedLongArray<?> values, long firstRowId,
       String name) {
     return new ColumnPage(columnPageDict, values, firstRowId, name);
   }

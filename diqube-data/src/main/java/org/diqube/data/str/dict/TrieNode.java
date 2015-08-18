@@ -20,56 +20,50 @@
  */
 package org.diqube.data.str.dict;
 
+import org.apache.thrift.TBase;
+import org.diqube.data.serialize.DataSerializable;
+import org.diqube.data.serialize.DataSerialization;
+import org.diqube.data.serialize.DataSerializationDelegationManager;
+import org.diqube.data.serialize.DeserializationException;
+import org.diqube.data.serialize.SerializationException;
+import org.diqube.data.serialize.thrift.v1.SStringDictionaryTrieNode;
+import org.diqube.data.serialize.thrift.v1.SStringDictionaryTrieParentNode;
+import org.diqube.data.serialize.thrift.v1.SStringDictionaryTrieTerminalNode;
+import org.diqube.data.str.dict.TrieNode.TrieNodeDeserializationDelegation;
+import org.diqube.util.Pair;
+
 /**
  * A TrieNode in the trie. See class comment of {@link TrieStringDictionary}.
  */
-public class TrieNode {
+@DataSerializable(thriftClass = SStringDictionaryTrieNode.class,
+    deserializationDelegationManager = TrieNodeDeserializationDelegation.class)
+public abstract class TrieNode<T extends TBase<?, ?>> implements DataSerialization<T> {
   /**
-   * A parent TrieNode in the trie. See class comment of {@link TrieStringDictionary}.
+   * A {@link DataSerializationDelegationManager} for trie nodes.
    */
-  public static class ParentNode extends TrieNode {
-    private TrieNode[] childNodes;
-    // sorted!
-    private char[][] childChars;
-    private long minId;
-    private long maxId;
+  public static class TrieNodeDeserializationDelegation
+      implements DataSerializationDelegationManager<SStringDictionaryTrieNode> {
+    @Override
+    public Pair<Class<? extends DataSerialization<?>>, TBase<?, ?>> getDeserializationDelegate(
+        SStringDictionaryTrieNode serialized) throws DeserializationException {
+      if (serialized.isSetParentNode())
+        return new Pair<>(ParentNode.class, serialized.getParentNode());
+      if (serialized.isSetTerminalNode())
+        return new Pair<>(TerminalNode.class, serialized.getTerminalNode());
 
-    public ParentNode(char[][] childChars, TrieNode[] childNodes, long minId, long maxId) {
-      this.childChars = childChars;
-      this.childNodes = childNodes;
-      this.minId = minId;
-      this.maxId = maxId;
+      throw new DeserializationException("Unknown trie node type.");
     }
 
-    public TrieNode[] getChildNodes() {
-      return childNodes;
-    }
-
-    public char[][] getChildChars() {
-      return childChars;
-    }
-
-    public long getMinId() {
-      return minId;
-    }
-
-    public long getMaxId() {
-      return maxId;
-    }
-  }
-
-  /**
-   * A terminal TrieNode in the trie. See class comment of {@link TrieStringDictionary}.
-   */
-  public static class TerminalNode extends TrieNode {
-    private long terminalId;
-
-    public TerminalNode(long terminalId) {
-      this.terminalId = terminalId;
-    }
-
-    public long getTerminalId() {
-      return terminalId;
+    @Override
+    public <O extends TBase<?, ?>> SStringDictionaryTrieNode serializeWrapObject(O obj) throws SerializationException {
+      SStringDictionaryTrieNode res = new SStringDictionaryTrieNode();
+      if (obj instanceof SStringDictionaryTrieParentNode)
+        res.setParentNode((SStringDictionaryTrieParentNode) obj);
+      else if (obj instanceof SStringDictionaryTrieTerminalNode)
+        res.setTerminalNode((SStringDictionaryTrieTerminalNode) obj);
+      else
+        throw new SerializationException("Cannot wrap " + obj);
+      return res;
     }
   }
 }

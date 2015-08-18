@@ -35,12 +35,17 @@ import org.diqube.data.lng.dict.LongDictionary;
  */
 public class LongStandardColumnShard extends AbstractStandardColumnShard implements LongColumnShard {
 
-  LongStandardColumnShard(String name, NavigableMap<Long, ColumnPage> pages, LongDictionary columnDictionary) {
+  /** for deserialization */
+  public LongStandardColumnShard() {
+    super();
+  }
+
+  LongStandardColumnShard(String name, NavigableMap<Long, ColumnPage> pages, LongDictionary<?> columnDictionary) {
     super(ColumnType.LONG, name, pages, columnDictionary);
   }
 
   @Override
-  public LongDictionary getColumnShardDictionary() {
-    return (LongDictionary) super.getColumnShardDictionary();
+  public LongDictionary<?> getColumnShardDictionary() {
+    return (LongDictionary<?>) super.getColumnShardDictionary();
   }
 }

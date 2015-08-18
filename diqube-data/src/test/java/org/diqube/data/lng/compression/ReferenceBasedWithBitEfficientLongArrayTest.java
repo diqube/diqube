@@ -33,7 +33,7 @@ public class ReferenceBasedWithBitEfficientLongArrayTest extends AbstractCompres
   public ReferenceBasedWithBitEfficientLongArrayTest() {
     super(() -> new ReferenceBasedLongArray(), new TestCompressor() {
       @Override
-      public void compress(ExplorableCompressedLongArray longArray, long[] values, boolean isSorted) {
+      public void compress(ExplorableCompressedLongArray<?> longArray, long[] values, boolean isSorted) {
         ((ReferenceBasedLongArray) longArray).compress(values, isSorted, () -> new BitEfficientLongArray());
       }
     });

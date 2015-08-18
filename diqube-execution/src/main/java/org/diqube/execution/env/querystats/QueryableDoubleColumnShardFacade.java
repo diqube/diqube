@@ -43,7 +43,7 @@ public class QueryableDoubleColumnShardFacade extends AbstractQueryableColumnSha
   }
 
   @Override
-  public DoubleDictionary getColumnShardDictionary() {
-    return (DoubleDictionary) super.getColumnShardDictionary();
+  public DoubleDictionary<?> getColumnShardDictionary() {
+    return (DoubleDictionary<?>) super.getColumnShardDictionary();
   }
 }

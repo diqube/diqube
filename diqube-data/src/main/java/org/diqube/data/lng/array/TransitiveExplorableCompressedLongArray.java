@@ -22,13 +22,19 @@ package org.diqube.data.lng.array;
 
 import java.util.function.Supplier;
 
+import org.apache.thrift.TBase;
+
 /**
  * A {@link ExplorableCompressedLongArray} that allows compression using another {@link ExplorableCompressedLongArray}
  * for the compression of the results of the outer compression.
  *
+ * @param <T>
+ *          Thrift class this long array can be serialized to/from.
+ *
  * @author Bastian Gloeckle
  */
-public interface TransitiveExplorableCompressedLongArray extends ExplorableCompressedLongArray {
+public interface TransitiveExplorableCompressedLongArray<T extends TBase<?, ?>>
+    extends ExplorableCompressedLongArray<T> {
   /**
    * Like {@link #expectedCompressionRatio(long[], boolean)}, but expects that there will be another
    * {@link ExplorableCompressedLongArray} used as storage for this compressed array.
@@ -44,8 +50,8 @@ public interface TransitiveExplorableCompressedLongArray extends ExplorableCompr
    * {@link ExplorableCompressedLongArray} used as storage for this compressed array, of which an instance is supplied
    * by the Supplier.
    */
-  public void compress(long[] inputArray, boolean isSorted, Supplier<ExplorableCompressedLongArray> transitiveSupplier)
-      throws IllegalStateException;
+  public void compress(long[] inputArray, boolean isSorted,
+      Supplier<ExplorableCompressedLongArray<?>> transitiveSupplier) throws IllegalStateException;
 
   /**
    * Calculates the compression ratio that would be available for a specific range of values.

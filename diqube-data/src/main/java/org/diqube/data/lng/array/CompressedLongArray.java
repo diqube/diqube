@@ -20,12 +20,22 @@
  */
 package org.diqube.data.lng.array;
 
+import org.apache.thrift.TBase;
+import org.diqube.data.serialize.DataSerializable;
+import org.diqube.data.serialize.DataSerialization;
+import org.diqube.data.serialize.thrift.v1.SLongCompressedArray;
+
 /**
  * A compressed representation of a long[].
  *
+ * @param <T>
+ *          Thrift class this long array can be serialized to/from.
+ *
  * @author Bastian Gloeckle
  */
-public interface CompressedLongArray {
+@DataSerializable(thriftClass = SLongCompressedArray.class,
+    deserializationDelegationManager = CompressedLongArrayDeserializationDelegationManager.class)
+public interface CompressedLongArray<T extends TBase<?, ?>> extends DataSerialization<T> {
   /**
    * @return True if the decompressed values are equal for every index in the array.
    */

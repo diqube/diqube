@@ -21,6 +21,14 @@
 package org.diqube.data.lng.array;
 
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.LongStream;
+
+import org.diqube.data.serialize.DataSerializable;
+import org.diqube.data.serialize.DeserializationException;
+import org.diqube.data.serialize.SerializationException;
+import org.diqube.data.serialize.thrift.v1.SLongCompressedArray;
+import org.diqube.data.serialize.thrift.v1.SLongCompressedArrayRLE;
 
 /**
  * Run-Length-Encoding for long arrays.
@@ -39,7 +47,8 @@ import java.util.function.Supplier;
  *
  * @author Bastian Gloeckle
  */
-public class RunLengthLongArray extends AbstractTransitiveExplorableCompressedLongArray {
+@DataSerializable(thriftClass = SLongCompressedArrayRLE.class)
+public class RunLengthLongArray extends AbstractTransitiveExplorableCompressedLongArray<SLongCompressedArrayRLE> {
 
   /** If the decompressed array is sorted. */
   private boolean isSorted;
@@ -56,9 +65,9 @@ public class RunLengthLongArray extends AbstractTransitiveExplorableCompressedLo
    */
   private long[] compressedCounts;
   /** Contains compressed values. If <code>null</code>, the compressed values are in {@link #compressedValues} */
-  private ExplorableCompressedLongArray delegateCompressedValue = null;
+  private ExplorableCompressedLongArray<?> delegateCompressedValue = null;
   /** Contains compressed counts. If <code>null</code>, the compressed values are in {@link #compressedCounts} */
-  private ExplorableCompressedLongArray delegateCompressedCounts = null;
+  private ExplorableCompressedLongArray<?> delegateCompressedCounts = null;
   /** size of the uncompressed array */
   private int size;
 
@@ -157,8 +166,8 @@ public class RunLengthLongArray extends AbstractTransitiveExplorableCompressedLo
   }
 
   @Override
-  public void compress(long[] inputArray, boolean isSorted, Supplier<ExplorableCompressedLongArray> transitiveSupplier)
-      throws IllegalStateException {
+  public void compress(long[] inputArray, boolean isSorted,
+      Supplier<ExplorableCompressedLongArray<?>> transitiveSupplier) throws IllegalStateException {
     compress(inputArray, isSorted);
     delegateCompressedCounts = transitiveSupplier.get();
     delegateCompressedCounts.compress(compressedCounts, false);
@@ -248,6 +257,51 @@ public class RunLengthLongArray extends AbstractTransitiveExplorableCompressedLo
     if (compressedValues != null)
       return compressedValues[internalSize - 1];
     return delegateCompressedValue.get(internalSize - 1);
+  }
+
+  @Override
+  public void serialize(DataSerializationHelper mgr, SLongCompressedArrayRLE target) throws SerializationException {
+    target.setSize(size);
+    target.setIsSorted(isSorted);
+    target.setNumberOfDifferentTuples(numberOfDifferentTuples);
+    target.setMaxValue(maxValue);
+    target.setMaxCount(maxCount);
+    target.setMinValue(minValue);
+    target.setSecondMinValue(secondMinValue);
+    target.setMinCount(minCount);
+    if (compressedValues != null) {
+      target.setCompressedValues(LongStream.of(compressedValues).boxed().collect(Collectors.toList()));
+      target.setCompressedCounts(LongStream.of(compressedCounts).boxed().collect(Collectors.toList()));
+    } else {
+      target.setDelegateCompressedValue(mgr.serializeChild(SLongCompressedArray.class, delegateCompressedValue));
+      target.setDelegateCompressedCounts(mgr.serializeChild(SLongCompressedArray.class, delegateCompressedCounts));
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public void deserialize(DataSerializationHelper mgr, SLongCompressedArrayRLE source) throws DeserializationException {
+    size = source.getSize();
+    isSorted = source.isIsSorted();
+    numberOfDifferentTuples = source.getNumberOfDifferentTuples();
+    maxValue = source.getMaxValue();
+    maxCount = source.getMaxCount();
+    minValue = source.getMinValue();
+    secondMinValue = source.getSecondMinValue();
+    minCount = source.getMinCount();
+    if (source.isSetCompressedValues()) {
+      compressedValues = source.getCompressedValues().stream().mapToLong(Long::longValue).toArray();
+      compressedCounts = source.getCompressedCounts().stream().mapToLong(Long::longValue).toArray();
+      delegateCompressedValue = null;
+      delegateCompressedCounts = null;
+    } else {
+      delegateCompressedValue =
+          mgr.deserializeChild(ExplorableCompressedLongArray.class, source.getDelegateCompressedValue());
+      delegateCompressedCounts =
+          mgr.deserializeChild(ExplorableCompressedLongArray.class, source.getDelegateCompressedCounts());
+      compressedValues = null;
+      compressedCounts = null;
+    }
   }
 
 }

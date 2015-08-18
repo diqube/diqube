@@ -68,7 +68,7 @@ public class ColumnShardFactory {
    * @return The new {@link StringStandardColumnShard}.
    */
   public StringStandardColumnShard createStandardStringColumnShard(String colName, NavigableMap<Long, ColumnPage> pages,
-      StringDictionary columnShardDictionary) {
+      StringDictionary<?> columnShardDictionary) {
     return stringColumnShardFactory.createStandardStringColumnShard(colName, pages, columnShardDictionary);
   }
 
@@ -100,7 +100,7 @@ public class ColumnShardFactory {
    * @return The new {@link LongStandardColumnShard}.
    */
   public LongStandardColumnShard createStandardLongColumnShard(String colName, NavigableMap<Long, ColumnPage> pages,
-      LongDictionary columnShardDictionary) {
+      LongDictionary<?> columnShardDictionary) {
     return longColumnShardFactory.createStandardLongColumnShard(colName, pages, columnShardDictionary);
   }
 
@@ -132,7 +132,7 @@ public class ColumnShardFactory {
    * @return The new {@link DoubleStandardColumnShard}.
    */
   public DoubleStandardColumnShard createStandardDoubleColumnShard(String colName, NavigableMap<Long, ColumnPage> pages,
-      DoubleDictionary columnShardDictionary) {
+      DoubleDictionary<?> columnShardDictionary) {
     return doubleColumnShardFactory.createStandardDoubleColumnShard(colName, pages, columnShardDictionary);
   }
 

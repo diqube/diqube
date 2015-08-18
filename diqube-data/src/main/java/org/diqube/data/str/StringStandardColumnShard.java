@@ -34,12 +34,17 @@ import org.diqube.data.str.dict.StringDictionary;
  */
 public class StringStandardColumnShard extends AbstractStandardColumnShard implements StringColumnShard {
 
-  StringStandardColumnShard(String name, NavigableMap<Long, ColumnPage> pages, StringDictionary columnDictionary) {
+  /** for deserialization */
+  public StringStandardColumnShard() {
+    super();
+  }
+
+  StringStandardColumnShard(String name, NavigableMap<Long, ColumnPage> pages, StringDictionary<?> columnDictionary) {
     super(ColumnType.STRING, name, pages, columnDictionary);
   }
 
   @Override
-  public StringDictionary getColumnShardDictionary() {
-    return (StringDictionary) super.getColumnShardDictionary();
+  public StringDictionary<?> getColumnShardDictionary() {
+    return (StringDictionary<?>) super.getColumnShardDictionary();
   }
 }

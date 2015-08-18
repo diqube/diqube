@@ -27,13 +27,18 @@ import java.util.Set;
 import java.util.TreeMap;
 
 import org.diqube.data.Dictionary;
+import org.diqube.data.serialize.DataSerializable;
+import org.diqube.data.serialize.DeserializationException;
+import org.diqube.data.serialize.SerializationException;
+import org.diqube.data.serialize.thrift.v1.SLongDictionaryEmpty;
 
 /**
  * An empty {@link LongDictionary}.
  *
  * @author Bastian Gloeckle
  */
-public class EmptyLongDictionary implements LongDictionary {
+@DataSerializable(thriftClass = SLongDictionaryEmpty.class)
+public class EmptyLongDictionary implements LongDictionary<SLongDictionaryEmpty> {
 
   @Override
   public Long decompressValue(long id) throws IllegalArgumentException {
@@ -130,6 +135,14 @@ public class EmptyLongDictionary implements LongDictionary {
   @Override
   public Long getMaxId() {
     return null;
+  }
+
+  @Override
+  public void serialize(DataSerializationHelper mgr, SLongDictionaryEmpty target) throws SerializationException {
+  }
+
+  @Override
+  public void deserialize(DataSerializationHelper mgr, SLongDictionaryEmpty source) throws DeserializationException {
   }
 
 }

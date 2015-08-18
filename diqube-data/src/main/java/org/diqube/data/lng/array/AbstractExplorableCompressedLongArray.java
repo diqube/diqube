@@ -22,13 +22,19 @@ package org.diqube.data.lng.array;
 
 import java.lang.ref.WeakReference;
 
+import org.apache.thrift.TBase;
+
 /**
  * Abstract implementation of {@link ExplorableCompressedLongArray} which handles the {@link State} transitions and
  * introduces compression preparation.
  *
+ * @param <T>
+ *          Thrift class this long array can be serialized to/from.
+ * 
  * @author Bastian Gloeckle
  */
-public abstract class AbstractExplorableCompressedLongArray implements ExplorableCompressedLongArray {
+public abstract class AbstractExplorableCompressedLongArray<T extends TBase<?, ?>>
+    implements ExplorableCompressedLongArray<T> {
   /** {@link State} this instance is in. */
   protected State state;
   /**
