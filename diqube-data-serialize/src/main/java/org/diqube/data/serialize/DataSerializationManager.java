@@ -66,7 +66,7 @@ public class DataSerializationManager {
     return new DataSerializer(thriftClasses, delegationManagers);
   }
 
-  public DataDeserializer createDeerializer() {
+  public DataDeserializer createDeserializer() {
     return new DataDeserializer(thriftClasses, liveClasses, delegationManagers);
   }
 

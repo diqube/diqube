@@ -34,6 +34,7 @@ import org.diqube.data.TableFactory;
 import org.diqube.data.TableShard;
 import org.diqube.execution.TableRegistry;
 import org.diqube.loader.CsvLoader;
+import org.diqube.loader.DiqubeLoader;
 import org.diqube.loader.JsonLoader;
 import org.diqube.loader.LoadException;
 import org.diqube.loader.Loader;
@@ -54,19 +55,22 @@ public class ControlFileLoader {
 
   public static final String TYPE_CSV = "csv";
   public static final String TYPE_JSON = "json";
+  public static final String TYPE_DIQUBE = "diqube";
 
   private File controlFile;
   private TableRegistry tableRegistry;
   private TableFactory tableFactory;
   private CsvLoader csvLoader;
   private JsonLoader jsonLoader;
+  private DiqubeLoader diqubeLoader;
 
   public ControlFileLoader(TableRegistry tableRegistry, TableFactory tableFactory, CsvLoader csvLoader,
-      JsonLoader jsonLoader, File controlFile) {
+      JsonLoader jsonLoader, DiqubeLoader diqubeLoader, File controlFile) {
     this.tableRegistry = tableRegistry;
     this.tableFactory = tableFactory;
     this.csvLoader = csvLoader;
     this.jsonLoader = jsonLoader;
+    this.diqubeLoader = diqubeLoader;
     this.controlFile = controlFile;
   }
 
@@ -94,7 +98,7 @@ public class ControlFileLoader {
       String firstRowIdString = controlProperties.getProperty(KEY_FIRST_ROWID);
 
       if (fileName == null || tableName == null || firstRowIdString == null || type == null
-          || !(type.equals(TYPE_CSV) || type.equals(TYPE_JSON)))
+          || !(type.equals(TYPE_CSV) || type.equals(TYPE_JSON) || type.equals(TYPE_DIQUBE)))
         throw new LoadException("Invalid control file " + controlFile.getAbsolutePath());
 
       long firstRowId;
@@ -133,7 +137,20 @@ public class ControlFileLoader {
         // correctly).
         throw new LoadException("Table '" + tableName + "' already exists.");
 
-      Loader loader = type.equals(TYPE_CSV) ? csvLoader : jsonLoader;
+      Loader loader;
+      switch (type) {
+      case TYPE_CSV:
+        loader = csvLoader;
+        break;
+      case TYPE_JSON:
+        loader = jsonLoader;
+        break;
+      case TYPE_DIQUBE:
+        loader = diqubeLoader;
+        break;
+      default:
+        throw new LoadException("Unkown input file type.");
+      }
       TableShard newTableShard = loader.load(firstRowId, file.getAbsolutePath(), tableName, columnInfo);
 
       Collection<TableShard> newTableShardCollection = Arrays.asList(new TableShard[] { newTableShard });

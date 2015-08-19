@@ -108,7 +108,7 @@ public class StringColumnSerializationTest {
     DataSerializer serializer = serializationManager.createSerializer(TableShard.class);
     Map<Long, String> valuesBefore = getAllValues(p.getLeft(), p.getRight());
     serializer.serialize(p.getLeft(), outStream, NOOP);
-    DataDeserializer deserializer = serializationManager.createDeerializer();
+    DataDeserializer deserializer = serializationManager.createDeserializer();
     TableShard deserialized = (TableShard) ((DataSerialization<?>) deserializer
         .deserialize(new ByteArrayInputStream(outStream.toByteArray())));
 
@@ -136,7 +136,7 @@ public class StringColumnSerializationTest {
     DataSerializer serializer = serializationManager.createSerializer(TableShard.class);
     Map<Long, String> valuesBefore = getAllValues(p.getLeft(), p.getRight());
     serializer.serialize(p.getLeft(), outStream, NOOP);
-    DataDeserializer deserializer = serializationManager.createDeerializer();
+    DataDeserializer deserializer = serializationManager.createDeserializer();
     TableShard deserialized = (TableShard) ((DataSerialization<?>) deserializer
         .deserialize(new ByteArrayInputStream(outStream.toByteArray())));
 
@@ -156,7 +156,7 @@ public class StringColumnSerializationTest {
     DataSerializer serializer = serializationManager.createSerializer(TableShard.class);
     Map<Long, String> valuesBefore = getAllValues(p.getLeft(), p.getRight());
     serializer.serialize(p.getLeft(), outStream, NOOP);
-    DataDeserializer deserializer = serializationManager.createDeerializer();
+    DataDeserializer deserializer = serializationManager.createDeserializer();
     TableShard deserialized = (TableShard) ((DataSerialization<?>) deserializer
         .deserialize(new ByteArrayInputStream(outStream.toByteArray())));
 

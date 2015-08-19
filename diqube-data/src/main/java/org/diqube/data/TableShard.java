@@ -149,4 +149,9 @@ public class TableShard implements DataSerialization<STableShard> {
         throw new DeserializationException("Cannot deserialize column " + de.getName());
     }
   }
+
+  /** Only allowed to be called before the TableShard is registered in the TableRegistry! */
+  public void setTableName(String tableName) {
+    this.tableName = tableName;
+  }
 }

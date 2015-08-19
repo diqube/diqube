@@ -108,4 +108,8 @@ public class ColumnPage implements DataSerialization<SColumnPage> {
     columnPageDict = mgr.deserializeChild(LongDictionary.class, source.getPageDict());
     values = mgr.deserializeChild(CompressedLongArray.class, source.getValues());
   }
+
+  /* package */void setFirstRowId(long firstRowId) {
+    this.firstRowId = firstRowId;
+  }
 }

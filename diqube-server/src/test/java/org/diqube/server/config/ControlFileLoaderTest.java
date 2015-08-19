@@ -36,6 +36,7 @@ import org.diqube.data.TableFactory;
 import org.diqube.data.TableShard;
 import org.diqube.execution.TableRegistry;
 import org.diqube.loader.CsvLoader;
+import org.diqube.loader.DiqubeLoader;
 import org.diqube.loader.JsonLoader;
 import org.diqube.loader.LoadException;
 import org.diqube.server.ControlFileLoader;
@@ -99,6 +100,7 @@ public class ControlFileLoaderTest {
             dataContext.getBean(TableFactory.class), //
             dataContext.getBean(CsvLoader.class), //
             dataContext.getBean(JsonLoader.class), //
+            dataContext.getBean(DiqubeLoader.class), //
             controlFile);
       }
     };

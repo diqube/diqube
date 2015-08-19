@@ -102,7 +102,7 @@ public class DoubleColumnSerializationTest {
     DataSerializer serializer = serializationManager.createSerializer(TableShard.class);
     Map<Long, Double> valuesBefore = getAllValues(p.getLeft(), p.getRight());
     serializer.serialize(p.getLeft(), outStream, NOOP);
-    DataDeserializer deserializer = serializationManager.createDeerializer();
+    DataDeserializer deserializer = serializationManager.createDeserializer();
     TableShard deserialized = (TableShard) ((DataSerialization<?>) deserializer
         .deserialize(new ByteArrayInputStream(outStream.toByteArray())));
 
@@ -122,7 +122,7 @@ public class DoubleColumnSerializationTest {
     DataSerializer serializer = serializationManager.createSerializer(TableShard.class);
     Map<Long, Double> valuesBefore = getAllValues(p.getLeft(), p.getRight());
     serializer.serialize(p.getLeft(), outStream, NOOP);
-    DataDeserializer deserializer = serializationManager.createDeerializer();
+    DataDeserializer deserializer = serializationManager.createDeserializer();
     TableShard deserialized = (TableShard) ((DataSerialization<?>) deserializer
         .deserialize(new ByteArrayInputStream(outStream.toByteArray())));
 
@@ -144,7 +144,7 @@ public class DoubleColumnSerializationTest {
 
     serializer.serialize(p.getLeft(), outStream, NOOP);
 
-    DataDeserializer deserializer = serializationManager.createDeerializer();
+    DataDeserializer deserializer = serializationManager.createDeserializer();
     TableShard deserialized = (TableShard) ((DataSerialization<?>) deserializer
         .deserialize(new ByteArrayInputStream(outStream.toByteArray())));
 
@@ -165,7 +165,7 @@ public class DoubleColumnSerializationTest {
     DataSerializer serializer = serializationManager.createSerializer(TableShard.class);
     Map<Long, Double> valuesBefore = getAllValues(p.getLeft(), p.getRight());
     serializer.serialize(p.getLeft(), outStream, NOOP);
-    DataDeserializer deserializer = serializationManager.createDeerializer();
+    DataDeserializer deserializer = serializationManager.createDeserializer();
     TableShard deserialized = (TableShard) ((DataSerialization<?>) deserializer
         .deserialize(new ByteArrayInputStream(outStream.toByteArray())));
 
@@ -185,7 +185,7 @@ public class DoubleColumnSerializationTest {
     DataSerializer serializer = serializationManager.createSerializer(TableShard.class);
     Map<Long, Double> valuesBefore = getAllValues(p.getLeft(), p.getRight());
     serializer.serialize(p.getLeft(), outStream, NOOP);
-    DataDeserializer deserializer = serializationManager.createDeerializer();
+    DataDeserializer deserializer = serializationManager.createDeserializer();
     TableShard deserialized = (TableShard) ((DataSerialization<?>) deserializer
         .deserialize(new ByteArrayInputStream(outStream.toByteArray())));
 

@@ -45,6 +45,7 @@ import org.diqube.data.TableFactory;
 import org.diqube.execution.TableRegistry;
 import org.diqube.listeners.ClusterManagerListener;
 import org.diqube.loader.CsvLoader;
+import org.diqube.loader.DiqubeLoader;
 import org.diqube.loader.JsonLoader;
 import org.diqube.loader.LoadException;
 import org.slf4j.Logger;
@@ -81,6 +82,9 @@ public class NewDataWatcher implements ClusterManagerListener {
   private CsvLoader csvLoader;
 
   @Inject
+  private DiqubeLoader diqubeLoader;
+
+  @Inject
   private JsonLoader jsonLoader;
 
   private WatchService watchService;
@@ -94,7 +98,6 @@ public class NewDataWatcher implements ClusterManagerListener {
   @Override
   public void clusterInitialized() {
     // Start initializing as soon as we're ready to communicate with the cluster.
-
     watchPath = Paths.get(directory).toAbsolutePath();
     File f = watchPath.toFile();
     if (!f.exists() || !f.isDirectory()) {
@@ -130,7 +133,8 @@ public class NewDataWatcher implements ClusterManagerListener {
   private void loadControlFile(File controlFile) {
     logger.info("Found new control file {}. Starting to load new table shard.", controlFile.getAbsolutePath());
     try {
-      String tableName = new ControlFileLoader(tableRegistry, tableFactory, csvLoader, jsonLoader, controlFile).load();
+      String tableName =
+          new ControlFileLoader(tableRegistry, tableFactory, csvLoader, jsonLoader, diqubeLoader, controlFile).load();
       tableNamesByControlFilePath.put(controlFile.getAbsolutePath(), tableName);
       logger.info("New table {} loaded successfully from {}'", tableName, controlFile.getAbsolutePath());
     } catch (LoadException e) {

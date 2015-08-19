@@ -22,6 +22,7 @@ package org.diqube.data.colshard;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.TreeMap;
 
@@ -40,7 +41,7 @@ import org.diqube.data.serialize.thrift.v1.SDictionary;
  * 
  * @author Bastian Gloeckle
  */
-public abstract class AbstractStandardColumnShard implements StandardColumnShard {
+public abstract class AbstractStandardColumnShard implements StandardColumnShard, AdjustableStandardColumnShard {
   protected SerializableDictionary<?, ?> columnShardDictionary;
 
   protected String name;
@@ -109,6 +110,20 @@ public abstract class AbstractStandardColumnShard implements StandardColumnShard
   @Override
   public long getFirstRowId() {
     return pages.firstKey();
+  }
+
+  @Override
+  public void adjustToFirstRowId(long firstRowId) {
+    long delta = firstRowId - pages.firstKey();
+
+    NavigableMap<Long, ColumnPage> newPages = new TreeMap<>();
+    for (Entry<Long, ColumnPage> pageEntry : pages.entrySet()) {
+      ColumnPage page = pageEntry.getValue();
+      page.setFirstRowId(page.getFirstRowId() + delta);
+      newPages.put(pageEntry.getKey() + delta, page);
+    }
+
+    pages = newPages;
   }
 
   @Override
