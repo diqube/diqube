@@ -31,6 +31,8 @@ import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TCompactProtocol;
+import org.apache.thrift.protocol.TProtocol;
+import org.apache.thrift.transport.TIOStreamTransport;
 import org.diqube.data.serialize.DataSerialization.DataSerializationHelper;
 import org.diqube.data.serialize.thrift.v1.SDiqubeData;
 import org.diqube.data.serialize.thrift.v1.SDiqubeHeader;
@@ -117,28 +119,33 @@ public class DataSerializer {
       throws SerializationException {
     DataSerializationHelper helper = dataSerializationHelperFactory.apply(objectDoneConsumer);
     TBase<?, ?> res = helper.serializeChild(thriftClasses.get(obj.getClass()), obj);
-    TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+    TIOStreamTransport transport = new TIOStreamTransport(outputStream);
+    TProtocol binaryProt = new TBinaryProtocol(transport);
+    TProtocol compactProt = new TCompactProtocol(transport);
     try {
       SDiqubeData diqubeData = new SDiqubeData();
       diqubeData.setMagic(MAGIC_STRING);
       diqubeData.setSerializedClass(res.getClass().getSimpleName());
 
-      byte[] diqubeDataSerialized = serializer.serialize(diqubeData);
+      byte[] diqubeDataSerialized = new TSerializer(new TCompactProtocol.Factory()).serialize(diqubeData);
 
       SDiqubeHeader header = new SDiqubeHeader();
       header.setVersion(VERSION);
       header.setDiqubeDataLength(diqubeDataSerialized.length);
 
-      outputStream.write(new TSerializer(new TBinaryProtocol.Factory()).serialize(header));
+      header.write(binaryProt);
       outputStream.write(diqubeDataSerialized);
-      outputStream.write(serializer.serialize(res));
+      outputStream.flush();
+      res.write(compactProt);
       outputStream.flush();
     } catch (TException | IOException e) {
       throw new SerializationException("Could not serialize", e);
     }
   }
 
+  /**
+   * Consumes objects that have been serialized already fully.
+   */
   public static interface ObjectDoneConsumer extends Consumer<DataSerialization<?>> {
-
   }
 }

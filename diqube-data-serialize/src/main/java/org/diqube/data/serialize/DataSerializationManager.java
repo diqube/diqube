@@ -37,6 +37,7 @@ import com.google.common.reflect.ClassPath;
 import com.google.common.reflect.ClassPath.ClassInfo;
 
 /**
+ * manager for all de-/serialization action on diqube-data data.
  *
  * @author Bastian Gloeckle
  */

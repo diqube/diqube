@@ -20,17 +20,19 @@
  */
 package org.diqube.data.serialize;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Modifier;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
 import org.apache.thrift.TBase;
-import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
-import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TCompactProtocol;
+import org.apache.thrift.protocol.TProtocol;
+import org.apache.thrift.transport.TIOStreamTransport;
 import org.diqube.data.serialize.DataSerialization.DataSerializationHelper;
 import org.diqube.data.serialize.thrift.v1.SDiqubeData;
 import org.diqube.data.serialize.thrift.v1.SDiqubeHeader;
@@ -42,8 +44,6 @@ import org.diqube.util.Pair;
  * @author Bastian Gloeckle
  */
 public class DataDeserializer {
-  private static int HEADER_BYTES;
-
   private static final String THRIFT_PKG = "org.diqube.data.serialize.thrift.v1.";
 
   private Map<Class<? extends DataSerialization<?>>, Class<? extends TBase<?, ?>>> thriftClasses;
@@ -119,14 +119,22 @@ public class DataDeserializer {
   /**
    * Deserialize the data available in a byte array into a {@link DataSerialization} object hierarchy.
    * 
+   * @param inputStream
+   *          the stream containign the data to be deserialized. It will be tried to close this input stream as soon as
+   *          possible to free any resources.
    * @throws DeserializationException
    *           if anything went wrong.
    */
   // we need to capture the generics here to make javac happy
-  public <T extends TBase<?, ?>, M extends TBase<?, ?>, O extends DataSerialization<M>> O deserialize(byte[] data)
-      throws DeserializationException {
-    T thrift = deserializeToThrift(data);
-    data = null;
+  public <T extends TBase<?, ?>, M extends TBase<?, ?>, O extends DataSerialization<M>> O deserialize(
+      InputStream inputStream) throws DeserializationException {
+    T thrift = deserializeToThrift(inputStream);
+    try {
+      inputStream.close();
+    } catch (IOException e) {
+      // swallow.
+    }
+    inputStream = null;
 
     DataSerializationHelper helper = dataSerializationHelperFactory.apply(new Consumer<TBase<?, ?>>() {
       @Override
@@ -142,14 +150,17 @@ public class DataDeserializer {
     return res;
   }
 
-  private <T extends TBase<?, ?>> T deserializeToThrift(byte[] data) throws DeserializationException {
-    TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
+  private <T extends TBase<?, ?>> T deserializeToThrift(InputStream inputStream) throws DeserializationException {
+    TIOStreamTransport transport = new TIOStreamTransport(inputStream);
+    TProtocol binaryProt = new TBinaryProtocol(transport);
+    TProtocol compactProt = new TCompactProtocol(transport);
+
     try {
       SDiqubeHeader header = new SDiqubeHeader();
-      new TDeserializer(new TBinaryProtocol.Factory()).deserialize(header, data, 0, HEADER_BYTES);
+      header.read(binaryProt);
 
       SDiqubeData diqubeData = new SDiqubeData();
-      deserializer.deserialize(diqubeData, data, HEADER_BYTES, header.getDiqubeDataLength());
+      diqubeData.read(compactProt);
 
       if (header.getVersion() != DataSerializer.VERSION || !DataSerializer.MAGIC_STRING.equals(diqubeData.getMagic()))
         throw new DeserializationException("Invalid stream.");
@@ -165,24 +176,12 @@ public class DataDeserializer {
 
       @SuppressWarnings("unchecked")
       T thrift = (T) thriftClass.newInstance();
-      deserializer.deserialize(thrift, data, HEADER_BYTES + header.getDiqubeDataLength(),
-          data.length - (HEADER_BYTES + header.getDiqubeDataLength()));
+      thrift.read(compactProt);
 
       return thrift;
     } catch (TException | ClassNotFoundException | InstantiationException | IllegalAccessException e) {
       throw new DeserializationException("Cannot deserialize", e);
     }
 
-  }
-
-  static {
-    SDiqubeHeader header = new SDiqubeHeader();
-    header.setVersion(1);
-    header.setDiqubeDataLength(1);
-    try {
-      HEADER_BYTES = new TSerializer(new TBinaryProtocol.Factory()).serialize(header).length;
-    } catch (TException e) {
-      throw new RuntimeException(e);
-    }
   }
 }

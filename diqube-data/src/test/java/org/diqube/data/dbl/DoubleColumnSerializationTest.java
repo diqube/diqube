@@ -20,6 +20,7 @@
  */
 package org.diqube.data.dbl;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -102,7 +103,8 @@ public class DoubleColumnSerializationTest {
     Map<Long, Double> valuesBefore = getAllValues(p.getLeft(), p.getRight());
     serializer.serialize(p.getLeft(), outStream, NOOP);
     DataDeserializer deserializer = serializationManager.createDeerializer();
-    TableShard deserialized = (TableShard) ((DataSerialization<?>) deserializer.deserialize(outStream.toByteArray()));
+    TableShard deserialized = (TableShard) ((DataSerialization<?>) deserializer
+        .deserialize(new ByteArrayInputStream(outStream.toByteArray())));
 
     // THEN
     Map<Long, Double> valuesAfter = getAllValues(deserialized, p.getRight());
@@ -121,7 +123,8 @@ public class DoubleColumnSerializationTest {
     Map<Long, Double> valuesBefore = getAllValues(p.getLeft(), p.getRight());
     serializer.serialize(p.getLeft(), outStream, NOOP);
     DataDeserializer deserializer = serializationManager.createDeerializer();
-    TableShard deserialized = (TableShard) ((DataSerialization<?>) deserializer.deserialize(outStream.toByteArray()));
+    TableShard deserialized = (TableShard) ((DataSerialization<?>) deserializer
+        .deserialize(new ByteArrayInputStream(outStream.toByteArray())));
 
     // THEN
     Map<Long, Double> valuesAfter = getAllValues(deserialized, p.getRight());
@@ -142,7 +145,8 @@ public class DoubleColumnSerializationTest {
     serializer.serialize(p.getLeft(), outStream, NOOP);
 
     DataDeserializer deserializer = serializationManager.createDeerializer();
-    TableShard deserialized = (TableShard) ((DataSerialization<?>) deserializer.deserialize(outStream.toByteArray()));
+    TableShard deserialized = (TableShard) ((DataSerialization<?>) deserializer
+        .deserialize(new ByteArrayInputStream(outStream.toByteArray())));
 
     // THEN
     Map<Long, Double> valuesAfter = getAllValues(deserialized, p.getRight());
@@ -162,7 +166,8 @@ public class DoubleColumnSerializationTest {
     Map<Long, Double> valuesBefore = getAllValues(p.getLeft(), p.getRight());
     serializer.serialize(p.getLeft(), outStream, NOOP);
     DataDeserializer deserializer = serializationManager.createDeerializer();
-    TableShard deserialized = (TableShard) ((DataSerialization<?>) deserializer.deserialize(outStream.toByteArray()));
+    TableShard deserialized = (TableShard) ((DataSerialization<?>) deserializer
+        .deserialize(new ByteArrayInputStream(outStream.toByteArray())));
 
     // THEN
     Map<Long, Double> valuesAfter = getAllValues(deserialized, p.getRight());
@@ -181,7 +186,8 @@ public class DoubleColumnSerializationTest {
     Map<Long, Double> valuesBefore = getAllValues(p.getLeft(), p.getRight());
     serializer.serialize(p.getLeft(), outStream, NOOP);
     DataDeserializer deserializer = serializationManager.createDeerializer();
-    TableShard deserialized = (TableShard) ((DataSerialization<?>) deserializer.deserialize(outStream.toByteArray()));
+    TableShard deserialized = (TableShard) ((DataSerialization<?>) deserializer
+        .deserialize(new ByteArrayInputStream(outStream.toByteArray())));
 
     // THEN
     Map<Long, Double> valuesAfter = getAllValues(deserialized, p.getRight());
