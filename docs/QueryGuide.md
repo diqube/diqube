@@ -228,6 +228,41 @@ columnA | avg(columnB[*].y)
 --------|-----------------------
 1       | 7.5
 
+##Special columns##
+
+###Repeated columns###
+
+Repeated columns are flattened on import, which means that each entry in the input "array" gets a custom column:
+```
+row1 = 
+{
+  "columnA" : "1",
+  "columnB" : [ {
+                  "x" : 0,
+                  "y" : 5
+                },
+                {
+                  "x" : -100,
+                  "y" : 10
+                } ]
+}
+```
+This will map internally in diqube to the following table:
+
+columnA | columnB[0].x | columnB[0].y | columnB[1].x | columnB[1].y | columnB[length]
+--------|--------------|--------------|--------------|--------------|----------------
+1       | 0            | 5            | -100         | 10           | 2
+
+You see that each entry in the array gets own columns which are indexed using a number. In addition to that there is one column added automatically which holds the length of the array for a specific row. You can access these columns in queries, too, but you should be very careful accessing the indexed columns, as each row might have a different length and the returned values might not be valid for a specific row. 
+
+```
+select columnA, columnB[length] from ...
+```
+
+columnA | columB[length]
+--------|---------------
+1       | 2
+
 ##Data types##
 
 diqube internally supports 3 data types: `STRING`, `LONG`, `DOUBLE`. Each column in the table has a data type and each function (both projection/aggregation) executed on it has an input data type and an output data type. 
