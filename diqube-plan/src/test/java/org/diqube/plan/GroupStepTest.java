@@ -32,6 +32,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 
+import org.diqube.context.Profiles;
 import org.diqube.data.ColumnType;
 import org.diqube.data.TableFactory;
 import org.diqube.data.TableShard;
@@ -87,6 +88,7 @@ public class GroupStepTest {
   @BeforeMethod
   public void setUp() {
     dataContext = new AnnotationConfigApplicationContext();
+    dataContext.getEnvironment().setActiveProfiles(Profiles.ALL_BUT_NEW_DATA_WATCHER);
     dataContext.scan("org.diqube");
     dataContext.refresh();
 

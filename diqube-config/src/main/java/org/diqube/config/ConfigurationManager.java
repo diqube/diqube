@@ -30,8 +30,10 @@ import java.util.Properties;
 import javax.annotation.PostConstruct;
 
 import org.diqube.context.AutoInstatiate;
+import org.diqube.context.Profiles;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Profile;
 
 /**
  * Loads configuration values from both, a user supplied file and a file on the classpath which contains the default
@@ -40,6 +42,7 @@ import org.slf4j.LoggerFactory;
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
+@Profile(Profiles.CONFIG)
 public class ConfigurationManager {
   private static final Logger logger = LoggerFactory.getLogger(ConfigurationManager.class);
 

@@ -27,11 +27,13 @@ import java.util.LinkedList;
 import javax.inject.Inject;
 
 import org.diqube.context.AutoInstatiate;
+import org.diqube.context.Profiles;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.FatalBeanException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
+import org.springframework.context.annotation.Profile;
 import org.springframework.util.ReflectionUtils;
 
 /**
@@ -40,6 +42,7 @@ import org.springframework.util.ReflectionUtils;
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
+@Profile(Profiles.CONFIG)
 public class ConfigurationPostProcessor implements BeanPostProcessor {
 
   private static final Logger logger = LoggerFactory.getLogger(ConfigurationPostProcessor.class);

@@ -36,12 +36,17 @@ public class Profiles {
   public static final String NEW_DATA_WATCHER = "NewDataWatcher";
 
   /**
+   * Enable configuration system.
+   */
+  public static final String CONFIG = "Config";
+
+  /**
    * All profiles, but not including {@link #NEW_DATA_WATCHER}.
    */
-  public static final String[] ALL_BUT_NEW_DATA_WATCHER = new String[] {};
+  public static final String[] ALL_BUT_NEW_DATA_WATCHER = new String[] { CONFIG };
 
   /**
    * All profiles.
    */
-  public static final String[] ALL = new String[] { NEW_DATA_WATCHER };
+  public static final String[] ALL = new String[] { NEW_DATA_WATCHER, CONFIG };
 }
