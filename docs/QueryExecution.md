@@ -41,6 +41,9 @@ As stated before, an *ExecutablePlan* is made up of multiple *ExecutablePlanStep
 * *Resolving* steps:
   * `ResolveColumnDictIdsStep`
   * `ResolveValuesStep`
+* *Repeated columns* steps: These are steps that work on all values of repeated columns.
+  * `RepeatedProjectStep` projects the values of a repeated column into a new repeated column. Example: `add(colA[*].b, 1)`. Note that the same projection functions can be used here as can be used with the `ProjectStep`.
+  * `ColumnAggregationStep` aggregates the values of a repeated column into a normal column. Example: `avg(colA[*].b)`. Note that nearly the same aggregation functions can be used here as can be used with the normal `GROUP BY` aggregation: Aggregation functions without a column-parameter (e.g. `count()`) cannot be used to aggregate a repeated column.
 * *Maintanance* steps:
   * `BuildColumnFromValuesStep`
   * `ExecuteRemotePlanOnShardsStep`

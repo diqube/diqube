@@ -58,8 +58,8 @@ firstRowId=0
 
 1. `table` denotes the name of the table the data file is part of.
 2. `file` points to the file on the local HDD from which the data should be loaded.
-3. `type` is the data type the data is available in. Currently there is `csv` and `json`, you should prefer `json` though.
-4. `defaultColumnType` is the column type that should be used as fallback. For `json` there is an automatic data type identification being executed currently, so you might choose any of the core column types here basically with effectively no effect: `string`, `double` or `long`. This will be re-worked in the future (see e.g. #15 and #16).
+3. `type` is the data type the data is available in. Currently there is `csv`, `json` and `diqube`, you should prefer `diqube`, but `json` is also somewhat fine (see below for a description of `diqube`).
+4. `defaultColumnType` is the column type that should be used as fallback. For `json` there is an automatic data type identification being executed currently, so you might choose any of the core column types here basically with effectively no effect: `string`, `double` or `long`. This value is ignroed for `diqube`. This will be re-worked in the future (see e.g. #15 and #16).
 5. `firstRowId` is the rowId of the first row of data that is available in the file.
 
 The last property is probably the most interesting for now: `firstRowId`. As stated before, the data of the whole table needs to be split before the data can be loaded by diqube. Nevertheless, *row ids* need to be maintained: Each *table shard* contains the data of a consecutive set of rows, starting from `firstRowId`. Therefore, the value needs to be different for each diqube server that loads a part of the table. 
@@ -70,9 +70,14 @@ When looking at the row ids of the whole table (=across all cluster nodes), the 
 
 When loading data from a JSON file, the file needs to have a specific layout: It needs to define an *array* object as top level object. This array then contains a list of objects, where each of those objects defines the data for one **row** of the table (shard). The row-objects in turn can be complex objects (=contain other complex objects) and contain arrays. Please note that each of the row-objects though has to define the same set of properties currently (see #14).
 
+###diqube format###
+
+When importing either JSON or CSV, the import data is always stored row-wise. As diqube is a column-store, it will store the values of one column of all rows together, which means it needs to transpose the input data (= read all rows, then cut the data into single columns and then start to compress single columns etc.).
+This transposing and compressing (1) takes some amount of time and (2) might take up a pretty notable amount of main memory. Usually when operating a cluster, you do not want the server process itself take up that much amount of memory for importing new data while it is serving requests at the same time - you do not want to risk that the process is killed because an out-of-memory error and you do not want to have queries being executed to slow down. Therefore you can transpose and compress the data in a separate step using the `diqube-tranpose` executable (it's a ubedr jar, too). That executable can read the usual input files for diqube, execute the transposing and the compression and then serialize that data into a file. That data can then easily be loaded by diqube-server, because it already is available in a columnar format and already compressed using diqube-mechanisms.
+
 ###Finally loading the data###
 
-After both the JSON file and the control file are prepared and available, the loading of the shard can be triggered by copying the control file into the directory that is specified by the property `dataDir` in the server configuration (default is simply a relative `data` directory). diqube server monitors this directory for new control files being created and removed and triggers un-/loading accordingly. Please note that control files need to have the file extension `.control`. 
+After both the data file and the control file are prepared and available, the loading of the shard can be triggered by copying the control file into the directory that is specified by the property `dataDir` in the server configuration (default is simply a relative `data` directory). diqube server monitors this directory for new control files being created and removed and triggers un-/loading accordingly. Please note that control files need to have the file extension `.control`. 
 After doing this, there should be some information in the server log that new data has been loaded. 
 
 ###Sample data###
@@ -84,7 +89,5 @@ To load the sample data in a cluster environment, you need to specify a differen
 This can be done by providing a different logging configuration. diqube uses [logback](http://logback.qos.ch/manual/configuration.html), therefore the system property `logback.configurationFile` can be used to point to an alternative logging configuration.
 
 ##The User Interface##
-
-.. is currently practically non-existent.
 
 TODO
