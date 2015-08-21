@@ -181,10 +181,9 @@ public abstract class AbstractDiqubeIntegrationTest {
       for (int i = 0; i < serverControl.size(); i++)
         saveLogs(serverControl.get(i), logResultDir, "server-" + i);
 
-      File zipResultDir = new File(targetLogDir, this.getClass().getSimpleName());
-      ensureDirExists(zipResultDir);
+      ensureDirExists(targetLogDir);
       Zip zip = new Zip();
-      File zipFile = new File(zipResultDir, testMethod.getName() + ".zip");
+      File zipFile = new File(targetLogDir, this.getClass().getSimpleName() + "_" + testMethod.getName() + ".zip");
       zip.zip(logResultDir, zipFile);
       logger.info("Collected logs and zipped them to '{}'", zipFile.getAbsolutePath());
     }
