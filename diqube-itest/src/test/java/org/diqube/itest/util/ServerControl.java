@@ -105,6 +105,7 @@ public class ServerControl implements LogfileSaver {
     serverProp.setProperty(ConfigKey.PORT, Short.toString(ourAddr.getPort()));
     serverProp.setProperty(ConfigKey.DATA_DIR, workDir.getAbsolutePath());
     serverProp.setProperty(ConfigKey.CLUSTER_NODES, clusterNodesProvider.getClusterNodeConfigurationString(ourAddr));
+    serverProp.setProperty(ConfigKey.BIND, ourAddr.getHost()); // bind only to our addr, which is typically 127.0.0.1
     // TODO #38: support adjustment of the server properties by the tests
 
     serverPropertiesFile = new File(workDir, "server.properties");

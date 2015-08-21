@@ -22,6 +22,7 @@ package org.diqube.itest.util;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -71,7 +72,7 @@ public class QueryResultServiceTestUtil {
 
     TServerSocket transport;
     try {
-      transport = new TServerSocket(port);
+      transport = new TServerSocket(new InetSocketAddress("127.0.0.1", port));
     } catch (TTransportException e) {
       throw new RuntimeException("Could not open transport for result service", e);
     }

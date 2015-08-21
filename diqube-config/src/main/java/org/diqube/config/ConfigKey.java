@@ -65,6 +65,13 @@ public class ConfigKey {
   public static final String OUR_HOST = "host";
 
   /**
+   * The IP to bind the server socket to.
+   * 
+   * Leave empty to bind to all interfaces.
+   */
+  public static final String BIND = "bind";
+
+  /**
    * A few addresses of nodes in the diqube cluster this node should connect to.
    * 
    * Format is: <code>

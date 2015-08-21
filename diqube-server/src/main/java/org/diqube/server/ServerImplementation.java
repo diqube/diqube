@@ -20,6 +20,7 @@
  */
 package org.diqube.server;
 
+import java.net.InetSocketAddress;
 import java.util.List;
 
 import javax.inject.Inject;
@@ -65,6 +66,9 @@ public class ServerImplementation {
   @Config(ConfigKey.SELECTOR_THREADS)
   private int selectorThreads;
 
+  @Config(ConfigKey.BIND)
+  private String bind;
+
   @Inject
   private ClusterQueryService.Iface clusterQueryHandler;
 
@@ -104,7 +108,10 @@ public class ServerImplementation {
       }
     }, "shutdown-thread"));
 
-    logger.info("Listening for incoming requests on port {}...", port);
+    if ("".equals(bind))
+      logger.info("Listening for incoming requests on port {}...", port);
+    else
+      logger.info("Listening for incoming requests on port {} (bound to {})...", port, bind);
     server.serve();
   }
 
@@ -123,7 +130,10 @@ public class ServerImplementation {
 
     TNonblockingServerTransport transport;
     try {
-      transport = new TNonblockingServerSocket(port);
+      if ("".equals(bind))
+        transport = new TNonblockingServerSocket(port);
+      else
+        transport = new TNonblockingServerSocket(new InetSocketAddress(bind, port));
     } catch (TTransportException e) {
       logger.error("Could not bind to port {}", port, e);
       return null;
