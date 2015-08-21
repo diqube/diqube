@@ -40,6 +40,7 @@ import org.diqube.loader.DiqubeLoader;
 import org.diqube.loader.JsonLoader;
 import org.diqube.loader.LoadException;
 import org.diqube.server.ControlFileLoader;
+import org.diqube.server.NewDataWatcher;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
@@ -61,15 +62,18 @@ public class ControlFileLoaderTest {
   /** Location in classpath where test files are available. */
   private static final String TESTDATA_CLASSPATH = "ControlFileLoaderTest/";
   /** A test .control-file with JSON & firstRowId = 0 */
-  private static final String CONTROL_AGE_FIRSTROW0 = "age-firstrow0.control";
+  private static final String CONTROL_AGE_FIRSTROW0 = "age-firstrow0" + NewDataWatcher.CONTROL_FILE_EXTENSION;
   /** A test .control-file with JSON & firstRowId = 5 */
-  private static final String CONTROL_AGE_FIRSTROW5 = "age-firstrow5.control";
+  private static final String CONTROL_AGE_FIRSTROW5 = "age-firstrow5" + NewDataWatcher.CONTROL_FILE_EXTENSION;
   /** Control file where the default column type is "long", but the one for column "age" is "string". */
-  private static final String CONTROL_DEFAULT_LONG_AGE_STRING = "age-default-long-age-string.control";
+  private static final String CONTROL_DEFAULT_LONG_AGE_STRING =
+      "age-default-long-age-string" + NewDataWatcher.CONTROL_FILE_EXTENSION;
   /** Control file where the default column type is "string", but the one for column "age" is "long". */
-  private static final String CONTROL_DEFAULT_STRING_AGE_LONG = "age-default-string-age-long.control";
+  private static final String CONTROL_DEFAULT_STRING_AGE_LONG =
+      "age-default-string-age-long" + NewDataWatcher.CONTROL_FILE_EXTENSION;
   /** Control file where the default column type is "double", but the one for column "age" is "long". */
-  private static final String CONTROL_DEFAULT_DOUBLE_AGE_LONG = "age-default-double-age-long.control";
+  private static final String CONTROL_DEFAULT_DOUBLE_AGE_LONG =
+      "age-default-double-age-long" + NewDataWatcher.CONTROL_FILE_EXTENSION;
   /** Column name of column "age" loaded from "age.json". */
   private static final String TABLE_AGE_COLUMN_AGE = "age";
   /** Column name of column "index" loaded from "age.json". */

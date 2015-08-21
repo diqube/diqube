@@ -21,14 +21,16 @@
 package org.diqube.server;
 
 import java.io.File;
-import java.io.FilenameFilter;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -57,6 +59,10 @@ import org.springframework.context.annotation.Profile;
  * files).
  * 
  * <p>
+ * After the data of a control file has been loaded, a .ready file will be placed right next to it. The .ready file will
+ * be removed when unloading the control file.
+ * 
+ * <p>
  * This bean will only be auto instantiated, if {@link Profiles#NEW_DATA_WATCHER} is enabled.
  *
  * @author Bastian Gloeckle
@@ -67,7 +73,8 @@ public class NewDataWatcher implements ClusterManagerListener {
 
   private static final Logger logger = LoggerFactory.getLogger(NewDataWatcher.class);
 
-  private static final String CONTROL_FILE_EXTENSION = ".control";
+  public static final String CONTROL_FILE_EXTENSION = ".control";
+  public static final String READY_FILE_EXTENSION = ".ready";
 
   @Config(ConfigKey.DATA_DIR)
   private String directory;
@@ -105,12 +112,14 @@ public class NewDataWatcher implements ClusterManagerListener {
       throw new RuntimeException(watchPath + " is no valid directory.");
     }
 
-    List<File> initialControlFiles = Arrays.asList(watchPath.toFile().listFiles(new FilenameFilter() {
-      @Override
-      public boolean accept(File dir, String name) {
-        return name.toLowerCase().endsWith(CONTROL_FILE_EXTENSION);
-      }
-    }));
+    List<File> initialControlFiles = Arrays.asList(
+        watchPath.toFile().listFiles((dir, fileName) -> fileName.toLowerCase().endsWith(CONTROL_FILE_EXTENSION)));
+
+    // delete all initial ready files.
+    List<File> readyFiles = Arrays
+        .asList(watchPath.toFile().listFiles((dir, fileName) -> fileName.toLowerCase().endsWith(READY_FILE_EXTENSION)));
+    for (File statusFile : readyFiles)
+      statusFile.delete();
 
     try {
       watchService = watchPath.getFileSystem().newWatchService();
@@ -137,6 +146,14 @@ public class NewDataWatcher implements ClusterManagerListener {
           new ControlFileLoader(tableRegistry, tableFactory, csvLoader, jsonLoader, diqubeLoader, controlFile).load();
       tableNamesByControlFilePath.put(controlFile.getAbsolutePath(), tableName);
       logger.info("New table {} loaded successfully from {}'", tableName, controlFile.getAbsolutePath());
+
+      // write ready file
+      String content = LocalDateTime.now().toString();
+      try (FileOutputStream readyOS = new FileOutputStream(readyFile(controlFile))) {
+        readyOS.write(content.getBytes(Charset.forName("UTF-8")));
+      } catch (IOException e) {
+        logger.warn("Could not write ready file {}", readyFile(controlFile), e);
+      }
     } catch (LoadException e) {
       logger.error("Could not load new table shard from {}", controlFile.getAbsolutePath(), e);
     }
@@ -151,11 +168,25 @@ public class NewDataWatcher implements ClusterManagerListener {
       return;
     }
 
+    File readyFile = readyFile(controlFile);
+    if (readyFile.exists())
+      if (!readyFile.delete())
+        logger.warn("Could not delete ready file {}", readyFile.getAbsolutePath());
+
     logger.info("Identified deletion of control file {}; will remove in-memory data for table {}.",
         controlFile.getAbsolutePath(), tableName);
     tableRegistry.removeTable(tableName);
     tableNamesByControlFilePath.remove(controlFile.getAbsolutePath());
     System.gc();
+  }
+
+  /**
+   * @return The ready file for a given control file.
+   */
+  private File readyFile(File controlFile) {
+    return new File(controlFile.getParentFile(),
+        controlFile.getName().substring(0, controlFile.getName().length() - CONTROL_FILE_EXTENSION.length())
+            + READY_FILE_EXTENSION);
   }
 
   /**

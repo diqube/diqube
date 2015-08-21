@@ -176,7 +176,8 @@ public abstract class AbstractDiqubeIntegrationTest {
       File logResultDir = new File(testWorkDir, "result_logs");
       ensureDirExists(logResultDir);
 
-      saveLogs(tomcatControl, logResultDir, "tomcat");
+      if (tomcatControl != null)
+        saveLogs(tomcatControl, logResultDir, "tomcat");
       for (int i = 0; i < serverControl.size(); i++)
         saveLogs(serverControl.get(i), logResultDir, "server-" + i);
 
@@ -256,11 +257,12 @@ public abstract class AbstractDiqubeIntegrationTest {
     if (fileName.startsWith("/"))
       fileName = fileName.substring(1);
 
-    File targetFile = new File(testWorkDir, fileName);
+    File targetFile = new File(new File(testWorkDir, "res"), fileName);
+    ensureDirExists(targetFile.getParentFile());
     try (FileOutputStream fos = new FileOutputStream(targetFile)) {
       ByteStreams.copy(is, fos);
     } catch (IOException e) {
-      throw new RuntimeException("Could not write classpath file to HDD: " + fileName);
+      throw new RuntimeException("Could not write classpath file to HDD: " + fileName, e);
     }
 
     logger.info("Wrote '{}' to '{}'.", fileName, targetFile.getAbsolutePath());

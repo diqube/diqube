@@ -67,12 +67,9 @@ public class ServerClusterControl implements ServerAddressProvider, ServerCluste
   public void start() {
     logger.info("Starting cluster of {} cluster nodes.", servers.size());
     for (ServerControl server : servers) {
-      server.startWithoutWait();
+      server.start();
     }
 
-    for (ServerControl server : servers) {
-      server.waitUntilStarted();
-    }
     logger.info("All {} cluster nodes running.", servers.size());
   }
 

@@ -31,7 +31,7 @@ import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.diqube.cluster.connection.DiqubeClientSocketTestFactory;
-import org.diqube.remote.query.KeepAliveServiceConstants;
+import org.diqube.itest.util.ServerControl.ServerAddr;
 
 /**
  * Factory for thrift connections that should be used in tests.
@@ -46,14 +46,13 @@ public class TestThriftConnectionFactory {
    * @throws TestConnectionException
    *           If anything goes wrong.
    */
-  public static <O> TestConnection<O> open(String host, short port, Class<? extends O> thriftClientClass,
-      String serviceName) throws TestConnectionException {
+  public static <O> TestConnection<O> open(ServerAddr addr, Class<? extends O> thriftClientClass, String serviceName)
+      throws TestConnectionException {
     try {
-      TTransport transport = DiqubeClientSocketTestFactory.createSocket(host, port, 1000, () -> {
+      TTransport transport = DiqubeClientSocketTestFactory.createSocket(addr.getHost(), addr.getPort(), 1000, () -> {
       });
       transport = new TFramedTransport(transport);
-      TProtocol protocol =
-          new TMultiplexedProtocol(new TCompactProtocol(transport), KeepAliveServiceConstants.SERVICE_NAME);
+      TProtocol protocol = new TMultiplexedProtocol(new TCompactProtocol(transport), serviceName);
       O client = thriftClientClass.getConstructor(TProtocol.class).newInstance(protocol);
       transport.open();
 

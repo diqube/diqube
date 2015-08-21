@@ -22,9 +22,12 @@ package org.diqube.itest.util;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.util.Arrays;
@@ -37,8 +40,12 @@ import org.diqube.config.ConfigKey;
 import org.diqube.config.ConfigurationManager;
 import org.diqube.itest.util.TestThriftConnectionFactory.TestConnection;
 import org.diqube.itest.util.TestThriftConnectionFactory.TestConnectionException;
+import org.diqube.remote.base.thrift.RNodeAddress;
+import org.diqube.remote.base.thrift.RNodeDefaultAddress;
 import org.diqube.remote.query.KeepAliveServiceConstants;
 import org.diqube.remote.query.thrift.KeepAliveService;
+import org.diqube.server.ControlFileLoader;
+import org.diqube.server.NewDataWatcher;
 import org.diqube.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -88,10 +95,6 @@ public class ServerControl implements LogfileSaver {
   }
 
   public void start() {
-    startWithoutWait();
-  }
-
-  /* package */ void startWithoutWait() {
     if (isStarted())
       throw new RuntimeException("Server is started already.");
 
@@ -127,9 +130,7 @@ public class ServerControl implements LogfileSaver {
 
     checkLivelinessThread = new CheckLivelinessThread(serverProcess, ourAddr);
     checkLivelinessThread.start();
-  }
 
-  /* package */ void waitUntilStarted() {
     waitUntilServerIsRunning(ourAddr);
   }
 
@@ -173,12 +174,52 @@ public class ServerControl implements LogfileSaver {
     return serverProcess != null && serverProcess.isAlive();
   }
 
+  private File readyFile(File controlFile) {
+    return new File(controlFile.getParentFile(),
+        controlFile.getName().substring(0,
+            controlFile.getName().length() - NewDataWatcher.CONTROL_FILE_EXTENSION.length())
+        + NewDataWatcher.READY_FILE_EXTENSION);
+  }
+
   public void deploy(File controlFile, File dataFile) {
-    // TODO #53
+    Properties control = new Properties();
+    try (FileInputStream is = new FileInputStream(controlFile)) {
+      control.load(new InputStreamReader(is, Charset.forName("UTF-8")));
+    } catch (IOException e) {
+      throw new RuntimeException("Could not load control file properties from " + controlFile.getAbsolutePath());
+    }
+
+    control.setProperty(ControlFileLoader.KEY_FILE, dataFile.getAbsolutePath());
+
+    // put the adjusted .control file into workDir, as our server is watching that directory!
+    File realControlFile = new File(workDir, controlFile.getName());
+    File readyFile = readyFile(realControlFile);
+
+    try (FileOutputStream fos = new FileOutputStream(realControlFile)) {
+      control.store(new OutputStreamWriter(fos, Charset.forName("UTF-8")), "");
+    } catch (IOException e) {
+      throw new RuntimeException("Could not store control file to " + realControlFile.getAbsolutePath());
+    }
+
+    // wait for ready file to get present
+    new Waiter().waitUntil("Ready file " + readyFile.getAbsolutePath() + " to be available", 120, 500,
+        () -> readyFile.exists());
   }
 
   public void undeploy(File controlFile) {
-    // TODO #53
+    File realControlFile = new File(workDir, controlFile.getName());
+    File readyFile = readyFile(realControlFile);
+
+    if (!realControlFile.delete())
+      throw new RuntimeException("Could not delete control file " + realControlFile.getAbsolutePath());
+
+    // wait until ready file is deleted, too
+    new Waiter().waitUntil("Ready file " + readyFile.getAbsolutePath() + " is deleted", 20, 100,
+        () -> !readyFile.exists());
+  }
+
+  public ServerAddr getAddr() {
+    return ourAddr;
   }
 
   @Override
@@ -195,32 +236,18 @@ public class ServerControl implements LogfileSaver {
   }
 
   private void waitUntilServerIsRunning(ServerAddr addr) {
-    int maxWait = 100; // 10s
-    Object sync = new Object();
-    for (int i = 0; i < maxWait; i++) {
-      synchronized (sync) {
-        try {
-          sync.wait(100);
-        } catch (InterruptedException e) {
-          throw new RuntimeException("Interrupted while waiting for server to start up", e);
-        }
-      }
-
-      try (TestConnection<KeepAliveService.Client> con = TestThriftConnectionFactory.open(addr.getHost(),
-          addr.getPort(), KeepAliveService.Client.class, KeepAliveServiceConstants.SERVICE_NAME)) {
-
+    new Waiter().waitUntil("Server at " + addr + " to start up", 10, 100, () -> {
+      try (TestConnection<KeepAliveService.Client> con = TestThriftConnectionFactory.open(addr,
+          KeepAliveService.Client.class, KeepAliveServiceConstants.SERVICE_NAME)) {
         con.getService().ping();
 
         // ping succeeded, server started up!
         logger.info("Server at {} has started successfully.", addr);
-        return;
+        return true;
       } catch (IOException | TestConnectionException | TException e) {
-        // swallow, could not open connection.
+        return false;
       }
-    }
-
-    logger.error("Server at {} did not startup within the timeout period!", addr);
-    throw new RuntimeException("Server " + ourAddr + " did not start up.");
+    });
   }
 
   /**
@@ -303,6 +330,14 @@ public class ServerControl implements LogfileSaver {
     @Override
     public String toString() {
       return getHost() + ":" + getPort();
+    }
+
+    public RNodeAddress toRNodeAddress() {
+      RNodeAddress res = new RNodeAddress();
+      res.setDefaultAddr(new RNodeDefaultAddress());
+      res.getDefaultAddr().setHost(getHost());
+      res.getDefaultAddr().setPort(getPort());
+      return res;
     }
   }
 
