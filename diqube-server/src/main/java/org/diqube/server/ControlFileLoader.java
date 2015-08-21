@@ -39,6 +39,8 @@ import org.diqube.loader.JsonLoader;
 import org.diqube.loader.LoadException;
 import org.diqube.loader.Loader;
 import org.diqube.loader.LoaderColumnInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Loads the table shard whose data is referred to by a .control file.
@@ -46,6 +48,8 @@ import org.diqube.loader.LoaderColumnInfo;
  * @author Bastian Gloeckle
  */
 public class ControlFileLoader {
+  private static final Logger logger = LoggerFactory.getLogger(ControlFileLoader.class);
+
   public static final String KEY_FILE = "file";
   public static final String KEY_TYPE = "type";
   public static final String KEY_TABLE = "table";
@@ -85,82 +89,118 @@ public class ControlFileLoader {
   /**
    * Loads the table shard synchronously.
    * 
+   * <p>
+   * This method will automatically retry loading the .control file if it fails - this is needed if the control file has
+   * not been written completely yet. If the validation/loading of the control file still fails after a few attempts, a
+   * {@link LoadException} will be thrown.
+   * 
    * @return The name of the table under which it was registered at {@link TableRegistry}.
    */
   public String load() throws LoadException {
-    try (InputStream controlFileInputStream = new FileInputStream(controlFile)) {
-      Properties controlProperties = new Properties();
-      controlProperties.load(controlFileInputStream);
+    Properties controlProperties;
+    String fileName;
+    String tableName;
+    String type;
+    long firstRowId;
+    LoaderColumnInfo columnInfo;
+    File file;
+    Object sync = new Object();
 
-      String fileName = controlProperties.getProperty(KEY_FILE);
-      String tableName = controlProperties.getProperty(KEY_TABLE);
-      String type = controlProperties.getProperty(KEY_TYPE);
-      String firstRowIdString = controlProperties.getProperty(KEY_FIRST_ROWID);
-
-      if (fileName == null || tableName == null || firstRowIdString == null || type == null
-          || !(type.equals(TYPE_CSV) || type.equals(TYPE_JSON) || type.equals(TYPE_DIQUBE)))
-        throw new LoadException("Invalid control file " + controlFile.getAbsolutePath());
-
-      long firstRowId;
+    // We retry executing the following loading/validation of the control file itself. It could be that the load method
+    // gets called too early, when the control file has not been fully written, therefore we'll retry.
+    int maxRetries = 5;
+    for (int retryNo = 0;; retryNo++) {
       try {
-        firstRowId = Long.parseLong(firstRowIdString);
-      } catch (NumberFormatException e) {
-        throw new LoadException(
-            "Invalid control file " + controlFile.getAbsolutePath() + " (FirstRowId is no valid number)");
-      }
+        controlProperties = new Properties();
+        try (InputStream controlFileInputStream = new FileInputStream(controlFile)) {
+          controlProperties.load(controlFileInputStream);
+        } catch (IOException e) {
+          throw new LoadException("Could not load information of control file " + controlFile.getAbsolutePath(), e);
+        }
+        fileName = controlProperties.getProperty(KEY_FILE);
+        tableName = controlProperties.getProperty(KEY_TABLE);
+        type = controlProperties.getProperty(KEY_TYPE);
+        String firstRowIdString = controlProperties.getProperty(KEY_FIRST_ROWID);
 
-      ColumnType defaultColumnType;
-      String defaultColumnTypeString = controlProperties.getProperty(KEY_DEFAULT_COLTYPE);
-      if (defaultColumnTypeString == null)
-        defaultColumnType = ColumnType.STRING;
-      else
-        defaultColumnType = resolveColumnType(defaultColumnTypeString);
+        if (fileName == null || tableName == null || firstRowIdString == null || type == null
+            || !(type.equals(TYPE_CSV) || type.equals(TYPE_JSON) || type.equals(TYPE_DIQUBE)))
+          throw new LoadException("Invalid control file " + controlFile.getAbsolutePath());
 
-      LoaderColumnInfo columnInfo = new LoaderColumnInfo(defaultColumnType);
+        try {
+          firstRowId = Long.parseLong(firstRowIdString);
+        } catch (NumberFormatException e) {
+          throw new LoadException(
+              "Invalid control file " + controlFile.getAbsolutePath() + " (FirstRowId is no valid number)");
+        }
 
-      for (Object key : controlProperties.keySet()) {
-        String keyString = (String) key;
-        if (keyString.startsWith(KEY_COLTYPE_PREFIX)) {
-          String val = controlProperties.getProperty(keyString);
-          keyString = keyString.substring(KEY_COLTYPE_PREFIX.length());
-          // TODO #13 LoaderColumnInfo should be able to handle repeated columns nicely.
-          columnInfo.registerColumnType(keyString, resolveColumnType(val));
+        ColumnType defaultColumnType;
+        String defaultColumnTypeString = controlProperties.getProperty(KEY_DEFAULT_COLTYPE);
+        if (defaultColumnTypeString == null)
+          defaultColumnType = ColumnType.STRING;
+        else
+          defaultColumnType = resolveColumnType(defaultColumnTypeString);
+
+        columnInfo = new LoaderColumnInfo(defaultColumnType);
+
+        for (Object key : controlProperties.keySet()) {
+          String keyString = (String) key;
+          if (keyString.startsWith(KEY_COLTYPE_PREFIX)) {
+            String val = controlProperties.getProperty(keyString);
+            keyString = keyString.substring(KEY_COLTYPE_PREFIX.length());
+            // TODO #13 LoaderColumnInfo should be able to handle repeated columns nicely.
+            columnInfo.registerColumnType(keyString, resolveColumnType(val));
+          }
+        }
+
+        file = controlFile.toPath().resolveSibling(fileName).toFile();
+        if (!file.exists() || !file.isFile())
+          throw new LoadException("File " + file.getAbsolutePath() + " does not exist or is no file.");
+
+        break;
+      } catch (LoadException e) {
+        if (retryNo == maxRetries - 1) {
+          throw e;
+        }
+
+        logger.info("Was not able to load control file {}, will retry. Error: {}", controlFile.getAbsolutePath(),
+            e.getMessage());
+        synchronized (sync) {
+          try {
+            sync.wait(200);
+          } catch (InterruptedException e1) {
+            throw new LoadException("Interrupted while waiting to retry loading control file", e1);
+          }
         }
       }
-
-      File file = controlFile.toPath().resolveSibling(fileName).toFile();
-      if (!file.exists() || !file.isFile())
-        throw new LoadException("File " + file.getAbsolutePath() + " does not exist or is no file.");
-
-      if (tableRegistry.getTable(tableName) != null)
-        // TODO #33 support loading multiple shards of a table from multiple control files (and removing them
-        // correctly).
-        throw new LoadException("Table '" + tableName + "' already exists.");
-
-      Loader loader;
-      switch (type) {
-      case TYPE_CSV:
-        loader = csvLoader;
-        break;
-      case TYPE_JSON:
-        loader = jsonLoader;
-        break;
-      case TYPE_DIQUBE:
-        loader = diqubeLoader;
-        break;
-      default:
-        throw new LoadException("Unkown input file type.");
-      }
-      TableShard newTableShard = loader.load(firstRowId, file.getAbsolutePath(), tableName, columnInfo);
-
-      Collection<TableShard> newTableShardCollection = Arrays.asList(new TableShard[] { newTableShard });
-      Table newTable = tableFactory.createTable(tableName, newTableShardCollection);
-
-      tableRegistry.addTable(tableName, newTable);
-
-      return tableName;
-    } catch (IOException e) {
-      throw new LoadException("Could not load information of control file " + controlFile.getAbsolutePath(), e);
     }
+
+    if (tableRegistry.getTable(tableName) != null)
+      // TODO #33 support loading multiple shards of a table from multiple control files (and removing them
+      // correctly).
+      throw new LoadException("Table '" + tableName + "' already exists.");
+
+    Loader loader;
+    switch (type) {
+    case TYPE_CSV:
+      loader = csvLoader;
+      break;
+    case TYPE_JSON:
+      loader = jsonLoader;
+      break;
+    case TYPE_DIQUBE:
+      loader = diqubeLoader;
+      break;
+    default:
+      throw new LoadException("Unkown input file type.");
+    }
+    TableShard newTableShard = loader.load(firstRowId, file.getAbsolutePath(), tableName, columnInfo);
+
+    Collection<TableShard> newTableShardCollection = Arrays.asList(new TableShard[] { newTableShard });
+    Table newTable = tableFactory.createTable(tableName, newTableShardCollection);
+
+    tableRegistry.addTable(tableName, newTable);
+
+    return tableName;
+
   }
 }
