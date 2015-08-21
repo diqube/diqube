@@ -290,6 +290,7 @@ public class RowIdEqualsStep extends AbstractThreadedExecutablePlanStep {
           }
         }
 
+        // TODO columnValueIdsOfSearchedValues needs to be sorted -> remove all the -1s
         rowIdEqualsConstants(curEnv, colName, columnValueIdsOfSearchedValues, pages, activeRowIds);
       } else {
         // we're supposed to compare to cols to each other.
