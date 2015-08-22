@@ -30,9 +30,9 @@ import java.util.Map.Entry;
 import java.util.UUID;
 
 import org.diqube.itest.annotations.NeedsServer;
+import org.diqube.itest.control.ServerControl.ServerAddr;
 import org.diqube.itest.util.QueryResultServiceTestUtil;
 import org.diqube.itest.util.QueryResultServiceTestUtil.TestQueryResultService;
-import org.diqube.itest.util.ServerControl.ServerAddr;
 import org.diqube.itest.util.ServiceTestUtil;
 import org.diqube.itest.util.Waiter;
 import org.diqube.remote.base.thrift.RNodeAddress;

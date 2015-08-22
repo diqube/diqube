@@ -18,7 +18,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.itest.util;
+package org.diqube.itest.control;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -38,6 +38,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.thrift.TException;
 import org.diqube.config.ConfigKey;
 import org.diqube.config.ConfigurationManager;
+import org.diqube.itest.util.TestThriftConnectionFactory;
+import org.diqube.itest.util.Waiter;
 import org.diqube.itest.util.TestThriftConnectionFactory.TestConnection;
 import org.diqube.itest.util.TestThriftConnectionFactory.TestConnectionException;
 import org.diqube.remote.base.thrift.RNodeAddress;

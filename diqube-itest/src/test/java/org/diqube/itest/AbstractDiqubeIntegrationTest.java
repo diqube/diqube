@@ -35,11 +35,11 @@ import java.util.List;
 
 import org.diqube.itest.annotations.NeedsServer;
 import org.diqube.itest.annotations.NeedsTomcat;
-import org.diqube.itest.util.LogfileSaver;
-import org.diqube.itest.util.ServerClusterControl;
-import org.diqube.itest.util.ServerControl;
-import org.diqube.itest.util.TomcatControl;
-import org.diqube.itest.util.TransposeControl;
+import org.diqube.itest.control.LogfileSaver;
+import org.diqube.itest.control.ServerClusterControl;
+import org.diqube.itest.control.ServerControl;
+import org.diqube.itest.control.TomcatControl;
+import org.diqube.itest.control.TransposeControl;
 import org.diqube.itest.util.Unzip;
 import org.diqube.itest.util.Zip;
 import org.slf4j.Logger;

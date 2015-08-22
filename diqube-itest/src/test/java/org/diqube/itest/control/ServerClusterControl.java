@@ -18,15 +18,15 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.itest.util;
+package org.diqube.itest.control;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.diqube.itest.util.ServerControl.ServerAddr;
-import org.diqube.itest.util.ServerControl.ServerAddressProvider;
-import org.diqube.itest.util.ServerControl.ServerClusterNodesProvider;
+import org.diqube.itest.control.ServerControl.ServerAddr;
+import org.diqube.itest.control.ServerControl.ServerAddressProvider;
+import org.diqube.itest.control.ServerControl.ServerClusterNodesProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

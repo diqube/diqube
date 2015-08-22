@@ -34,7 +34,7 @@ import org.apache.thrift.server.TSimpleServer;
 import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TServerSocket;
 import org.apache.thrift.transport.TTransportException;
-import org.diqube.itest.util.ServerControl.ServerAddr;
+import org.diqube.itest.control.ServerControl.ServerAddr;
 import org.diqube.remote.base.thrift.RUUID;
 import org.diqube.remote.query.KeepAliveServiceConstants;
 import org.diqube.remote.query.QueryResultServiceConstants;

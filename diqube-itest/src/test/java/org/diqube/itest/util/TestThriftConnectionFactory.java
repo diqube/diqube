@@ -31,7 +31,7 @@ import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.diqube.cluster.connection.DiqubeClientSocketTestFactory;
-import org.diqube.itest.util.ServerControl.ServerAddr;
+import org.diqube.itest.control.ServerControl.ServerAddr;
 
 /**
  * Factory for thrift connections that should be used in tests.

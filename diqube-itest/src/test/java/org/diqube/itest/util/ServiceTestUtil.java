@@ -23,6 +23,7 @@ package org.diqube.itest.util;
 import java.io.IOException;
 
 import org.apache.thrift.TException;
+import org.diqube.itest.control.ServerControl;
 import org.diqube.itest.util.TestThriftConnectionFactory.TestConnection;
 import org.diqube.itest.util.TestThriftConnectionFactory.TestConnectionException;
 import org.diqube.remote.cluster.ClusterManagementServiceConstants;
