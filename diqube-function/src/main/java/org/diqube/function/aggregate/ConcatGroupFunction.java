@@ -41,8 +41,10 @@ public class ConcatGroupFunction
 
   public static final String NAME = "concatgroup";
 
+  public static final String DEFAULT_DELIMITER = ",";
+
   private List<String> values = new LinkedList<>();
-  private String delim = ", ";
+  private String delim = DEFAULT_DELIMITER;
 
   @Override
   public String getNameLowerCase() {

@@ -27,7 +27,6 @@ import java.util.stream.Collectors;
 import org.diqube.data.serialize.DataSerializable;
 import org.diqube.data.serialize.DeserializationException;
 import org.diqube.data.serialize.SerializationException;
-import org.diqube.data.serialize.DataSerialization.DataSerializationHelper;
 import org.diqube.data.serialize.thrift.v1.SStringDictionaryTrieNode;
 import org.diqube.data.serialize.thrift.v1.SStringDictionaryTrieParentNode;
 
@@ -91,7 +90,7 @@ public class ParentNode extends TrieNode<SStringDictionaryTrieParentNode> {
     childNodes = new TrieNode[source.getChildNodes().size()];
     childChars = new char[source.getChildNodes().size()][];
     int i = 0;
-    for (String serializedChildChars : source.getChildNodes().keySet().stream().collect(Collectors.toList())) {
+    for (String serializedChildChars : source.getChildNodes().keySet().stream().sorted().collect(Collectors.toList())) {
       childChars[i] = serializedChildChars.toCharArray();
       childNodes[i] = mgr.deserializeChild(TrieNode.class, source.getChildNodes().get(serializedChildChars));
       i++;

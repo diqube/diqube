@@ -30,6 +30,7 @@ import java.util.concurrent.Future;
 import org.antlr.v4.runtime.misc.Pair;
 import org.diqube.data.ColumnType;
 import org.diqube.execution.ExecutablePlan;
+import org.diqube.function.aggregate.ConcatGroupFunction;
 import org.diqube.server.execution.GroupDiqlExecutionTest;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -155,7 +156,8 @@ public class StringGroupDiqlExecutionTest extends GroupDiqlExecutionTest<String>
       for (long rowId : resultValues.get(COL_A).keySet()) {
         String colAValue = resultValues.get(COL_A).get(rowId);
         String concatValue = resultValues.get(aggCol).get(rowId);
-        actual.add(new Pair<>(colAValue, new HashSet<>(Arrays.asList(concatValue.split(", ")))));
+        actual.add(new Pair<>(colAValue,
+            new HashSet<>(Arrays.asList(concatValue.split(ConcatGroupFunction.DEFAULT_DELIMITER)))));
       }
 
       Assert.assertEquals(actual, expected, "Expected correct values.");

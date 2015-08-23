@@ -548,8 +548,7 @@ public class TrieStringDictionary implements StringDictionary<SStringDictionaryT
   }
 
   @Override
-  public void deserialize(org.diqube.data.serialize.DataSerialization.DataSerializationHelper mgr,
-      SStringDictionaryTrie source) throws DeserializationException {
+  public void deserialize(DataSerializationHelper mgr, SStringDictionaryTrie source) throws DeserializationException {
     firstValue = source.getFirstValue();
     lastValue = source.getLastValue();
     lastId = source.getLastId();

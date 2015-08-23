@@ -29,10 +29,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.thrift.TException;
 import org.apache.thrift.TMultiplexedProcessor;
 import org.apache.thrift.protocol.TCompactProtocol;
+import org.apache.thrift.server.TNonblockingServer;
 import org.apache.thrift.server.TServer;
-import org.apache.thrift.server.TSimpleServer;
 import org.apache.thrift.transport.TFramedTransport;
-import org.apache.thrift.transport.TServerSocket;
+import org.apache.thrift.transport.TNonblockingServerSocket;
 import org.apache.thrift.transport.TTransportException;
 import org.diqube.itest.control.ServerControl.ServerAddr;
 import org.diqube.remote.base.thrift.RUUID;
@@ -44,6 +44,8 @@ import org.diqube.remote.query.thrift.QueryService;
 import org.diqube.remote.query.thrift.RQueryException;
 import org.diqube.remote.query.thrift.RQueryStatistics;
 import org.diqube.remote.query.thrift.RResultTable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Util class which opens a {@link QueryResultService} in this process in order to receive results from calling a
@@ -52,6 +54,8 @@ import org.diqube.remote.query.thrift.RResultTable;
  * @author Bastian Gloeckle
  */
 public class QueryResultServiceTestUtil {
+  private static final Logger logger = LoggerFactory.getLogger(QueryResultServiceTestUtil.class);
+
   public static TestQueryResultService createQueryResultService() {
     short port = 5200; // TODO #38 find port dynamically.
 
@@ -70,27 +74,29 @@ public class QueryResultServiceTestUtil {
           }
         }));
 
-    TServerSocket transport;
+    TNonblockingServerSocket transport;
     try {
-      transport = new TServerSocket(new InetSocketAddress("127.0.0.1", port));
+      transport = new TNonblockingServerSocket(new InetSocketAddress("127.0.0.1", port));
     } catch (TTransportException e) {
       throw new RuntimeException("Could not open transport for result service", e);
     }
-    TServer.Args args = new TServer.Args(transport);
+    TNonblockingServer.Args args = new TNonblockingServer.Args(transport);
     args.processor(multiProcessor);
     args.transportFactory(new TFramedTransport.Factory());
     args.protocolFactory(new TCompactProtocol.Factory());
-    TSimpleServer thriftServer = new TSimpleServer(args);
+    TNonblockingServer thriftServer = new TNonblockingServer(args);
 
     Thread serverThread = new Thread(() -> thriftServer.serve(), "Test-QueryResultService-serverthread");
 
     res.setThriftServer(thriftServer);
+    res.setServerThread(serverThread);
     serverThread.start();
     return res;
   }
 
   public static class TestQueryResultService implements Closeable {
-    private TSimpleServer thriftServer;
+    private TServer thriftServer;
+    private Thread serverThread;
 
     private Map<Short, RResultTable> intermediateUpdates = new ConcurrentHashMap<>();
     private RResultTable finalUpdate = null;
@@ -115,10 +121,21 @@ public class QueryResultServiceTestUtil {
     @Override
     public void close() throws IOException {
       thriftServer.stop();
+      try {
+        serverThread.join(1000);
+      } catch (InterruptedException e) {
+        throw new IOException("Interrupted while waiting for test thread to shut down.", e);
+      }
+      if (serverThread.isAlive())
+        throw new IOException("Could not shutdown test server thread.");
     }
 
-    private void setThriftServer(TSimpleServer thriftServer) {
+    private void setThriftServer(TServer thriftServer) {
       this.thriftServer = thriftServer;
+    }
+
+    private void setServerThread(Thread serverThread) {
+      this.serverThread = serverThread;
     }
 
     public Map<Short, RResultTable> getIntermediateUpdates() {
@@ -136,6 +153,7 @@ public class QueryResultServiceTestUtil {
     public ServerAddr getThisServicesAddr() {
       return thisServicesAddr;
     }
+
   }
 
   /**
@@ -150,21 +168,25 @@ public class QueryResultServiceTestUtil {
 
     @Override
     public void partialUpdate(RUUID queryRUuid, RResultTable partialResult, short percentComplete) throws TException {
+      logger.trace("Received partial update ({} %): {}", percentComplete, partialResult);
       res.intermediateUpdates.put(percentComplete, partialResult);
     }
 
     @Override
     public void queryResults(RUUID queryRUuid, RResultTable finalResult) throws TException {
+      logger.trace("Received final update: {}", finalResult);
       res.finalUpdate = finalResult;
     }
 
     @Override
     public void queryException(RUUID queryRUuid, RQueryException exceptionThrown) throws TException {
+      logger.trace("Received exception: {}", exceptionThrown);
       res.exception = exceptionThrown;
     }
 
     @Override
     public void queryStatistics(RUUID queryRuuid, RQueryStatistics stats) throws TException {
+      logger.trace("Received stats: {}", stats);
       res.stats = stats;
     }
   }
