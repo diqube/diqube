@@ -75,7 +75,7 @@ public class TomcatControl implements LogfileSaver {
     if (isStarted)
       throw new RuntimeException("Tomcat started already.");
 
-    // TODO #38: Bind to 127.0.0.1 only, find port dynamically.
+    // TODO Bind to 127.0.0.1 only, find port dynamically.
 
     logger.info("Starting tomcat...");
     container.start();

@@ -57,7 +57,7 @@ public class QueryResultServiceTestUtil {
   private static final Logger logger = LoggerFactory.getLogger(QueryResultServiceTestUtil.class);
 
   public static TestQueryResultService createQueryResultService() {
-    short port = 5200; // TODO #38 find port dynamically.
+    short port = 5200; // TODO find port dynamically.
 
     TMultiplexedProcessor multiProcessor = new TMultiplexedProcessor();
 

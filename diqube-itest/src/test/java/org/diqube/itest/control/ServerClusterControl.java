@@ -41,7 +41,7 @@ public class ServerClusterControl implements ServerAddressProvider, ServerCluste
   private List<ServerControl> servers;
   private List<ServerAddr> reservedAddrs = new ArrayList<>();
 
-  private short nextPort = 5101; // TODO #38: find port dynamically.
+  private short nextPort = 5101; // TODO find port dynamically.
 
   public ServerClusterControl() {
   }

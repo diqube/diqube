@@ -39,9 +39,9 @@ import org.apache.thrift.TException;
 import org.diqube.config.ConfigKey;
 import org.diqube.config.ConfigurationManager;
 import org.diqube.itest.util.TestThriftConnectionFactory;
-import org.diqube.itest.util.Waiter;
 import org.diqube.itest.util.TestThriftConnectionFactory.TestConnection;
 import org.diqube.itest.util.TestThriftConnectionFactory.TestConnectionException;
+import org.diqube.itest.util.Waiter;
 import org.diqube.remote.base.thrift.RNodeAddress;
 import org.diqube.remote.base.thrift.RNodeDefaultAddress;
 import org.diqube.remote.query.KeepAliveServiceConstants;
@@ -108,7 +108,7 @@ public class ServerControl implements LogfileSaver {
     serverProp.setProperty(ConfigKey.DATA_DIR, workDir.getAbsolutePath());
     serverProp.setProperty(ConfigKey.CLUSTER_NODES, clusterNodesProvider.getClusterNodeConfigurationString(ourAddr));
     serverProp.setProperty(ConfigKey.BIND, ourAddr.getHost()); // bind only to our addr, which is typically 127.0.0.1
-    // TODO #38: support adjustment of the server properties by the tests
+    // TODO support adjustment of the server properties by the tests
 
     serverPropertiesFile = new File(workDir, "server.properties");
     try (FileOutputStream propWrite = new FileOutputStream(serverPropertiesFile)) {
