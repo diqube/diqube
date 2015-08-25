@@ -43,6 +43,8 @@ import org.diqube.remote.base.util.RValueUtil;
 import org.diqube.server.NewDataWatcher;
 import org.diqube.util.Holder;
 import org.diqube.util.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -54,6 +56,7 @@ import com.google.common.collect.Iterables;
  * @author Bastian Gloeckle
  */
 public class SimpleServerDeployIntegrationTest extends AbstractDiqubeIntegrationTest {
+  private static final Logger logger = LoggerFactory.getLogger(SimpleServerDeployIntegrationTest.class);
 
   private static final String AGE_TABLE = "age";
   private static final String AGE_JSON_FILE =
@@ -132,6 +135,7 @@ public class SimpleServerDeployIntegrationTest extends AbstractDiqubeIntegration
     // THEN
     try (TestQueryResultService queryRes = QueryResultServiceTestUtil.createQueryResultService()) {
       RUUID queryUuid = RUuidUtil.toRUuid(UUID.randomUUID());
+      logger.info("Executing query {}", RUuidUtil.toUuid(queryUuid));
       ServiceTestUtil.queryService(serverControl.get(0),
           (queryService) -> queryService.asyncExecuteQuery(queryUuid,
               "select age, count() from age group by age order by count() desc", true,
@@ -168,6 +172,7 @@ public class SimpleServerDeployIntegrationTest extends AbstractDiqubeIntegration
     // THEN
     try (TestQueryResultService queryRes = QueryResultServiceTestUtil.createQueryResultService()) {
       RUUID queryUuid = RUuidUtil.toRUuid(UUID.randomUUID());
+      logger.info("Executing query {}", RUuidUtil.toUuid(queryUuid));
       ServiceTestUtil.queryService(serverControl.get(0),
           (queryService) -> queryService.asyncExecuteQuery(queryUuid,
               "select age, count() from age group by age order by count() desc", true,
@@ -181,6 +186,113 @@ public class SimpleServerDeployIntegrationTest extends AbstractDiqubeIntegration
       expected.add(new Pair<>(3L, 6L));
       expected.add(new Pair<>(2L, 4L));
       expected.add(new Pair<>(1L, 2L));
+
+      List<Pair<Long, Long>> actual = new ArrayList<>();
+      for (List<RValue> row : queryRes.getFinalUpdate().getRows()) {
+        Assert.assertEquals(row.size(), 2, "Expected to get correct number of cols returned.");
+        actual.add(new Pair<>((Long) RValueUtil.createValue(row.get(0)), (Long) RValueUtil.createValue(row.get(1))));
+      }
+
+      Assert.assertEquals(actual, expected, "Expected to get correct results.");
+    } catch (IOException e) {
+      throw new RuntimeException("Could not execute query", e);
+    }
+  }
+
+  @Test
+  @NeedsServer(servers = 1, manualStart = true)
+  public void deployThenStart() throws InterruptedException {
+    // WHEN
+    serverControl.get(0).deploy(cp(AGE_0_CONTROL_FILE), cp(AGE_JSON_FILE));
+    serverControl.get(0).start();
+    serverControl.get(0).waitUntilDeployed(cp(AGE_0_CONTROL_FILE));
+
+    // THEN
+    try (TestQueryResultService queryRes = QueryResultServiceTestUtil.createQueryResultService()) {
+      RUUID queryUuid = RUuidUtil.toRUuid(UUID.randomUUID());
+      logger.info("Executing query {}", RUuidUtil.toUuid(queryUuid));
+      ServiceTestUtil.queryService(serverControl.get(0),
+          (queryService) -> queryService.asyncExecuteQuery(queryUuid,
+              "select age, count() from age group by age order by count() desc", true,
+              queryRes.getThisServicesAddr().toRNodeAddress()));
+
+      new Waiter().waitUntil("Final result of query received", 10, 500,
+          () -> queryRes.check() && queryRes.getFinalUpdate() != null);
+
+      List<Pair<Long, Long>> expected = new ArrayList<>();
+      expected.add(new Pair<>(5L, 5L));
+      expected.add(new Pair<>(3L, 3L));
+      expected.add(new Pair<>(2L, 2L));
+      expected.add(new Pair<>(1L, 1L));
+
+      List<Pair<Long, Long>> actual = new ArrayList<>();
+      for (List<RValue> row : queryRes.getFinalUpdate().getRows()) {
+        Assert.assertEquals(row.size(), 2, "Expected to get correct number of cols returned.");
+        actual.add(new Pair<>((Long) RValueUtil.createValue(row.get(0)), (Long) RValueUtil.createValue(row.get(1))));
+      }
+
+      Assert.assertEquals(actual, expected, "Expected to get correct results.");
+    } catch (IOException e) {
+      throw new RuntimeException("Could not execute query", e);
+    }
+  }
+
+  @Test
+  @NeedsServer(servers = 2)
+  public void undeployInCluster() throws InterruptedException {
+    // WHEN
+    serverControl.get(0).deploy(cp(AGE_0_CONTROL_FILE), cp(AGE_JSON_FILE));
+    serverControl.get(1).deploy(cp(AGE_12_CONTROL_FILE), cp(AGE_JSON_FILE));
+
+    // THEN results from both cluster nodes
+    try (TestQueryResultService queryRes = QueryResultServiceTestUtil.createQueryResultService()) {
+      RUUID queryUuid = RUuidUtil.toRUuid(UUID.randomUUID());
+      logger.info("Executing query {}", RUuidUtil.toUuid(queryUuid));
+      ServiceTestUtil.queryService(serverControl.get(0),
+          (queryService) -> queryService.asyncExecuteQuery(queryUuid,
+              "select age, count() from age group by age order by count() desc", true,
+              queryRes.getThisServicesAddr().toRNodeAddress()));
+
+      new Waiter().waitUntil("Final result of query received", 10, 500,
+          () -> queryRes.check() && queryRes.getFinalUpdate() != null);
+
+      List<Pair<Long, Long>> expected = new ArrayList<>();
+      expected.add(new Pair<>(5L, 10L));
+      expected.add(new Pair<>(3L, 6L));
+      expected.add(new Pair<>(2L, 4L));
+      expected.add(new Pair<>(1L, 2L));
+
+      List<Pair<Long, Long>> actual = new ArrayList<>();
+      for (List<RValue> row : queryRes.getFinalUpdate().getRows()) {
+        Assert.assertEquals(row.size(), 2, "Expected to get correct number of cols returned.");
+        actual.add(new Pair<>((Long) RValueUtil.createValue(row.get(0)), (Long) RValueUtil.createValue(row.get(1))));
+      }
+
+      Assert.assertEquals(actual, expected, "Expected to get correct results.");
+    } catch (IOException e) {
+      throw new RuntimeException("Could not execute query", e);
+    }
+
+    // WHEN
+    serverControl.get(1).undeploy(cp(AGE_12_CONTROL_FILE));
+
+    // THEN result from one cluster node only
+    try (TestQueryResultService queryRes = QueryResultServiceTestUtil.createQueryResultService()) {
+      RUUID queryUuid = RUuidUtil.toRUuid(UUID.randomUUID());
+      logger.info("Executing query {}", RUuidUtil.toUuid(queryUuid));
+      ServiceTestUtil.queryService(serverControl.get(0),
+          (queryService) -> queryService.asyncExecuteQuery(queryUuid,
+              "select age, count() from age group by age order by count() desc", true,
+              queryRes.getThisServicesAddr().toRNodeAddress()));
+
+      new Waiter().waitUntil("Final result of query received", 10, 500,
+          () -> queryRes.check() && queryRes.getFinalUpdate() != null);
+
+      List<Pair<Long, Long>> expected = new ArrayList<>();
+      expected.add(new Pair<>(5L, 5L));
+      expected.add(new Pair<>(3L, 3L));
+      expected.add(new Pair<>(2L, 2L));
+      expected.add(new Pair<>(1L, 1L));
 
       List<Pair<Long, Long>> actual = new ArrayList<>();
       for (List<RValue> row : queryRes.getFinalUpdate().getRows()) {

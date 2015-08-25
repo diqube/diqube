@@ -35,6 +35,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
@@ -94,8 +96,6 @@ public class NewDataWatcher implements ClusterManagerListener {
   @Inject
   private JsonLoader jsonLoader;
 
-  private WatchService watchService;
-
   private NewDataWatchThread thread;
 
   private Path watchPath;
@@ -112,25 +112,23 @@ public class NewDataWatcher implements ClusterManagerListener {
       throw new RuntimeException(watchPath + " is no valid directory.");
     }
 
-    List<File> initialControlFiles = Arrays.asList(
-        watchPath.toFile().listFiles((dir, fileName) -> fileName.toLowerCase().endsWith(CONTROL_FILE_EXTENSION)));
-
     // delete all initial ready files.
     List<File> readyFiles = Arrays
         .asList(watchPath.toFile().listFiles((dir, fileName) -> fileName.toLowerCase().endsWith(READY_FILE_EXTENSION)));
     for (File statusFile : readyFiles)
       statusFile.delete();
 
-    try {
-      watchService = watchPath.getFileSystem().newWatchService();
-      watchPath.register(watchService, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_DELETE);
-      logger.info("Will watch {} for new data.", watchPath);
-    } catch (IOException e) {
-      logger.error("Could not instantiate WatchService and register events", e);
-      throw new RuntimeException("Could not instantiate WatchService and register events", e);
-    }
-
-    thread = new NewDataWatchThread(initialControlFiles);
+    thread = new NewDataWatchThread(() -> {
+      try {
+        WatchService watchService = watchPath.getFileSystem().newWatchService();
+        watchPath.register(watchService, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_DELETE);
+        logger.info("Will watch {} for new data.", watchPath);
+        return watchService;
+      } catch (Exception e) {
+        logger.warn("Could not install WatchService to watch dataDir {}. Will retry later.", watchPath, e);
+        return null;
+      }
+    });
     thread.start();
   }
 
@@ -194,43 +192,76 @@ public class NewDataWatcher implements ClusterManagerListener {
    */
   private class NewDataWatchThread extends Thread {
 
-    private List<File> initialControlFiles;
+    private Supplier<WatchService> watchServiceSupplier;
 
-    public NewDataWatchThread(List<File> initialControlFiles) {
+    public NewDataWatchThread(Supplier<WatchService> watchServiceRegistrationFn) {
       super(NewDataWatcher.class.getSimpleName());
-      this.initialControlFiles = initialControlFiles;
+      this.watchServiceSupplier = watchServiceRegistrationFn;
     }
 
     @Override
     public void run() {
-      for (File controlFile : initialControlFiles)
-        loadControlFile(controlFile);
+      WatchService watchService = null;
+      Object sync = new Object();
 
       while (true) {
+        if (watchService == null) {
+          File[] controlFiles =
+              watchPath.toFile().listFiles((dir, fileName) -> fileName.toLowerCase().endsWith(CONTROL_FILE_EXTENSION));
+
+          // controlFiles is null if watchPath does not exist.
+          if (controlFiles != null) {
+            for (File controlFile : controlFiles)
+              loadControlFile(controlFile);
+
+            watchService = watchServiceSupplier.get();
+          }
+
+          if (watchService == null) {
+            // still no watchService.
+            synchronized (sync) {
+              try {
+                sync.wait(500);
+              } catch (InterruptedException e) {
+                // interrupted, die quietly.
+                return;
+              }
+            }
+            continue;
+          }
+        }
+
         WatchKey watchKey;
         try {
-          watchKey = watchService.take();
+          watchKey = watchService.poll(500, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
           logger.error("Interrupted while watching directory {} for changes. Monitoring stops.", watchPath);
           return;
         }
 
-        for (WatchEvent<?> event : watchKey.pollEvents()) {
-          Path createdPath = ((Path) watchKey.watchable()).resolve((Path) event.context());
-          File createdFile = createdPath.toFile();
-          if (event.kind().equals(StandardWatchEventKinds.ENTRY_CREATE)) {
-            if (createdFile.isFile() && createdFile.getName().toLowerCase().endsWith(CONTROL_FILE_EXTENSION))
-              loadControlFile(createdFile);
-          } else if (event.kind().equals(StandardWatchEventKinds.ENTRY_DELETE)) {
-            if (createdFile.getName().toLowerCase().endsWith(CONTROL_FILE_EXTENSION))
-              unloadControlFile(createdFile);
+        if (watchKey != null) {
+          for (WatchEvent<?> event : watchKey.pollEvents()) {
+            Path createdPath = ((Path) watchKey.watchable()).resolve((Path) event.context());
+            File createdFile = createdPath.toFile();
+            if (event.kind().equals(StandardWatchEventKinds.ENTRY_CREATE)) {
+              if (createdFile.isFile() && createdFile.getName().toLowerCase().endsWith(CONTROL_FILE_EXTENSION))
+                loadControlFile(createdFile);
+            } else if (event.kind().equals(StandardWatchEventKinds.ENTRY_DELETE)) {
+              if (createdFile.getName().toLowerCase().endsWith(CONTROL_FILE_EXTENSION))
+                unloadControlFile(createdFile);
+            }
           }
         }
 
-        if (!watchKey.reset()) {
-          logger.warn("The WatchKey on the {} ({}) was unregistered. Will not monitor any directory for new "
-              + "data any more.", ConfigKey.DATA_DIR, watchPath);
-          return;
+        if ((watchKey != null && !watchKey.reset()) || !watchPath.toFile().exists()) {
+          logger.warn("The WatchKey on the {} ({}) was unregistered/the directory was deleted.", ConfigKey.DATA_DIR,
+              watchPath);
+          try {
+            watchService.close();
+          } catch (IOException e) {
+            // swallow.
+          }
+          watchService = null;
         }
       }
     }

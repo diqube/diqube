@@ -493,8 +493,9 @@ public class ConnectionPool implements ClusterNodeDiedListener {
     synchronized (this) {
       oldConnections = availableConnections.remove(nodeAddr);
     }
-    for (Connection<? extends TServiceClient> conn : oldConnections)
-      cleanupConnection(conn);
+    if (oldConnections != null)
+      for (Connection<? extends TServiceClient> conn : oldConnections)
+        cleanupConnection(conn);
 
     // Note that it might happen that there are still reserved connections for the node - in which case we cannot clean
     // defaultSocketListeners right here. It is to be expected that those reserved connections though will throw

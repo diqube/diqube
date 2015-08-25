@@ -86,55 +86,66 @@ public class ServerControl implements LogfileSaver {
   /** Address of our server. Only valid while started. */
   private ServerAddr ourAddr;
 
+  /** Control over this server was manually overridden, this class cannot start/stop this server! */
+  private boolean manualOverride;
+
   public ServerControl(File serverJarFile, File workDir, ServerAddressProvider addressProvider,
-      ServerClusterNodesProvider clusterNodesProvider) {
+      ServerClusterNodesProvider clusterNodesProvider, boolean manualOverride) {
     this.serverJarFile = serverJarFile;
     this.workDir = workDir;
     this.addressProvider = addressProvider;
     this.clusterNodesProvider = clusterNodesProvider;
+    this.manualOverride = manualOverride;
     serverLog = new File(workDir, "server.log");
     logbackConfig = createLogbackConfig(serverLog);
   }
 
   public void start() {
-    if (isStarted())
+    if (!manualOverride && isStarted())
       throw new RuntimeException("Server is started already.");
 
     ourAddr = addressProvider.reserveAddress();
 
-    Properties serverProp = new Properties();
-    serverProp.setProperty(ConfigKey.OUR_HOST, ourAddr.getHost());
-    serverProp.setProperty(ConfigKey.PORT, Short.toString(ourAddr.getPort()));
-    serverProp.setProperty(ConfigKey.DATA_DIR, workDir.getAbsolutePath());
-    serverProp.setProperty(ConfigKey.CLUSTER_NODES, clusterNodesProvider.getClusterNodeConfigurationString(ourAddr));
-    serverProp.setProperty(ConfigKey.BIND, ourAddr.getHost()); // bind only to our addr, which is typically 127.0.0.1
-    // TODO support adjustment of the server properties by the tests
+    if (manualOverride) {
+      logger.info("Using already started server at port {}, not starting a separate one!", ourAddr.getPort());
+      serverDied.set(false);
+      serverProcess = null;
+      checkLivelinessThread = null;
+    } else {
+      Properties serverProp = new Properties();
+      serverProp.setProperty(ConfigKey.OUR_HOST, ourAddr.getHost());
+      serverProp.setProperty(ConfigKey.PORT, Short.toString(ourAddr.getPort()));
+      serverProp.setProperty(ConfigKey.DATA_DIR, workDir.getAbsolutePath());
+      serverProp.setProperty(ConfigKey.CLUSTER_NODES, clusterNodesProvider.getClusterNodeConfigurationString(ourAddr));
+      serverProp.setProperty(ConfigKey.BIND, ourAddr.getHost()); // bind only to our addr, which is typically 127.0.0.1
+      // TODO support adjustment of the server properties by the tests
 
-    serverPropertiesFile = new File(workDir, "server.properties");
-    try (FileOutputStream propWrite = new FileOutputStream(serverPropertiesFile)) {
-      serverProp.store(propWrite, "");
-    } catch (IOException e1) {
-      throw new RuntimeException("Could not write " + serverPropertiesFile.getAbsolutePath());
+      serverPropertiesFile = new File(workDir, "server.properties");
+      try (FileOutputStream propWrite = new FileOutputStream(serverPropertiesFile)) {
+        serverProp.store(propWrite, "");
+      } catch (IOException e1) {
+        throw new RuntimeException("Could not write " + serverPropertiesFile.getAbsolutePath());
+      }
+
+      ProcessBuilder processBuilder = new ProcessBuilder("java",
+          "-D" + ConfigurationManager.CUSTOM_PROPERTIES_SYSTEM_PROPERTY + "=" + serverPropertiesFile.getAbsolutePath(),
+          "-Dlogback.configurationFile=" + logbackConfig.getAbsolutePath(), "-jar", serverJarFile.getAbsolutePath());
+
+      serverDied.set(false);
+
+      logger.info("Starting server at {}", ourAddr);
+
+      try {
+        serverProcess = processBuilder.start();
+      } catch (IOException e) {
+        throw new RuntimeException("Could not start server.", e);
+      }
+
+      checkLivelinessThread = new CheckLivelinessThread(serverProcess, ourAddr);
+      checkLivelinessThread.start();
+
+      waitUntilServerIsRunning(ourAddr);
     }
-
-    ProcessBuilder processBuilder = new ProcessBuilder("java",
-        "-D" + ConfigurationManager.CUSTOM_PROPERTIES_SYSTEM_PROPERTY + "=" + serverPropertiesFile.getAbsolutePath(),
-        "-Dlogback.configurationFile=" + logbackConfig.getAbsolutePath(), "-jar", serverJarFile.getAbsolutePath());
-
-    serverDied.set(false);
-
-    logger.info("Starting server at {}", ourAddr);
-
-    try {
-      serverProcess = processBuilder.start();
-    } catch (IOException e) {
-      throw new RuntimeException("Could not start server.", e);
-    }
-
-    checkLivelinessThread = new CheckLivelinessThread(serverProcess, ourAddr);
-    checkLivelinessThread.start();
-
-    waitUntilServerIsRunning(ourAddr);
   }
 
   public void stop() {
@@ -148,33 +159,43 @@ public class ServerControl implements LogfileSaver {
       return;
     }
 
-    checkLivelinessThread.interrupt();
-    try {
-      checkLivelinessThread.join();
-    } catch (InterruptedException e1) {
-      // swallow.
+    if (!manualOverride) {
+      checkLivelinessThread.interrupt();
+      try {
+        checkLivelinessThread.join();
+      } catch (InterruptedException e1) {
+        // swallow.
+      }
     }
     serverDied.set(false);
 
-    logger.info("Stopping server {}", ourAddr);
+    if (!manualOverride) {
+      logger.info("Stopping server {}", ourAddr);
 
-    try {
-      serverProcess.destroy();
+      try {
+        serverProcess.destroy();
 
-      boolean stopped = serverProcess.waitFor(10, TimeUnit.SECONDS);
+        boolean stopped = serverProcess.waitFor(10, TimeUnit.SECONDS);
 
-      if (!stopped) {
-        logger.error("The server {} did not stop, killing it forcibly.", ourAddr);
-        serverProcess.destroyForcibly();
-        throw new RuntimeException("The server " + ourAddr + " did not stop, killed it forcibly.");
+        // cleanup ready files
+        for (File readyFile : workDir.listFiles((dir, file) -> file.endsWith(NewDataWatcher.READY_FILE_EXTENSION)))
+          if (!readyFile.delete())
+            logger.warn("Could not delete ready file {}", readyFile);
+
+        if (!stopped) {
+          logger.error("The server {} did not stop, killing it forcibly.", ourAddr);
+          serverProcess.destroyForcibly();
+          throw new RuntimeException("The server " + ourAddr + " did not stop, killed it forcibly.");
+        }
+      } catch (InterruptedException e) {
+        throw new RuntimeException("Interrupted while waiting the server " + ourAddr + " to stop.", e);
       }
-    } catch (InterruptedException e) {
-      throw new RuntimeException("Interrupted while waiting the server " + ourAddr + " to stop.", e);
-    }
+    } else
+      logger.warn("Cannot stop server at {} as it was manually overridden!", ourAddr);
   }
 
   public boolean isStarted() {
-    return serverProcess != null && serverProcess.isAlive();
+    return manualOverride || serverProcess != null && serverProcess.isAlive();
   }
 
   private File readyFile(File controlFile) {
@@ -196,7 +217,6 @@ public class ServerControl implements LogfileSaver {
 
     // put the adjusted .control file into workDir, as our server is watching that directory!
     File realControlFile = new File(workDir, controlFile.getName());
-    File readyFile = readyFile(realControlFile);
 
     try (FileOutputStream fos = new FileOutputStream(realControlFile)) {
       control.store(new OutputStreamWriter(fos, Charset.forName("UTF-8")), "");
@@ -204,19 +224,32 @@ public class ServerControl implements LogfileSaver {
       throw new RuntimeException("Could not store control file to " + realControlFile.getAbsolutePath());
     }
 
-    // wait for ready file to get present
+    // wait for ready file to get present, if started
+    if (isStarted())
+      waitUntilDeployed(controlFile);
+  }
+
+  public void waitUntilDeployed(File controlFile) {
+    File realControlFile = new File(workDir, controlFile.getName());
+    File readyFile = readyFile(realControlFile);
     new Waiter().waitUntil("Ready file " + readyFile.getAbsolutePath() + " to be available", 120, 500,
         () -> readyFile.exists());
   }
 
   public void undeploy(File controlFile) {
     File realControlFile = new File(workDir, controlFile.getName());
-    File readyFile = readyFile(realControlFile);
 
     if (!realControlFile.delete())
       throw new RuntimeException("Could not delete control file " + realControlFile.getAbsolutePath());
 
-    // wait until ready file is deleted, too
+    // wait until ready file is deleted, too, if started
+    if (isStarted())
+      waitUntilUndeployed(controlFile);
+  }
+
+  public void waitUntilUndeployed(File controlFile) {
+    File realControlFile = new File(workDir, controlFile.getName());
+    File readyFile = readyFile(realControlFile);
     new Waiter().waitUntil("Ready file " + readyFile.getAbsolutePath() + " is deleted", 20, 100,
         () -> !readyFile.exists());
   }

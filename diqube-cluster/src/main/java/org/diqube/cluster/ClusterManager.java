@@ -238,15 +238,16 @@ public class ClusterManager implements ServingListener, TableLoadListener, OurNo
                   }
                 } catch (ConnectionException | TException | IOException e) {
                   // swallow, in case an exception happens, this will be handled automatically by the default listeners
-                  // in
-                  // ConnectionPool.
+                  // in ConnectionPool.
                 }
               }
             }
           }
 
-          if (clusterManagerListeners != null)
+          if (clusterManagerListeners != null) {
+            logger.info("Cluster bootstrap done.");
             clusterManagerListeners.forEach(l -> l.clusterInitialized());
+          }
         } catch (InterruptedException e) {
           logger.error("Interrupted while starting to communicate with cluster", e);
         }

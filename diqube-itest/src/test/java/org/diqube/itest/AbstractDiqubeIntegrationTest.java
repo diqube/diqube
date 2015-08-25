@@ -76,6 +76,15 @@ public abstract class AbstractDiqubeIntegrationTest {
    * in this directory (these will be .zip files in child directories).
    */
   private static final String PROP_TARGET_LOG_DIR = "diqube.itest.target.log.dir";
+  /**
+   * System property name which needs the number of the server to be attached. If it is set, {@link ServerControl} will
+   * not try to start a separate diqube-server, but expects one to be running. Please note that that server needs to
+   * have to correct properties set (like dataDir, port etc.).
+   * 
+   * This can be used to debug.
+   */
+  public static final String PROP_SERVER_OVERRIDE = "diqube.itest.server.override.";
+
   private File serverJarFile;
   private File transposeJarFile;
   private File uiWarFile;
@@ -148,9 +157,23 @@ public abstract class AbstractDiqubeIntegrationTest {
       NeedsServer annotation = testMethod.getAnnotation(NeedsServer.class);
       clusterControl = new ServerClusterControl();
       for (int i = 0; i < annotation.servers(); i++) {
+        boolean manualOverride = System.getProperty(PROP_SERVER_OVERRIDE + i) != null;
+
+        if (manualOverride) {
+          try {
+            // We might just have deleted the workDir (from a previous run, workDirs are deleted in constructor). Give
+            // the manual diqube-server here some time to recognize that the work dir was deleted (in order that it will
+            // be able to re-attach the data dir to the new dir!)
+            Thread.sleep(1000);
+          } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+          }
+        }
+
         File serverWorkDir = new File(testWorkDir, "server-" + i);
         ensureDirExists(serverWorkDir);
-        serverControl.add(new ServerControl(serverJarFile, serverWorkDir, clusterControl, clusterControl));
+        serverControl
+            .add(new ServerControl(serverJarFile, serverWorkDir, clusterControl, clusterControl, manualOverride));
       }
       clusterControl.setServers(serverControl);
 

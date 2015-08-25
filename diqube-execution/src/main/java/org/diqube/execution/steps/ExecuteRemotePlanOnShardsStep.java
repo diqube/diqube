@@ -221,7 +221,7 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
           logger.warn(
               "Remote node {} is not online anymore, but it would have contained information for query "
                   + "{} execution {}. The information will not be available to the user therefore.",
-              QueryUuid.getCurrentQueryUuid(), QueryUuid.getCurrentExecutionUuid());
+              remoteAddr, QueryUuid.getCurrentQueryUuid(), QueryUuid.getCurrentExecutionUuid());
           remotesDone.incrementAndGet();
           // TODO #37: We should inform the user about this situation.
         } catch (InterruptedException e) {

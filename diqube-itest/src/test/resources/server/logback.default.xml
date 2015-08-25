@@ -43,6 +43,7 @@
 
   <root level="info">
     <appender-ref ref="FILE" />
-    <appender-ref ref="STDOUT" />
+    <!-- Do not log to STDOUT in server process, as ServerControl does not consume the output stream and the process might block therefore. -->
+     <!-- <appender-ref ref="STDOUT" />-->
   </root>
 </configuration>

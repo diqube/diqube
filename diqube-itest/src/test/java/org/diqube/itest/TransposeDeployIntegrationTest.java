@@ -40,6 +40,8 @@ import org.diqube.remote.base.util.RUuidUtil;
 import org.diqube.remote.base.util.RValueUtil;
 import org.diqube.server.NewDataWatcher;
 import org.diqube.util.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -49,6 +51,8 @@ import org.testng.annotations.Test;
  * @author Bastian Gloeckle
  */
 public class TransposeDeployIntegrationTest extends AbstractDiqubeIntegrationTest {
+  private static final Logger logger = LoggerFactory.getLogger(TransposeDeployIntegrationTest.class);
+
   private static final String LOREM_JSON_TABLE = "loremJson";
   private static final String LOREM_DIQUBE_TABLE = "loremDiqube";
   private static final String LOREM_JSON_FILE =
@@ -89,6 +93,7 @@ public class TransposeDeployIntegrationTest extends AbstractDiqubeIntegrationTes
   private Set<Pair<String, Set<String>>> queryResults(String tableName) throws IOException {
     try (TestQueryResultService queryRes = QueryResultServiceTestUtil.createQueryResultService()) {
       RUUID queryUuid = RUuidUtil.toRUuid(UUID.randomUUID());
+      logger.info("Executing query {}", RUuidUtil.toUuid(queryUuid));
       ServiceTestUtil.queryService(serverControl.get(0), (queryService) -> queryService.asyncExecuteQuery(queryUuid,
           "select a, concatgroup(b[*].c) from " + tableName, true, queryRes.getThisServicesAddr().toRNodeAddress()));
 
