@@ -213,6 +213,10 @@ public class RepeatedProjectStep extends AbstractThreadedExecutablePlanStep {
         ProjectionFunction<Object, Object> fn =
             functionFactory.createProjectionFunction(functionNameLowerCase, inputColType);
 
+        if (fn == null)
+          throw new ExecutablePlanExecutionException(
+              "Cannot find function '" + functionNameLowerCase + "' with input data type " + inputColType);
+
         if (outputColType == null)
           outputColType = fn.getOutputType();
 

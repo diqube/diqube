@@ -220,12 +220,14 @@
             <artifactId>build-helper-maven-plugin</artifactId>
             <executions>
               <execution>
-                <id>add-resources-min</id>
-                <goals>
-                  <goal>add-resource</goal>
-                </goals>
+                <!--  overwrite execution of adding resources above: include minjs_source instead of bower_components/ -->
+                <id>add-resources</id>
                 <configuration>
                   <resources>
+                    <resource>
+                      <directory>src/main/js</directory>
+                      <targetPath>web/</targetPath>
+                    </resource>
                     <resource>
                       <directory>${project.build.directory}/minjs_source</directory>
                       <targetPath>web/</targetPath>
@@ -234,21 +236,6 @@
                 </configuration>
               </execution>
             </executions>
-          </plugin>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-war-plugin</artifactId>
-            <configuration>
-              <webResources>
-                <resource>
-                  <!-- exclude the default files of the dependencies -->
-                  <directory>bower_components</directory>
-                  <excludes>
-                    <exclude>**</exclude>
-                  </excludes>
-                </resource>
-              </webResources>
-            </configuration>
           </plugin>
         </plugins>
       </build>

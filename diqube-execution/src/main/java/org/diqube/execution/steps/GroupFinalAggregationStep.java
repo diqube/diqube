@@ -44,6 +44,7 @@ import org.diqube.execution.consumers.GroupFinalAggregationConsumer;
 import org.diqube.execution.consumers.GroupIntermediaryAggregationConsumer;
 import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.env.VersionedExecutionEnvironment;
+import org.diqube.execution.exception.ExecutablePlanExecutionException;
 import org.diqube.function.AggregationFunction;
 import org.diqube.function.FunctionException;
 import org.diqube.function.FunctionFactory;
@@ -153,6 +154,10 @@ public class GroupFinalAggregationStep extends AbstractThreadedExecutablePlanSte
         if (!aggregationFunctions.containsKey(groupId)) {
           AggregationFunction<Object, IntermediaryResult<Object, Object, Object>, Object> fn =
               functionFactory.createAggregationFunction(functionNameLowerCase, newIntermediary.getInputColumnType());
+
+          if (fn == null)
+            throw new ExecutablePlanExecutionException("Cannot find function '" + functionNameLowerCase
+                + "' with input data type " + newIntermediary.getInputColumnType());
 
           for (int i = 0; i < constantFunctionParameters.size(); i++)
             fn.provideConstantParameter(i, constantFunctionParameters.get(i));

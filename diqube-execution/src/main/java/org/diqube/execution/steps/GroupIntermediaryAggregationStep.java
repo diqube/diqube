@@ -40,6 +40,7 @@ import org.diqube.execution.consumers.GroupDeltaConsumer;
 import org.diqube.execution.consumers.GroupIntermediaryAggregationConsumer;
 import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.exception.ExecutablePlanBuildException;
+import org.diqube.execution.exception.ExecutablePlanExecutionException;
 import org.diqube.function.AggregationFunction;
 import org.diqube.function.AggregationFunction.ValueProvider;
 import org.diqube.function.FunctionFactory;
@@ -157,6 +158,11 @@ public class GroupIntermediaryAggregationStep extends AbstractThreadedExecutable
             inputColType = env.getColumnType(inputColumnName);
           AggregationFunction<Object, IntermediaryResult<Object, Object, Object>, Object> newFn =
               functionFactory.createAggregationFunction(functionNameLowerCase, inputColType);
+
+          if (newFn == null)
+            throw new ExecutablePlanExecutionException(
+                "Cannot find function '" + functionNameLowerCase + "' with input data type " + inputColType);
+
           for (int i = 0; i < constantFunctionParameters.size(); i++)
             newFn.provideConstantParameter(i, constantFunctionParameters.get(i));
 

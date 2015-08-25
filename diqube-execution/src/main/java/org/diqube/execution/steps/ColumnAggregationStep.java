@@ -157,6 +157,10 @@ public class ColumnAggregationStep extends AbstractThreadedExecutablePlanStep {
     AggregationFunction<Object, IntermediaryResult<Object, Object, Object>, Object> tmpFunction =
         functionFactory.createAggregationFunction(functionNameLowerCase, inputColType);
 
+    if (tmpFunction == null)
+      throw new ExecutablePlanExecutionException(
+          "Cannot find function '" + functionNameLowerCase + "' with input data type " + inputColType);
+
     ColumnShardBuilderManager colShardBuilderManager =
         columnShardBuilderManagerSupplier.apply(tmpFunction.getOutputType());
 
