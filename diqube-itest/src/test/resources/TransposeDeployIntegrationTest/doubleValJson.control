@@ -1,0 +1,4 @@
+table=doubleValJson
+file=doubleVal.json
+type=json
+firstRowId=0

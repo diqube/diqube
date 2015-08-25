@@ -63,9 +63,28 @@ public class TransposeDeployIntegrationTest extends AbstractDiqubeIntegrationTes
       + "/loremDiqube" + NewDataWatcher.CONTROL_FILE_EXTENSION;
   private static final String LOREM_DIQUBE_FILE = "lorem.diqube";
 
+  private static final String DOUBLEVAL_JSON_TABLE = "doubleValJson";
+  private static final String DOUBLEVAL_DIQUBE_TABLE = "doubleValDiqube";
+  private static final String DOUBLEVAL_JSON_FILE =
+      "/" + TransposeDeployIntegrationTest.class.getSimpleName() + "/doubleVal.json";
+  private static final String DOUBLEVAL_JSON_CONTROL_FILE = "/" + TransposeDeployIntegrationTest.class.getSimpleName()
+      + "/doubleValJson" + NewDataWatcher.CONTROL_FILE_EXTENSION;
+  private static final String DOUBLEVAL_DIQUBE_CONTROL_FILE = "/" + TransposeDeployIntegrationTest.class.getSimpleName()
+      + "/doubleValDiqube" + NewDataWatcher.CONTROL_FILE_EXTENSION;
+  private static final String DOUBLEVAL_DIQUBE_FILE = "doubleVal.diqube";
+
+  private static final String AGE_JSON_TABLE = "ageJson";
+  private static final String AGE_DIQUBE_TABLE = "ageDiqube";
+  private static final String AGE_JSON_FILE = "/" + TransposeDeployIntegrationTest.class.getSimpleName() + "/age.json";
+  private static final String AGE_JSON_CONTROL_FILE =
+      "/" + TransposeDeployIntegrationTest.class.getSimpleName() + "/ageJson" + NewDataWatcher.CONTROL_FILE_EXTENSION;
+  private static final String AGE_DIQUBE_CONTROL_FILE =
+      "/" + TransposeDeployIntegrationTest.class.getSimpleName() + "/ageDiqube" + NewDataWatcher.CONTROL_FILE_EXTENSION;
+  private static final String AGE_DIQUBE_FILE = "age.diqube";
+
   @Test
   @NeedsServer(servers = 1)
-  public void jsonTransposeDeploy() throws IOException {
+  public void stringTransposeDeploy() throws IOException {
     // GIVEN
     // transposed file
     transposeControl.transpose(cp(LOREM_JSON_FILE), TransposeControl.TYPE_JSON, work(LOREM_DIQUBE_FILE));
@@ -83,14 +102,14 @@ public class TransposeDeployIntegrationTest extends AbstractDiqubeIntegrationTes
     expected.add(new Pair<>("do", new HashSet<>(Arrays.asList("aliquip", "do", "commodo"))));
     expected.add(new Pair<>("mollit", new HashSet<>(Arrays.asList("pariatur", "incididunt", "cillum"))));
 
-    Set<Pair<String, Set<String>>> jsonResult = queryResults(LOREM_JSON_TABLE);
+    Set<Pair<String, Set<String>>> jsonResult = queryLoremResults(LOREM_JSON_TABLE);
     Assert.assertEquals(jsonResult, expected);
 
-    Set<Pair<String, Set<String>>> diqubeResult = queryResults(LOREM_DIQUBE_TABLE);
+    Set<Pair<String, Set<String>>> diqubeResult = queryLoremResults(LOREM_DIQUBE_TABLE);
     Assert.assertEquals(diqubeResult, expected);
   }
 
-  private Set<Pair<String, Set<String>>> queryResults(String tableName) throws IOException {
+  private Set<Pair<String, Set<String>>> queryLoremResults(String tableName) throws IOException {
     try (TestQueryResultService queryRes = QueryResultServiceTestUtil.createQueryResultService()) {
       RUUID queryUuid = RUuidUtil.toRUuid(UUID.randomUUID());
       logger.info("Executing query {}", RUuidUtil.toUuid(queryUuid));
@@ -105,6 +124,100 @@ public class TransposeDeployIntegrationTest extends AbstractDiqubeIntegrationTes
         Assert.assertEquals(row.size(), 2, "Expected to get correct number of cols returned.");
         result.add(new Pair<>((String) RValueUtil.createValue(row.get(0)), new HashSet<>(Arrays
             .asList(((String) RValueUtil.createValue(row.get(1))).split(ConcatGroupFunction.DEFAULT_DELIMITER)))));
+      }
+      return result;
+    }
+  }
+
+  @Test
+  @NeedsServer(servers = 1)
+  public void doubleTransposeDeploy() throws IOException {
+    // GIVEN
+    // transposed file
+    transposeControl.transpose(cp(DOUBLEVAL_JSON_FILE), TransposeControl.TYPE_JSON, work(DOUBLEVAL_DIQUBE_FILE));
+
+    // deploy both non-transposed and transposed data
+    serverControl.get(0).deploy(cp(DOUBLEVAL_JSON_CONTROL_FILE), cp(DOUBLEVAL_JSON_FILE));
+    serverControl.get(0).deploy(cp(DOUBLEVAL_DIQUBE_CONTROL_FILE), work(DOUBLEVAL_DIQUBE_FILE));
+
+    Set<Double> expected = new HashSet<>();
+    expected.add(3915.8329);
+    expected.add(3797.0344);
+    expected.add(3686.7414);
+    expected.add(3464.2484);
+    expected.add(2863.5864);
+    expected.add(2230.9298);
+    expected.add(1746.0391);
+    expected.add(1697.8916);
+    expected.add(1333.4152);
+    expected.add(1010.2351);
+
+    Set<Double> jsonResult = queryDoubleResults(DOUBLEVAL_JSON_TABLE);
+    Assert.assertEquals(jsonResult, expected);
+
+    Set<Double> diqubeResult = queryDoubleResults(DOUBLEVAL_DIQUBE_TABLE);
+    Assert.assertEquals(diqubeResult, expected);
+  }
+
+  private Set<Double> queryDoubleResults(String tableName) throws IOException {
+    try (TestQueryResultService queryRes = QueryResultServiceTestUtil.createQueryResultService()) {
+      RUUID queryUuid = RUuidUtil.toRUuid(UUID.randomUUID());
+      logger.info("Executing query {}", RUuidUtil.toUuid(queryUuid));
+      ServiceTestUtil.queryService(serverControl.get(0), (queryService) -> queryService.asyncExecuteQuery(queryUuid,
+          "select v from " + tableName, true, queryRes.getThisServicesAddr().toRNodeAddress()));
+
+      new Waiter().waitUntil("Final result of query received", 10, 500,
+          () -> queryRes.check() && queryRes.getFinalUpdate() != null);
+
+      Set<Double> result = new HashSet<>();
+      for (List<RValue> row : queryRes.getFinalUpdate().getRows()) {
+        Assert.assertEquals(row.size(), 1, "Expected to get correct number of cols returned.");
+        result.add((Double) RValueUtil.createValue(row.get(0)));
+      }
+      return result;
+    }
+  }
+
+  @Test
+  @NeedsServer(servers = 1)
+  public void longTransposeDeploy() throws IOException {
+    // GIVEN
+    // transposed file
+    transposeControl.transpose(cp(AGE_JSON_FILE), TransposeControl.TYPE_JSON, work(AGE_DIQUBE_FILE));
+
+    // deploy both non-transposed and transposed data
+    serverControl.get(0).deploy(cp(AGE_JSON_CONTROL_FILE), cp(AGE_JSON_FILE));
+    serverControl.get(0).deploy(cp(AGE_DIQUBE_CONTROL_FILE), work(AGE_DIQUBE_FILE));
+
+    Set<Pair<Long, Long>> expected = new HashSet<>();
+    expected.add(new Pair<>(5L, 5L));
+    expected.add(new Pair<>(3L, 3L));
+    expected.add(new Pair<>(2L, 2L));
+    expected.add(new Pair<>(1L, 1L));
+
+    Set<Pair<Long, Long>> jsonResult = queryLongResults(AGE_JSON_TABLE);
+    Assert.assertEquals(jsonResult, expected);
+
+    Set<Pair<Long, Long>> diqubeResult = queryLongResults(AGE_DIQUBE_TABLE);
+    Assert.assertEquals(diqubeResult, expected);
+  }
+
+  private Set<Pair<Long, Long>> queryLongResults(String tableName) throws IOException {
+    try (TestQueryResultService queryRes = QueryResultServiceTestUtil.createQueryResultService()) {
+      RUUID queryUuid = RUuidUtil.toRUuid(UUID.randomUUID());
+      logger.info("Executing query {}", RUuidUtil.toUuid(queryUuid));
+      ServiceTestUtil.queryService(serverControl.get(0),
+          (queryService) -> queryService.asyncExecuteQuery(queryUuid,
+              "select age, count() from " + tableName + " group by age", true,
+              queryRes.getThisServicesAddr().toRNodeAddress()));
+
+      new Waiter().waitUntil("Final result of query received", 10, 500,
+          () -> queryRes.check() && queryRes.getFinalUpdate() != null);
+
+      Set<Pair<Long, Long>> result = new HashSet<>();
+      for (List<RValue> row : queryRes.getFinalUpdate().getRows()) {
+        Assert.assertEquals(row.size(), 2, "Expected to get correct number of cols returned.");
+        result.add(new Pair<>((Long) RValueUtil.createValue(row.get(0)), (Long) RValueUtil.createValue(row.get(1))));
       }
       return result;
     }
