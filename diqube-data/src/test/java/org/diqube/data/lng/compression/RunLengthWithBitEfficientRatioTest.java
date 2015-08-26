@@ -71,7 +71,8 @@ public class RunLengthWithBitEfficientRatioTest {
   @Test
   public void threeZeros() {
     long[] inputArray = new long[] { 0, 0, 0, 0, 1 };
-    double avgNumberOfBitsPerValue = 4.; // 1 bit value, 3 bits length
+    int newLengthOfArrays = 2; // both "count" and "value" array have 2 entries.
+    double avgNumberOfBitsPerValue = newLengthOfArrays * 4. / inputArray.length; // 1 bit value, 3 bits length
 
     assertRatio(inputArray, avgNumberOfBitsPerValue);
   }
