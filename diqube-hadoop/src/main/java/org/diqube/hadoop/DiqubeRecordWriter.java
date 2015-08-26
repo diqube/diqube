@@ -52,6 +52,8 @@ import org.diqube.loader.columnshard.ColumnShardBuilderFactory;
 import org.diqube.loader.columnshard.ColumnShardBuilderManager;
 import org.diqube.util.NullUtil;
 import org.diqube.util.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 /**
@@ -60,6 +62,7 @@ import org.springframework.context.annotation.AnnotationConfigApplicationContext
  * @author Bastian Gloeckle
  */
 public class DiqubeRecordWriter extends RecordWriter<NullWritable, DiqubeRow> {
+  private static final Logger logger = LoggerFactory.getLogger(DiqubeRecordWriter.class);
 
   private DataOutputStream outStream;
   private AnnotationConfigApplicationContext ctx;
@@ -96,6 +99,7 @@ public class DiqubeRecordWriter extends RecordWriter<NullWritable, DiqubeRow> {
 
     // fill in data of that single new row into columnShardBuilderManager
     long rowId = nextRowId.getAndIncrement();
+
     Deque<Pair<String, DiqubeData>> dataQueue = new LinkedList<>();
     dataQueue.add(new Pair<>("", row.getData()));
     while (!dataQueue.isEmpty()) {
@@ -186,6 +190,8 @@ public class DiqubeRecordWriter extends RecordWriter<NullWritable, DiqubeRow> {
 
   @Override
   public void close(TaskAttemptContext context) throws IOException, InterruptedException {
+    logger.info("All data available to be written to diqube file. Starting to compress values and transform them "
+        + "into the final representation...");
     try {
       // use columnShardBuilderManager to build all columnShards
       // this will start compressing etc. and will take some time.
@@ -201,6 +207,7 @@ public class DiqubeRecordWriter extends RecordWriter<NullWritable, DiqubeRow> {
             // fill "length" columns with "0" instead of the default long (which would be -1).
             columnShardBuilderManager.fillEmptyRowsWithValue(colName, 0L);
 
+          logger.info("Building column {}", colName);
           colShards.add(columnShardBuilderManager.build(colName));
         } catch (Exception e) {
           throw new IOException("Could not build column '" + colName + "'", e);
@@ -212,6 +219,7 @@ public class DiqubeRecordWriter extends RecordWriter<NullWritable, DiqubeRow> {
           // this tableName will be overwritten when importing the data into a diqube-server.
           "hadoop_created", colShards);
 
+      logger.info("Final representation built. Serializing results to output file.");
       // serialize that data into the new file.
       DataSerializationManager dataSerializationManager = ctx.getBean(DataSerializationManager.class);
       DataSerializer serializer = dataSerializationManager.createSerializer(TableShard.class);
@@ -224,6 +232,7 @@ public class DiqubeRecordWriter extends RecordWriter<NullWritable, DiqubeRow> {
             NullUtil.setAllPropertiesToNull(t, null /* swallow all exceptions */);
           }
         });
+        logger.info("Data serialized successfully.");
       } catch (SerializationException e) {
         throw new IOException("Could not serialize data: " + e.getMessage(), e);
       }

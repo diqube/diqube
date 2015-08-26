@@ -30,6 +30,8 @@ import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * {@link OutputFormat} writing .diqube files which can be easily imported to diqube-server.
@@ -39,11 +41,13 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
  * @author Bastian Gloeckle
  */
 public class DiqubeOutputFormat extends FileOutputFormat<NullWritable, DiqubeRow> {
+  private static final Logger logger = LoggerFactory.getLogger(DiqubeOutputFormat.class);
 
   @Override
   public RecordWriter<NullWritable, DiqubeRow> getRecordWriter(TaskAttemptContext job)
       throws IOException, InterruptedException {
     Path destPath = getDefaultWorkFile(job, ".diqube");
+    logger.info("Will write .diqube file to {}", destPath.toString());
     FileSystem fs = destPath.getFileSystem(job.getConfiguration());
     DataOutputStream os = fs.create(destPath, false);
     return new DiqubeRecordWriter(os);
