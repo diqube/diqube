@@ -166,6 +166,31 @@ public class ColumnShardBuilder<T> {
   }
 
   /**
+   * Walks along all rows that have been added and sets the given default value into those rows that do not have a value
+   * set.
+   * 
+   * Must be called only after all calls to {@link #addValues(Object[], Long)} have been made and before
+   * {@link #build()}.
+   */
+  public void fillEmptyRowsWithValue(T value, long upUntilRowIncluding) {
+    Long id = columnDict.get(value);
+    if (id == null) {
+      id = nextColumnDictId.getAndIncrement();
+      columnDict.put(value, id);
+    }
+
+    for (long rowId = firstRowIdInShard; rowId <= upUntilRowIncluding; rowId++) {
+      int proposalIdx = (int) Math.floorDiv(rowId - firstRowIdInShard, PROPOSAL_ROWS);
+      if (pageProposals.size() > proposalIdx && pageProposals.get(proposalIdx) != null) {
+        int inProposalIdx = (int) (rowId - firstRowIdInShard - (proposalIdx * PROPOSAL_ROWS));
+        if (pageProposals.get(proposalIdx).valueIds[inProposalIdx] == ColumnPageProposal.EMPTY)
+          pageProposals.get(proposalIdx).valueIds[inProposalIdx] = id;
+      } else
+        addValueIds(new long[] { id }, 0, rowId);
+    }
+  }
+
+  /**
    * After adding the values of the column this method builds actual {@link ColumnShard}s.
    *
    * <p>

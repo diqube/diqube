@@ -26,20 +26,12 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.lang.reflect.Field;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Deque;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
-import java.util.Set;
 
 import org.diqube.data.ColumnType;
 import org.diqube.data.TableShard;
@@ -51,10 +43,10 @@ import org.diqube.data.serialize.SerializationException;
 import org.diqube.loader.LoadException;
 import org.diqube.loader.Loader;
 import org.diqube.loader.LoaderColumnInfo;
+import org.diqube.util.NullUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
-import org.springframework.util.ReflectionUtils;
 
 import com.google.common.collect.Iterators;
 
@@ -67,9 +59,6 @@ public class TransposeImplementation {
   private static final Logger logger = LoggerFactory.getLogger(TransposeImplementation.class);
 
   private static final String TABLE_NAME = "TransposeImportTable";
-
-  private static final Set<Class<?>> PRIMITIVE_TYPES = new HashSet<>(Arrays.asList(Long.TYPE, Integer.TYPE, Byte.TYPE,
-      Short.TYPE, Float.TYPE, Double.TYPE, Character.TYPE, Boolean.TYPE));
 
   private File inputFile;
   private File outputFile;
@@ -119,7 +108,9 @@ public class TransposeImplementation {
           public void accept(DataSerialization<?> t) {
             // right after we're done with serializing an object, we "null" all its properties to try to free up some
             // memory.
-            setAllPropertiesToNull(t);
+            NullUtil.setAllPropertiesToNull(t,
+                // just log on exception, it is not as bad if a field cannot be nulled.
+                (fieldToNull, e) -> logger.trace("Could not null {} on {}", fieldToNull, e));
           }
         });
         logger.info("Successfully serialized data to '{}'", outputFile.getAbsolutePath());
@@ -172,30 +163,4 @@ public class TransposeImplementation {
     }
   }
 
-  private void setAllPropertiesToNull(Object o) {
-    List<Field> allFields = new ArrayList<>();
-    Deque<Class<?>> allClasses = new LinkedList<>();
-    allClasses.add(o.getClass());
-    while (!allClasses.isEmpty()) {
-      Class<?> curClass = allClasses.pop();
-      if (curClass.equals(Object.class))
-        continue;
-
-      for (Field declaredField : curClass.getDeclaredFields()) {
-        if (!PRIMITIVE_TYPES.contains(declaredField.getType()))
-          allFields.add(declaredField);
-      }
-      allClasses.add(curClass.getSuperclass());
-    }
-
-    for (Field fieldToNull : allFields) {
-      ReflectionUtils.makeAccessible(fieldToNull);
-      try {
-        fieldToNull.set(o, null);
-      } catch (IllegalArgumentException | IllegalAccessException e) {
-        // swallow - we did not succeed in nulling the field, the just ignore.
-        logger.trace("Could not null {} on {}", fieldToNull, o);
-      }
-    }
-  }
 }

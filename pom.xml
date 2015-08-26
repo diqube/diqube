@@ -60,6 +60,7 @@
     <module>diqube-transpose</module>
     <module>diqube-diql</module>
     <module>diqube-loader</module>
+    <module>diqube-hadoop</module>
     <module>diqube-function</module>
     <module>diqube-plan</module>
     <module>diqube-execution</module>
@@ -77,6 +78,7 @@
     <thrift.version>0.9.2</thrift.version>
     <!-- string the thrift compiler (executable) outputs when called with param "- -version" -->
     <thrift.version.executable.string>Thrift version 0.9.2</thrift.version.executable.string>
+    <hadoop.version>2.7.1</hadoop.version>
   </properties>
 
   <build>
@@ -372,6 +374,11 @@
         <artifactId>javax.websocket-api</artifactId>
         <version>1.1</version>
         <scope>provided</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.hadoop</groupId>
+        <artifactId>hadoop-client</artifactId>
+        <version>${hadoop.version}</version>
       </dependency>
 
 

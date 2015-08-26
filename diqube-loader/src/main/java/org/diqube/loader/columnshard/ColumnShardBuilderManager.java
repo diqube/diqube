@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.diqube.data.TableShard;
 import org.diqube.data.colshard.ColumnPageFactory;
@@ -49,6 +50,7 @@ public class ColumnShardBuilderManager {
   private ColumnPageFactory columnPageFactory;
   private LoaderColumnInfo columnInfo;
   private long firstRowIdInShard;
+  private AtomicLong maxRow = new AtomicLong(-1L);
 
   public ColumnShardBuilderManager(ColumnShardFactory columnShardFactory, ColumnPageFactory columnPageFactory,
       LoaderColumnInfo columnInfo, long firstRowIdInShard) {
@@ -66,6 +68,24 @@ public class ColumnShardBuilderManager {
     res.addAll(longBuilders.keySet());
     res.addAll(doubleBuilders.keySet());
     return res;
+  }
+
+  /**
+   * Walks along all rows that have been added for the given column and sets the given default value into those rows
+   * that do not have a value set.
+   */
+  public void fillEmptyRowsWithValue(String colName, Object value) {
+    switch (columnInfo.getFinalColumnType(colName)) {
+    case STRING:
+      stringBuilders.get(colName).fillEmptyRowsWithValue((String) value, maxRow.get());
+      break;
+    case LONG:
+      longBuilders.get(colName).fillEmptyRowsWithValue((Long) value, maxRow.get());
+      break;
+    case DOUBLE:
+      doubleBuilders.get(colName).fillEmptyRowsWithValue((Double) value, maxRow.get());
+      break;
+    }
   }
 
   /**
@@ -111,6 +131,7 @@ public class ColumnShardBuilderManager {
       doubleBuilders.get(colName).addValues((Double[]) values, firstRowId);
       break;
     }
+    maxRow.getAndUpdate(oldVal -> Math.max(oldVal, firstRowId + values.length - 1));
   }
 
   /**

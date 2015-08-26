@@ -82,6 +82,13 @@ public class LoaderColumnInfo {
   }
 
   /**
+   * @return The registered {@link ColumnType} for the given column or <code>null</code> if column not yet known.
+   */
+  public ColumnType getRegisteredColumnType(String colName) {
+    return this.columnType.get(colName);
+  }
+
+  /**
    * Register a specific column type and a specific transformation function for a column.
    * 
    * @param colName
