@@ -29,6 +29,8 @@ import org.diqube.data.serialize.DeserializationException;
 import org.diqube.data.serialize.SerializationException;
 import org.diqube.data.serialize.thrift.v1.SLongCompressedArray;
 import org.diqube.data.serialize.thrift.v1.SLongCompressedArrayRLE;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Run-Length-Encoding for long arrays.
@@ -49,6 +51,7 @@ import org.diqube.data.serialize.thrift.v1.SLongCompressedArrayRLE;
  */
 @DataSerializable(thriftClass = SLongCompressedArrayRLE.class)
 public class RunLengthLongArray extends AbstractTransitiveExplorableCompressedLongArray<SLongCompressedArrayRLE> {
+  private static final Logger logger = LoggerFactory.getLogger(RunLengthLongArray.class);
 
   /** If the decompressed array is sorted. */
   private boolean isSorted;
@@ -101,6 +104,11 @@ public class RunLengthLongArray extends AbstractTransitiveExplorableCompressedLo
       if (inputArray[pos] == lastValue)
         lastCount++;
       else {
+        if (lastCount > maxCount)
+          maxCount = lastCount;
+        if (lastCount < minCount)
+          minCount = lastCount;
+
         lastValue = inputArray[pos];
         lastCount = 1;
         numberOfDifferentTuples++;
@@ -113,14 +121,17 @@ public class RunLengthLongArray extends AbstractTransitiveExplorableCompressedLo
           secondMinValue = minValue;
         minValue = lastValue;
       }
-      if (lastCount > maxCount)
-        maxCount = lastCount;
-      if (lastCount < minCount) {
-        minCount = lastCount;
-      }
       if (lastValue < secondMinValue && lastValue > minValue)
         secondMinValue = lastValue;
     }
+
+    if (lastCount > maxCount)
+      maxCount = lastCount;
+    if (lastCount < minCount)
+      minCount = lastCount;
+
+    if (secondMinValue > maxValue)
+      secondMinValue = maxValue;
   }
 
   @Override
@@ -131,7 +142,15 @@ public class RunLengthLongArray extends AbstractTransitiveExplorableCompressedLo
     double countCompression =
         transitiveCalculator.calculateTransitiveCompressionRatio(minCount, minCount, maxCount, numberOfDifferentTuples);
 
-    return valueCompression + countCompression;
+    double resRatio = (numberOfDifferentTuples * (valueCompression + countCompression)) / size;
+
+    logger.trace(
+        "Res ratio: {}, Value ratio: {}, count ratio: {}, minValue: {}, secondMinValue: {}, "
+            + "maxValue: {}, minCount: {}, maxCount: {}, numberOfDifferentTuples:  {}",
+        resRatio, valueCompression, countCompression, minValue, secondMinValue, maxValue, minCount, maxCount,
+        numberOfDifferentTuples);
+
+    return resRatio;
   }
 
   @Override

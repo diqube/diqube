@@ -331,7 +331,7 @@ public class BitEfficientLongArray extends AbstractExplorableCompressedLongArray
 
   private static int numberOfBitsNeededForPositiveLong(long positiveValue) {
     if (positiveValue == 0)
-      return 0;
+      return 1;
 
     return 64 - Long.numberOfLeadingZeros(positiveValue);
   }
