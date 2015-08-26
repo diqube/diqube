@@ -1,4 +1,16 @@
 
+    GPLv2 with classpath exception [gpl-20-classpath.txt]:
+
+        * Java Servlet API (javax.servlet:javax.servlet-api:3.1.0 - http://servlet-spec.java.net)
+        * WebSocket server API (javax.websocket:javax.websocket-api:1.1 - http://websocket-spec.java.net)
+
+    Apache License 2.0 [apache-20.txt]:
+
+        * tomcat-websocket (org.apache.tomcat:tomcat-websocket:8.0.24 - http://tomcat.apache.org/)
+        * NVD3, http://nvd3.org/
+        * angularjs-nvd3-directives, http://angularjs-nvd3-directives.github.io/angularjs-nvd3-directives/
+        * Apache Hadoop, http://hadoop.apache.org
+
     MIT License (AngularJS) [angular-mit.txt]:
 
         * AngularJS, http://angularjs.org
@@ -34,8 +46,3 @@
     BSD License (D3) [d3-bsd.txt]:
 
         * D3.js, http://d3js.org/
-
-    Apache License 2.0 [apache-20.txt]:
-
-        * NVD3, http://nvd3.org/
-        * angularjs-nvd3-directives, http://angularjs-nvd3-directives.github.io/angularjs-nvd3-directives/

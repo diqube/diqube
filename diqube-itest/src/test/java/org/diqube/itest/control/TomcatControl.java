@@ -25,12 +25,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import org.codehaus.cargo.container.ContainerType;
-import org.codehaus.cargo.container.InstalledLocalContainer;
-import org.codehaus.cargo.container.configuration.ConfigurationType;
-import org.codehaus.cargo.container.configuration.LocalConfiguration;
-import org.codehaus.cargo.generic.DefaultContainerFactory;
-import org.codehaus.cargo.generic.configuration.DefaultConfigurationFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,7 +35,6 @@ import org.slf4j.LoggerFactory;
  */
 public class TomcatControl implements LogfileSaver {
   private static final Logger logger = LoggerFactory.getLogger(TomcatControl.class);
-  private InstalledLocalContainer container;
 
   private boolean isStarted = false;
   private File tomcatDir;
@@ -59,13 +52,7 @@ public class TomcatControl implements LogfileSaver {
     tomcatDir = new File(unzipDirectory, tomcatDirNames[0]);
     logger.info("Using tomcat installation directory '{}'", tomcatDir.getAbsolutePath());
 
-    LocalConfiguration configuration =
-        (LocalConfiguration) new DefaultConfigurationFactory().createConfiguration("tomcat8x", ContainerType.INSTALLED,
-            ConfigurationType.EXISTING, tomcatDir.getAbsolutePath());
-    container = (InstalledLocalContainer) new DefaultContainerFactory().createContainer("tomcat8x",
-        ContainerType.INSTALLED, configuration);
-    container.setHome(tomcatDir.getAbsolutePath());
-    container.setTimeout(60000L);
+    throw new RuntimeException("Cargo needed to be removed, therefore not implemented currently.");
   }
 
   /**
@@ -78,7 +65,6 @@ public class TomcatControl implements LogfileSaver {
     // TODO Bind to 127.0.0.1 only, find port dynamically.
 
     logger.info("Starting tomcat...");
-    container.start();
     logger.info("Started tomcat.");
     isStarted = true;
   }
@@ -88,7 +74,6 @@ public class TomcatControl implements LogfileSaver {
    */
   public void stop() {
     logger.info("Stopping tomcat...");
-    container.stop();
     isStarted = false;
     logger.info("Stopped tomcat.");
   }

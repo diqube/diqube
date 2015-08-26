@@ -26,15 +26,6 @@ diqube source code.
         * jackson-databind (com.fasterxml.jackson.core:jackson-databind:2.5.3 - http://github.com/FasterXML/jackson)
         * javax.inject (javax.inject:javax.inject:1 - http://code.google.com/p/atinject/)
         * opencsv (com.opencsv:opencsv:3.3 - http://opencsv.sf.net)
-        * tomcat-juli (org.apache.tomcat:tomcat-juli:8.0.24 - http://tomcat.apache.org/)
-        * tomcat-util (org.apache.tomcat:tomcat-util:8.0.24 - http://tomcat.apache.org/)
-        * tomcat-websocket (org.apache.tomcat:tomcat-websocket:8.0.24 - http://tomcat.apache.org/)
-        * tomcat-websocket-api (org.apache.tomcat:tomcat-websocket-api:8.0.24 - http://tomcat.apache.org/)
-
-    Apache License, Version 2.0 and
-        Common Development And Distribution License (CDDL) Version 1.0:
-
-        * tomcat-servlet-api (org.apache.tomcat:tomcat-servlet-api:8.0.24 - http://tomcat.apache.org/)
 
     BSD (ANTLR) [antlr-bsd.txt]:
 
@@ -43,11 +34,6 @@ diqube source code.
     BSD (abego) [abego-bsd.txt]:
 
         * abego TreeLayout Core (org.abego.treelayout:org.abego.treelayout.core:1.0.1 - http://code.google.com/p/treelayout/)
-
-    GPLv2 with classpath exception [gpl-20-classpath.txt]:
-
-        * Java Servlet API (javax.servlet:javax.servlet-api:3.1.0 - http://servlet-spec.java.net)
-        * WebSocket server API (javax.websocket:javax.websocket-api:1.1 - http://websocket-spec.java.net)
 
     LGPL [lgpl.txt]:
 
@@ -63,10 +49,23 @@ diqube source code.
 
         * JCL 1.1.1 implemented over SLF4J (org.slf4j:jcl-over-slf4j:1.7.12 - http://www.slf4j.org)
         * SLF4J API Module (org.slf4j:slf4j-api:1.7.12 - http://www.slf4j.org)
+        * SLF4J LOG4J-12 Binding (org.slf4j:slf4j-log4j12:1.7.12 - http://www.slf4j.org)
 
     Public Domain:
 
         * AOP alliance (aopalliance:aopalliance:1.0 - http://aopalliance.sourceforge.net)
+
+    GPLv2 with classpath exception [gpl-20-classpath.txt]:
+
+        * Java Servlet API (javax.servlet:javax.servlet-api:3.1.0 - http://servlet-spec.java.net)
+        * WebSocket server API (javax.websocket:javax.websocket-api:1.1 - http://websocket-spec.java.net)
+
+    Apache License 2.0 [apache-20.txt]:
+
+        * tomcat-websocket (org.apache.tomcat:tomcat-websocket:8.0.24 - http://tomcat.apache.org/)
+        * NVD3, http://nvd3.org/
+        * angularjs-nvd3-directives, http://angularjs-nvd3-directives.github.io/angularjs-nvd3-directives/
+        * Apache Hadoop, http://hadoop.apache.org
 
     MIT License (AngularJS) [angular-mit.txt]:
 
@@ -103,8 +102,3 @@ diqube source code.
     BSD License (D3) [d3-bsd.txt]:
 
         * D3.js, http://d3js.org/
-
-    Apache License 2.0 [apache-20.txt]:
-
-        * NVD3, http://nvd3.org/
-        * angularjs-nvd3-directives, http://angularjs-nvd3-directives.github.io/angularjs-nvd3-directives/
