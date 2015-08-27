@@ -73,7 +73,9 @@ When loading data from a JSON file, the file needs to have a specific layout: It
 ###diqube format###
 
 When importing either JSON or CSV, the import data is always stored row-wise. As diqube is a column-store, it will store the values of one column of all rows together, which means it needs to transpose the input data (= read all rows, then cut the data into single columns and then start to compress single columns etc.).
-This transposing and compressing (1) takes some amount of time and (2) might take up a pretty notable amount of main memory. Usually when operating a cluster, you do not want the server process itself take up that much amount of memory for importing new data while it is serving requests at the same time - you do not want to risk that the process is killed because an out-of-memory error and you do not want to have queries being executed to slow down. Therefore you can transpose and compress the data in a separate step using the `diqube-tranpose` executable (it's a ubedr jar, too). That executable can read the usual input files for diqube, execute the transposing and the compression and then serialize that data into a file. That data can then easily be loaded by diqube-server, because it already is available in a columnar format and already compressed using diqube-mechanisms.
+This transposing and compressing (1) takes some amount of time and (2) might take up a pretty notable amount of main memory. Usually when operating a cluster, you do not want the server process itself take up that much amount of memory for importing new data while it is serving requests at the same time - you do not want to risk that the process is killed because an out-of-memory error and you do not want to have queries being executed to slow down. Therefore you can transpose and compress the data in a separate step using the `diqube-tranpose` executable (it's a uber jar, too). That executable can read the usual input files for diqube, execute the transposing and the compression and then serialize that data into a file. That data can then easily be loaded by diqube-server, because it already is available in a columnar format and already compressed using diqube-mechanisms.
+
+Files of the .diqube data format can also be created as output of a Apache Hadoop Map/Reduce job, using `DiqubeOutputFormat` which is available in diqube-hadoop/. Have a look at the [diqube Data Examples](https://github.com/diqube/diqube-data-examples) repository to see how to use it. 
 
 ###Finally loading the data###
 
@@ -84,7 +86,7 @@ After doing this, there should be some information in the server log that new da
 
 To load the sample data in a cluster environment, you need to specify a different `firstRowId` on each diqube server. The sample data currently contains 100 rows - that means that one server should specify `firstRowId=0`, the next should specify `firstRowId=100` etc. in their respective .control files: Row id 0 and 100 will then contain the same data etc. (because both .control files point to the same JSON file).
 
-##Ovedrriding loglevels##
+##Overriding loglevels##
 
 This can be done by providing a different logging configuration. diqube uses [logback](http://logback.qos.ch/manual/configuration.html), therefore the system property `logback.configurationFile` can be used to point to an alternative logging configuration.
 
