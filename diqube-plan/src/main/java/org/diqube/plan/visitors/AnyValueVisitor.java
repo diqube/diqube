@@ -111,17 +111,8 @@ public class AnyValueVisitor extends DiqlBaseVisitor<Pair<ColumnOrValue, Boolean
 
       // add the childs parameter to the name of the column that will be created by executing this function.
       if (childResult.getLeft().getType().equals(ColumnOrValue.Type.COLUMN)) {
-
         String childColName = childResult.getLeft().getColumnName();
-
-        // Check if child is array result. If it is, verify that is has [*] inside. This is true for directly used
-        // columns (which are not produced by another function!). But if the child col is produced by another function,
-        // it's name will instead contain [a] - but we want to access all results of the array calculation -> append
-        // [*].
-        if (childResult.getRight() && !childColName.contains(repeatedColName.allEntriesIdentifyingSubstr()))
-          colNameBuilder.addParameterColumnName(childColName + repeatedColName.allEntriesIdentifyingSubstr());
-        else
-          colNameBuilder.addParameterColumnName(childColName);
+        colNameBuilder.addParameterColumnName(childColName);
       } else {
         Object childValue = childResult.getLeft().getValue();
         if (childValue instanceof String)
