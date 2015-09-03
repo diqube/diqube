@@ -30,9 +30,9 @@ import org.diqube.context.AutoInstatiate;
 import org.diqube.data.TableShard;
 import org.diqube.data.colshard.AdjustableStandardColumnShard;
 import org.diqube.data.colshard.StandardColumnShard;
-import org.diqube.data.serialize.DataDeserializer;
-import org.diqube.data.serialize.DataSerializationManager;
 import org.diqube.data.serialize.DeserializationException;
+import org.diqube.file.DiqubeFileFactory;
+import org.diqube.file.DiqubeFileReader;
 import org.diqube.util.BigByteBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,7 +53,7 @@ public class DiqubeLoader implements Loader {
   private static final Logger logger = LoggerFactory.getLogger(DiqubeLoader.class);
 
   @Inject
-  private DataSerializationManager serializationManager;
+  private DiqubeFileFactory fileFactory;
 
   @Override
   public TableShard load(long firstRowId, String filename, String tableName, LoaderColumnInfo columnInfo)
@@ -74,10 +74,11 @@ public class DiqubeLoader implements Loader {
       throws LoadException {
     TableShard tableShard;
     try {
-      DataDeserializer deserializer = serializationManager.createDeserializer();
-      logger.info("Loading data for new table '{}' by deserializing it.", tableName);
-      tableShard = deserializer.deserialize(buffer.createInputStream());
-    } catch (DeserializationException e) {
+      DiqubeFileReader reader = fileFactory.createDiqubeFileReader(buffer);
+      logger.info("Loading data for table '{}' by deserializing it.", tableName);
+      // TODO #58 load all TableShards of the file.
+      tableShard = reader.loadAllTableShards().iterator().next();
+    } catch (DeserializationException | IOException e) {
       throw new LoadException("Could not deserialize data", e);
     }
 
@@ -86,7 +87,7 @@ public class DiqubeLoader implements Loader {
     for (StandardColumnShard colShard : tableShard.getColumns().values())
       ((AdjustableStandardColumnShard) colShard).adjustToFirstRowId(firstRowId);
 
-    logger.info("Successfully loaded data for new table '{}'.", tableName);
+    logger.info("Successfully loaded data for table '{}'.", tableName);
 
     return tableShard;
   }

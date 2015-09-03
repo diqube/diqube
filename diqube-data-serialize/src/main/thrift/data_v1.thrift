@@ -21,16 +21,6 @@
 
 namespace java org.diqube.data.serialize.thrift.v1
 
-struct SDiqubeHeader {
-    1: i32 version,
-    2: i32 diqubeDataLength
-}
-
-struct SDiqubeData {
-    1: string magic,    // "DiTaDa"
-    2: string serializedClass
-}
-
 struct STableShard {
     1: string tableName,
     2: list<SColumnShard> columnShards

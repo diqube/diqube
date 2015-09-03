@@ -36,10 +36,10 @@ import java.util.Properties;
 import org.diqube.data.ColumnType;
 import org.diqube.data.TableShard;
 import org.diqube.data.serialize.DataSerialization;
-import org.diqube.data.serialize.DataSerializationManager;
-import org.diqube.data.serialize.DataSerializer;
 import org.diqube.data.serialize.DataSerializer.ObjectDoneConsumer;
 import org.diqube.data.serialize.SerializationException;
+import org.diqube.file.DiqubeFileFactory;
+import org.diqube.file.DiqubeFileWriter;
 import org.diqube.loader.LoadException;
 import org.diqube.loader.Loader;
 import org.diqube.loader.LoaderColumnInfo;
@@ -86,8 +86,7 @@ public class TransposeImplementation {
       ctx.scan("org.diqube");
       ctx.refresh();
 
-      DataSerializationManager serializationManager = ctx.getBean(DataSerializationManager.class);
-      DataSerializer serializer = serializationManager.createSerializer(TableShard.class);
+      DiqubeFileFactory fileFactory = ctx.getBean(DiqubeFileFactory.class);
       Loader loader = ctx.getBean(loaderClass);
 
       // for JSON it does not mater what we use here, as the JsonLoader will detect the col type automatically.
@@ -103,16 +102,18 @@ public class TransposeImplementation {
 
         logger.info("Data loaded into in-memory table '{}', starting to serialize that data into output file '{}'",
             TABLE_NAME, outputFile.getAbsolutePath());
-        serializer.serialize(tableShard, outStream, new ObjectDoneConsumer() {
-          @Override
-          public void accept(DataSerialization<?> t) {
-            // right after we're done with serializing an object, we "null" all its properties to try to free up some
-            // memory.
-            NullUtil.setAllPropertiesToNull(t,
-                // just log on exception, it is not as bad if a field cannot be nulled.
-                (fieldToNull, e) -> logger.trace("Could not null {} on {}", fieldToNull, e));
-          }
-        });
+        try (DiqubeFileWriter writer = fileFactory.createDiqubeFileWriter(outStream)) {
+          writer.writeTableShard(tableShard, new ObjectDoneConsumer() {
+            @Override
+            public void accept(DataSerialization<?> t) {
+              // right after we're done with serializing an object, we "null" all its properties to try to free up some
+              // memory.
+              NullUtil.setAllPropertiesToNull(t,
+                  // just log on exception, it is not as bad if a field cannot be nulled.
+                  (fieldToNull, e) -> logger.trace("Could not null {} on {}", fieldToNull, e));
+            }
+          });
+        }
         logger.info("Successfully serialized data to '{}'", outputFile.getAbsolutePath());
       } catch (IOException | LoadException | SerializationException e) {
         logger.error("Could not proceed.", e);

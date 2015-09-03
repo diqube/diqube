@@ -26,6 +26,7 @@ import java.io.IOException;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.NullWritable;
+import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
@@ -43,6 +44,8 @@ import org.slf4j.LoggerFactory;
 public class DiqubeOutputFormat extends FileOutputFormat<NullWritable, DiqubeRow> {
   private static final Logger logger = LoggerFactory.getLogger(DiqubeOutputFormat.class);
 
+  private static final String PROP_FILE_COMMENT = DiqubeOutputFormat.class.getName() + ".fileComment";
+
   @Override
   public RecordWriter<NullWritable, DiqubeRow> getRecordWriter(TaskAttemptContext job)
       throws IOException, InterruptedException {
@@ -50,7 +53,14 @@ public class DiqubeOutputFormat extends FileOutputFormat<NullWritable, DiqubeRow
     logger.info("Will write .diqube file to {}", destPath.toString());
     FileSystem fs = destPath.getFileSystem(job.getConfiguration());
     DataOutputStream os = fs.create(destPath, false);
-    return new DiqubeRecordWriter(os);
+    return new DiqubeRecordWriter(os, job.getConfiguration().get(PROP_FILE_COMMENT, ""));
+  }
+
+  /**
+   * Set the "comment" that should be written to the output file.
+   */
+  public static void setFileComment(Job job, String fileComment) {
+    job.getConfiguration().set(PROP_FILE_COMMENT, fileComment);
   }
 
 }

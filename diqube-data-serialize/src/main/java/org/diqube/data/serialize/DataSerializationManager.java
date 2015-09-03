@@ -60,9 +60,7 @@ public class DataSerializationManager {
    */
   private Map<Class<? extends TBase<?, ?>>, DataSerializationDelegationManager<?>> delegationManagers = new HashMap<>();
 
-  public DataSerializer createSerializer(Class<? extends DataSerialization<?>> rootSerializationClass) {
-    if (!thriftClasses.containsKey(rootSerializationClass))
-      return null;
+  public DataSerializer createSerializer() {
     return new DataSerializer(thriftClasses, delegationManagers);
   }
 

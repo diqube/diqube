@@ -41,11 +41,11 @@ import org.diqube.data.TableFactory;
 import org.diqube.data.TableShard;
 import org.diqube.data.colshard.StandardColumnShard;
 import org.diqube.data.serialize.DataSerialization;
-import org.diqube.data.serialize.DataSerializationManager;
-import org.diqube.data.serialize.DataSerializer;
 import org.diqube.data.serialize.DataSerializer.ObjectDoneConsumer;
 import org.diqube.data.serialize.SerializationException;
 import org.diqube.data.util.RepeatedColumnNameGenerator;
+import org.diqube.file.DiqubeFileFactory;
+import org.diqube.file.DiqubeFileWriter;
 import org.diqube.hadoop.DiqubeRow.DiqubeData;
 import org.diqube.loader.LoaderColumnInfo;
 import org.diqube.loader.columnshard.ColumnShardBuilderFactory;
@@ -71,9 +71,11 @@ public class DiqubeRecordWriter extends RecordWriter<NullWritable, DiqubeRow> {
   private RepeatedColumnNameGenerator repeatedColNameGen;
   private LoaderColumnInfo colInfo;
   private Set<String> repeatedLengthColNames = new ConcurrentSkipListSet<>();
+  private String fileComment;
 
-  public DiqubeRecordWriter(DataOutputStream outStream) {
+  public DiqubeRecordWriter(DataOutputStream outStream, String fileComment) {
     this.outStream = outStream;
+    this.fileComment = fileComment;
 
     ctx = new AnnotationConfigApplicationContext();
     // do not enable newDataWatcher and/or Config.
@@ -221,10 +223,11 @@ public class DiqubeRecordWriter extends RecordWriter<NullWritable, DiqubeRow> {
 
       logger.info("Final representation built. Serializing results to output file.");
       // serialize that data into the new file.
-      DataSerializationManager dataSerializationManager = ctx.getBean(DataSerializationManager.class);
-      DataSerializer serializer = dataSerializationManager.createSerializer(TableShard.class);
-      try {
-        serializer.serialize(tableShard, outStream, new ObjectDoneConsumer() {
+      DiqubeFileFactory fileFactory = ctx.getBean(DiqubeFileFactory.class);
+      try (DiqubeFileWriter writer = fileFactory.createDiqubeFileWriter(outStream)) {
+        // TODO #58: Write multiple table shards to file and do not wait until the very end.
+        writer.setComment(fileComment);
+        writer.writeTableShard(tableShard, new ObjectDoneConsumer() {
           @Override
           public void accept(DataSerialization<?> t) {
             // set all properties to null after an object has been fully serialized. This will enabled the GC to clean

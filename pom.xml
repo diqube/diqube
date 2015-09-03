@@ -57,6 +57,7 @@
     <module>diqube-cluster</module>
     <module>diqube-data</module>
     <module>diqube-data-serialize</module>
+    <module>diqube-file</module>
     <module>diqube-transpose</module>
     <module>diqube-diql</module>
     <module>diqube-loader</module>

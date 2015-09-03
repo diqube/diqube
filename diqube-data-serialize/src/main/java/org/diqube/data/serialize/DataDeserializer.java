@@ -29,23 +29,22 @@ import java.util.function.Function;
 
 import org.apache.thrift.TBase;
 import org.apache.thrift.TException;
-import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.transport.TIOStreamTransport;
 import org.diqube.data.serialize.DataSerialization.DataSerializationHelper;
-import org.diqube.data.serialize.thrift.v1.SDiqubeData;
-import org.diqube.data.serialize.thrift.v1.SDiqubeHeader;
 import org.diqube.util.Pair;
 
 /**
  * Deserializes thrift objects to {@link DataSerialization} objects.
+ * 
+ * Does not expect any header/metainformation/etc in the stream, but only serialized thrift objects.
+ *
+ * An instance of this class can be re-used.
  *
  * @author Bastian Gloeckle
  */
 public class DataDeserializer {
-  private static final String THRIFT_PKG = "org.diqube.data.serialize.thrift.v1.";
-
   private Map<Class<? extends DataSerialization<?>>, Class<? extends TBase<?, ?>>> thriftClasses;
   private Map<Class<? extends TBase<?, ?>>, DataSerializationDelegationManager<?>> delegationManagers;
   private Map<Class<? extends TBase<?, ?>>, Class<? extends DataSerialization<?>>> liveClasses;
@@ -127,8 +126,9 @@ public class DataDeserializer {
    */
   // we need to capture the generics here to make javac happy
   public <T extends TBase<?, ?>, M extends TBase<?, ?>, O extends DataSerialization<M>> O deserialize(
-      InputStream inputStream) throws DeserializationException {
-    T thrift = deserializeToThrift(inputStream);
+      Class<? extends O> targetClass, InputStream inputStream) throws DeserializationException {
+    @SuppressWarnings("unchecked")
+    T thrift = deserializeToThrift(inputStream, (Class<? extends T>) thriftClasses.get(targetClass));
     try {
       inputStream.close();
     } catch (IOException e) {
@@ -150,36 +150,16 @@ public class DataDeserializer {
     return res;
   }
 
-  private <T extends TBase<?, ?>> T deserializeToThrift(InputStream inputStream) throws DeserializationException {
+  private <T extends TBase<?, ?>> T deserializeToThrift(InputStream inputStream, Class<? extends T> thriftClass)
+      throws DeserializationException {
     TIOStreamTransport transport = new TIOStreamTransport(inputStream);
-    TProtocol binaryProt = new TBinaryProtocol(transport);
     TProtocol compactProt = new TCompactProtocol(transport);
-
     try {
-      SDiqubeHeader header = new SDiqubeHeader();
-      header.read(binaryProt);
-
-      SDiqubeData diqubeData = new SDiqubeData();
-      diqubeData.read(compactProt);
-
-      if (header.getVersion() != DataSerializer.VERSION || !DataSerializer.MAGIC_STRING.equals(diqubeData.getMagic()))
-        throw new DeserializationException("Invalid stream.");
-
-      String thriftClassName = diqubeData.getSerializedClass();
-
-      if (thriftClassName.contains("."))
-        throw new DeserializationException("Invalid thrift classname.");
-
-      @SuppressWarnings("unchecked")
-      Class<? extends TBase<?, ?>> thriftClass =
-          (Class<? extends TBase<?, ?>>) Class.forName(THRIFT_PKG + thriftClassName);
-
-      @SuppressWarnings("unchecked")
-      T thrift = (T) thriftClass.newInstance();
+      T thrift = thriftClass.newInstance();
       thrift.read(compactProt);
 
       return thrift;
-    } catch (TException | ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+    } catch (TException | InstantiationException | IllegalAccessException e) {
       throw new DeserializationException("Cannot deserialize", e);
     }
 
