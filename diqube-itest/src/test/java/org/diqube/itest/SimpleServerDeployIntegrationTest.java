@@ -35,6 +35,7 @@ import org.diqube.itest.util.QueryResultServiceTestUtil;
 import org.diqube.itest.util.QueryResultServiceTestUtil.TestQueryResultService;
 import org.diqube.itest.util.ServiceTestUtil;
 import org.diqube.itest.util.Waiter;
+import org.diqube.itest.util.Waiter.WaitTimeoutException;
 import org.diqube.remote.base.thrift.RNodeAddress;
 import org.diqube.remote.base.thrift.RUUID;
 import org.diqube.remote.base.thrift.RValue;
@@ -63,8 +64,10 @@ public class SimpleServerDeployIntegrationTest extends AbstractDiqubeIntegration
       "/" + SimpleServerDeployIntegrationTest.class.getSimpleName() + "/age.json";
   private static final String AGE_0_CONTROL_FILE = "/" + SimpleServerDeployIntegrationTest.class.getSimpleName()
       + "/age_rowId0" + NewDataWatcher.CONTROL_FILE_EXTENSION;
-  private static final String AGE_12_CONTROL_FILE = "/" + SimpleServerDeployIntegrationTest.class.getSimpleName()
-      + "/age_rowId12" + NewDataWatcher.CONTROL_FILE_EXTENSION;
+  private static final String AGE_11_CONTROL_FILE = "/" + SimpleServerDeployIntegrationTest.class.getSimpleName()
+      + "/age_rowId11" + NewDataWatcher.CONTROL_FILE_EXTENSION;
+  private static final String AGE_10_CONTROL_FILE = "/" + SimpleServerDeployIntegrationTest.class.getSimpleName()
+      + "/age_rowId10" + NewDataWatcher.CONTROL_FILE_EXTENSION;
 
   @Test
   @NeedsServer(servers = 1)
@@ -93,7 +96,7 @@ public class SimpleServerDeployIntegrationTest extends AbstractDiqubeIntegration
   public void twoServersTablesServedAndClusterLayout() throws InterruptedException {
     // WHEN
     serverControl.get(0).deploy(cp(AGE_0_CONTROL_FILE), cp(AGE_JSON_FILE));
-    serverControl.get(1).deploy(cp(AGE_12_CONTROL_FILE), cp(AGE_JSON_FILE));
+    serverControl.get(1).deploy(cp(AGE_11_CONTROL_FILE), cp(AGE_JSON_FILE));
 
     // THEN
     // server 0 serves table "age"
@@ -167,7 +170,7 @@ public class SimpleServerDeployIntegrationTest extends AbstractDiqubeIntegration
   public void twoServerQuery() throws InterruptedException {
     // WHEN
     serverControl.get(0).deploy(cp(AGE_0_CONTROL_FILE), cp(AGE_JSON_FILE));
-    serverControl.get(1).deploy(cp(AGE_12_CONTROL_FILE), cp(AGE_JSON_FILE));
+    serverControl.get(1).deploy(cp(AGE_11_CONTROL_FILE), cp(AGE_JSON_FILE));
 
     // THEN
     try (TestQueryResultService queryRes = QueryResultServiceTestUtil.createQueryResultService()) {
@@ -242,7 +245,7 @@ public class SimpleServerDeployIntegrationTest extends AbstractDiqubeIntegration
   public void undeployInCluster() throws InterruptedException {
     // WHEN
     serverControl.get(0).deploy(cp(AGE_0_CONTROL_FILE), cp(AGE_JSON_FILE));
-    serverControl.get(1).deploy(cp(AGE_12_CONTROL_FILE), cp(AGE_JSON_FILE));
+    serverControl.get(1).deploy(cp(AGE_11_CONTROL_FILE), cp(AGE_JSON_FILE));
 
     // THEN results from both cluster nodes
     try (TestQueryResultService queryRes = QueryResultServiceTestUtil.createQueryResultService()) {
@@ -274,7 +277,7 @@ public class SimpleServerDeployIntegrationTest extends AbstractDiqubeIntegration
     }
 
     // WHEN
-    serverControl.get(1).undeploy(cp(AGE_12_CONTROL_FILE));
+    serverControl.get(1).undeploy(cp(AGE_11_CONTROL_FILE));
 
     // THEN result from one cluster node only
     try (TestQueryResultService queryRes = QueryResultServiceTestUtil.createQueryResultService()) {
@@ -311,7 +314,7 @@ public class SimpleServerDeployIntegrationTest extends AbstractDiqubeIntegration
   public void singleServerMultipleShards() throws InterruptedException {
     // WHEN
     serverControl.get(0).deploy(cp(AGE_0_CONTROL_FILE), cp(AGE_JSON_FILE));
-    serverControl.get(0).deploy(cp(AGE_12_CONTROL_FILE), cp(AGE_JSON_FILE));
+    serverControl.get(0).deploy(cp(AGE_11_CONTROL_FILE), cp(AGE_JSON_FILE));
 
     // THEN
     try (TestQueryResultService queryRes = QueryResultServiceTestUtil.createQueryResultService()) {
@@ -343,7 +346,7 @@ public class SimpleServerDeployIntegrationTest extends AbstractDiqubeIntegration
     }
 
     // WHEN undeploy one of the shards
-    serverControl.get(0).undeploy(cp(AGE_12_CONTROL_FILE));
+    serverControl.get(0).undeploy(cp(AGE_11_CONTROL_FILE));
 
     // THEN
     try (TestQueryResultService queryRes = QueryResultServiceTestUtil.createQueryResultService()) {
@@ -373,6 +376,22 @@ public class SimpleServerDeployIntegrationTest extends AbstractDiqubeIntegration
     } catch (IOException e) {
       throw new RuntimeException("Could not execute query", e);
     }
+  }
+
+  @Test(expectedExceptions = WaitTimeoutException.class)
+  @NeedsServer(servers = 1)
+  public void singleServerOverlappingShards() throws InterruptedException {
+    // GIVEN
+    try {
+      serverControl.get(0).deploy(cp(AGE_0_CONTROL_FILE), cp(AGE_JSON_FILE));
+    } catch (WaitTimeoutException e) {
+      Assert.fail("WaitTimeoutException happened in the wrong place: " + e.toString());
+    }
+
+    // WHEN deploy control file with overlapping rowIds
+    serverControl.get(0).deploy(cp(AGE_10_CONTROL_FILE), cp(AGE_JSON_FILE));
+
+    // THEN WaitTimeoutException is thrown as the control file cannot be deployed.
   }
 
   private Map<ServerAddr, List<String>> toServerAddrCurrentMap(

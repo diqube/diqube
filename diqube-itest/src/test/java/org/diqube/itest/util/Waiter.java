@@ -39,10 +39,13 @@ public class Waiter {
    *          Number of milliseconds to wait between calling the checkFn.
    * @param checkFn
    *          The function which returns true if the expected circumstance is true.
-   * @throws InterruptedException
+   * @throws RuntimeException
    *           If interrupted.
+   * @throws WaitTimeoutException
+   *           If after the timeout is done the function still returns false.
    */
-  public void waitUntil(String waitFor, int timeoutSeconds, int retryMs, Supplier<Boolean> checkFn) {
+  public void waitUntil(String waitFor, int timeoutSeconds, int retryMs, Supplier<Boolean> checkFn)
+      throws WaitTimeoutException {
     if (checkFn.get())
       return;
 
@@ -61,6 +64,18 @@ public class Waiter {
         return;
     }
 
-    throw new RuntimeException("Timed out (" + timeoutSeconds + " sec) waiting for: " + waitFor);
+    throw new WaitTimeoutException("Timed out (" + timeoutSeconds + " sec) waiting for: " + waitFor);
+  }
+
+  /**
+   * Timeout waiting for a specific condition to become true.
+   */
+  public static class WaitTimeoutException extends RuntimeException {
+    private static final long serialVersionUID = 1L;
+
+    public WaitTimeoutException(String msg) {
+      super(msg);
+    }
+
   }
 }

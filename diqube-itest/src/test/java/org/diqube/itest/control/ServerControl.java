@@ -42,6 +42,7 @@ import org.diqube.itest.util.TestThriftConnectionFactory;
 import org.diqube.itest.util.TestThriftConnectionFactory.TestConnection;
 import org.diqube.itest.util.TestThriftConnectionFactory.TestConnectionException;
 import org.diqube.itest.util.Waiter;
+import org.diqube.itest.util.Waiter.WaitTimeoutException;
 import org.diqube.remote.base.thrift.RNodeAddress;
 import org.diqube.remote.base.thrift.RNodeDefaultAddress;
 import org.diqube.remote.query.KeepAliveServiceConstants;
@@ -205,7 +206,7 @@ public class ServerControl implements LogfileSaver {
         + NewDataWatcher.READY_FILE_EXTENSION);
   }
 
-  public void deploy(File controlFile, File dataFile) {
+  public void deploy(File controlFile, File dataFile) throws WaitTimeoutException {
     Properties control = new Properties();
     try (FileInputStream is = new FileInputStream(controlFile)) {
       control.load(new InputStreamReader(is, Charset.forName("UTF-8")));
