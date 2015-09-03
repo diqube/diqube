@@ -639,6 +639,12 @@ public class ConnectionPool implements ClusterNodeDiedListener {
 
     public MaintananceThread() {
       super("ConnectionPool-maintanance");
+      setUncaughtExceptionHandler(new UncaughtExceptionHandler() {
+        @Override
+        public void uncaughtException(Thread t, Throwable e) {
+          logger.error("Uncaught exception in ConnectionPools MaintananceThread. Restart the server.", e);
+        }
+      });
     }
 
     @Override

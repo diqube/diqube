@@ -270,6 +270,23 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
             exceptionHandler.handleException(null);
           }
         });
+
+    if (prepareRes == null) {
+      // we cannot execute anything, probably the TableShards were just unloaded.
+      long now = System.nanoTime();
+      queryRegistry.getOrCreateCurrentStatsManager().setStartedNanos(now);
+      queryRegistry.getOrCreateCurrentStatsManager().setCompletedNanos(now);
+      synchronized (connSync) {
+        logger.info("As there's nothing to execute for query {} execution {}, sending empty stats and an executionDone",
+            queryUuid, executionUuid);
+        resultService.queryStatistics(remoteQueryUuid,
+            RClusterQueryStatsUtil.createRQueryStats(queryRegistry.getCurrentStatsManager().createQueryStats()));
+        resultService.executionDone(remoteQueryUuid);
+      }
+      exceptionHandler.handleException(null);
+      return;
+    }
+
     executablePlansHolder.setValue(prepareRes.getRight());
 
     // prepare to launch the execution in a different Thread

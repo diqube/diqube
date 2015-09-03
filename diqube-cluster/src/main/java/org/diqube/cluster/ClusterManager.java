@@ -250,6 +250,8 @@ public class ClusterManager implements ServingListener, TableLoadListener, OurNo
           }
         } catch (InterruptedException e) {
           logger.error("Interrupted while starting to communicate with cluster", e);
+        } catch (RuntimeException e) {
+          logger.error("Exception while bootstrapping. You probably should restart this servers node.", e);
         }
       }
     }, "cluster-bootstrap").start();

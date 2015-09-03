@@ -51,6 +51,8 @@ import org.diqube.remote.cluster.thrift.ROldNewIntermediateAggregationResult;
 import org.diqube.threads.ExecutorManager;
 import org.diqube.util.Holder;
 import org.diqube.util.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Executes a {@link RExecutionPlan} on a "query remote" node.
@@ -63,6 +65,8 @@ import org.diqube.util.Pair;
  * @author Bastian Gloeckle
  */
 public class RemoteExecutionPlanExecutor {
+  private static final Logger logger = LoggerFactory.getLogger(RemoteExecutionPlanExecutor.class);
+
   private ExecutablePlanFromRemoteBuilderFactory executablePlanBuilderFactory;
 
   private AtomicBoolean columnValuesDone = new AtomicBoolean(false);
@@ -108,7 +112,8 @@ public class RemoteExecutionPlanExecutor {
    * automatically be registered with {@link QueryRegistry} though!
    * 
    * @return Pair of runnable (see above) and the ExecutablePlans that were created from the {@link RExecutionPlan} and
-   *         will be executed.
+   *         will be executed. <code>null</code> will be returned in case there is nothing to execute (e.g. the
+   *         TableShards of the Table were just unloaded).
    */
   public Pair<Runnable, List<ExecutablePlan>> prepareExecution(UUID queryUuid, UUID executionUuid,
       RExecutionPlan executionPlan, RemoteExecutionPlanExecutionCallback callback) {
@@ -172,6 +177,13 @@ public class RemoteExecutionPlanExecutor {
           }
         });
     List<ExecutablePlan> executablePlans = executablePlanBuilder.build();
+
+    if (executablePlans.size() == 0) {
+      logger.info(
+          "Could not identify any local executable plans for query {} execution {}. Probably the TableShards were just unloaded.",
+          queryUuid, executionUuid);
+      return null;
+    }
 
     List<ExecutionPercentage> executionPercentages = new ArrayList<>();
     for (ExecutablePlan plan : executablePlans) {

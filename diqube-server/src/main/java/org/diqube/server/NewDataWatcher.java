@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
@@ -45,13 +46,16 @@ import org.diqube.config.Config;
 import org.diqube.config.ConfigKey;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.context.Profiles;
+import org.diqube.data.Table;
 import org.diqube.data.TableFactory;
+import org.diqube.data.TableShard;
 import org.diqube.execution.TableRegistry;
 import org.diqube.listeners.ClusterManagerListener;
 import org.diqube.loader.CsvLoader;
 import org.diqube.loader.DiqubeLoader;
 import org.diqube.loader.JsonLoader;
 import org.diqube.loader.LoadException;
+import org.diqube.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
@@ -100,7 +104,11 @@ public class NewDataWatcher implements ClusterManagerListener {
 
   private Path watchPath;
 
-  private Map<String, String> tableNamesByControlFilePath = new HashMap<>();
+  /**
+   * Map from controlFile path to a pair of table name and a list of values of {@link TableShard#getLowestRowId()} of
+   * the tableShards that were loaded from that file.
+   */
+  private Map<String, Pair<String, List<Long>>> tableInfoByControlFilePath = new HashMap<>();
 
   @Override
   public void clusterInitialized() {
@@ -140,10 +148,11 @@ public class NewDataWatcher implements ClusterManagerListener {
   private void loadControlFile(File controlFile) {
     logger.info("Found new control file {}. Starting to load new table shard.", controlFile.getAbsolutePath());
     try {
-      String tableName =
+      Pair<String, List<Long>> tableInfo =
           new ControlFileLoader(tableRegistry, tableFactory, csvLoader, jsonLoader, diqubeLoader, controlFile).load();
-      tableNamesByControlFilePath.put(controlFile.getAbsolutePath(), tableName);
-      logger.info("New table {} loaded successfully from {}'", tableName, controlFile.getAbsolutePath());
+      tableInfoByControlFilePath.put(controlFile.getAbsolutePath(), tableInfo);
+      logger.info("Data for table '{}' (with starting rowIds {}) loaded successfully from {}'", tableInfo.getLeft(),
+          tableInfo.getRight(), controlFile.getAbsolutePath());
 
       // write ready file
       String content = LocalDateTime.now().toString();
@@ -158,11 +167,10 @@ public class NewDataWatcher implements ClusterManagerListener {
   }
 
   private void unloadControlFile(File controlFile) {
-    String tableName = tableNamesByControlFilePath.get(controlFile.getAbsolutePath());
-    // TODO #33 support loading multiple shards.
-    if (tableName == null) {
-      logger.warn("Identified deletion of control file {}, but could not resolve the table that was loaded from "
-          + "that file. Will not remove any in-memory data.", controlFile.getAbsolutePath());
+    Pair<String, List<Long>> tableInfo = tableInfoByControlFilePath.get(controlFile.getAbsolutePath());
+    if (tableInfo == null) {
+      logger.warn("Identified deletion of control file {}, but could not resolve the table that data from that file "
+          + "was loaded to. Will not remove any in-memory data.", controlFile.getAbsolutePath());
       return;
     }
 
@@ -171,11 +179,24 @@ public class NewDataWatcher implements ClusterManagerListener {
       if (!readyFile.delete())
         logger.warn("Could not delete ready file {}", readyFile.getAbsolutePath());
 
-    logger.info("Identified deletion of control file {}; will remove in-memory data for table {}.",
-        controlFile.getAbsolutePath(), tableName);
-    tableRegistry.removeTable(tableName);
-    tableNamesByControlFilePath.remove(controlFile.getAbsolutePath());
-    System.gc();
+    Table t = tableRegistry.getTable(tableInfo.getLeft());
+    if (t == null)
+      logger.warn("Could not delete anything as table {} is not loaded (anymore?).", tableInfo.getLeft());
+    else {
+      logger.info(
+          "Identified deletion of control file {}; will remove in-memory data from table {} for TableShards with starting rowIds {}.",
+          controlFile.getAbsolutePath(), tableInfo.getLeft(), tableInfo.getRight());
+      List<TableShard> shardsToDelete = t.getShards().stream()
+          .filter(s -> tableInfo.getRight().contains(s.getLowestRowId())).collect(Collectors.toList());
+      shardsToDelete.forEach(s -> t.removeTableShard(s));
+      if (t.getShards().isEmpty()) {
+        logger.info("Removed last table shard of table '{}', will stop serving this table completely.",
+            tableInfo.getLeft());
+        tableRegistry.removeTable(tableInfo.getLeft());
+      }
+      tableInfoByControlFilePath.remove(controlFile.getAbsolutePath());
+      System.gc();
+    }
   }
 
   /**
@@ -197,6 +218,13 @@ public class NewDataWatcher implements ClusterManagerListener {
     public NewDataWatchThread(Supplier<WatchService> watchServiceRegistrationFn) {
       super(NewDataWatcher.class.getSimpleName());
       this.watchServiceSupplier = watchServiceRegistrationFn;
+      this.setUncaughtExceptionHandler(new UncaughtExceptionHandler() {
+        @Override
+        public void uncaughtException(Thread t, Throwable e) {
+          logger.error("Uncaught exception in NewDataWatchThread. Will stop watching the directory. "
+              + "Fix the issue and restart the server.", e);
+        }
+      });
     }
 
     @Override

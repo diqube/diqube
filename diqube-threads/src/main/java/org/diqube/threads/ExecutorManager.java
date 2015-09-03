@@ -301,6 +301,12 @@ public class ExecutorManager {
 
     public ShutdownThread() {
       super("ExecutorManager-shutdown");
+      setUncaughtExceptionHandler(new UncaughtExceptionHandler() {
+        @Override
+        public void uncaughtException(Thread t, Throwable e) {
+          logger.error("Uncaught exception in ExecutorManagers shurdownThread. Restart the server.", e);
+        }
+      });
     }
 
     @Override

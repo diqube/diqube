@@ -26,10 +26,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.Properties;
 
 import org.diqube.data.ColumnType;
 import org.diqube.data.Table;
+import org.diqube.data.Table.TableShardsOverlappingException;
 import org.diqube.data.TableFactory;
 import org.diqube.data.TableShard;
 import org.diqube.execution.TableRegistry;
@@ -39,6 +41,7 @@ import org.diqube.loader.JsonLoader;
 import org.diqube.loader.LoadException;
 import org.diqube.loader.Loader;
 import org.diqube.loader.LoaderColumnInfo;
+import org.diqube.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,6 +71,8 @@ public class ControlFileLoader {
   private JsonLoader jsonLoader;
   private DiqubeLoader diqubeLoader;
 
+  private Object tableRegistrySync = new Object();
+
   public ControlFileLoader(TableRegistry tableRegistry, TableFactory tableFactory, CsvLoader csvLoader,
       JsonLoader jsonLoader, DiqubeLoader diqubeLoader, File controlFile) {
     this.tableRegistry = tableRegistry;
@@ -94,9 +99,10 @@ public class ControlFileLoader {
    * not been written completely yet. If the validation/loading of the control file still fails after a few attempts, a
    * {@link LoadException} will be thrown.
    * 
-   * @return The name of the table under which it was registered at {@link TableRegistry}.
+   * @return The name of the table under which it was registered at {@link TableRegistry} and a List containing the
+   *         values of {@link TableShard#getLowestRowId()} of the table shard(s) that were loaded.
    */
-  public String load() throws LoadException {
+  public Pair<String, List<Long>> load() throws LoadException {
     Properties controlProperties;
     String fileName;
     String tableName;
@@ -174,11 +180,6 @@ public class ControlFileLoader {
       }
     }
 
-    if (tableRegistry.getTable(tableName) != null)
-      // TODO #33 support loading multiple shards of a table from multiple control files (and removing them
-      // correctly).
-      throw new LoadException("Table '" + tableName + "' already exists.");
-
     Loader loader;
     switch (type) {
     case TYPE_CSV:
@@ -193,14 +194,25 @@ public class ControlFileLoader {
     default:
       throw new LoadException("Unkown input file type.");
     }
+
     TableShard newTableShard = loader.load(firstRowId, file.getAbsolutePath(), tableName, columnInfo);
+    synchronized (tableRegistrySync) {
+      Table table = tableRegistry.getTable(tableName);
+      if (table != null) {
+        try {
+          table.addTableShard(newTableShard);
+        } catch (TableShardsOverlappingException e) {
+          throw new LoadException("Cannot load TableShard as it overlaps with an already loaded one", e);
+        }
+      } else {
+        Collection<TableShard> newTableShardCollection = Arrays.asList(new TableShard[] { newTableShard });
+        table = tableFactory.createTable(tableName, newTableShardCollection);
 
-    Collection<TableShard> newTableShardCollection = Arrays.asList(new TableShard[] { newTableShard });
-    Table newTable = tableFactory.createTable(tableName, newTableShardCollection);
+        tableRegistry.addTable(tableName, table);
+      }
+    }
 
-    tableRegistry.addTable(tableName, newTable);
-
-    return tableName;
+    return new Pair<>(tableName, Arrays.asList(newTableShard.getLowestRowId()));
 
   }
 }

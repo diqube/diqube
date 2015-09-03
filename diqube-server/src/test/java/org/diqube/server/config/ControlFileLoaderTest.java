@@ -159,7 +159,7 @@ public class ControlFileLoaderTest {
     ControlFileLoader cfl = controlFileFactory.apply(new File(testDir, CONTROL_AGE_FIRSTROW0));
 
     // WHEN
-    String table = cfl.load();
+    String table = cfl.load().getLeft();
 
     // THEN
     Assert.assertNotNull(tableRegistry.getTable(table), "Expected loaded table to be available");
@@ -174,7 +174,7 @@ public class ControlFileLoaderTest {
     ControlFileLoader cfl = controlFileFactory.apply(new File(testDir, CONTROL_AGE_FIRSTROW5));
 
     // WHEN
-    String table = cfl.load();
+    String table = cfl.load().getLeft();
 
     // THEN
     Assert.assertNotNull(tableRegistry.getTable(table), "Expected loaded table to be available");
@@ -189,7 +189,7 @@ public class ControlFileLoaderTest {
     ControlFileLoader cfl = controlFileFactory.apply(new File(testDir, CONTROL_DEFAULT_LONG_AGE_STRING));
 
     // WHEN
-    String table = cfl.load();
+    String table = cfl.load().getLeft();
 
     // THEN
     Assert.assertNotNull(tableRegistry.getTable(table), "Expected loaded table to be available");
@@ -207,7 +207,7 @@ public class ControlFileLoaderTest {
     ControlFileLoader cfl = controlFileFactory.apply(new File(testDir, CONTROL_DEFAULT_STRING_AGE_LONG));
 
     // WHEN
-    String table = cfl.load();
+    String table = cfl.load().getLeft();
 
     // THEN
     Assert.assertNotNull(tableRegistry.getTable(table), "Expected loaded table to be available");
@@ -228,7 +228,7 @@ public class ControlFileLoaderTest {
     ControlFileLoader cfl = controlFileFactory.apply(new File(testDir, CONTROL_DEFAULT_DOUBLE_AGE_LONG));
 
     // WHEN
-    String table = cfl.load();
+    String table = cfl.load().getLeft();
 
     // THEN
     Assert.assertNotNull(tableRegistry.getTable(table), "Expected loaded table to be available");

@@ -20,7 +20,13 @@
  */
 package org.diqube.data;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.NavigableMap;
+import java.util.TreeMap;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.diqube.data.colshard.ColumnShard;
 
@@ -43,17 +49,90 @@ import org.diqube.data.colshard.ColumnShard;
 public class Table {
   private String name;
   private Collection<TableShard> shards;
+  private ReentrantReadWriteLock shardsLock = new ReentrantReadWriteLock();
 
   /* package */ Table(String name, Collection<TableShard> shards) {
     this.name = name;
     this.shards = shards;
   }
 
+  /**
+   * @return Name of this table
+   */
   public String getName() {
     return name;
   }
 
+  /**
+   * @return Shards of this table, unmodifiable.
+   */
   public Collection<TableShard> getShards() {
-    return shards;
+    shardsLock.readLock().lock();
+    try {
+      return Collections.unmodifiableCollection(shards);
+    } finally {
+      shardsLock.readLock().unlock();
+    }
+  }
+
+  /**
+   * Adds a {@link TableShard} to this table.
+   * 
+   * @throws TableShardsOverlappingException
+   *           If the rows served by the new tableShard overlap with a tableShard already in the table. If the exception
+   *           is thrown, the new TableShard is not added to the table.
+   */
+  public void addTableShard(TableShard tableShard) throws TableShardsOverlappingException {
+    shardsLock.writeLock().lock();
+    try {
+      // exchange list to make sure that lists already returned by getShards() will be iterable.
+      List<TableShard> newShards = new ArrayList<>(shards);
+      newShards.add(tableShard);
+
+      NavigableMap<Long, Long> rowIdMap = new TreeMap<>();
+      for (TableShard shard : newShards) {
+        if (rowIdMap.containsKey(shard.getLowestRowId()))
+          throw new TableShardsOverlappingException("Two TableShards with first row ID " + shard.getLowestRowId());
+        rowIdMap.put(shard.getLowestRowId(), shard.getLowestRowId() + shard.getNumberOfRowsInShard() - 1);
+      }
+      for (Long lowestRowId : rowIdMap.keySet()) {
+        Long nextKey = rowIdMap.ceilingKey(lowestRowId + 1);
+        if (nextKey != null && nextKey <= rowIdMap.get(lowestRowId))
+          throw new TableShardsOverlappingException(
+              "There are overlapping TableShards. One contains data for rowIds " + lowestRowId + "-"
+                  + rowIdMap.get(lowestRowId) + " and another for rowIds " + nextKey + "-" + rowIdMap.get(nextKey));
+      }
+
+      shards = newShards;
+    } finally {
+      shardsLock.writeLock().unlock();
+    }
+  }
+
+  /**
+   * Remove the given tableShard from this table.
+   * 
+   * @return true if the tableShard was contained in this table.
+   */
+  public boolean removeTableShard(TableShard tableShard) {
+    shardsLock.writeLock().lock();
+    try {
+      // exchange list to make sure that lists already returned by getShards() will be iterable.
+      List<TableShard> newShards = new ArrayList<>(shards);
+      if (!newShards.remove(tableShard))
+        return false;
+      shards = newShards;
+      return true;
+    } finally {
+      shardsLock.writeLock().unlock();
+    }
+  }
+
+  public class TableShardsOverlappingException extends Exception {
+    private static final long serialVersionUID = 1L;
+
+    public TableShardsOverlappingException(String msg) {
+      super(msg);
+    }
   }
 }
