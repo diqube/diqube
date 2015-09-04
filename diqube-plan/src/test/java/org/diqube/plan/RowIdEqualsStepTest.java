@@ -153,7 +153,7 @@ public class RowIdEqualsStepTest {
     List<StandardColumnShard> columns = new ArrayList<>();
 
     for (String colName : columnShardBuilderManager.getAllColumnsWithValues())
-      columns.add(columnShardBuilderManager.build(colName));
+      columns.add(columnShardBuilderManager.buildAndFree(colName));
 
     return tableFactory.createTableShard("table", columns);
   }

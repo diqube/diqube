@@ -32,6 +32,8 @@ import org.diqube.data.colshard.ColumnShardFactory;
 import org.diqube.data.colshard.StandardColumnShard;
 import org.diqube.loader.LoaderColumnInfo;
 
+import com.google.common.collect.Iterables;
+
 /**
  * Manages all {@link ColumnShardBuilder}s for loading one {@link TableShard}.
  * 
@@ -135,17 +137,41 @@ public class ColumnShardBuilderManager {
   }
 
   /**
-   * Executes {@link ColumnShardBuilder#build()}.
+   * Executes {@link ColumnShardBuilder#build()} and frees up the memory of the {@link ColumnShardBuilder} after that.
    */
-  public StandardColumnShard build(String colName) {
+  public StandardColumnShard buildAndFree(String colName) {
+    ColumnShardBuilder<?> colBuilder = null;
     switch (columnInfo.getFinalColumnType(colName)) {
     case STRING:
-      return stringBuilders.get(colName).build();
+      colBuilder = stringBuilders.get(colName);
+      stringBuilders.remove(colName);
+      break;
     case LONG:
-      return longBuilders.get(colName).build();
+      colBuilder = longBuilders.get(colName);
+      longBuilders.remove(colName);
+      break;
     case DOUBLE:
-      return doubleBuilders.get(colName).build();
+      colBuilder = doubleBuilders.get(colName);
+      doubleBuilders.remove(colName);
+      break;
     }
-    return null;
+
+    if (colBuilder == null)
+      return null;
+    return colBuilder.build();
+  }
+
+  /**
+   * Returns an approximation of the memory consumption by all ColumnShardBuilders.
+   * 
+   * @see ColumnShardBuilder#calculateApproximateMemoryConsumption().
+   */
+  public long calculateApproximateMemoryConsumption() {
+    long res = 0;
+    for (ColumnShardBuilder<?> builder : Iterables.concat(stringBuilders.values(), longBuilders.values(),
+        doubleBuilders.values())) {
+      res += builder.calculateApproximateMemoryConsumption();
+    }
+    return res;
   }
 }

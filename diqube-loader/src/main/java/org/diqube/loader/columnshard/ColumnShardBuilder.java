@@ -67,6 +67,7 @@ import org.slf4j.LoggerFactory;
  */
 public class ColumnShardBuilder<T> {
   private static final Logger logger = LoggerFactory.getLogger(ColumnShardBuilder.class);
+  // TODO #59: Make configurable.
   public static final int PROPOSAL_ROWS = 50_000;
 
   /** Name of the Column to be created */
@@ -94,6 +95,8 @@ public class ColumnShardBuilder<T> {
 
   private ColumnShardFactory columnShardFactory;
   private ColumnPageFactory columnPageFactory;
+
+  private AtomicLong columnDictKeysByteSizeApprox = new AtomicLong(0);
 
   private long firstRowIdInShard;
 
@@ -157,8 +160,17 @@ public class ColumnShardBuilder<T> {
             return id;
           id = nextColumnDictId.getAndIncrement();
           columnDict.put(value, id);
-          return id;
         }
+        // can be String, Long or Double. Long and Double are both 64 bit = 8 byte. We totally ignore space consumed by
+        // object headers etc.
+        if (value instanceof String)
+          // for strings we do not want to linerily iterate over. Approximation is length of the string, assuming each
+          // char in the string is one byte - this is obviously incorrect for Unicaode chars, but as we only count an
+          // approximation, that should be ok.
+          columnDictKeysByteSizeApprox.addAndGet(((String) value).length());
+        else
+          columnDictKeysByteSizeApprox.addAndGet(8);
+        return id;
       }
     }).toArray();
 
@@ -285,6 +297,17 @@ public class ColumnShardBuilder<T> {
     });
 
     return res;
+  }
+
+  /**
+   * Returns an approximation of the memory consumption by this ColumnShardBuilder.
+   */
+  public long calculateApproximateMemoryConsumption() {
+    return columnDictKeysByteSizeApprox.get() + // keys in column Dict
+        columnDict.size() * 8 + // values in columnDict
+        pageProposals.size() * PROPOSAL_ROWS * 8 + // size taken up by the added rows in the proposals.
+        columnDict.size() * 2 * 16 // object headers of objects in columnDict (16 byte = header size on 64 bit systems)
+        ;
   }
 
   /**

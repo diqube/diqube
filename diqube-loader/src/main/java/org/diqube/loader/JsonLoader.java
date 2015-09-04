@@ -199,7 +199,7 @@ public class JsonLoader implements Loader {
     // Build the columns.
     List<StandardColumnShard> columns = new LinkedList<>();
     for (String colName : columnBuilderManager.getAllColumnsWithValues()) {
-      StandardColumnShard columnShard = columnBuilderManager.build(colName);
+      StandardColumnShard columnShard = columnBuilderManager.buildAndFree(colName);
 
       columns.add(columnShard);
     }

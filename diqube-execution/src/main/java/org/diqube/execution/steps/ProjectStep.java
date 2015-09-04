@@ -443,7 +443,7 @@ public class ProjectStep extends AbstractThreadedExecutablePlanStep {
     });
 
     if (resultConstantColumn[0] == null)
-      return columnShardBuilderManager.build(outputColName);
+      return columnShardBuilderManager.buildAndFree(outputColName);
 
     return resultConstantColumn[0];
   }

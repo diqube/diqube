@@ -295,7 +295,7 @@ public class GroupStepTest {
   private TableShard buildTable(ColumnShardBuilderManager columnShardBuilderManager) {
 
     for (String colName : columnShardBuilderManager.getAllColumnsWithValues()) {
-      StandardColumnShard newColumn = columnShardBuilderManager.build(colName);
+      StandardColumnShard newColumn = columnShardBuilderManager.buildAndFree(colName);
       columns.put(colName, newColumn);
     }
 

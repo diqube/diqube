@@ -32,6 +32,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
 
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapreduce.RecordWriter;
@@ -72,10 +73,22 @@ public class DiqubeRecordWriter extends RecordWriter<NullWritable, DiqubeRow> {
   private LoaderColumnInfo colInfo;
   private Set<String> repeatedLengthColNames = new ConcurrentSkipListSet<>();
   private String fileComment;
+  private AtomicLong numberOfRowsInCurrentColShardBuilders = new AtomicLong(0);
 
-  public DiqubeRecordWriter(DataOutputStream outStream, String fileComment) {
+  private long memoryCheckRowCount;
+  private long memoryFlushMb;
+
+  /** Writer of diqube file. Will be initialized lazily. */
+  private DiqubeFileWriter diqubeFileWriter = null;
+
+  private Supplier<ColumnShardBuilderManager> columShardBuilderManagerFactoryFunction;
+
+  public DiqubeRecordWriter(DataOutputStream outStream, String fileComment, long memoryCheckRowCount,
+      long memoryFlushMb) {
     this.outStream = outStream;
     this.fileComment = fileComment;
+    this.memoryCheckRowCount = memoryCheckRowCount;
+    this.memoryFlushMb = memoryFlushMb;
 
     ctx = new AnnotationConfigApplicationContext();
     // do not enable newDataWatcher and/or Config.
@@ -83,8 +96,11 @@ public class DiqubeRecordWriter extends RecordWriter<NullWritable, DiqubeRow> {
     ctx.refresh();
 
     colInfo = new LoaderColumnInfo(ColumnType.LONG);
-    columnShardBuilderManager =
-        ctx.getBean(ColumnShardBuilderFactory.class).createColumnShardBuilderManager(colInfo, 0L);
+
+    columShardBuilderManagerFactoryFunction =
+        () -> ctx.getBean(ColumnShardBuilderFactory.class).createColumnShardBuilderManager(colInfo, nextRowId.get());
+
+    columnShardBuilderManager = columShardBuilderManagerFactoryFunction.get();
     repeatedColNameGen = ctx.getBean(RepeatedColumnNameGenerator.class);
   }
 
@@ -101,7 +117,20 @@ public class DiqubeRecordWriter extends RecordWriter<NullWritable, DiqubeRow> {
 
     // fill in data of that single new row into columnShardBuilderManager
     long rowId = nextRowId.getAndIncrement();
+    addRowToColumnShardBuilderManager(row, rowId);
+    long numberOfRowsInCurShard = numberOfRowsInCurrentColShardBuilders.incrementAndGet();
+    if (numberOfRowsInCurShard % memoryCheckRowCount == 0) {
+      long memoryConsumptionBytes = columnShardBuilderManager.calculateApproximateMemoryConsumption();
+      logger.info("Current approximate memory consumption: {} MB", memoryConsumptionBytes / (1024 * 1024));
+      if (memoryConsumptionBytes / (1024 * 1024) >= memoryFlushMb)
+        flushNewTableShard();
+    }
+  }
 
+  /**
+   * Add the values of a {@link DiqubeRow} to {@link #columnShardBuilderManager}.
+   */
+  private void addRowToColumnShardBuilderManager(DiqubeRow row, long rowId) throws IOException {
     Deque<Pair<String, DiqubeData>> dataQueue = new LinkedList<>();
     dataQueue.add(new Pair<>("", row.getData()));
     while (!dataQueue.isEmpty()) {
@@ -168,6 +197,68 @@ public class DiqubeRecordWriter extends RecordWriter<NullWritable, DiqubeRow> {
     }
   }
 
+  /**
+   * Create a new {@link TableShard} from the data available in {@link #columnShardBuilderManager} and serialize it to
+   * the output stream.
+   * 
+   * Resets the {@link #columnShardBuilderManager} to be ready for a new TableShard afterwards.
+   */
+  private void flushNewTableShard() throws IOException {
+    if (diqubeFileWriter == null) {
+      logger.info("Initializing new DiqubeFileWriter...");
+      DiqubeFileFactory fileFactory = ctx.getBean(DiqubeFileFactory.class);
+      diqubeFileWriter = fileFactory.createDiqubeFileWriter(outStream);
+      diqubeFileWriter.setComment(fileComment);
+    }
+
+    logger.info("Creating new TableShard and flushing data to output stream...");
+
+    // use columnShardBuilderManager to build all columnShards
+    // this will start compressing etc. and will take some time.
+    Collection<StandardColumnShard> colShards = new ArrayList<>();
+    for (String colName : columnShardBuilderManager.getAllColumnsWithValues()) {
+      try {
+        // fill remaining rows with default value - this can happen in repeated cols where not all rows have the same
+        // number of entries of the col.
+        if (!repeatedLengthColNames.contains(colName))
+          columnShardBuilderManager.fillEmptyRowsWithValue(colName,
+              defaultValueByType(colInfo.getFinalColumnType(colName)));
+        else
+          // fill "length" columns with "0" instead of the default long (which would be -1).
+          columnShardBuilderManager.fillEmptyRowsWithValue(colName, 0L);
+
+        logger.info("Building column {}", colName);
+        colShards.add(columnShardBuilderManager.buildAndFree(colName));
+      } catch (Exception e) {
+        throw new IOException("Could not build column '" + colName + "'", e);
+      }
+    }
+
+    TableFactory tableFactory = ctx.getBean(TableFactory.class);
+    TableShard tableShard = tableFactory.createTableShard(
+        // this tableName will be overwritten when importing the data into a diqube-server.
+        "hadoop_created", colShards);
+
+    try {
+      diqubeFileWriter.writeTableShard(tableShard, new ObjectDoneConsumer() {
+        @Override
+        public void accept(DataSerialization<?> t) {
+          // set all properties to null after an object has been fully serialized. This will enabled the GC to clean
+          // up some stuff.
+          NullUtil.setAllPropertiesToNull(t, null /* swallow all exceptions */);
+        }
+      });
+    } catch (SerializationException e) {
+      throw new IOException("Could not serialize/write to output stream.", e);
+    }
+    logger.info("Data for new TableShard written successfully.");
+
+    // create a new ColShardBuildManager to build the next shard
+    columnShardBuilderManager = columShardBuilderManagerFactoryFunction.get();
+    numberOfRowsInCurrentColShardBuilders.set(0L);
+    System.gc(); // hint to the system that there might be memory to free up.
+  }
+
   private ColumnType objectToColType(Object o) throws IOException {
     if (o instanceof String)
       return ColumnType.STRING;
@@ -192,58 +283,16 @@ public class DiqubeRecordWriter extends RecordWriter<NullWritable, DiqubeRow> {
 
   @Override
   public void close(TaskAttemptContext context) throws IOException, InterruptedException {
-    logger.info("All data available to be written to diqube file. Starting to compress values and transform them "
-        + "into the final representation...");
+    logger.info("Closing record writer...");
     try {
-      // use columnShardBuilderManager to build all columnShards
-      // this will start compressing etc. and will take some time.
-      Collection<StandardColumnShard> colShards = new ArrayList<>();
-      for (String colName : columnShardBuilderManager.getAllColumnsWithValues()) {
-        try {
-          // fill remaining rows with default value - this can happen in repeated cols where not all rows have the same
-          // number of entries of the col.
-          if (!repeatedLengthColNames.contains(colName))
-            columnShardBuilderManager.fillEmptyRowsWithValue(colName,
-                defaultValueByType(colInfo.getFinalColumnType(colName)));
-          else
-            // fill "length" columns with "0" instead of the default long (which would be -1).
-            columnShardBuilderManager.fillEmptyRowsWithValue(colName, 0L);
-
-          logger.info("Building column {}", colName);
-          colShards.add(columnShardBuilderManager.build(colName));
-        } catch (Exception e) {
-          throw new IOException("Could not build column '" + colName + "'", e);
-        }
-      }
-
-      TableFactory tableFactory = ctx.getBean(TableFactory.class);
-      TableShard tableShard = tableFactory.createTableShard(
-          // this tableName will be overwritten when importing the data into a diqube-server.
-          "hadoop_created", colShards);
-
-      logger.info("Final representation built. Serializing results to output file.");
-      // serialize that data into the new file.
-      DiqubeFileFactory fileFactory = ctx.getBean(DiqubeFileFactory.class);
-      try (DiqubeFileWriter writer = fileFactory.createDiqubeFileWriter(outStream)) {
-        // TODO #58: Write multiple table shards to file and do not wait until the very end.
-        writer.setComment(fileComment);
-        writer.writeTableShard(tableShard, new ObjectDoneConsumer() {
-          @Override
-          public void accept(DataSerialization<?> t) {
-            // set all properties to null after an object has been fully serialized. This will enabled the GC to clean
-            // up some stuff.
-            NullUtil.setAllPropertiesToNull(t, null /* swallow all exceptions */);
-          }
-        });
-        logger.info("Data serialized successfully.");
-      } catch (SerializationException e) {
-        throw new IOException("Could not serialize data: " + e.getMessage(), e);
-      }
+      flushNewTableShard();
       outStream.flush();
     } finally {
+      if (diqubeFileWriter != null)
+        diqubeFileWriter.close();
+      logger.info("All data has been written to the output stream successfully.");
       ctx.close();
       outStream.close();
     }
   }
-
 }

@@ -253,7 +253,7 @@ public class RepeatedProjectStep extends AbstractThreadedExecutablePlanStep {
 
     // build the cols!
     for (String newColName : colBuilderManager.getAllColumnsWithValues()) {
-      ColumnShard newColShard = colBuilderManager.build(newColName);
+      ColumnShard newColShard = colBuilderManager.buildAndFree(newColName);
       switch (newColShard.getColumnType()) {
       case STRING:
         defaultEnv.storeTemporaryStringColumnShard((StringColumnShard) newColShard);

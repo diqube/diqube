@@ -124,7 +124,7 @@ public class CsvLoader implements Loader {
    *          Information about each column that this CSV contains.
    * 
    * @return A {@link ColumnShardBuilderManager} that has all the data of all the columns of the CSV already added to
-   *         it. It is ready for building the columns using {@link ColumnShardBuilderManager#build(String)}.
+   *         it. It is ready for building the columns using {@link ColumnShardBuilderManager#buildAndFree(String)}.
    * @throws LoadException
    *           If something cannot be loaded.
    */
@@ -196,7 +196,7 @@ public class CsvLoader implements Loader {
     // Build the columns.
     List<StandardColumnShard> columns = new LinkedList<>();
     for (String colName : columnManager.getAllColumnsWithValues()) {
-      StandardColumnShard columnShard = columnManager.build(colName);
+      StandardColumnShard columnShard = columnManager.buildAndFree(colName);
 
       columns.add(columnShard);
     }

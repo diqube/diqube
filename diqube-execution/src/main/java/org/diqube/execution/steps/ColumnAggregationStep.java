@@ -254,7 +254,7 @@ public class ColumnAggregationStep extends AbstractThreadedExecutablePlanStep {
 
     QueryUuid.setCurrentThreadState(uuidState);
 
-    ColumnShard outputCol = colShardBuilderManager.build(outputColName);
+    ColumnShard outputCol = colShardBuilderManager.buildAndFree(outputColName);
 
     switch (outputCol.getColumnType()) {
     case STRING:
