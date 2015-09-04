@@ -50,6 +50,8 @@ import org.diqube.queries.QueryRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 /**
@@ -166,7 +168,8 @@ public class GroupStep extends AbstractThreadedExecutablePlanStep {
       Map<Long, List<Long>> changesGroups = new HashMap<>();
       headGrouper.groupRowIds(activeRowIds, changesGroups);
 
-      logger.trace("Grouped new rowIds: {}", changesGroups);
+      logger.trace("Grouped new rowIds (limit each): {}",
+          Maps.transformValues(changesGroups, lst -> Iterables.limit(lst, 50)));
 
       Set<Long> newGroupIds = Sets.difference(changesGroups.keySet(), groups.keySet());
 
@@ -175,7 +178,7 @@ public class GroupStep extends AbstractThreadedExecutablePlanStep {
         // As each groupID is in fact a rowID (of one arbitrary row that is inside the group), we find those new row IDs
         // and send them to RowID consumers.
         Long[] newRowIdsArray = newGroupIds.stream().toArray(l -> new Long[l]);
-        logger.trace("New group IDs: {}", newRowIdsArray);
+        logger.trace("New group IDs (limit): {}", Iterables.limit(Arrays.asList(newRowIdsArray), 100));
 
         forEachOutputConsumerOfType(RowIdConsumer.class, c -> c.consume(newRowIdsArray));
       }

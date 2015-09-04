@@ -96,8 +96,7 @@ public abstract class AbstractQueryableColumnShardFacade implements QueryableCol
                 Entry<Long, ColumnPage> e = ((StandardColumnShard) delegate).getPages().floorEntry(rowId);
                 if (e == null)
                   // filter out too low row IDs. This might happen if this column shard has a firstRowId that is > than
-                  // a
-                  // provided rowId.
+                  // a provided rowId.
                   return null;
                 return e.getValue();
               } finally {
@@ -127,10 +126,18 @@ public abstract class AbstractQueryableColumnShardFacade implements QueryableCol
 
                       Long[] columnPageValueIds = new Long[rowIds.size()];
                       Iterator<Long> rowIdIt = rowIds.iterator();
-                      for (int i = 0; i < columnPageValueIds.length; i++)
-                        // TODO #7 if long consecutive list of rowIds, we should fetch more elements here at once.
-                        // Values could be RLE encoded
-                        columnPageValueIds[i] = page.getValues().get((int) (rowIdIt.next() - page.getFirstRowId()));
+                      if (columnPageValueIds.length >= page.getValues().size() / 3) {
+                        // if we try to resolve more than 1/3 of the rowIds, decompress whole values array here and do
+                        // not resolve 1-by-1.
+                        // TODO #7 formalize and centralize this heurisitc
+                        long[] allColPageValueIdsDecompressed = page.getValues().decompressedArray();
+                        for (int i = 0; i < columnPageValueIds.length; i++)
+                          columnPageValueIds[i] =
+                              allColPageValueIdsDecompressed[(int) (rowIdIt.next() - page.getFirstRowId())];
+                      } else {
+                        for (int i = 0; i < columnPageValueIds.length; i++)
+                          columnPageValueIds[i] = page.getValues().get((int) (rowIdIt.next() - page.getFirstRowId()));
+                      }
 
                       Long[] columnValueIds = page.getColumnPageDict().decompressValues(columnPageValueIds);
 
