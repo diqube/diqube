@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
@@ -51,11 +52,14 @@ import org.diqube.function.AggregationFunction.ValueProvider;
 import org.diqube.function.FunctionFactory;
 import org.diqube.function.IntermediaryResult;
 import org.diqube.loader.LoaderColumnInfo;
+import org.diqube.loader.columnshard.ColumnShardBuilder;
 import org.diqube.loader.columnshard.ColumnShardBuilderFactory;
 import org.diqube.loader.columnshard.ColumnShardBuilderManager;
 import org.diqube.queries.QueryRegistry;
 import org.diqube.queries.QueryUuid;
 import org.diqube.queries.QueryUuid.QueryUuidThreadState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 
@@ -72,8 +76,9 @@ import com.google.common.collect.Iterables;
  * @author Bastian Gloeckle
  */
 public class ColumnAggregationStep extends AbstractThreadedExecutablePlanStep {
+  private static final Logger logger = LoggerFactory.getLogger(ColumnAggregationStep.class);
 
-  private static final int BATCH_SIZE = 100;
+  private static final int BATCH_SIZE = ColumnShardBuilder.PROPOSAL_ROWS; // approx work on whole ColumnPages.
 
   private AtomicBoolean allColumnsAreBuilt = new AtomicBoolean(false);
 
@@ -153,6 +158,8 @@ public class ColumnAggregationStep extends AbstractThreadedExecutablePlanStep {
 
     // Ok, all columns that we need seem to be available.
 
+    logger.trace("Starting to column aggregate with output col {}", outputColName);
+
     ColumnType inputColType = defaultEnv.getColumnShard(Iterables.getFirst(allColNames, null)).getColumnType();
     AggregationFunction<Object, IntermediaryResult<Object, Object, Object>, Object> tmpFunction =
         functionFactory.createAggregationFunction(functionNameLowerCase, inputColType);
@@ -165,12 +172,15 @@ public class ColumnAggregationStep extends AbstractThreadedExecutablePlanStep {
         columnShardBuilderManagerSupplier.apply(tmpFunction.getOutputType());
 
     long lastRowIdInShard = defaultEnv.getLastRowIdInShard();
-    final Set<String> finalAllColNames = allColNames;
+    final Map<String, Integer> finalAllColNames = new HashMap<>();
+    int tmp = 0;
+    for (String colName : allColNames)
+      finalAllColNames.put(colName, tmp++);
 
     QueryUuidThreadState uuidState = QueryUuid.getCurrentThreadState();
     // work on all rowIds with a specific batch size
     LongStream.rangeClosed(defaultEnv.getFirstRowIdInShard(), lastRowIdInShard). //
-        parallel().filter(l -> l % BATCH_SIZE == 0).forEach(new LongConsumer() {
+        parallel().filter(l -> (l - defaultEnv.getFirstRowIdInShard()) % BATCH_SIZE == 0).forEach(new LongConsumer() {
           @Override
           public void accept(long firstRowId) {
             QueryUuid.setCurrentThreadState(uuidState);
@@ -179,21 +189,26 @@ public class ColumnAggregationStep extends AbstractThreadedExecutablePlanStep {
               // for all columns.
               // This might resolve some columns that we later do not need for some columns, but anyway, in general it
               // should be faster.
+              logger.trace("Resolving colValue IDs for batch {}", firstRowId);
               Class<?> valueClass = null;
-              Map<String, Object[]> valuesByCol = new HashMap<>();
-              for (String inputColName : finalAllColNames) {
+              Object[][] valuesByCol = new Object[finalAllColNames.size()][];
+              Long[] rowIds = LongStream.range(firstRowId, Math.min(firstRowId + BATCH_SIZE, lastRowIdInShard + 1))
+                  .mapToObj(Long::valueOf).toArray(l -> new Long[l]);
+              for (Entry<String, Integer> inputColNameEntry : finalAllColNames.entrySet()) {
+                String inputColName = inputColNameEntry.getKey();
+
                 QueryableColumnShard colShard = defaultEnv.getColumnShard(inputColName);
-                Long[] colValueIds = colShard.resolveColumnValueIdsForRowsFlat(
-                    LongStream.range(firstRowId, Math.min(firstRowId + BATCH_SIZE, lastRowIdInShard + 1))
-                        .mapToObj(Long::valueOf).toArray(l -> new Long[l]));
+                Long[] colValueIds = colShard.resolveColumnValueIdsForRowsFlat(rowIds);
                 Object[] values = colShard.getColumnShardDictionary().decompressValues(colValueIds);
                 if (valueClass == null)
                   valueClass = values[0].getClass();
-                valuesByCol.put(inputColName, values);
+                valuesByCol[inputColNameEntry.getValue()] = values;
               }
+              logger.trace("ColValue IDs for batch {} resolved.", firstRowId);
 
               final Class<?> finalValueClass = valueClass;
 
+              logger.trace("Starting to apply aggregation function to all rows in batch {}", firstRowId);
               Object[] resValueArray = null;
               for (long rowId = firstRowId; rowId < firstRowId + BATCH_SIZE && rowId <= lastRowIdInShard; rowId++) {
 
@@ -219,9 +234,16 @@ public class ColumnAggregationStep extends AbstractThreadedExecutablePlanStep {
                 aggFunction.addValues(new ValueProvider<Object>() {
                   @Override
                   public Object[] getValues() {
-                    Object[] res = colNamesForCurRow.stream()
-                        .map(colName -> valuesByCol.get(colName)[(int) (finalRowId - firstRowId)])
-                        .toArray(l -> (Object[]) Array.newInstance(finalValueClass, colNamesForCurRow.size()));
+                    Object[] res = (Object[]) Array.newInstance(finalValueClass, colNamesForCurRow.size());
+                    int i = 0;
+                    int colIndices[] = new int[colNamesForCurRow.size()];
+                    for (String colName : colNamesForCurRow) {
+                      colIndices[i++] = finalAllColNames.get(colName);
+                    }
+                    int rowIndex = (int) (finalRowId - firstRowId);
+                    for (int j = 0; j < colIndices.length; j++) {
+                      res[j] = valuesByCol[colIndices[j]][rowIndex];
+                    }
                     return res;
                   }
 
@@ -245,6 +267,7 @@ public class ColumnAggregationStep extends AbstractThreadedExecutablePlanStep {
                 resValueArray[(int) (rowId - firstRowId)] = resValue;
               }
 
+              logger.trace("Aggregation function applied to all rows in batch {}", firstRowId);
               colShardBuilderManager.addValues(outputColName, resValueArray, firstRowId);
             } finally {
               QueryUuid.clearCurrent();
@@ -254,7 +277,9 @@ public class ColumnAggregationStep extends AbstractThreadedExecutablePlanStep {
 
     QueryUuid.setCurrentThreadState(uuidState);
 
+    logger.trace("Building output column {}", outputColName);
     ColumnShard outputCol = colShardBuilderManager.buildAndFree(outputColName);
+    logger.trace("Column {} built.", outputColName);
 
     switch (outputCol.getColumnType()) {
     case STRING:

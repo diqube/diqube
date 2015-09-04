@@ -58,18 +58,18 @@ public class MaxDoubleFunction
   @Override
   public void addIntermediary(IntermediaryResult<Double, Object, Object> intermediary) {
     double max = intermediary.getLeft();
-    Integer count = valueCount.merge(max, 1, (a, b) -> a + b);
+    int count = valueCount.merge(max, 1, (a, b) -> a + b);
 
-    if (count == null || count == 1)
+    if (count == 1)
       maxQueue.add(max);
   }
 
   @Override
   public void removeIntermediary(IntermediaryResult<Double, Object, Object> intermediary) {
     double max = intermediary.getLeft();
-    int count = valueCount.compute(max, (k, v) -> (v <= 1) ? null : (v - 1));
+    Integer count = valueCount.compute(max, (k, v) -> (v == null || v <= 1) ? null : (v - 1));
 
-    if (count == 0)
+    if (count == null || count == 0)
       maxQueue.remove(max);
   }
 

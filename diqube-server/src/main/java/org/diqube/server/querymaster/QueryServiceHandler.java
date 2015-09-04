@@ -249,6 +249,27 @@ public class QueryServiceHandler implements Iface {
           logger.warn("Was not able to send out exception to " + resultAddress.toString() + " for " + queryUuid, e);
         }
 
+        if (remoteExecutionStepHolder.getValue() != null) {
+          // check if we already spawned some calculations on query remotes. If we have any, try to cancel those
+          // executions if possible.
+          ExecuteRemotePlanOnShardsStep remoteStep = remoteExecutionStepHolder.getValue();
+          Collection<RNodeAddress> remoteNodesTriggered = remoteStep.getRemotesTriggered();
+          if (remoteNodesTriggered != null && !remoteNodesTriggered.isEmpty()) {
+            logger.info("Cancelling execution on remotes for query {}: {}", queryUuid, remoteNodesTriggered);
+            for (RNodeAddress triggeredRemote : remoteNodesTriggered) {
+              try (Connection<ClusterQueryService.Client> conn = connectionPool.reserveConnection(
+                  ClusterQueryService.Client.class, ClusterQueryServiceConstants.SERVICE_NAME, triggeredRemote, null)) {
+                conn.getService().cancelExecution(queryRUuid);
+              } catch (ConnectionException | IOException | TException e) {
+                // swallow - if we can't cancel, that's fine, too.
+              } catch (InterruptedException e) {
+                // stop quietly.
+                break;
+              }
+            }
+          }
+        }
+
         // shutdown everything.
         connectionPool.releaseConnection(resultConnection);
         queryRegistry.unregisterQueryExecution(queryUuid, executionUuid);

@@ -63,7 +63,7 @@ public class MinDoubleFunction
   @Override
   public void removeIntermediary(IntermediaryResult<Double, Object, Object> intermediary) {
     double min = intermediary.getLeft();
-    Integer count = valueCount.compute(min, (k, v) -> (v <= 1) ? null : (v - 1));
+    Integer count = valueCount.compute(min, (k, v) -> (v == null || v <= 1) ? null : (v - 1));
 
     if (count == null || count == 0)
       minQueue.remove(min);

@@ -62,7 +62,7 @@ public class MinLongFunction implements AggregationFunction<Long, IntermediaryRe
   @Override
   public void removeIntermediary(IntermediaryResult<Long, Object, Object> intermediary) {
     long max = intermediary.getLeft();
-    Integer count = valueCount.compute(max, (k, v) -> (v <= 1) ? null : (v - 1));
+    Integer count = valueCount.compute(max, (k, v) -> (v == null || v <= 1) ? null : (v - 1));
 
     if (count == null || count == 0)
       minQueue.remove(max);
