@@ -265,7 +265,8 @@ public abstract class AbstractDiqlExecutionTest<T> {
 
   protected void initializeFromJson(String json) throws LoadException {
     JsonLoader loader = dataContext.getBean(JsonLoader.class);
-    TableShard tableShard = loader.load(0L, new BigByteBuffer(json.getBytes()), TABLE, new LoaderColumnInfo(colType));
+    TableShard tableShard = Iterables
+        .getOnlyElement(loader.load(0L, new BigByteBuffer(json.getBytes()), TABLE, new LoaderColumnInfo(colType)));
 
     TableRegistry tableRegistry = dataContext.getBean(TableRegistry.class);
     TableFactory tableFactory = dataContext.getBean(TableFactory.class);

@@ -49,7 +49,7 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>diqube-transpose</artifactId>
+      <artifactId>diqube-tool</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
@@ -99,9 +99,9 @@
                 </artifactItem>
                 <artifactItem>
                   <groupId>${project.groupId}</groupId>
-                  <artifactId>diqube-transpose</artifactId>
+                  <artifactId>diqube-tool</artifactId>
                   <version>${project.version}</version>
-                  <destFileName>transpose.jar</destFileName>
+                  <destFileName>tool.jar</destFileName>
                 </artifactItem>
                 <artifactItem>
                   <groupId>${project.groupId}</groupId>
@@ -140,7 +140,7 @@
               </includes>
               <systemPropertyVariables>
                 <diqube.itest.server.jar>${project.build.directory}/test-artifacts/server.jar</diqube.itest.server.jar>
-                <diqube.itest.transpose.jar>${project.build.directory}/test-artifacts/transpose.jar</diqube.itest.transpose.jar>
+                <diqube.itest.tool.jar>${project.build.directory}/test-artifacts/tool.jar</diqube.itest.tool.jar>
                 <diqube.itest.ui.war>${project.build.directory}/test-artifacts/ui.war</diqube.itest.ui.war>
                 <diqube.itest.tomcat.zip>${project.build.directory}/test-artifacts/tomcat.zip</diqube.itest.tomcat.zip>
                 <diqube.itest.work.dir>${project.build.directory}/test-work/</diqube.itest.work.dir>

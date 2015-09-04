@@ -40,6 +40,7 @@ import org.diqube.file.v1.SDiqubeFileFooter;
 import org.diqube.file.v1.SDiqubeFileFooterInfo;
 import org.diqube.file.v1.SDiqubeFileHeader;
 import org.diqube.util.BigByteBuffer;
+import org.diqube.util.ReadCountInputStream;
 
 /**
  * Reads a single .diqube file and is capable of deserializing the {@link TableShard}s stored in it.
@@ -54,20 +55,25 @@ public class DiqubeFileReader {
 
   private SDiqubeFileFooter footer;
   private BigByteBuffer data;
+  private long firstTableShardByteIndex;
+  private long lastTableShardByteIndex;
 
   /* package */ DiqubeFileReader(DataDeserializer deserializer, BigByteBuffer data) throws IOException {
     this.deserializer = deserializer;
     this.data = data;
 
     // validate file header.
-    try (InputStream is = data.createInputStream()) {
+    try (ReadCountInputStream is = new ReadCountInputStream(data.createInputStream())) {
       TIOStreamTransport transport = new TIOStreamTransport(is);
       TProtocol compactProt = new TCompactProtocol(transport);
 
       SDiqubeFileHeader header = new SDiqubeFileHeader();
       header.read(compactProt);
 
-      if (!header.getMagic().equals(DiqubeFileWriter.MAGIC_STRING))
+      // first TableShard byte is followed the SDiqubeFileHeader directly.
+      firstTableShardByteIndex = is.getNumberOfBytesRead();
+
+      if (!DiqubeFileWriter.MAGIC_STRING.equals(header.getMagic()))
         throw new IOException("File is invalid.");
 
       if (header.getFileVersion() != DiqubeFileWriter.FILE_VERSION)
@@ -108,9 +114,10 @@ public class DiqubeFileReader {
       throw new IOException("Could not read length of file footer", e);
     }
 
+    lastTableShardByteIndex = data.size() - FILE_FOOTER_LENGTH_BYTES - footerLengthBytes - 1;
+
     // read footer.
-    try (InputStream is =
-        data.createPartialInputStream(data.size() - FILE_FOOTER_LENGTH_BYTES - footerLengthBytes, data.size())) {
+    try (InputStream is = data.createPartialInputStream(lastTableShardByteIndex + 1, data.size())) {
       TIOStreamTransport transport = new TIOStreamTransport(is);
       TProtocol compactProt = new TCompactProtocol(transport);
 
@@ -140,6 +147,20 @@ public class DiqubeFileReader {
    */
   public String getComment() {
     return footer.getComment();
+  }
+
+  /**
+   * Expert: Get the index of the first byte in the file that contains data for a TableShard.
+   */
+  public long getTableShardDataFirstByteIndex() {
+    return firstTableShardByteIndex;
+  }
+
+  /**
+   * Expert: Get the index of the last byte in the file that contains data for a TableShard.
+   */
+  public long getTableShardDataLastByteIndex() {
+    return lastTableShardByteIndex;
   }
 
   /**

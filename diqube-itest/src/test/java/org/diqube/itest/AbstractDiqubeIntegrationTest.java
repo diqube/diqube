@@ -39,7 +39,7 @@ import org.diqube.itest.control.LogfileSaver;
 import org.diqube.itest.control.ServerClusterControl;
 import org.diqube.itest.control.ServerControl;
 import org.diqube.itest.control.TomcatControl;
-import org.diqube.itest.control.TransposeControl;
+import org.diqube.itest.control.ToolControl;
 import org.diqube.itest.util.Unzip;
 import org.diqube.itest.util.Zip;
 import org.slf4j.Logger;
@@ -59,8 +59,8 @@ public abstract class AbstractDiqubeIntegrationTest {
 
   /** (required) local location of the jar of diqube-server */
   private static final String PROP_SERVER_JAR = "diqube.itest.server.jar";
-  /** (required) local location of the jar of diqube-transpose */
-  private static final String PROP_TRANSPOSE_JAR = "diqube.itest.transpose.jar";
+  /** (required) local location of the jar of diqube-tool */
+  private static final String PROP_TOOL_JAR = "diqube.itest.tool.jar";
   /** (required) local location of the war of diqube-ui */
   private static final String PROP_UI_WAR = "diqube.itest.ui.war";
   /** (required) local location of the zip containing a tomcat */
@@ -86,7 +86,7 @@ public abstract class AbstractDiqubeIntegrationTest {
   public static final String PROP_SERVER_OVERRIDE = "diqube.itest.server.override.";
 
   private File serverJarFile;
-  private File transposeJarFile;
+  private File toolJarFile;
   private File uiWarFile;
   private File tomcatZipFile;
   private File classWorkDir;
@@ -99,8 +99,8 @@ public abstract class AbstractDiqubeIntegrationTest {
    * {@link NeedsTomcat}).
    */
   protected TomcatControl tomcatControl = null;
-  /** {@link TransposeControl} for each test method. */
-  protected TransposeControl transposeControl;
+  /** {@link ToolControl} for each test method. */
+  protected ToolControl toolControl;
   /**
    * contains the serverControls for the diqube-servers. Only available when test method is annotated with
    * {@link NeedsServer}. See also {@link #clusterControl}.
@@ -111,25 +111,25 @@ public abstract class AbstractDiqubeIntegrationTest {
 
   public AbstractDiqubeIntegrationTest() {
     String serverJarFileName = System.getProperty(PROP_SERVER_JAR);
-    String transposeJarFileName = System.getProperty(PROP_TRANSPOSE_JAR);
+    String toolJarFileName = System.getProperty(PROP_TOOL_JAR);
     String uiWarFileName = System.getProperty(PROP_UI_WAR);
     String tomcatZipFileName = System.getProperty(PROP_TOMCAT_ZIP);
     String workDirName = System.getProperty(PROP_WORK_DIR);
     String targetLogDirName = System.getProperty(PROP_TARGET_LOG_DIR);
     deleteTestWorkDirs = System.getProperty(PROP_DELTE_TEST_DIRS) != null;
 
-    if (serverJarFileName == null || transposeJarFileName == null || uiWarFileName == null || tomcatZipFileName == null
+    if (serverJarFileName == null || toolJarFileName == null || uiWarFileName == null || tomcatZipFileName == null
         || workDirName == null)
       throw new RuntimeException("Not all system properties available.");
 
     serverJarFile = new File(serverJarFileName);
-    transposeJarFile = new File(transposeJarFileName);
+    toolJarFile = new File(toolJarFileName);
     uiWarFile = new File(uiWarFileName);
     tomcatZipFile = new File(tomcatZipFileName);
     targetLogDir = (targetLogDirName != null) ? new File(targetLogDirName) : null;
     File rootWorkDir = new File(workDirName);
 
-    if (!serverJarFile.exists() || !serverJarFile.isFile() || !transposeJarFile.exists() || !transposeJarFile.isFile()
+    if (!serverJarFile.exists() || !serverJarFile.isFile() || !toolJarFile.exists() || !toolJarFile.isFile()
         || !uiWarFile.exists() || !uiWarFile.isFile() || !tomcatZipFile.exists() || !tomcatZipFile.isFile())
       throw new RuntimeException("Not all input files present.");
 
@@ -184,7 +184,7 @@ public abstract class AbstractDiqubeIntegrationTest {
       clusterControl = null;
     }
 
-    transposeControl = new TransposeControl(transposeJarFile);
+    toolControl = new ToolControl(toolJarFile);
   }
 
   @AfterMethod
@@ -217,7 +217,7 @@ public abstract class AbstractDiqubeIntegrationTest {
     }
     testWorkDir = null;
     tomcatControl = null;
-    transposeControl = null;
+    toolControl = null;
     serverControl = null;
     clusterControl = null;
   }

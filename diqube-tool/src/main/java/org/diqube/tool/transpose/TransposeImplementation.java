@@ -18,7 +18,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.tranpose;
+package org.diqube.tool.transpose;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -48,6 +48,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
 /**
@@ -98,7 +99,10 @@ public class TransposeImplementation {
 
       try (FileOutputStream outStream = new FileOutputStream(outputFile)) {
         logger.info("Starting to load data into temporary in-memory table '{}'", TABLE_NAME);
-        TableShard tableShard = loader.load(0L, inputFile.getAbsolutePath(), TABLE_NAME, colInfo);
+
+        // loader is either CSV or JSON, both return a single TableShard element!
+        TableShard tableShard =
+            Iterables.getOnlyElement(loader.load(0L, inputFile.getAbsolutePath(), TABLE_NAME, colInfo));
 
         logger.info("Data loaded into in-memory table '{}', starting to serialize that data into output file '{}'",
             TABLE_NAME, outputFile.getAbsolutePath());

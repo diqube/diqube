@@ -39,10 +39,18 @@ public class DiqubeFileFactory {
   @Inject
   private DataSerializationManager dataSerializationManager;
 
+  /**
+   * @throws IOException
+   *           If the file cannot be accessed.
+   */
   public DiqubeFileWriter createDiqubeFileWriter(OutputStream outputStream) throws IOException {
     return new DiqubeFileWriter(dataSerializationManager.createSerializer(), outputStream);
   }
 
+  /**
+   * @throws IOException
+   *           If the file is invalid or cannot be accessed.
+   */
   public DiqubeFileReader createDiqubeFileReader(BigByteBuffer diqubeFileData) throws IOException {
     return new DiqubeFileReader(dataSerializationManager.createDeserializer(), diqubeFileData);
   }

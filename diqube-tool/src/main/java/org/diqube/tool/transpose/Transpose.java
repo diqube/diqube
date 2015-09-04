@@ -18,7 +18,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.tranpose;
+package org.diqube.tool.transpose;
 
 import java.io.File;
 
@@ -32,21 +32,26 @@ import org.apache.commons.cli.ParseException;
 import org.diqube.loader.CsvLoader;
 import org.diqube.loader.JsonLoader;
 import org.diqube.loader.Loader;
+import org.diqube.tool.ToolFunction;
+import org.diqube.tool.ToolFunctionName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Main method for diqube tranpose.
+ * {@link ToolFunction} which transposes a data file and creates a .diqube file.
  * 
  * <p>
- * diqube transpose reads input data of all supported formats and outputs .diqube files (= serialized data from
- * diqube-data classes, which is already tranposed and compressed and simply needs to be de-serialized by the
- * diqube-server process).
+ * Transpose reads input data of all supported formats and outputs .diqube files (= serialized data from diqube-data
+ * classes, which is already tranposed and compressed and simply needs to be de-serialized by the diqube-server
+ * process).
  *
  * @author Bastian Gloeckle
  */
-public class Transpose {
+@ToolFunctionName(Transpose.FUNCTION_NAME)
+public class Transpose implements ToolFunction {
   private static final Logger logger = LoggerFactory.getLogger(Transpose.class);
+
+  public static final String FUNCTION_NAME = "transpose";
 
   private static final String OPT_HELP = "h";
   private static final String OPT_INPUT = "i";
@@ -56,7 +61,8 @@ public class Transpose {
   private static final String TYPE_JSON = "json";
   private static final String TYPE_CSV = "csv";
 
-  public static void main(String[] args) {
+  @Override
+  public void execute(String[] args) {
     Options cliOpt = createCliOptions();
     CommandLineParser parser = new DefaultParser();
     CommandLine cmd = null;
@@ -71,11 +77,10 @@ public class Transpose {
 
     if (showHelp) {
       HelpFormatter formatter = new HelpFormatter();
-      formatter
-          .printHelp("transpose [options]",
-              "\nTransposes and compressed input data for diqube. This enables the diqube server "
-                  + "process to more easily load the data and not take up a lot of memory when doing it.\n\n",
-              cliOpt, "");
+      formatter.printHelp(Transpose.FUNCTION_NAME + " [options]",
+          "\nTransposes and compresses input data and creates a .diqube file out of it. This enables the diqube "
+              + "server process to more easily load the data and not take up a lot of memory when doing it.\n\n",
+          cliOpt, "");
       return;
     }
 
@@ -86,7 +91,7 @@ public class Transpose {
     File colInfoFile = null;
 
     if (!inputFile.isFile() || !inputFile.exists()) {
-      logger.error("{} idoes not exist or is a directory.", inputFile.getAbsolutePath());
+      logger.error("{} does not exist or is a directory.", inputFile.getAbsolutePath());
       return;
     }
 
@@ -97,7 +102,7 @@ public class Transpose {
     if (colInfoFileString != null) {
       colInfoFile = new File(colInfoFileString);
       if (!colInfoFile.isFile() || !colInfoFile.exists()) {
-        logger.error("{} idoes not exist or is a directory.", colInfoFile.getAbsolutePath());
+        logger.error("{} does not exist or is a directory.", colInfoFile.getAbsolutePath());
         return;
       }
     }
@@ -120,12 +125,13 @@ public class Transpose {
     new TransposeImplementation(inputFile, outputFile, colInfoFile, loaderClass).transpose();
   }
 
-  private static Options createCliOptions() {
+  private Options createCliOptions() {
     Options res = new Options();
     res.addOption(Option.builder(OPT_INPUT).longOpt("input").numberOfArgs(1).argName("file")
         .desc("The input file to read from (required).").required().build());
     res.addOption(Option.builder(OPT_TYPE).longOpt("type").numberOfArgs(1).argName("type")
-        .desc("Type of the input data. One of \"json\", \"csv\" (required).").required().build());
+        .desc("Type of the input data. One of \"" + TYPE_JSON + "\", \"" + TYPE_CSV + "\" (required).").required()
+        .build());
     res.addOption(Option.builder(OPT_OUTPUT).longOpt("output").numberOfArgs(1).argName("file")
         .desc("Output file name (required).").required().build());
     res.addOption(Option.builder(OPT_COLINFO).longOpt("colinfo").numberOfArgs(1).argName("file")

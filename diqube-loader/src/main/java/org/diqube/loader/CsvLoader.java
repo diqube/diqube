@@ -24,6 +24,8 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel.MapMode;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Spliterator;
@@ -54,7 +56,10 @@ import com.opencsv.CSVParser;
  * 
  * <p>
  * This loader does not support hierarchical data.
- *
+ * 
+ * <p>
+ * This loader will return only one TableShard for a whole CSV input file.
+ * 
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
@@ -78,7 +83,7 @@ public class CsvLoader implements Loader {
   private ExecutorManager executorManager;
 
   @Override
-  public TableShard load(long firstRowId, String filename, String tableName, LoaderColumnInfo columnInfo)
+  public Collection<TableShard> load(long firstRowId, String filename, String tableName, LoaderColumnInfo columnInfo)
       throws LoadException {
     ColumnShardBuilderManager columnManager;
 
@@ -99,8 +104,8 @@ public class CsvLoader implements Loader {
   }
 
   @Override
-  public TableShard load(long firstRowId, BigByteBuffer csvBuffer, String tableName, LoaderColumnInfo columnInfo)
-      throws LoadException {
+  public Collection<TableShard> load(long firstRowId, BigByteBuffer csvBuffer, String tableName,
+      LoaderColumnInfo columnInfo) throws LoadException {
     ColumnShardBuilderManager columnManager = readColumnData(firstRowId, csvBuffer, tableName, columnInfo);
     return createTableShard(columnManager, tableName);
   }
@@ -184,8 +189,9 @@ public class CsvLoader implements Loader {
    *          Name of the result table.
    * @return The created {@link TableShard}.
    */
-  private TableShard createTableShard(ColumnShardBuilderManager columnManager, String tableName) {
-    logger.info("Read data for table {}. Compressing and creating final representation...", tableName);
+  private Collection<TableShard> createTableShard(ColumnShardBuilderManager columnManager, String tableName) {
+    logger.info("Read data for new table shard for table {}. Compressing and creating final representation...",
+        tableName);
 
     // Build the columns.
     List<StandardColumnShard> columns = new LinkedList<>();
@@ -195,11 +201,11 @@ public class CsvLoader implements Loader {
       columns.add(columnShard);
     }
 
-    logger.info("Columns for table {} created, creating TableShard...", tableName);
+    logger.info("Columns for new table shard of table {} created, creating table shard...", tableName);
     TableShard tableShard = tableFactory.createTableShard(tableName, columns);
 
     logger.info("Table shard for table {} created successfully.", tableName);
-    return tableShard;
+    return Arrays.asList(tableShard);
   }
 
   /**

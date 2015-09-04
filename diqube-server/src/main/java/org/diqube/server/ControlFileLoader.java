@@ -24,10 +24,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 import org.diqube.data.ColumnType;
 import org.diqube.data.Table;
@@ -195,24 +195,27 @@ public class ControlFileLoader {
       throw new LoadException("Unkown input file type.");
     }
 
-    TableShard newTableShard = loader.load(firstRowId, file.getAbsolutePath(), tableName, columnInfo);
+    Collection<TableShard> newTableShards = loader.load(firstRowId, file.getAbsolutePath(), tableName, columnInfo);
     synchronized (tableRegistrySync) {
       Table table = tableRegistry.getTable(tableName);
       if (table != null) {
         try {
-          table.addTableShard(newTableShard);
+          for (TableShard newTableShard : newTableShards)
+            table.addTableShard(newTableShard);
         } catch (TableShardsOverlappingException e) {
           throw new LoadException("Cannot load TableShard as it overlaps with an already loaded one", e);
         }
       } else {
-        Collection<TableShard> newTableShardCollection = Arrays.asList(new TableShard[] { newTableShard });
+        Collection<TableShard> newTableShardCollection = newTableShards;
         table = tableFactory.createTable(tableName, newTableShardCollection);
 
         tableRegistry.addTable(tableName, table);
       }
     }
 
-    return new Pair<>(tableName, Arrays.asList(newTableShard.getLowestRowId()));
+    List<Long> firstRowIds =
+        newTableShards.stream().map(shard -> shard.getLowestRowId()).sorted().collect(Collectors.toList());
+    return new Pair<>(tableName, firstRowIds);
 
   }
 }

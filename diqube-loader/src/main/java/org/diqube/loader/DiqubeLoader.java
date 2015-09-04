@@ -23,6 +23,7 @@ package org.diqube.loader;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel.MapMode;
+import java.util.Collection;
 
 import javax.inject.Inject;
 
@@ -38,12 +39,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Loads data from .diqube files, which contain serialized data of classes from diqube-data - these simply have to be
- * deserialized.
+ * Loads data from .diqube files, which contain serialized data of classes from diqube-data (built with diqube-file) -
+ * these simply have to be deserialized.
  * 
- * The corresponding files can be created using diqube-transpose.
+ * <p>
+ * This loader will return as many {@link TableShard}s as contained in the .diqube file.
  * 
- * This {@link Loader} ignores {@link LoaderColumnInfo} that is provided completely, but rather fully relies on the
+ * <p>
+ * The corresponding files can be created using diqube-tool (transpose) or diqube-hadoop.
+ * 
+ * <p>
+ * This {@link Loader} ignores the {@link LoaderColumnInfo} that is provided completely, but rather fully relies on the
  * serialized data.
  *
  * @author Bastian Gloeckle
@@ -56,7 +62,7 @@ public class DiqubeLoader implements Loader {
   private DiqubeFileFactory fileFactory;
 
   @Override
-  public TableShard load(long firstRowId, String filename, String tableName, LoaderColumnInfo columnInfo)
+  public Collection<TableShard> load(long firstRowId, String filename, String tableName, LoaderColumnInfo columnInfo)
       throws LoadException {
     logger.info("Reading data for new table '{}' from '{}'.", new Object[] { tableName, filename });
 
@@ -70,26 +76,29 @@ public class DiqubeLoader implements Loader {
   }
 
   @Override
-  public TableShard load(long firstRowId, BigByteBuffer buffer, String tableName, LoaderColumnInfo columnInfo)
-      throws LoadException {
-    TableShard tableShard;
+  public Collection<TableShard> load(long firstRowId, BigByteBuffer buffer, String tableName,
+      LoaderColumnInfo columnInfo) throws LoadException {
+    Collection<TableShard> tableShards;
     try {
       DiqubeFileReader reader = fileFactory.createDiqubeFileReader(buffer);
       logger.info("Loading data for table '{}' by deserializing it.", tableName);
-      // TODO #58 load all TableShards of the file.
-      tableShard = reader.loadAllTableShards().iterator().next();
+      tableShards = reader.loadAllTableShards();
     } catch (DeserializationException | IOException e) {
       throw new LoadException("Could not deserialize data", e);
     }
 
+    long nextFirstRowId = firstRowId;
     // adjust some data.
-    tableShard.setTableName(tableName);
-    for (StandardColumnShard colShard : tableShard.getColumns().values())
-      ((AdjustableStandardColumnShard) colShard).adjustToFirstRowId(firstRowId);
+    for (TableShard shard : tableShards) {
+      shard.setTableName(tableName);
+      for (StandardColumnShard colShard : shard.getColumns().values())
+        ((AdjustableStandardColumnShard) colShard).adjustToFirstRowId(nextFirstRowId);
+      nextFirstRowId += shard.getNumberOfRowsInShard();
+    }
 
-    logger.info("Successfully loaded data for table '{}'.", tableName);
+    logger.info("Successfully loaded data for table '{}', rowIds {}-{}.", tableName, firstRowId, nextFirstRowId - 1);
 
-    return tableShard;
+    return tableShards;
   }
 
 }

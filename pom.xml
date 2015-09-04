@@ -58,7 +58,7 @@
     <module>diqube-data</module>
     <module>diqube-data-serialize</module>
     <module>diqube-file</module>
-    <module>diqube-transpose</module>
+    <module>diqube-tool</module>
     <module>diqube-diql</module>
     <module>diqube-loader</module>
     <module>diqube-hadoop</module>

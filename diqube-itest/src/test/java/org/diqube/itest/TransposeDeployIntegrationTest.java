@@ -29,7 +29,7 @@ import java.util.UUID;
 
 import org.diqube.function.aggregate.ConcatGroupFunction;
 import org.diqube.itest.annotations.NeedsServer;
-import org.diqube.itest.control.TransposeControl;
+import org.diqube.itest.control.ToolControl;
 import org.diqube.itest.util.QueryResultServiceTestUtil;
 import org.diqube.itest.util.QueryResultServiceTestUtil.TestQueryResultService;
 import org.diqube.itest.util.ServiceTestUtil;
@@ -87,7 +87,7 @@ public class TransposeDeployIntegrationTest extends AbstractDiqubeIntegrationTes
   public void stringTransposeDeploy() throws IOException {
     // GIVEN
     // transposed file
-    transposeControl.transpose(cp(LOREM_JSON_FILE), TransposeControl.TYPE_JSON, work(LOREM_DIQUBE_FILE));
+    toolControl.transpose(cp(LOREM_JSON_FILE), ToolControl.TYPE_JSON, work(LOREM_DIQUBE_FILE));
 
     // deploy both non-transposed and transposed data
     serverControl.get(0).deploy(cp(LOREM_JSON_CONTROL_FILE), cp(LOREM_JSON_FILE));
@@ -134,7 +134,7 @@ public class TransposeDeployIntegrationTest extends AbstractDiqubeIntegrationTes
   public void doubleTransposeDeploy() throws IOException {
     // GIVEN
     // transposed file
-    transposeControl.transpose(cp(DOUBLEVAL_JSON_FILE), TransposeControl.TYPE_JSON, work(DOUBLEVAL_DIQUBE_FILE));
+    toolControl.transpose(cp(DOUBLEVAL_JSON_FILE), ToolControl.TYPE_JSON, work(DOUBLEVAL_DIQUBE_FILE));
 
     // deploy both non-transposed and transposed data
     serverControl.get(0).deploy(cp(DOUBLEVAL_JSON_CONTROL_FILE), cp(DOUBLEVAL_JSON_FILE));
@@ -183,7 +183,7 @@ public class TransposeDeployIntegrationTest extends AbstractDiqubeIntegrationTes
   public void longTransposeDeploy() throws IOException {
     // GIVEN
     // transposed file
-    transposeControl.transpose(cp(AGE_JSON_FILE), TransposeControl.TYPE_JSON, work(AGE_DIQUBE_FILE));
+    toolControl.transpose(cp(AGE_JSON_FILE), ToolControl.TYPE_JSON, work(AGE_DIQUBE_FILE));
 
     // deploy both non-transposed and transposed data
     serverControl.get(0).deploy(cp(AGE_JSON_CONTROL_FILE), cp(AGE_JSON_FILE));

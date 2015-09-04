@@ -40,6 +40,8 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import com.google.common.collect.Iterables;
+
 /**
  * Tests for {@link JsonLoader}.
  *
@@ -73,7 +75,8 @@ public class JsonLoaderTest {
     String json = "[ { \"a\": 1, \"b\": 1},{\"a\": 2, \"b\": 3}]";
 
     // WHEN
-    TableShard tableShard = loader.load(0L, new BigByteBuffer(json.getBytes()), TABLE, colInfo);
+    TableShard tableShard =
+        Iterables.getOnlyElement(loader.load(0L, new BigByteBuffer(json.getBytes()), TABLE, colInfo));
 
     // THEN
     Assert.assertEquals(tableShard.getLongColumns().size(), 2, "Expected both long columns to be available");
@@ -101,7 +104,8 @@ public class JsonLoaderTest {
     String json = "[ { \"a\": 1, \"b\": 1, \"c\": [4, 5,6]},{\"a\": 2, \"b\": 3, \"c\": [7, 8, 9 ]}]";
 
     // WHEN
-    TableShard tableShard = loader.load(0L, new BigByteBuffer(json.getBytes()), TABLE, colInfo);
+    TableShard tableShard =
+        Iterables.getOnlyElement(loader.load(0L, new BigByteBuffer(json.getBytes()), TABLE, colInfo));
 
     // THEN
     Assert.assertEquals(tableShard.getLongColumns().size(), 6, "Expected all long columns to be available");
@@ -139,7 +143,8 @@ public class JsonLoaderTest {
         + "{\"a\": 2, \"c\": [ { \"d\" : 7, \"e\" : 7 }, { \"d\" : 8, \"e\" : 8 }] } ]";
 
     // WHEN
-    TableShard tableShard = loader.load(0L, new BigByteBuffer(json.getBytes()), TABLE, colInfo);
+    TableShard tableShard =
+        Iterables.getOnlyElement(loader.load(0L, new BigByteBuffer(json.getBytes()), TABLE, colInfo));
 
     // THEN
     Assert.assertEquals(tableShard.getLongColumns().size(), 6, "Expected all long columns to be available");
@@ -177,7 +182,8 @@ public class JsonLoaderTest {
     String json = "[ { \"a\": 1, \"c\": [4, 5, 6]}," + "{\"a\": 2, \"c\": [ 1 ] } ]";
 
     // WHEN
-    TableShard tableShard = loader.load(0L, new BigByteBuffer(json.getBytes()), TABLE, colInfo);
+    TableShard tableShard =
+        Iterables.getOnlyElement(loader.load(0L, new BigByteBuffer(json.getBytes()), TABLE, colInfo));
 
     // THEN
     Assert.assertEquals(tableShard.getLongColumns().size(), 5, "Expected all long columns to be available");
@@ -212,7 +218,8 @@ public class JsonLoaderTest {
         "[ { \"a\": 1, \"c\": [ { \"d\": 4 }, { \"d\": 5}, { \"d\": 6 } ]}," + "{\"a\": 2, \"c\": [ { \"d\": 1 } ] } ]";
 
     // WHEN
-    TableShard tableShard = loader.load(0L, new BigByteBuffer(json.getBytes()), TABLE, colInfo);
+    TableShard tableShard =
+        Iterables.getOnlyElement(loader.load(0L, new BigByteBuffer(json.getBytes()), TABLE, colInfo));
 
     // THEN
     Assert.assertEquals(tableShard.getLongColumns().size(), 5, "Expected all long columns to be available");
@@ -256,7 +263,8 @@ public class JsonLoaderTest {
             "{ \"a\": 9,\"b\": 25 }]";
 
     // WHEN
-    TableShard tableShard = loader.load(0L, new BigByteBuffer(json.getBytes()), TABLE, colInfo);
+    TableShard tableShard =
+        Iterables.getOnlyElement(loader.load(0L, new BigByteBuffer(json.getBytes()), TABLE, colInfo));
 
     // THEN
     Assert.assertEquals(tableShard.getLongColumns().size(), 2, "Expected both long columns to be available");

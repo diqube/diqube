@@ -25,6 +25,8 @@ import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel.MapMode;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -78,6 +80,9 @@ import com.fasterxml.jackson.core.JsonToken;
  * (repeated fields). Currently, though, each top-level object needs to recursively be made up of the exactly same
  * fields ("optional" fields are not supported yet).
  * 
+ * <p>
+ * This loader will return only one TableShard for a whole JSON input file.
+ * 
  * TODO #14 support optional fields.
  *
  * @author Bastian Gloeckle
@@ -101,10 +106,10 @@ public class JsonLoader implements Loader {
   private RepeatedColumnNameGenerator repeatedColNames;
 
   @Override
-  public TableShard load(long firstRowId, String filename, String tableName, LoaderColumnInfo columnInfo)
+  public Collection<TableShard> load(long firstRowId, String filename, String tableName, LoaderColumnInfo columnInfo)
       throws LoadException {
 
-    logger.info("Reading data for new table '{}' from '{}'.", new Object[] { tableName, filename });
+    logger.info("Reading data for table '{}' from '{}'.", new Object[] { tableName, filename });
 
     try (RandomAccessFile f = new RandomAccessFile(filename, "r")) {
       BigByteBuffer buf = new BigByteBuffer(f.getChannel(), MapMode.READ_ONLY, b -> b.load());
@@ -116,8 +121,8 @@ public class JsonLoader implements Loader {
   }
 
   @Override
-  public TableShard load(long firstRowId, BigByteBuffer jsonBuffer, String tableName, LoaderColumnInfo columnInfo)
-      throws LoadException {
+  public Collection<TableShard> load(long firstRowId, BigByteBuffer jsonBuffer, String tableName,
+      LoaderColumnInfo columnInfo) throws LoadException {
     JsonFactory factory = new JsonFactory();
 
     // parse the jsonBuffer and identify all columns, their types and repeated columns.
@@ -199,12 +204,13 @@ public class JsonLoader implements Loader {
       columns.add(columnShard);
     }
 
-    logger.info("Columns for table {} created, creating TableShard...", tableName);
+    logger.info("Columns for new table shard of table {} created, creating TableShard...", tableName);
     TableShard tableShard = tableFactory.createTableShard(tableName, columns);
 
-    logger.info("Table shard for table {} created successfully, it contains {} rows starting from rowId {}", tableName,
-        tableShard.getNumberOfRowsInShard(), tableShard.getLowestRowId());
-    return tableShard;
+    logger.info(
+        "Table shard for new table shard of table {} created successfully, it contains {} rows starting from rowId {}",
+        tableName, tableShard.getNumberOfRowsInShard(), tableShard.getLowestRowId());
+    return Arrays.asList(tableShard);
   }
 
   /**

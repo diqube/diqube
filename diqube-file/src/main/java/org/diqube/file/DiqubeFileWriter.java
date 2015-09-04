@@ -22,6 +22,7 @@ package org.diqube.file;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 
 import org.apache.thrift.TException;
@@ -35,6 +36,8 @@ import org.diqube.data.serialize.SerializationException;
 import org.diqube.file.v1.SDiqubeFileFooter;
 import org.diqube.file.v1.SDiqubeFileFooterInfo;
 import org.diqube.file.v1.SDiqubeFileHeader;
+
+import com.google.common.io.ByteStreams;
 
 /**
  * Writes a single .diqube file which can contain multiple serialized {@link TableShard}s.
@@ -94,6 +97,26 @@ public class DiqubeFileWriter implements Closeable {
     serializer.serialize(tableShard, outputStream, objectDoneConsumer);
     numberOfTableShards++;
     numberOfRows += numberOfRowsDelta;
+  }
+
+  /**
+   * Write data of already serialized table shards to the file.
+   * 
+   * @param serializedTableShards
+   *          The serialized data of one or multiple table shards
+   * @param totalNumberOfRows
+   *          The total number of rows all the TableShards contain
+   * @param numberOfTableShards
+   *          The number of table shards that are provided
+   * @throws IOException
+   *           If anything cannot be written.
+   */
+  public void writeSerializedTableShards(InputStream serializedTableShards, long totalNumberOfRows,
+      int numberOfTableShards) throws IOException {
+    ByteStreams.copy(serializedTableShards, outputStream);
+    outputStream.flush();
+    this.numberOfTableShards += numberOfTableShards;
+    this.numberOfRows += totalNumberOfRows;
   }
 
   /**

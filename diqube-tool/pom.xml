@@ -29,9 +29,9 @@
     <artifactId>diqube</artifactId>
     <version>1-SNAPSHOT</version>
   </parent>
-  <artifactId>diqube-transpose</artifactId>
+  <artifactId>diqube-tool</artifactId>
   <packaging>jar</packaging>
-  <name>diqube - Transpose</name>
+  <name>diqube - Tool</name>
   <url>http://www.diqube.org</url>
 
   <dependencies>
@@ -93,7 +93,7 @@
               </artifactSet>-->
               <transformers>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                  <mainClass>org.diqube.tranpose.Transpose</mainClass>
+                  <mainClass>org.diqube.tool.Tool</mainClass>
                 </transformer>
               </transformers>
             </configuration>

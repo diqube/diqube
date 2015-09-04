@@ -20,6 +20,8 @@
  */
 package org.diqube.loader;
 
+import java.util.Collection;
+
 import org.diqube.data.TableShard;
 import org.diqube.util.BigByteBuffer;
 
@@ -34,57 +36,58 @@ import org.diqube.util.BigByteBuffer;
 public interface Loader {
 
   /**
-   * Load a {@link TableShard} from a {@link BigByteBuffer}.
+   * Load {@link TableShard}(s) from a {@link BigByteBuffer}.
    * 
    * <p>
    * Be aware that this method might take a while to finish.
    * 
    * @param firstRowId
-   *          The rowId to be used for the first "row" of data in the buffer. This will be the first rowId where the
-   *          returned TableShard has data. Note that each TableShard contains data for consecutive rowIds - therefore
-   *          the returned TableShard will contain data for the rowIds firstRowId..(firstRowId+number of rows-1). Each
-   *          rowId must be mapped only in one TableShard of a Table, the overall first rowId in a Table must be 0L and
-   *          the rowIds for all rows in the table must be consecutive.
+   *          The rowId to be used for the first "row" of data in the buffer. This will be the first rowId where one of
+   *          the returned TableShards has data. Note that each TableShard contains data for consecutive rowIds and the
+   *          returned TableShards will contain data for consecutive rowIds, too - therefore the returned TableShards
+   *          will contain data for the rowIds firstRowId..(firstRowId+number of rows-1). Each rowId must be mapped only
+   *          in one TableShard of a Table, the overall first rowId in a Table must be 0L and the rowIds for all rows in
+   *          the table must be consecutive.
    * @param buffer
    *          The buffer which contains the raw data in a format that this Loader supports.
    * @param tableName
-   *          Name of the table the returned {@link TableShard} should belong to.
+   *          Name of the table the returned {@link TableShard}s should belong to.
    * @param columnInfo
    *          additional information about the columns to be loaded. Depending on the implementation of the Loader, the
    *          Loader itself might be able to identify the data type of specific columns pretty well itself - some though
    *          do not.
-   * 
-   * @return The newly loaded TableShard.
+   * @return The newly loaded TableShard(s).
    * @throws LoadException
-   *           If the {@link TableShard} cannot be created for some reason.
+   *           If the {@link TableShard}s cannot be created for some reason.
    */
-  public TableShard load(long firstRowId, BigByteBuffer buffer, String tableName, LoaderColumnInfo columnInfo)
-      throws LoadException;
+  public Collection<TableShard> load(long firstRowId, BigByteBuffer buffer, String tableName,
+      LoaderColumnInfo columnInfo) throws LoadException;
 
   /**
-   * Load a {@link TableShard} from a file.
+   * Load {@link TableShard}s from a file.
    * 
    * <p>
    * Be aware that this method might take a while to finish.
    * 
    * @param firstRowId
-   *          The rowId to be used for the first "row" of data in the buffer. This will be the first rowId where the
-   *          returned TableShard has data. Note that each TableShard contains data for consecutive rowIds - therefore
-   *          the returned TableShard will contain data for the rowIds firstRowId..(firstRowId+number of rows-1). Each
-   *          rowId must be mapped only in one TableShard of a Table, the overall first rowId in a Table must be 0L and
-   *          the rowIds for all rows in the table must be consecutive.
+   *          The rowId to be used for the first "row" of data in the buffer. This will be the first rowId where one of
+   *          the returned TableShards has data. Note that each TableShard contains data for consecutive rowIds and the
+   *          returned TableShards will contain data for consecutive rowIds, too - therefore the returned TableShards
+   *          will contain data for the rowIds firstRowId..(firstRowId+number of rows-1). Each rowId must be mapped only
+   *          in one TableShard of a Table, the overall first rowId in a Table must be 0L and the rowIds for all rows in
+   *          the table must be consecutive.
+   * @param filename
+   *          The name of the file to load the data from.
    * @param tableName
    *          Name of the table the returned {@link TableShard} should belong to.
    * @param columnInfo
    *          additional information about the columns to be loaded. Depending on the implementation of the Loader, the
    *          Loader itself might be able to identify the data type of specific columns pretty well itself - some though
    *          do not.
-   * @param buffer
-   *          The buffer which contains the raw data in a format that this Loader supports.
-   * @return The newly loaded TableShard.
+   * @return The newly loaded TableShard(s).
    * @throws LoadException
-   *           If the {@link TableShard} cannot be created for some reason.
+   *           If the {@link TableShard}s cannot be created for some reason.
    */
-  public TableShard load(long firstRowId, String filename, String tableName, LoaderColumnInfo columnInfo)
+  public Collection<TableShard> load(long firstRowId, String filename, String tableName, LoaderColumnInfo columnInfo)
       throws LoadException;
 }
