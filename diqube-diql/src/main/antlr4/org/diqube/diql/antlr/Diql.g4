@@ -212,12 +212,12 @@ DOUBLE_LITERAL
  | '.' DIGIT+
  ; 
 
-// TODO negative numbers
+// TODO #60 negative numbers
 DECIMAL_LITERAL
  : DIGIT+
  ;
 
-// TODO empty string
+// TODO #60 empty string
 STRING_LITERAL
  : '\'' .*? ~('\\') '\''
  ;
