@@ -191,14 +191,26 @@ public class ColumnShardBuilder<T> {
       columnDict.put(value, id);
     }
 
-    for (long rowId = firstRowIdInShard; rowId <= upUntilRowIncluding; rowId++) {
-      int proposalIdx = (int) Math.floorDiv(rowId - firstRowIdInShard, PROPOSAL_ROWS);
-      if (pageProposals.size() > proposalIdx && pageProposals.get(proposalIdx) != null) {
-        int inProposalIdx = (int) (rowId - firstRowIdInShard - (proposalIdx * PROPOSAL_ROWS));
-        if (pageProposals.get(proposalIdx).valueIds[inProposalIdx] == ColumnPageProposal.EMPTY)
-          pageProposals.get(proposalIdx).valueIds[inProposalIdx] = id;
-      } else
-        addValueIds(new long[] { id }, 0, rowId);
+    int upToProposalIdx = (int) Math.floorDiv(upUntilRowIncluding - firstRowIdInShard, PROPOSAL_ROWS);
+    if (pageProposals.size() <= upToProposalIdx)
+      pageProposals.addAll(Arrays.asList(new ColumnPageProposal[upToProposalIdx - pageProposals.size() + 1]));
+
+    for (int propIdx = 0; propIdx <= upToProposalIdx; propIdx++) {
+      ColumnPageProposal proposal = pageProposals.get(propIdx);
+
+      if (proposal == null) {
+        proposal = new ColumnPageProposal(propIdx * PROPOSAL_ROWS);
+        pageProposals.set(propIdx, proposal);
+      }
+
+      boolean isLastProposal = propIdx == upToProposalIdx;
+      int lengthInCurrentProposal = (!isLastProposal) ? proposal.valueIds.length
+          : (int) ((upUntilRowIncluding + 1 - firstRowIdInShard) % PROPOSAL_ROWS);
+
+      for (int i = 0; i < lengthInCurrentProposal; i++) {
+        if (proposal.valueIds[i] == ColumnPageProposal.EMPTY)
+          proposal.valueIds[i] = id;
+      }
     }
   }
 

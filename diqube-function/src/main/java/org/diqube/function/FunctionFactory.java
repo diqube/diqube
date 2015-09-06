@@ -103,7 +103,7 @@ public class FunctionFactory {
             try {
               return (ProjectionFunction<?, ?>) clazz.newInstance();
             } catch (Exception e) {
-              throw new RuntimeException("Could not instantiate " + clazz.getName());
+              throw new RuntimeException("Could not instantiate " + clazz.getName(), e);
             }
           };
 

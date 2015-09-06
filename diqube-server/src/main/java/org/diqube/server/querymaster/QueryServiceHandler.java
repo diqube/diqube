@@ -199,26 +199,8 @@ public class QueryServiceHandler implements Iface {
         // the connection will be returned automatically, the remote node will be removed from ClusterManager
         // automatically.
 
-        if (remoteExecutionStepHolder.getValue() != null) {
-          // check if we already spawned some calculations on query remotes. If we have any, try to cancel those
-          // executions if possible.
-          ExecuteRemotePlanOnShardsStep remoteStep = remoteExecutionStepHolder.getValue();
-          Collection<RNodeAddress> remoteNodesTriggered = remoteStep.getRemotesTriggered();
-          if (remoteNodesTriggered != null && !remoteNodesTriggered.isEmpty()) {
-            logger.info("Cancelling execution on remotes for query {}: {}", queryUuid, remoteNodesTriggered);
-            for (RNodeAddress triggeredRemote : remoteNodesTriggered) {
-              try (Connection<ClusterQueryService.Client> conn = connectionPool.reserveConnection(
-                  ClusterQueryService.Client.class, ClusterQueryServiceConstants.SERVICE_NAME, triggeredRemote, null)) {
-                conn.getService().cancelExecution(queryRUuid);
-              } catch (ConnectionException | IOException | TException e) {
-                // swallow - if we can't cancel, that's fine, too.
-              } catch (InterruptedException e) {
-                // stop quietly.
-                break;
-              }
-            }
-          }
-        }
+        if (remoteExecutionStepHolder.getValue() != null)
+          cancelExecutionOnTriggeredRemotes(queryRUuid, remoteExecutionStepHolder.getValue());
 
         queryRegistry.unregisterQueryExecution(queryUuid, executionUuid);
         queryRegistry.cleanupQueryFully(queryUuid);
@@ -249,26 +231,8 @@ public class QueryServiceHandler implements Iface {
           logger.warn("Was not able to send out exception to " + resultAddress.toString() + " for " + queryUuid, e);
         }
 
-        if (remoteExecutionStepHolder.getValue() != null) {
-          // check if we already spawned some calculations on query remotes. If we have any, try to cancel those
-          // executions if possible.
-          ExecuteRemotePlanOnShardsStep remoteStep = remoteExecutionStepHolder.getValue();
-          Collection<RNodeAddress> remoteNodesTriggered = remoteStep.getRemotesTriggered();
-          if (remoteNodesTriggered != null && !remoteNodesTriggered.isEmpty()) {
-            logger.info("Cancelling execution on remotes for query {}: {}", queryUuid, remoteNodesTriggered);
-            for (RNodeAddress triggeredRemote : remoteNodesTriggered) {
-              try (Connection<ClusterQueryService.Client> conn = connectionPool.reserveConnection(
-                  ClusterQueryService.Client.class, ClusterQueryServiceConstants.SERVICE_NAME, triggeredRemote, null)) {
-                conn.getService().cancelExecution(queryRUuid);
-              } catch (ConnectionException | IOException | TException e) {
-                // swallow - if we can't cancel, that's fine, too.
-              } catch (InterruptedException e) {
-                // stop quietly.
-                break;
-              }
-            }
-          }
-        }
+        if (remoteExecutionStepHolder.getValue() != null)
+          cancelExecutionOnTriggeredRemotes(queryRUuid, remoteExecutionStepHolder.getValue());
 
         // shutdown everything.
         connectionPool.releaseConnection(resultConnection);
@@ -294,7 +258,6 @@ public class QueryServiceHandler implements Iface {
 
     MasterQueryExecutor queryExecutor = new MasterQueryExecutor(executorManager, executionPlanBuilderFactory,
         queryRegistry, new MasterQueryExecutor.QueryExecutorCallback() {
-
           @Override
           public void intermediaryResultTableAvailable(RResultTable resultTable, short percentDone) {
             logger.trace("New intermediary result for {}: {}", queryUuid, resultTable);
@@ -410,6 +373,27 @@ public class QueryServiceHandler implements Iface {
     // start asynchronous execution.
     queryRegistry.getOrCreateStatsManager(queryUuid, executionUuid).setStartedNanos(System.nanoTime());
     executor.execute(execute);
+  }
+
+  private void cancelExecutionOnTriggeredRemotes(RUUID queryRUuid, ExecuteRemotePlanOnShardsStep remoteStep) {
+    // check if we already spawned some calculations on query remotes. If we have any, try to cancel those
+    // executions if possible.
+    Collection<RNodeAddress> remoteNodesTriggered = remoteStep.getRemotesTriggered();
+    if (remoteNodesTriggered != null && !remoteNodesTriggered.isEmpty()) {
+      logger.info("Cancelling execution on remotes for query {}: {}", RUuidUtil.toUuid(queryRUuid),
+          remoteNodesTriggered);
+      for (RNodeAddress triggeredRemote : remoteNodesTriggered) {
+        try (Connection<ClusterQueryService.Client> conn = connectionPool.reserveConnection(
+            ClusterQueryService.Client.class, ClusterQueryServiceConstants.SERVICE_NAME, triggeredRemote, null)) {
+          conn.getService().cancelExecution(queryRUuid);
+        } catch (ConnectionException | IOException | TException e) {
+          // swallow - if we can't cancel, that's fine, too.
+        } catch (InterruptedException e) {
+          // end quietly.
+          return;
+        }
+      }
+    }
   }
 
 }

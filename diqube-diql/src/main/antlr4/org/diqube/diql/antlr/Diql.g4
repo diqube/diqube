@@ -139,6 +139,7 @@ projectionFunctionName
  | F_DIV
  | F_MUL
  | F_SUB
+ | F_LOG
  ;
 
 keyword
@@ -202,6 +203,7 @@ F_MUL: M U L;
 F_SUB: S U B;
 F_CONCATGROUP: C O N C A T G R O U P;
 F_SUM: S U M;
+F_LOG: L O G;
 
 ID
  : [a-zA-Z_] [a-zA-Z_0-9]* 

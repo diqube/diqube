@@ -39,6 +39,9 @@
 		function execute() {
 		    me.data = null;
 		    me.exception = null;
+		    me.stats = null;
+		    me.displayResultsOrStats = "";
+
 		    var ws = remoteService.getSocket();
 		    ws.$$send({
 			type : "query",

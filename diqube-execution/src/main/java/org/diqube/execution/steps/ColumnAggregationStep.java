@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.LongConsumer;
+import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
 import org.diqube.data.ColumnType;
@@ -153,8 +154,11 @@ public class ColumnAggregationStep extends AbstractThreadedExecutablePlanStep {
     // all length columns are available, check all the [index] columns now.
     boolean notAllColsAvailable =
         allColNames.stream().anyMatch(requiredCol -> defaultEnv.getColumnShard(requiredCol) == null);
-    if (notAllColsAvailable)
+    if (notAllColsAvailable) {
+      logger.trace("Columns {} missing. Not proceeding.", allColNames.stream()
+          .filter(reqiredCol -> defaultEnv.getColumnShard(reqiredCol) == null).collect(Collectors.toList()));
       return;
+    }
 
     // Ok, all columns that we need seem to be available.
 
