@@ -59,8 +59,6 @@ import org.diqube.util.Triple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Sets;
-
 /**
  * Fully executes a diql query and provides a callback that has a {@link RResultTable} on a query master.
  * 
@@ -339,19 +337,17 @@ class MasterQueryExecutor {
     for (Long rowId : rowIds) {
       if (!valuesByRow.containsKey(rowId))
         continue;
-      if (!Sets.difference(valuesByRow.get(rowId).keySet(), selectedColumnsSet).isEmpty())
-        // not values for all columns available.
-        continue;
 
       List<RValue> row = new ArrayList<>();
       for (String colName : selectedColumns)
         row.add(RValueUtil.createRValue(valuesByRow.get(rowId).get(colName)));
 
-      // store row if we found actual values for each col. This is just some sanity checking so that we do not pass on
-      // null values to thrift in the end...
-      // The value seemed to be null sometimes, although we're using a ConcurrentHashMap.
-      if (!row.stream().anyMatch(r -> r == null))
-        rows.add(row);
+      // fill any cells where we do not have data with an empty string.
+      for (int i = 0; i < row.size(); i++)
+        if (row.get(i) == null)
+          row.set(i, RValueUtil.createRValue(""));
+
+      rows.add(row);
     }
     res.setRows(rows);
 
