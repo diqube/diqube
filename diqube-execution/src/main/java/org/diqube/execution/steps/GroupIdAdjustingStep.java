@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -118,6 +119,7 @@ public class GroupIdAdjustingStep extends AbstractThreadedExecutablePlanStep {
   private Set<String> groupedColumnNames;
   private Map<Long, Long> groupIdMap = new HashMap<>();
   private Map<Map<String, Object>, Long> valuesToGroupId = new HashMap<>();
+  private Set<Long> allKnownGroupIds = new HashSet<>();
 
   public GroupIdAdjustingStep(int stepId, QueryRegistry queryRegistry, Set<String> groupedColumnNames) {
     super(stepId, queryRegistry);
@@ -133,10 +135,17 @@ public class GroupIdAdjustingStep extends AbstractThreadedExecutablePlanStep {
 
   @Override
   protected void execute() {
+    execute(true);
+  }
+
+  private void execute(boolean checkIfDone) {
     if (!incomingGroupIdToValues.isEmpty()) {
+      incomingGroupIdToValues.keySet().removeAll(allKnownGroupIds);
       List<Long> newGroupIds = new ArrayList<>();
 
-      List<Long> incomingGroupIds = new ArrayList<Long>(incomingGroupIdToValues.keySet());
+      List<Long> incomingGroupIds =
+          new ArrayList<Long>(Sets.difference(incomingGroupIdToValues.keySet(), allKnownGroupIds));
+      incomingGroupIdToValues.keySet().removeAll(allKnownGroupIds);
       List<Long> groupIdsWorkedOn = new ArrayList<Long>();
       for (Long groupId : incomingGroupIds) {
         Map<String, Object> values = incomingGroupIdToValues.get(groupId);
@@ -158,8 +167,10 @@ public class GroupIdAdjustingStep extends AbstractThreadedExecutablePlanStep {
           groupIdsWorkedOn.add(groupId);
         }
       }
-      for (Long groupIdDone : groupIdsWorkedOn)
+      for (Long groupIdDone : groupIdsWorkedOn) {
         incomingGroupIdToValues.remove(groupIdDone);
+        allKnownGroupIds.add(groupIdDone);
+      }
 
       if (!newGroupIds.isEmpty())
         forEachOutputConsumerOfType(RowIdConsumer.class,
@@ -168,22 +179,18 @@ public class GroupIdAdjustingStep extends AbstractThreadedExecutablePlanStep {
 
     processIncomingGroupIntermediaries();
 
-    if ((groupInputIsDone.get() && isEmpty(incomingGroupIntermediaries)) || // all groups processed.
-    // all column values processed - it could happen that we receive values for fewer rowIds than we receive group
-    // information for, as the rowIds may have been cut-off (order!) after calculating group intermediaries.
-    (groupInputIsDone.get() && columnValueSourceIsDone.get() && incomingGroupIdToValues.isEmpty())) {
+    if (checkIfDone) {
+      if ((groupInputIsDone.get() && isEmpty(incomingGroupIntermediaries)) || // all groups processed.
+      // all inputs done, we though might not have processed everything yet.
+      (groupInputIsDone.get() && columnValueSourceIsDone.get())) {
 
-      if ((groupInputIsDone.get() && columnValueSourceIsDone.get() && incomingGroupIdToValues.isEmpty())
-          && !isEmpty(incomingGroupIntermediaries))
-        // if column value source is done and there are no column values to process any more, but there are still some
-        // incoming group intermediates left, make absolutely sure that we processed all of them at least once. This is
-        // needed, if all column values have been provided when starting to run execute(), but the last group
-        // intermediates were received right before executing the 'if' above. Then we might loose some group
-        // information.
-        processIncomingGroupIntermediaries();
+        if (groupInputIsDone.get() && columnValueSourceIsDone.get())
+          // make sure we have processed everything, so lets execute one additional time.
+          execute(false);
 
-      forEachOutputConsumerOfType(GenericConsumer.class, c -> c.sourceIsDone());
-      doneProcessing();
+        forEachOutputConsumerOfType(GenericConsumer.class, c -> c.sourceIsDone());
+        doneProcessing();
+      }
     }
   }
 
