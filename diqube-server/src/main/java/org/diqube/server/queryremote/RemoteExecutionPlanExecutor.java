@@ -29,7 +29,6 @@ import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.diqube.data.TableShard;
@@ -40,7 +39,6 @@ import org.diqube.execution.ExecutionPercentage;
 import org.diqube.execution.TableRegistry;
 import org.diqube.execution.consumers.AbstractThreadedColumnValueConsumer;
 import org.diqube.execution.consumers.AbstractThreadedGroupIntermediaryAggregationConsumer;
-import org.diqube.execution.steps.GroupIntermediaryAggregationStep;
 import org.diqube.function.IntermediaryResult;
 import org.diqube.queries.QueryRegistry;
 import org.diqube.remote.base.thrift.RValue;
@@ -69,10 +67,6 @@ public class RemoteExecutionPlanExecutor {
 
   private ExecutablePlanFromRemoteBuilderFactory executablePlanBuilderFactory;
 
-  private AtomicBoolean columnValuesDone = new AtomicBoolean(false);
-  private AtomicBoolean groupIntermediateDone = new AtomicBoolean(false);
-  private Object doneSync = new Object();
-  private volatile boolean doneSent = false;
   private AtomicInteger previousPercentDone = new AtomicInteger(0);
 
   private ExecutorManager executorManager;
@@ -125,15 +119,6 @@ public class RemoteExecutionPlanExecutor {
     executablePlanBuilder.withFinalColumnValueConsumer(new AbstractThreadedColumnValueConsumer(null) {
       @Override
       protected void allSourcesAreDone() {
-        columnValuesDone.set(true);
-        if (groupIntermediateDone.get() && !doneSent) {
-          synchronized (doneSync) {
-            if (!doneSent) {
-              // callback.executionDone();
-              doneSent = true;
-            }
-          }
-        }
       }
 
       @Override
@@ -149,15 +134,6 @@ public class RemoteExecutionPlanExecutor {
         .withFinalGroupIntermediateAggregationConsumer(new AbstractThreadedGroupIntermediaryAggregationConsumer(null) {
           @Override
           protected void allSourcesAreDone() {
-            groupIntermediateDone.set(true);
-            if (columnValuesDone.get() && !doneSent) {
-              synchronized (doneSync) {
-                if (!doneSent) {
-                  // callback.executionDone();
-                  doneSent = true;
-                }
-              }
-            }
           }
 
           @Override
@@ -192,13 +168,6 @@ public class RemoteExecutionPlanExecutor {
       executionPercentages.add(newPercentage);
     }
     executionPercentageHolder.setValue(executionPercentages);
-
-    if (!executablePlans.iterator().next().getInfo().isGrouped() || //
-        !executablePlans.iterator().next().getSteps().stream()
-            .anyMatch(s -> s instanceof GroupIntermediaryAggregationStep))
-      // If not grouped or grouped but not containing an aggregation step (in the latter case we will not receive any
-      // "allSourcesDone" calls either!)
-      groupIntermediateDone.set(true);
 
     return new Pair<>(new Runnable() {
       @Override
@@ -254,11 +223,6 @@ public class RemoteExecutionPlanExecutor {
      */
     public void newGroupIntermediaryAggregration(long groupId, String colName,
         ROldNewIntermediateAggregationResult result, short percentDone);
-
-    /**
-     * An exception was thrown during execution.
-     */
-    public void exceptionThrown(Throwable t);
   }
 
 }

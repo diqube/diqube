@@ -177,17 +177,19 @@ exception RExecutionException {
 service ClusterQueryService {
   oneway void executeOnAllLocalShards(
     1:RExecutionPlan executionPlan, 2: base.RUUID queryId, 3: base.RNodeAddress resultAddress),
-  
-  oneway void groupIntermediateAggregationResultAvailable(
+  oneway void cancelExecution(1: base.RUUID queryUuid),
+
+  // needs to be synchronous, see QueryResultHandler.  
+  void groupIntermediateAggregationResultAvailable(
     1: base.RUUID queryId, 2:i64 groupId, 3:string colName, 4: ROldNewIntermediateAggregationResult result, 5:i16 percentDoneDelta),
     
-  oneway void columnValueAvailable(1: base.RUUID queryId, 2:string colName, 3: map<i64, base.RValue> valuesByRowId, 4:i16 percentDoneDelta),
+  // needs to be synchronous, see QueryResultHandler.  
+  void columnValueAvailable(1: base.RUUID queryId, 2:string colName, 3: map<i64, base.RValue> valuesByRowId, 4:i16 percentDoneDelta),
   
   oneway void executionDone(1: base.RUUID queryId),
   
-  oneway void executionException(1: base.RUUID queryId, 2:RExecutionException executionException),
-  
-  oneway void cancelExecution(1: base.RUUID queryUuid),
+  // needs to be synchronous, see QueryResultHandler.  
+  void executionException(1: base.RUUID queryId, 2:RExecutionException executionException),
   
   oneway void queryStatistics(1: base.RUUID queryUuid, 2: RClusterQueryStatistics stats) 
 }

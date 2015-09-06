@@ -36,6 +36,8 @@ import org.diqube.execution.consumers.DoneConsumer;
 import org.diqube.execution.consumers.GenericConsumer;
 import org.diqube.execution.exception.ExecutablePlanBuildException;
 import org.diqube.queries.QueryRegistry;
+import org.diqube.queries.QueryUuid;
+import org.diqube.queries.QueryUuid.QueryUuidThreadState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,6 +80,10 @@ public abstract class AbstractThreadedExecutablePlanStep implements ExecutablePl
 
   protected QueryRegistry queryRegistry;
 
+  protected QueryUuidThreadState queryUuidThreadState = null;
+
+  private boolean currentlyMeasuringTime = false;
+
   public AbstractThreadedExecutablePlanStep(int stepId, QueryRegistry queryRegistry) {
     this.stepId = stepId;
     this.queryRegistry = queryRegistry;
@@ -85,13 +91,16 @@ public abstract class AbstractThreadedExecutablePlanStep implements ExecutablePl
 
   @Override
   public void run() {
+    queryUuidThreadState = QueryUuid.getCurrentThreadState();
     validateWiredStatus();
     while (!doneProcessing.get()) {
       numberOfEventsNotProcessed.set(0);
 
       long startNanos = System.nanoTime();
+      currentlyMeasuringTime = true;
       execute();
       long endNanos = System.nanoTime();
+      currentlyMeasuringTime = false;
 
       long activeMs = (long) ((endNanos - startNanos) / 1e6);
 
@@ -148,12 +157,29 @@ public abstract class AbstractThreadedExecutablePlanStep implements ExecutablePl
    */
   abstract protected void validateOutputConsumer(GenericConsumer consumer) throws IllegalArgumentException;
 
+  /**
+   * Do something for all Output consumers of a specific type.
+   * 
+   * Statistics will not cover the time spent in the consumers as "active time" for this step.
+   */
   @SuppressWarnings("unchecked")
   protected <T extends GenericConsumer> void forEachOutputConsumerOfType(Class<? extends T> type,
       Consumer<T> consumer) {
+    long start = System.nanoTime();
     for (GenericConsumer outputConsumer : outputConsumers) {
       if (type.isInstance(outputConsumer))
         consumer.accept((T) outputConsumer);
+    }
+    long end = System.nanoTime();
+    if (queryUuidThreadState != null && currentlyMeasuringTime) {
+      QueryUuidThreadState backupState = QueryUuid.getCurrentThreadState();
+      try {
+        QueryUuid.setCurrentThreadState(queryUuidThreadState);
+        long nonActiveMs = (long) ((end - start) / 1e6);
+        queryRegistry.getOrCreateCurrentStatsManager().addStepThreadActiveMs(stepId, -1 * nonActiveMs);
+      } finally {
+        QueryUuid.setCurrentThreadState(backupState);
+      }
     }
   }
 

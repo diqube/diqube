@@ -67,7 +67,7 @@ public class ToolControl {
   public void transpose(File inputFile, String inputFileType, File outputFile) {
     logger.info("Starting to transpose '{}' of type {} to '{}'...", inputFile, inputFileType, outputFile);
 
-    executeTool("tranpose", Arrays.asList("java", "-jar", toolJarFile.getAbsolutePath(), Transpose.FUNCTION_NAME, "-i",
+    executeTool("transpose", Arrays.asList("java", "-jar", toolJarFile.getAbsolutePath(), Transpose.FUNCTION_NAME, "-i",
         inputFile.getAbsolutePath(), "-o", outputFile.getAbsolutePath(), "-t", inputFileType), outputFile);
   }
 
@@ -113,8 +113,8 @@ public class ToolControl {
     try {
       boolean stopped = p.waitFor(1, TimeUnit.MINUTES);
 
-      logger.error("'" + processDescription + "' did not stop within timeout period, killing it forcibly.");
       if (!stopped) {
+        logger.error("'" + processDescription + "' did not stop within timeout period, killing it forcibly.");
         p.destroyForcibly();
         throw new RuntimeException(
             "'" + processDescription + "' did not stop within timeout period, killed it forcibly.");

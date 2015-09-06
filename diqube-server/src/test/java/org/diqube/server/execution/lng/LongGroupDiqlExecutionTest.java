@@ -652,4 +652,48 @@ public class LongGroupDiqlExecutionTest extends GroupDiqlExecutionTest<Long> {
     }
   }
 
+  @Test
+  public void groupAggregationProjectionWithOrderLimitTest() throws InterruptedException, ExecutionException {
+    Object[] colAValues = dp.a(1, 5, 5, 1, 99, 1);
+    Object[] colBValues = dp.a(0, 0, 0, 0, 0, 0);
+    initializeSimpleTable(colAValues, colBValues);
+    // GIVEN
+    // a simple select stmt
+    ExecutablePlan executablePlan = buildExecutablePlan("Select " + COL_A + ", add(count(), 1) from " + TABLE
+        + " group by " + COL_A + " order by add(count(), 1) desc limit 3");
+    ExecutorService executor = executors.newTestExecutor(executablePlan.preferredExecutorServiceSize());
+    try {
+      // WHEN
+      // executing it on the sample table
+      Future<Void> future = executablePlan.executeAsynchronously(executor);
+      future.get(); // wait until done.
+
+      // THEN
+      Assert.assertTrue(columnValueConsumerIsDone, "Source should have reported 'done'");
+      Assert.assertTrue(future.isDone(), "Future should report done");
+      Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
+
+      Assert.assertTrue(resultValues.containsKey(COL_A), "Result values should be available for result column");
+      String resColName = functionBasedColumnNameBuilderFactory.create().withFunctionName("add")
+          .addParameterColumnName(functionBasedColumnNameBuilderFactory.create().withFunctionName("count").build())
+          .addParameterLiteralLong(1L).build();
+      Assert.assertTrue(resultValues.containsKey(resColName),
+          "Result values should be available for aggregated res column");
+      Assert.assertEquals(resultValues.size(), 2, "Result values should be available for two columns only");
+
+      List<Pair<Long, Long>> expectedValues = new ArrayList<>();
+      expectedValues.add(new Pair<>(1L, 4L));
+      expectedValues.add(new Pair<>(5L, 3L));
+      expectedValues.add(new Pair<>(99L, 2L));
+
+      List<Pair<Long, Long>> actual = new ArrayList<>();
+      for (long rowId : resultOrderRowIds)
+        actual.add(new Pair<>(resultValues.get(COL_A).get(rowId), resultValues.get(resColName).get(rowId)));
+
+      Assert.assertEquals(actual, expectedValues, "Expected to get correct results");
+    } finally {
+      executor.shutdownNow();
+    }
+  }
+
 }

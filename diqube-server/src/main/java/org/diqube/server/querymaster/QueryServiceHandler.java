@@ -378,7 +378,7 @@ public class QueryServiceHandler implements Iface {
   private void cancelExecutionOnTriggeredRemotes(RUUID queryRUuid, ExecuteRemotePlanOnShardsStep remoteStep) {
     // check if we already spawned some calculations on query remotes. If we have any, try to cancel those
     // executions if possible.
-    Collection<RNodeAddress> remoteNodesTriggered = remoteStep.getRemotesTriggered();
+    Collection<RNodeAddress> remoteNodesTriggered = remoteStep.getRemotesActive();
     if (remoteNodesTriggered != null && !remoteNodesTriggered.isEmpty()) {
       logger.info("Cancelling execution on remotes for query {}: {}", RUuidUtil.toUuid(queryRUuid),
           remoteNodesTriggered);

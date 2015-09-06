@@ -325,6 +325,9 @@ public class QueryRegistry {
 
     /**
      * One remote reported that it is done processing the request.
+     * 
+     * A single remote will only call this method after all other calls of that remote to other methods of this
+     * interface have returned.
      */
     public void oneRemoteDone();
 

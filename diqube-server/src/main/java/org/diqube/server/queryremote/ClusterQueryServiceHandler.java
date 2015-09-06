@@ -172,6 +172,7 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
     // Exception handler that handles exceptions that are thrown during execution (one handler for all TableShards!)
     // This can also close all resources, if parameters "null,null" are passed.
     QueryExceptionHandler exceptionHandler = new QueryExceptionHandler() {
+
       @Override
       public void handleException(Throwable t) {
         if (t != null) {
@@ -255,20 +256,6 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
             }
             exceptionHandler.handleException(null);
           }
-
-          @Override
-          public void exceptionThrown(Throwable t) {
-            logger.error("Exception while executing query {}", queryUuid, t);
-            RExecutionException ex = new RExecutionException(t.getMessage());
-            synchronized (connSync) {
-              try {
-                resultService.executionException(remoteQueryUuid, ex);
-              } catch (TException e) {
-                logger.error("Could not sent 'exception' to client for query {}", queryUuid, e);
-              }
-            }
-            exceptionHandler.handleException(null);
-          }
         });
 
     if (prepareRes == null) {
@@ -297,6 +284,7 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
     // start execution of ExecutablePlan(s) asynchronously.
     queryRegistry.getOrCreateStatsManager(queryUuid, executionUuid).setStartedNanos(System.nanoTime());
     threadPool.execute(prepareRes.getLeft());
+
   }
 
   /**

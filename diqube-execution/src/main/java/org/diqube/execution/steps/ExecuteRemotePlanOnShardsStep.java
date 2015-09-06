@@ -23,12 +23,12 @@ package org.diqube.execution.steps;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.thrift.TException;
@@ -67,6 +67,11 @@ import com.google.common.collect.Iterables;
  * on Query master node.
  * 
  * <p>
+ * This step will install a {@link QueryResultHandler} with {@link QueryRegistry} to receive the results. It relies on
+ * that the {@link QueryResultHandler#oneRemoteDone()} for a single remote is only called after all other calls of this
+ * remote to other methods of the {@link QueryResultHandler} have returned already.
+ * 
+ * <p>
  * Input: None. <br>
  * Output: {@link ColumnValueConsumer}, {@link GroupIntermediaryAggregationConsumer}, {@link RowIdConsumer}.
  * 
@@ -86,15 +91,13 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
 
   private Object wait = new Object();
 
-  private Collection<RNodeAddress> remotesTriggered = null;
+  private Collection<RNodeAddress> remotesActive = null;
 
   private String exceptionMessage = null;
   private AtomicInteger remotesDone = new AtomicInteger(0);
 
   private QueryResultHandler resultHandler = new QueryResultHandler() {
-    private final Object EMPTY = new Object();
-
-    private Map<Long, Object> alreadyReportedRowIds = new HashMap<>();
+    private Set<Long> alreadyReportedRowIds = new ConcurrentSkipListSet<>();
 
     @Override
     public void oneRemoteException(String msg) {
@@ -135,7 +138,7 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
       Set<Long> newRowIds = new HashSet<>();
       for (Long rowId : values.keySet()) {
         // As we'll receive data for each row ID multiple times (at least for each column), we'll merge them here.
-        if (alreadyReportedRowIds.put(rowId, EMPTY) == null)
+        if (alreadyReportedRowIds.add(rowId))
           newRowIds.add(rowId);
       }
       Long[] newRowIdsArray = newRowIds.stream().toArray(l -> new Long[l]);
@@ -169,7 +172,7 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
     Collection<RNodeAddress> remoteNodes =
         clusterManager.getClusterLayout().findNodesServingTable(remoteExecutionPlan.getTable());
 
-    remotesTriggered = new ConcurrentLinkedDeque<>();
+    remotesActive = new ConcurrentLinkedDeque<>();
 
     if (remoteNodes.isEmpty())
       throw new ExecutablePlanExecutionException(
@@ -181,6 +184,7 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
       public void connectionDied() {
         // one remote won't be able to fulfill our request :/
         remotesDone.incrementAndGet();
+        // TODO #37: Warn user.
         logger.warn(
             "A remote node died, but it would have contained information for query "
                 + "{} execution {}. The information will not be available to the user therefore.",
@@ -214,7 +218,7 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
 
           conn.getService().executeOnAllLocalShards(remoteExecutionPlan,
               RUuidUtil.toRUuid(QueryUuid.getCurrentQueryUuid()), ourRemoteAddr);
-          remotesTriggered.add(remoteAddr);
+          remotesActive.add(remoteAddr);
         } catch (IOException | ConnectionException | TException e) {
           // Connection will be marked as dead automatically, the remote will automatically be removed from ClusterNode
           // (see ConnectionPool). We just ignore the remote for now.
@@ -241,7 +245,7 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
           }
         }
       }
-      remotesTriggered.clear();
+      remotesActive.clear();
     } finally {
       queryRegistry.removeQueryResultHandler(QueryUuid.getCurrentQueryUuid(), resultHandler);
     }
@@ -258,8 +262,8 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
    * @return The addresses of those query remotes that this step triggered an execution on. Might be <code>null</code>
    *         or empty. Only valid before this step is done.
    */
-  public Collection<RNodeAddress> getRemotesTriggered() {
-    return remotesTriggered;
+  public Collection<RNodeAddress> getRemotesActive() {
+    return remotesActive;
   }
 
   public int getNumberOfRemotesTriggerdOverall() {

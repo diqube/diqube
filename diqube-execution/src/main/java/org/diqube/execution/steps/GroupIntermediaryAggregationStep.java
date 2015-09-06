@@ -66,7 +66,7 @@ import org.slf4j.LoggerFactory;
  */
 public class GroupIntermediaryAggregationStep extends AbstractThreadedExecutablePlanStep {
 
-  private static final Logger logger = LoggerFactory.getLogger(GroupIdAdjustingStep.class);
+  private static final Logger logger = LoggerFactory.getLogger(GroupIntermediaryAggregationStep.class);
 
   private AtomicBoolean groupDeltaSourceIsDone = new AtomicBoolean(false);
   private ConcurrentLinkedDeque<Map<Long, List<Long>>> newGroupChanges = new ConcurrentLinkedDeque<>();

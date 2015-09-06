@@ -99,7 +99,10 @@ public class QueryUuid {
    * @see QueryUuidThreadState
    */
   public static void setCurrentThreadState(QueryUuidThreadState state) {
-    setCurrentQueryUuidAndExecutionUuid(state.queryUuid, state.executionUuid);
+    if (state.queryUuid == null && state.executionUuid == null)
+      clearCurrent();
+    else
+      setCurrentQueryUuidAndExecutionUuid(state.queryUuid, state.executionUuid);
   }
 
   /**
