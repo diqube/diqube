@@ -1127,6 +1127,87 @@ public class TrieStringDictionaryTest {
   }
 
   @Test
+  public void dictCompareLtEq8Test() {
+    // GIVEN
+
+    // contains strings:
+    // (0)
+    // 1000 (1)
+    // 1001 (2)
+    // 1002 (3)
+    // 1003 (4)
+    // 1010 (5)
+    // 1011 (6)
+    @SuppressWarnings("unchecked")
+    ParentNode root1 = parent( //
+        new Pair<>("", terminal(0)), //
+        new Pair<>("10",
+            parent( //
+                new Pair<>("0",
+                    parent( //
+                        new Pair<>("0", terminal(1)), //
+                        new Pair<>("1", terminal(2)), //
+                        new Pair<>("2", terminal(3)), //
+                        new Pair<>("3", terminal(4)) //
+    )), //
+                new Pair<>("1", //
+                    parent( //
+                        new Pair<>("0", terminal(5)), //
+                        new Pair<>("1", terminal(6)))))));
+
+    // contains strings:
+    // (0)
+    // 01 (1)
+    // 1001 (2)
+    // 1003 (3)
+    // 1004 (4)
+    // 1005 (5)
+    // 1015 (6)
+    @SuppressWarnings("unchecked")
+    ParentNode root2 = parent( //
+        new Pair<>("", terminal(0)), //
+        new Pair<>("01", terminal(1)), //
+        new Pair<>("10",
+            parent( //
+                new Pair<>("0",
+                    parent( //
+                        new Pair<>("1", terminal(2)), //
+                        new Pair<>("3", terminal(3)), //
+                        new Pair<>("4", terminal(4)), //
+                        new Pair<>("5", terminal(5)) //
+    )), //
+                new Pair<>("15", terminal(6)))));
+
+    TrieStringDictionary dict1 = new TrieStringDictionary(root1, "", "1011", 6);
+    TrieStringDictionary dict2 = new TrieStringDictionary(root2, "", "1015", 6);
+
+    // WHEN
+    Map<Long, Long> ltEqIds = dict1.findLtEqIds(dict2);
+
+    // THEN
+    Map<Long, Long> expected = new HashMap<>();
+    expected.put(0L, 0L);
+    expected.put(1L, -3L);
+    expected.put(2L, 2L);
+    expected.put(3L, -4L);
+    expected.put(4L, 3L);
+    expected.put(5L, -7L);
+    expected.put(6L, -7L);
+    Assert.assertEquals(ltEqIds, expected);
+
+    // WHEN
+    ltEqIds = dict2.findLtEqIds(dict1);
+    expected = new HashMap<>();
+    expected.put(0L, 0L);
+    expected.put(1L, -2L);
+    expected.put(2L, 2L);
+    expected.put(3L, 4L);
+    expected.put(4L, -6L);
+    expected.put(5L, -6L);
+    Assert.assertEquals(ltEqIds, expected);
+  }
+
+  @Test
   public void dictCompareLtEq1Test() {
     // GIVEN
 
@@ -1470,6 +1551,88 @@ public class TrieStringDictionaryTest {
     expected.put(4L, -6L);
     expected.put(5L, -6L);
     Assert.assertEquals(ltEqIds, expected);
+  }
+
+  @Test
+  public void dictCompareGtEq8Test() {
+    // GIVEN
+
+    // contains strings:
+    // (0)
+    // 1000 (1)
+    // 1001 (2)
+    // 1002 (3)
+    // 1003 (4)
+    // 1010 (5)
+    // 1011 (6)
+    @SuppressWarnings("unchecked")
+    ParentNode root1 = parent( //
+        new Pair<>("", terminal(0)), //
+        new Pair<>("10",
+            parent( //
+                new Pair<>("0",
+                    parent( //
+                        new Pair<>("0", terminal(1)), //
+                        new Pair<>("1", terminal(2)), //
+                        new Pair<>("2", terminal(3)), //
+                        new Pair<>("3", terminal(4)) //
+    )), //
+                new Pair<>("1", //
+                    parent( //
+                        new Pair<>("0", terminal(5)), //
+                        new Pair<>("1", terminal(6)))))));
+
+    // contains strings:
+    // (0)
+    // 01 (1)
+    // 1001 (2)
+    // 1003 (3)
+    // 1004 (4)
+    // 1005 (5)
+    // 1015 (6)
+    @SuppressWarnings("unchecked")
+    ParentNode root2 = parent( //
+        new Pair<>("", terminal(0)), //
+        new Pair<>("01", terminal(1)), //
+        new Pair<>("10",
+            parent( //
+                new Pair<>("0",
+                    parent( //
+                        new Pair<>("1", terminal(2)), //
+                        new Pair<>("3", terminal(3)), //
+                        new Pair<>("4", terminal(4)), //
+                        new Pair<>("5", terminal(5)) //
+    )), //
+                new Pair<>("15", terminal(6)))));
+
+    TrieStringDictionary dict1 = new TrieStringDictionary(root1, "", "1011", 6);
+    TrieStringDictionary dict2 = new TrieStringDictionary(root2, "", "1015", 6);
+
+    // WHEN
+    Map<Long, Long> gtEqIds = dict1.findGtEqIds(dict2);
+
+    // THEN
+    Map<Long, Long> expected = new HashMap<>();
+    expected.put(0L, 0L);
+    expected.put(1L, -2L);
+    expected.put(2L, 2L);
+    expected.put(3L, -3L);
+    expected.put(4L, 3L);
+    expected.put(5L, -6L);
+    expected.put(6L, -6L);
+    Assert.assertEquals(gtEqIds, expected);
+
+    // WHEN
+    gtEqIds = dict2.findGtEqIds(dict1);
+    expected = new HashMap<>();
+    expected.put(0L, 0L);
+    expected.put(1L, -1L);
+    expected.put(2L, 2L);
+    expected.put(3L, 4L);
+    expected.put(4L, -5L);
+    expected.put(5L, -5L);
+    expected.put(6L, -7L);
+    Assert.assertEquals(gtEqIds, expected);
   }
 
   @Test

@@ -137,6 +137,14 @@ public class QueryServiceHandler implements Iface {
             queryRegistry.unregisterQueryExecution(queryUuid, executionUuid);
             executorManager.shutdownEverythingOfQueryExecution(queryUuid, executionUuid);
           }
+
+          @Override
+          public void exception(Throwable t) {
+            resThrowable[0] = t;
+
+            queryRegistry.unregisterQueryExecution(queryUuid, executionUuid);
+            executorManager.shutdownEverythingOfQueryExecution(queryUuid, executionUuid);
+          }
         }, false);
 
     queryRegistry.registerQueryExecution(queryUuid, executionUuid, exceptionHandler);
@@ -346,6 +354,31 @@ public class QueryServiceHandler implements Iface {
                 logger.trace("Not sending statistics for {} as there were not all results received from remotes.",
                     queryUuid);
             }
+          }
+
+          @Override
+          public void exception(Throwable t) {
+            logger.trace("Exception when executing {}: {}", queryUuid, t);
+
+            try {
+              synchronized (resultConnection) {
+                resultService.queryException(queryRUuid, new RQueryException(t.getMessage()));
+              }
+            } catch (TException e) {
+              logger.warn(
+                  "Was not able to send out exception result to " + resultAddress.toString() + " for " + queryUuid, e);
+            }
+
+            if (remoteExecutionStepHolder.getValue() != null)
+              cancelExecutionOnTriggeredRemotes(queryRUuid, remoteExecutionStepHolder.getValue());
+
+            // be sure to clean up everything.
+            connectionPool.releaseConnection(resultConnection);
+            queryRegistry.unregisterQueryExecution(queryUuid, executionUuid);
+            queryRegistry.cleanupQueryFully(queryUuid);
+            executorManager.shutdownEverythingOfQueryExecution(queryUuid, executionUuid); // this will kill our thread,
+                                                                                          // too!
+
           }
         }, sendPartialUpdates);
 

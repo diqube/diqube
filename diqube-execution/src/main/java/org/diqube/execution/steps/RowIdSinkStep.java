@@ -34,6 +34,8 @@ import org.diqube.execution.consumers.RowIdConsumer;
 import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.exception.ExecutablePlanBuildException;
 import org.diqube.queries.QueryRegistry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A step that collects the RowIds calculated. If there are no RowId selection steps, this step provides all row IDs of
@@ -48,6 +50,9 @@ import org.diqube.queries.QueryRegistry;
  * @author Bastian Gloeckle
  */
 public class RowIdSinkStep extends AbstractThreadedExecutablePlanStep {
+  private Logger logger = LoggerFactory.getLogger(RowIdSinkStep.class);
+
+  private long numberOfRowsReported = 0L;
 
   private AtomicBoolean sourceIsEmpty = new AtomicBoolean(false);
   private ConcurrentLinkedDeque<Long> rowIds = new ConcurrentLinkedDeque<>();
@@ -93,6 +98,8 @@ public class RowIdSinkStep extends AbstractThreadedExecutablePlanStep {
           Long[] rowIds = LongStream.range(lowestRowId, lowestRowId + numberOfRows).mapToObj(Long::valueOf)
               .toArray(l -> new Long[l]);
           forEachOutputConsumerOfType(RowIdConsumer.class, c -> c.consume(rowIds));
+
+          logger.trace("Reported a total of {} matching rows", rowIds.length);
         }
       }
 
@@ -105,10 +112,14 @@ public class RowIdSinkStep extends AbstractThreadedExecutablePlanStep {
     for (int i = 0; i < currentRowIds.length; i++)
       currentRowIds[i] = rowIds.poll();
 
-    if (currentRowIds.length > 0)
+    if (currentRowIds.length > 0) {
       forEachOutputConsumerOfType(RowIdConsumer.class, c -> c.consume(currentRowIds));
+      logger.trace("Reported {} new matching rows", currentRowIds.length);
+      numberOfRowsReported += currentRowIds.length;
+    }
 
     if (sourceIsEmpty.get() && rowIds.isEmpty()) {
+      logger.trace("Reported a total of {} matching rows", numberOfRowsReported);
       forEachOutputConsumerOfType(GenericConsumer.class, c -> c.sourceIsDone());
       doneProcessing();
     }

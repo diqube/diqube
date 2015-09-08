@@ -199,7 +199,7 @@ public class ColumnShardBuilder<T> {
       ColumnPageProposal proposal = pageProposals.get(propIdx);
 
       if (proposal == null) {
-        proposal = new ColumnPageProposal(propIdx * PROPOSAL_ROWS);
+        proposal = new ColumnPageProposal(firstRowIdInShard + propIdx * PROPOSAL_ROWS);
         pageProposals.set(propIdx, proposal);
       }
 

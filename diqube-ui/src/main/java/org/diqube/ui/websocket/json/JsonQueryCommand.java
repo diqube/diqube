@@ -135,12 +135,14 @@ public class JsonQueryCommand extends JsonCommand {
           JsonQueryResultPayload res = new JsonQueryResultPayload();
           res.setColumnNames(finalResult.getColumnNames());
           List<List<Object>> rows = new ArrayList<>();
-          for (List<RValue> incomingResultRow : finalResult.getRows()) {
-            List<Object> row =
-                incomingResultRow.stream().map(rValue -> RValueUtil.createValue(rValue)).collect(Collectors.toList());
-            rows.add(row);
+          if (finalResult.isSetRows()) { // if result table is empty, there are no rows.
+            for (List<RValue> incomingResultRow : finalResult.getRows()) {
+              List<Object> row =
+                  incomingResultRow.stream().map(rValue -> RValueUtil.createValue(rValue)).collect(Collectors.toList());
+              rows.add(row);
+            }
+            res.setRows(rows);
           }
-          res.setRows(rows);
           res.setPercentComplete((short) percentComplete);
 
           try {

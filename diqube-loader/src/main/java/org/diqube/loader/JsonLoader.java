@@ -196,6 +196,10 @@ public class JsonLoader implements Loader {
 
     logger.info("Read data for table {}. Compressing and creating final representation...", tableName);
 
+    // set "0" default value for the length columns
+    for (String repeatedColName : repeatedCols)
+      columnBuilderManager.fillEmptyRowsWithValue(repeatedColNames.repeatedLength(repeatedColName), 0L);
+
     // Build the columns.
     List<StandardColumnShard> columns = new LinkedList<>();
     for (String colName : columnBuilderManager.getAllColumnsWithValues()) {

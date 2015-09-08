@@ -35,6 +35,8 @@ import org.diqube.execution.consumers.GenericConsumer;
 import org.diqube.execution.consumers.RowIdConsumer;
 import org.diqube.execution.exception.ExecutablePlanBuildException;
 import org.diqube.queries.QueryRegistry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A logical OR on two row ID steps.
@@ -46,6 +48,7 @@ import org.diqube.queries.QueryRegistry;
  * @author Bastian Gloeckle
  */
 public class RowIdOrStep extends AbstractThreadedExecutablePlanStep {
+  private static final Logger logger = LoggerFactory.getLogger(RowIdOrStep.class);
 
   private AtomicBoolean leftSourceIsEmpty = new AtomicBoolean(false);
   private ConcurrentLinkedDeque<Long> leftRowIds = new ConcurrentLinkedDeque<>();
@@ -98,6 +101,8 @@ public class RowIdOrStep extends AbstractThreadedExecutablePlanStep {
       rowIdsSeenAlready.addAll(newRowIds);
       Long[] rowIdArray = newRowIds.stream().toArray(l -> new Long[l]);
       forEachOutputConsumerOfType(RowIdConsumer.class, c -> c.consume(rowIdArray));
+
+      logger.trace("Reported {} new matching rows", rowIdArray.length);
     }
 
     if (leftSourceIsEmpty.get() && rightSourceIsEmpty.get() && leftRowIds.isEmpty() && rightRowIds.isEmpty()) {

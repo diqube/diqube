@@ -31,6 +31,8 @@ import org.diqube.data.colshard.ColumnPageFactory;
 import org.diqube.data.colshard.ColumnShardFactory;
 import org.diqube.data.colshard.StandardColumnShard;
 import org.diqube.loader.LoaderColumnInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 
@@ -44,6 +46,8 @@ import com.google.common.collect.Iterables;
  * @author Bastian Gloeckle
  */
 public class ColumnShardBuilderManager {
+  private static final Logger logger = LoggerFactory.getLogger(ColumnShardBuilderManager.class);
+
   private volatile Map<String, ColumnShardBuilder<String>> stringBuilders = new ConcurrentHashMap<>();
   private volatile Map<String, ColumnShardBuilder<Long>> longBuilders = new ConcurrentHashMap<>();
   private volatile Map<String, ColumnShardBuilder<Double>> doubleBuilders = new ConcurrentHashMap<>();
@@ -74,9 +78,11 @@ public class ColumnShardBuilderManager {
 
   /**
    * Walks along all rows that have been added for the given column and sets the given default value into those rows
-   * that do not have a value set.
+   * that do not have a value set. This is done or all rows up to the maximum row added to this
+   * {@link ColumnShardBuilderManager} for any row.
    */
   public void fillEmptyRowsWithValue(String colName, Object value) {
+    logger.trace("Filling col {} with fallback value {} up to row {}", colName, value, maxRow.get());
     switch (columnInfo.getFinalColumnType(colName)) {
     case STRING:
       stringBuilders.get(colName).fillEmptyRowsWithValue((String) value, maxRow.get());
@@ -138,19 +144,25 @@ public class ColumnShardBuilderManager {
 
   /**
    * Executes {@link ColumnShardBuilder#build()} and frees up the memory of the {@link ColumnShardBuilder} after that.
+   * 
+   * If this method is called after adding values for /all/ columns, the columns returned by this method will all have
+   * the same length - the empty rows of the column will be filled with default values.
    */
   public StandardColumnShard buildAndFree(String colName) {
     ColumnShardBuilder<?> colBuilder = null;
     switch (columnInfo.getFinalColumnType(colName)) {
     case STRING:
+      fillEmptyRowsWithValue(colName, LoaderColumnInfo.DEFAULT_STRING);
       colBuilder = stringBuilders.get(colName);
       stringBuilders.remove(colName);
       break;
     case LONG:
+      fillEmptyRowsWithValue(colName, LoaderColumnInfo.DEFAULT_LONG);
       colBuilder = longBuilders.get(colName);
       longBuilders.remove(colName);
       break;
     case DOUBLE:
+      fillEmptyRowsWithValue(colName, LoaderColumnInfo.DEFAULT_DOUBLE);
       colBuilder = doubleBuilders.get(colName);
       doubleBuilders.remove(colName);
       break;

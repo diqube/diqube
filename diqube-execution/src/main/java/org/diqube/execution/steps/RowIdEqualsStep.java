@@ -34,6 +34,7 @@ import java.util.TreeSet;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -335,6 +336,7 @@ public class RowIdEqualsStep extends AbstractThreadedExecutablePlanStep {
   private void sendRowIds(ExecutionEnvironment curEnv, Pair<Stream<Long>, QueryUuidThreadState> rowIdStreamPair) {
     Stream<Long> stream = rowIdStreamPair.getLeft();
     QueryUuidThreadState uuidState = rowIdStreamPair.getRight();
+    AtomicLong numberOfRows = new AtomicLong(0);
     stream. //
         collect(new HashingBatchCollector<Long>( // RowIds are unique, so using BatchCollector is ok.
             100, // Batch size
@@ -342,6 +344,7 @@ public class RowIdEqualsStep extends AbstractThreadedExecutablePlanStep {
             new Consumer<Long[]>() { // Batch-collect the row IDs
               @Override
               public void accept(Long[] t) {
+                numberOfRows.addAndGet(t.length);
                 QueryUuid.setCurrentThreadState(uuidState);
                 try {
                   if (columnVersionBuiltConsumer.getNumberOfTimesWired() == 0)
@@ -354,6 +357,7 @@ public class RowIdEqualsStep extends AbstractThreadedExecutablePlanStep {
               }
             }));
     QueryUuid.setCurrentThreadState(uuidState);
+    logger.trace("Reported {} matching rows.", numberOfRows.get());
   }
 
   /**

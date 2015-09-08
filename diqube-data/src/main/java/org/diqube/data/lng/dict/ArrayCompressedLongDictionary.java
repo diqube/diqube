@@ -71,7 +71,8 @@ public class ArrayCompressedLongDictionary implements LongDictionary<SLongDictio
   @Override
   public Long decompressValue(long id) throws IllegalArgumentException {
     if (id < 0 || id >= sortedValues.size())
-      throw new IllegalArgumentException("ID out of range to access dictionary.");
+      throw new IllegalArgumentException(
+          "ID out of range to access dictionary: " + id + " (valid 0-" + (sortedValues.size() - 1) + ")");
     return sortedValues.get((int) id);
   }
 

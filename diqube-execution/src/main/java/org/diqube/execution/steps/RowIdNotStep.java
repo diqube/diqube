@@ -35,6 +35,8 @@ import org.diqube.execution.consumers.RowIdConsumer;
 import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.exception.ExecutablePlanBuildException;
 import org.diqube.queries.QueryRegistry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A logical NOT on a row ID step.
@@ -51,6 +53,7 @@ import org.diqube.queries.QueryRegistry;
  * @author Bastian Gloeckle
  */
 public class RowIdNotStep extends AbstractThreadedExecutablePlanStep {
+  private static final Logger logger = LoggerFactory.getLogger(RowIdNotStep.class);
 
   private AtomicBoolean sourceIsEmpty = new AtomicBoolean(false);
   private ConcurrentLinkedDeque<Long> rowIds = new ConcurrentLinkedDeque<>();
@@ -89,6 +92,7 @@ public class RowIdNotStep extends AbstractThreadedExecutablePlanStep {
           .mapToObj(Long::valueOf).toArray(l -> new Long[l]);
 
       forEachOutputConsumerOfType(RowIdConsumer.class, c -> c.consume(resultRowIds));
+      logger.trace("Reported {} matching rows", resultRowIds.length);
       forEachOutputConsumerOfType(GenericConsumer.class, c -> c.sourceIsDone());
       doneProcessing();
     }

@@ -35,6 +35,8 @@ import org.diqube.execution.consumers.GenericConsumer;
 import org.diqube.execution.consumers.RowIdConsumer;
 import org.diqube.execution.exception.ExecutablePlanBuildException;
 import org.diqube.queries.QueryRegistry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
 
@@ -51,6 +53,7 @@ import com.google.common.collect.Sets;
  * @author Bastian Gloeckle
  */
 public class RowIdAndStep extends AbstractThreadedExecutablePlanStep {
+  private static final Logger logger = LoggerFactory.getLogger(RowIdAndStep.class);
 
   private AtomicBoolean leftSourceIsEmpty = new AtomicBoolean(false);
   private ConcurrentLinkedDeque<Long> leftRowIds = new ConcurrentLinkedDeque<>();
@@ -111,6 +114,7 @@ public class RowIdAndStep extends AbstractThreadedExecutablePlanStep {
       Long[] rowIdArray = newRowIds.stream().toArray(l -> new Long[l]);
 
       forEachOutputConsumerOfType(RowIdConsumer.class, c -> c.consume(rowIdArray));
+      logger.trace("Reported {} new matching rows", rowIdArray.length);
     }
 
     if (leftSourceIsEmpty.get() && rightSourceIsEmpty.get() && leftRowIds.isEmpty() && rightRowIds.isEmpty()) {

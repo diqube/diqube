@@ -307,14 +307,19 @@ class MasterQueryExecutor {
         rowIds = new ArrayList<Long>(orderedRowIds);
     }
 
-    if ((rowIds == null || rowIds.isEmpty()) && isOrdered)
-      return null;
-
     RResultTable res = new RResultTable();
     res.setColumnNames(selectedColumns);
 
+    if ((rowIds == null || rowIds.isEmpty()) && isOrdered)
+      // return empty table. This could be the case if the result table is actually empty.
+      return res;
+
     if (rowIds == null || rowIds.isEmpty())
       rowIds = new ArrayList<>(valuesByRow.keySet()); // TODO lines will jump?
+
+    if (rowIds.isEmpty())
+      // Could happen if not ordered, no row Ids. Return empty table.
+      return res;
 
     if (isHaving) {
       // if we have a rowId list from the HAVING execution, remove the row IDs that are not contained in that list!
@@ -322,8 +327,10 @@ class MasterQueryExecutor {
       synchronized (havingRowIdsSync) {
         activeHavingRowIds = havingRowIds;
       }
-      if (activeHavingRowIds == null)
-        return null;
+      if (activeHavingRowIds == null || activeHavingRowIds.length == 0)
+        // return empty table. This could be the case if the result table is actually empty.
+        return res;
+
       Set<Long> havingRowIds = new HashSet<>(Arrays.asList(activeHavingRowIds));
 
       for (Iterator<Long> rowIdIt = rowIds.iterator(); rowIdIt.hasNext();) {
@@ -369,5 +376,12 @@ class MasterQueryExecutor {
      * The final version of the result table is available.
      */
     public void finalResultTableAvailable(RResultTable resultTable);
+
+    /**
+     * An exception occured.
+     * 
+     * @param message
+     */
+    public void exception(Throwable t);
   }
 }

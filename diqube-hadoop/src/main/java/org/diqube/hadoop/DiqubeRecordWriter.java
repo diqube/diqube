@@ -211,7 +211,7 @@ public class DiqubeRecordWriter extends RecordWriter<NullWritable, DiqubeRow> {
       diqubeFileWriter.setComment(fileComment);
     }
 
-    logger.info("Creating new TableShard and flushing data to output stream...");
+    logger.info("Creating new TableShard and flushing data to output stream (up to rowId {})...", nextRowId.get() - 1);
 
     // use columnShardBuilderManager to build all columnShards
     // this will start compressing etc. and will take some time.
@@ -220,10 +220,7 @@ public class DiqubeRecordWriter extends RecordWriter<NullWritable, DiqubeRow> {
       try {
         // fill remaining rows with default value - this can happen in repeated cols where not all rows have the same
         // number of entries of the col.
-        if (!repeatedLengthColNames.contains(colName))
-          columnShardBuilderManager.fillEmptyRowsWithValue(colName,
-              defaultValueByType(colInfo.getFinalColumnType(colName)));
-        else
+        if (repeatedLengthColNames.contains(colName))
           // fill "length" columns with "0" instead of the default long (which would be -1).
           columnShardBuilderManager.fillEmptyRowsWithValue(colName, 0L);
 
@@ -267,18 +264,6 @@ public class DiqubeRecordWriter extends RecordWriter<NullWritable, DiqubeRow> {
     if (o instanceof Double)
       return ColumnType.DOUBLE;
     throw new IOException("Incompatible data type of " + o.toString());
-  }
-
-  private Object defaultValueByType(ColumnType colType) throws IOException {
-    switch (colType) {
-    case STRING:
-      return LoaderColumnInfo.DEFAULT_STRING;
-    case LONG:
-      return LoaderColumnInfo.DEFAULT_LONG;
-    case DOUBLE:
-      return LoaderColumnInfo.DEFAULT_DOUBLE;
-    }
-    throw new IOException("Non-valid column type " + colType);
   }
 
   @Override

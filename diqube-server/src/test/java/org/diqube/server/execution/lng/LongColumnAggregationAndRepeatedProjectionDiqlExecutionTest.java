@@ -741,4 +741,51 @@ public class LongColumnAggregationAndRepeatedProjectionDiqlExecutionTest extends
       executor.shutdownNow();
     }
   }
+
+  @Test
+  public void repeatedCheckDefaultValueFallback() throws LoadException, InterruptedException, ExecutionException {
+    // second row does not have any value for b[1].c, but ColumnAggregationStep nevertheless tries to resolve the value
+    // -> it needs to be a default value. The step will later then inspect the actual length of the array of a row.
+    initializeFromJson( //
+        "[ { \"a\": 1, \"b\": [ { \"c\": 20 }, { \"c\": 30 } ] },"//
+            + "{ \"a\": 1, \"b\": [ { \"c\": 40 } ] } " //
+            + " ]");
+    ExecutablePlan plan = buildExecutablePlan("select a, sum(sum(b[*].c)) from " + TABLE + " group by a");
+
+    ExecutorService executor = executors.newTestExecutor(plan.preferredExecutorServiceSize());
+    try {
+      Future<?> future = plan.executeAsynchronously(executor);
+      future.get();
+
+      Assert.assertTrue(columnValueConsumerIsDone, "Source should have reported 'done'");
+      Assert.assertTrue(future.isDone(), "Future should report done");
+      Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
+
+      String resAggColName = functionBasedColumnNameBuilderFactory.create().withFunctionName("sum") //
+          .addParameterColumnName( //
+              functionBasedColumnNameBuilderFactory.create().withFunctionName("sum") //
+                  .addParameterColumnName("b[*].c").build())
+          .build();
+
+      Assert.assertTrue(resultValues.containsKey("a"), "Expected to have a result for col");
+      Assert.assertTrue(resultValues.containsKey(resAggColName),
+          "Expected that there's results for the aggregation func");
+      Assert.assertEquals(resultValues.keySet().size(), 2, "Expected to have results for correct number of cols");
+
+      Assert.assertEquals(resultValues.get("a").size(), 1, "Expected to receive a specific amout of rows");
+      Assert.assertEquals(resultValues.get(resAggColName).size(), 1, "Expected to receive a specific amout of rows");
+
+      Set<Pair<Long, Long>> expected = new HashSet<>();
+      expected.add(new Pair<>(1L, 90L));
+
+      Set<Pair<Long, Long>> actual = new HashSet<>();
+
+      for (long rowId : resultValues.get("a").keySet())
+        actual.add(new Pair<>(resultValues.get("a").get(rowId), resultValues.get(resAggColName).get(rowId)));
+
+      Assert.assertEquals(actual, expected, "Expected correct result values");
+    } finally {
+      executor.shutdownNow();
+    }
+  }
 }
