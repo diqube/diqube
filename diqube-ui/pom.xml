@@ -150,14 +150,6 @@
       <groupId>org.springframework</groupId>
       <artifactId>spring-web</artifactId>
     </dependency>
-    
-    <!-- TODO remove this as soon as https://bz.apache.org/bugzilla/show_bug.cgi?id=58232 is fixed. Remove from third parties too. -->
-    <dependency>
-      <groupId>org.apache.tomcat</groupId>
-      <artifactId>tomcat-websocket</artifactId>
-      <version>8.0.24</version>
-      <scope>provided</scope>
-    </dependency>
   </dependencies>
 
   <profiles>

@@ -62,7 +62,6 @@ diqube source code.
 
     Apache License 2.0 [apache-20.txt]:
 
-        * tomcat-websocket (org.apache.tomcat:tomcat-websocket:8.0.24 - http://tomcat.apache.org/)
         * NVD3, http://nvd3.org/
         * angularjs-nvd3-directives, http://angularjs-nvd3-directives.github.io/angularjs-nvd3-directives/
         * Apache Hadoop, http://hadoop.apache.org

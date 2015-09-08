@@ -47,11 +47,11 @@ The server will then start and watch the 'data' directory inside diqube-server f
 files). There is some sample data already provided. For more information see [Operating a cluster](/docs/OperatingCluster.md).
 
 The diqube server itself does not contain the diqube UI. The UI is available as standard web archive (.war file) which 
-can be deployed to a [Apache Tomcat 8.0.24][3]. You can find the .war in diqube-ui/target after building. Please note 
-that currently only Apache Tomcat 8.0.24 is supported, as there is a bug in Tomcat and diqube has implemented a 
-work-around. Configuration of the UI can be done via [context init parameters][5], see 
-[DiqubeServletConfig](diqube-ui/src/main/java/org/diqube/ui/DiqubeServletConfig.java) for configuration 
-options. The UI only supports current versions of Chrome.
+can be deployed to a [Apache Tomcat 8.0.26+][3]. You can find the .war in diqube-ui/target after building. Please note 
+that only Apache Tomcat 8.0.26+ is supported, as it relies on [Tomcat Bug 58232][6] being fixed which is the case 
+starting with 8.0.26. Configuration of the UI can be done via [context init parameters][5], see 
+[DiqubeServletConfig](diqube-ui/src/main/java/org/diqube/ui/DiqubeServletConfig.java) for configuration options. The UI
+only supports current versions of Chrome.
 
 ##Documentation##
 
@@ -66,3 +66,4 @@ diqube is distributed under the terms of the [GNU Affero General Public License 
 [3]: https://tomcat.apache.org
 [4]: http://www.gnu.org/licenses/agpl-3.0.html
 [5]: http://tomcat.apache.org/tomcat-8.0-doc/config/context.html#Context_Parameters
+[6]: https://bz.apache.org/bugzilla/show_bug.cgi?id=58232

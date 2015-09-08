@@ -27,8 +27,6 @@ import javax.websocket.DeploymentException;
 import javax.websocket.server.ServerContainer;
 import javax.websocket.server.ServerEndpointConfig;
 
-import org.apache.tomcat.websocket.pojo.PojoEndpointServer;
-import org.apache.tomcat.websocket.pojo.PojoMethodMapping;
 import org.diqube.ui.websocket.WebSocketEndpoint;
 import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.WebApplicationContext;
@@ -67,14 +65,6 @@ public class DiqubeServletContextListener implements ServletContextListener {
     sec.getUserProperties().put(WebSocketEndpoint.PROP_BEAN_CONTEXT, ctx);
 
     try {
-      // TODO remove as soon as https://bz.apache.org/bugzilla/show_bug.cgi?id=58232 is fixed
-      @SuppressWarnings("unchecked")
-      PojoMethodMapping tomcatPojoMethodMapping =
-          new PojoMethodMapping(WebSocketEndpoint.class, new Class[0], WebSocketEndpoint.ENDPOINT_URL_MAPPING);
-      sec.getUserProperties().put(PojoEndpointServer.POJO_METHOD_MAPPING_KEY, tomcatPojoMethodMapping);
-
-      // ---
-
       serverContainer.addEndpoint(sec);
     } catch (DeploymentException e) {
       throw new RuntimeException("DeploymentException when deploying Websocket endpoint", e);
