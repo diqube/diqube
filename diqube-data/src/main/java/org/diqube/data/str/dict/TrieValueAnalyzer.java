@@ -44,12 +44,12 @@ public class TrieValueAnalyzer {
    * @param callback
    *          The callback that will be called when specific situations are encountered. The methods of the callback
    *          will be called for all terminal IDs of ourNode at least once. Please note that the equalIds method is the
-   *          "strongest" guarantee this class can make. Both other methods "greater" and "smaller" are equally "strong"
-   *          - meaning if this analyzer identifies a terminal string being greater than another, it might only call the
-   *          "greater" method and not the "smaller" method for that terminal. As it is guaranteed (see JavaDoc of e.g.
-   *          {@link TrieValueAnalyzerCallback#foundGreaterId(long, long)}) that the nearest ID to the terminal is
-   *          returned on "greater" or "smaller" calls and assuming that the "equalId" method was not called on a given
-   *          terminal, the callback can safely add/subtract 1 from the otherId to deduce the opposite inequality.
+   *          "strongest" guarantee this class can make. The "greater" method is the second strongest guarantee and the
+   *          "smaller" method is the less strongest guarantee. This means that if the "equal" method is called for a
+   *          specific ourId, then that node is equal to another. If not and if the "greater" method is called, then the
+   *          greater method will be called with the smallest otherId where the otherNodes value is greater than the
+   *          value of ourNode. And only if neither "equal" nor "greater" are called for a node, only then the "smaller"
+   *          method will be called with the greatest otherId whose value is smaller than the value of ourId.
    */
   public void analyzeTries(ParentNode ourNode, ParentNode otherNode, TrieValueAnalyzerCallback callback) {
     analyzeTriesInternal(ourNode, null, otherNode, null, callback);
@@ -76,12 +76,22 @@ public class TrieValueAnalyzer {
    * @param callback
    *          The callback that will be called when specific situations are encountered. The methods of the callback
    *          will be called for all terminal IDs of ourNode at least once. Please note that the equalIds method is the
-   *          "strongest" guarantee this class can make. Both other methods "greater" and "smaller" are equally "strong"
-   *          - meaning if this analyzer identifies a terminal string being greater than another, it might only call the
-   *          "greater" method and not the "smaller" method for that terminal. As it is guaranteed (see JavaDoc of e.g.
-   *          {@link TrieValueAnalyzerCallback#foundGreaterId(long, long)}) that the nearest ID to the terminal is
-   *          returned on "greater" or "smaller" calls and assuming that the "equalId" method was not called on a given
-   *          terminal, the callback can safely add/subtract 1 from the otherId to deduce the opposite inequality.
+   *          "strongest" guarantee this class can make. The "greater" method is the second strongest guarantee and the
+   *          "smaller" method is the less strongest guarantee. This means that if the "equal" method is called for a
+   *          specific ourId, then that node is equal to another. If not and if the "greater" method is called, then the
+   *          greater method will be called with the smallest otherId where the otherNodes value is greater than the
+   *          value of ourNode. And only if neither "equal" nor "greater" are called for a node, only then the "smaller"
+   *          method will be called with the greatest otherId whose value is smaller than the value of ourId.
+   */
+  /*
+   * Note to callback guarantees: This implementation walks along the trie of "ourNode" and synchronously along the trie
+   * of otherNode. If it finds a "smaller" inequality to be true, it will call the "smaller" method, meaning that at the
+   * current location the value of otherNode is smaller than ourNode. This though does not yet guarantee that otherNode
+   * is the node with the greatest otherId where that inequality is true - we might find better matching nodes later. If
+   * we though find the "greater" inequality to be true, it is for a specific node in our trie where we identified at
+   * least once the smallest node of otherTrie where that inequality holds - this is true because we walk mainly along
+   * ourTrie and just walk along otherTrie synchronously. If we find a node where equality holds, that overrules
+   * everything, of course.
    */
   private void analyzeTriesInternal(ParentNode ourNode, char[] ourRequiredPrefix, ParentNode otherNode,
       char[] otherRequiredPrefix, TrieValueAnalyzerCallback callback) {
@@ -243,6 +253,9 @@ public class TrieValueAnalyzer {
           // ourChildChars is greater than otherChildChars and we did not match all of the otherChildChars. This means
           // there is a conflicting character somewhere, where ourChild is > otherChild.
           long otherMaxId = getMaxId(otherChild);
+          // Note: We found a node that is smaller than our node, but especially here, there is no guarantee that this
+          // is the maximum otherId for which this inequality holds - we might find better matches in the next
+          // iteration.
           findAllTerminalNodes(ourChild).forEach(term -> callback.foundSmallerId(term.getTerminalId(), otherMaxId));
 
           // we worked on the full other trie, ourChild though might still match a following sub-trie of otherNode.

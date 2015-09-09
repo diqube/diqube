@@ -22,6 +22,7 @@ package org.diqube.data.str.dict;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -411,7 +412,9 @@ public class TrieStringDictionary implements StringDictionary<SStringDictionaryT
                 smaller.put(ourId, otherId);
             }
           });
-      // deduce smaller IDs out of found greater IDs, if the found greater IDs are "nearer".
+      // deduce smaller IDs out of found greater IDs. As "greater" IDs are, if found, guaranteed to be the lowest IDs of
+      // nodes that are greater, we can deduct the smaller ID here. This, of course, is only valid for nodes where the
+      // "equal" method was not called, see below.
       for (Entry<Long, Long> greaterEntry : greater.entrySet()) {
         if (greaterEntry.getValue() <= 0)
           continue;
@@ -463,79 +466,36 @@ public class TrieStringDictionary implements StringDictionary<SStringDictionaryT
 
   @Override
   public NavigableMap<Long, Long> findLtEqIds(Dictionary<String> otherDict) {
-    NavigableMap<Long, Long> res = new TreeMap<>();
-    if (otherDict instanceof TrieStringDictionary) {
-      Map<Long, Long> equal = new HashMap<>();
-      Map<Long, Long> greater = new HashMap<>();
-      Map<Long, Long> smaller = new HashMap<>();
-      new TrieValueAnalyzer().analyzeTries(root, ((TrieStringDictionary) otherDict).root,
-          new TrieValueAnalyzerCallback() {
-            @Override
-            public void foundEqualIds(long ourId, long otherId) {
-              equal.put(ourId, otherId);
-            }
+    // deduce result from >= comparison, as we cannot use TrieValueAnalyzer directly, as it has the weakest guarantees
+    // on calling the "smaller" method.
+    NavigableMap<Long, Long> res = findGtEqIds(otherDict);
 
-            @Override
-            public void foundGreaterId(long ourId, long otherId) {
-              // ourId < otherId
-              if (!greater.containsKey(ourId) || greater.get(ourId) > otherId)
-                greater.put(ourId, otherId);
-            }
+    long firstOurIdGtEqHadValueOf;
+    if (!res.isEmpty())
+      firstOurIdGtEqHadValueOf = res.firstKey();
+    else
+      firstOurIdGtEqHadValueOf = lastId + 1;
 
-            @Override
-            public void foundSmallerId(long ourId, long otherId) {
-              // ourId > otherId
-              if (!smaller.containsKey(ourId) || smaller.get(ourId) < otherId)
-                smaller.put(ourId, otherId);
-            }
-          });
-      // deduce greater IDs out of found smaller IDs, if the found smaller IDs are "nearer".
-      for (Entry<Long, Long> smallerEntry : smaller.entrySet()) {
-        if (smallerEntry.getValue() <= 0)
-          continue;
-        long ourId = smallerEntry.getKey();
-        long greaterId = smallerEntry.getValue() + 1;
-        // make sure we can deduce - this is not the case if the new greaterID would be out of range.
-        if (greaterId <= ((TrieStringDictionary) otherDict).root.getMaxId()) {
-          if (!greater.containsKey(ourId) || greater.get(ourId) > greaterId)
-            greater.put(ourId, greaterId);
-        }
-      }
-
-      for (long ourId : Sets.union(equal.keySet(), greater.keySet())) {
-        if (equal.containsKey(ourId))
-          res.put(ourId, equal.get(ourId));
-        else if (greater.containsKey(ourId))
-          res.put(ourId, -(greater.get(ourId) + 1));
-      }
-    } else if (otherDict instanceof ConstantStringDictionary) {
-      long otherId = ((ConstantStringDictionary) otherDict).getId();
-      String otherValue = ((ConstantStringDictionary) otherDict).getValue();
-
-      Long ourLtEqId = findLtEqIdOfValue(otherValue);
-      if (ourLtEqId != null) {
-        if (ourLtEqId < 0) {
-          ourLtEqId = -(ourLtEqId + 1);
-          otherId = -(otherId + 1);
-        }
-        res.put(ourLtEqId, otherId);
-
-        if (otherId > 0)
-          otherId = -(otherId + 1);
-        for (long ourId = 0; ourId < ourLtEqId; ourId++)
-          res.put(ourId, otherId);
-      }
-    } else {
-      // Bad case: decompress whole array.
-      String[] decompressedValues =
-          decompressValues(LongStream.rangeClosed(0L, lastId).mapToObj(Long::valueOf).toArray(l -> new Long[l]));
-      for (int i = 0; i < decompressedValues.length; i++) {
-        Long otherId = otherDict.findGtEqIdOfValue(decompressedValues[i]);
-        if (otherId == null)
-          break;
-        res.put((long) i, otherId);
+    long otherMaxId = otherDict.getMaxId();
+    for (Iterator<Entry<Long, Long>> it = res.entrySet().iterator(); it.hasNext();) {
+      Entry<Long, Long> resEntry = it.next();
+      if (resEntry.getValue() < 0) {
+        long greatestSmallerId = -(resEntry.getValue() + 1);
+        long smallestGreaterId = greatestSmallerId + 1;
+        if (smallestGreaterId <= otherMaxId)
+          resEntry.setValue(-(smallestGreaterId + 1));
+        else
+          // greater ID is not contained in otherDict, do not return that value.
+          it.remove();
       }
     }
+
+    // add entries for items of this map which were not returned by GtEqIds, because there is no >= inequality (but
+    // then, there definitely is a <= inequality).
+    for (long ourId = 0L; ourId < firstOurIdGtEqHadValueOf; ourId++)
+      // all elements before the first returned GtEqId have a specific "largest smaller" otherId: 0.
+      res.put(ourId, -(0 + 1L));
+
     return res;
   }
 
