@@ -253,22 +253,9 @@ public class RepeatedProjectStep extends AbstractThreadedExecutablePlanStep {
 
     // build the cols!
     for (String newColName : colBuilderManager.getAllColumnsWithValues()) {
-      Object defaultValue = null;
-      switch (outputColType) {
-      case STRING:
-        defaultValue = LoaderColumnInfo.DEFAULT_STRING;
-        break;
-      case LONG:
-        defaultValue = LoaderColumnInfo.DEFAULT_LONG;
-        break;
-      case DOUBLE:
-        defaultValue = LoaderColumnInfo.DEFAULT_DOUBLE;
-        break;
-      }
-      // be sure that each row has a value for all columns, even if that rows' array is not long enough. Otherwise we
-      // might end up with whole ColumnPages which do not have any value for any row, which is not supported by the
-      // builders.
-      colBuilderManager.fillEmptyRowsWithValue(newColName, defaultValue);
+      if (newColName.equals(lengthColName))
+        // initialize length col with "0".
+        colBuilderManager.fillEmptyRowsWithValue(lengthColName, 0L);
 
       ColumnShard newColShard = colBuilderManager.buildAndFree(newColName);
 
