@@ -46,10 +46,10 @@ import org.diqube.execution.consumers.DoneConsumer;
 import org.diqube.execution.consumers.GenericConsumer;
 import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.env.querystats.QueryableColumnShard;
-import org.diqube.execution.env.querystats.QueryableLongColumnShard;
 import org.diqube.execution.exception.ExecutablePlanBuildException;
 import org.diqube.execution.exception.ExecutablePlanExecutionException;
 import org.diqube.execution.util.ColumnPatternUtil;
+import org.diqube.execution.util.ColumnPatternUtil.ColumnPatternContainer;
 import org.diqube.execution.util.ColumnPatternUtil.LengthColumnMissingException;
 import org.diqube.function.FunctionFactory;
 import org.diqube.function.ProjectionFunction;
@@ -84,14 +84,6 @@ import com.google.common.collect.Sets;
  * @author Bastian Gloeckle
  */
 public class RepeatedProjectStep extends AbstractThreadedExecutablePlanStep {
-  private static final Function<QueryableLongColumnShard, Long> MAX_LENGTH_PROVIDER =
-      new Function<QueryableLongColumnShard, Long>() {
-        @Override
-        public Long apply(QueryableLongColumnShard t) {
-          return t.getColumnShardDictionary().decompressValue(t.getColumnShardDictionary().getMaxId());
-        }
-      };
-
   private AtomicBoolean allInputColumnsBuilt = new AtomicBoolean(false);
 
   private AbstractThreadedColumnBuiltConsumer colBuiltConsumer = new AbstractThreadedColumnBuiltConsumer(this) {
@@ -157,10 +149,11 @@ public class RepeatedProjectStep extends AbstractThreadedExecutablePlanStep {
   protected void execute() {
     boolean finalRun = colBuiltConsumer.getNumberOfTimesWired() == 0 || allInputColumnsBuilt.get();
 
+    ColumnPatternContainer columnPatternContainer;
     Set<List<String>> colCombinations;
     try {
-      colCombinations =
-          columnPatternUtil.findColNamesForColNamePattern(defaultEnv, inputColPatterns, MAX_LENGTH_PROVIDER);
+      columnPatternContainer = columnPatternUtil.findColNamesForColNamePattern(defaultEnv, inputColPatterns);
+      colCombinations = columnPatternContainer.getMaximumColumnPatterns();
     } catch (LengthColumnMissingException e) {
       if (finalRun)
         throw new ExecutablePlanExecutionException("Not all 'length' columns were created. Cannot proceed.");
@@ -196,9 +189,7 @@ public class RepeatedProjectStep extends AbstractThreadedExecutablePlanStep {
       long finalRowId = rowId;
       // Find the input column index combinations that are valid in this row. For each of the returned lists, one result
       // column will be built, all of those columns are a repeated field.
-      Set<List<String>> colCombinationsForRow = columnPatternUtil.findColNamesForColNamePattern(defaultEnv,
-          inputColPatterns,
-          lenCol -> lenCol.getColumnShardDictionary().decompressValue(lenCol.resolveColumnValueIdForRow(finalRowId)));
+      Set<List<String>> colCombinationsForRow = columnPatternContainer.getColumnPatterns(finalRowId);
 
       // fill the resulting "length" col.
       colBuilderManager.addValues(lengthColName, new Long[] { (long) colCombinationsForRow.size() }, rowId);

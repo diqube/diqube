@@ -28,17 +28,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 
 import org.diqube.context.AutoInstatiate;
 import org.diqube.data.util.RepeatedColumnNameGenerator;
 import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.env.querystats.QueryableLongColumnShard;
-import org.diqube.util.Pair;
 
 import com.google.common.collect.Iterables;
 
@@ -53,13 +52,6 @@ public class ColumnPatternUtil {
   @Inject
   private RepeatedColumnNameGenerator repeatedColNames;
 
-  private String allPattern;
-
-  @PostConstruct
-  public void initialize() {
-    allPattern = repeatedColNames.allEntriesIdentifyingSubstr();
-  }
-
   /**
    * Replaces all the [*] strings in the pattern with actual column indices.
    * 
@@ -67,23 +59,14 @@ public class ColumnPatternUtil {
    *          The {@link ExecutionEnvironment} that should be used to find "length" columns of the repeated fields.
    * @param pattern
    *          The column name pattern
-   * @param lengthProvider
-   *          Function to find out how many objects should be assumed a column contains. Parameter to this method is the
-   *          "length" column (= the column of a repeated column that contains the number of elements in that repeated
-   *          column for each row). Callers can e.g. resolve the number of elements for a specific rowId in
-   *          "lengthProvider" or they could simply take the "max" value of the whole column to make this method return
-   *          a list of all possible column names that could be valid for all rows in the table.
-   * @return Set of string, the final column names based on the lengths provided by the lengthProvider. If there is no
-   *         [*] the result will simply contain the pattern.
+   * @return A {@link ColumnPatternContainer} that can provide the column names.
    * @throws LengthColumnMissingException
    *           in case a "length" column for one of the fields that are marked with "[*]" in the input pattern is not
    *           available in the provided env.
    */
-  public Set<String> findColNamesForColNamePattern(ExecutionEnvironment env, String pattern,
-      Function<QueryableLongColumnShard, Long> lengthProvider) throws LengthColumnMissingException {
-    List<Pair<String, Integer>> parents = Arrays.asList(new Pair<>("", 0));
-    return findColNamesForColNamePattern(env, Arrays.asList(pattern), parents, lengthProvider).stream()
-        .map(list -> Iterables.getOnlyElement(list)).collect(Collectors.toSet());
+  public ColumnPatternContainer findColNamesForColNamePattern(ExecutionEnvironment env, String pattern)
+      throws LengthColumnMissingException {
+    return findColNamesForColNamePattern(env, Arrays.asList(pattern));
   }
 
   /**
@@ -131,29 +114,17 @@ public class ColumnPatternUtil {
    * 
    * @param env
    *          The {@link ExecutionEnvironment} that should be used to find "length" columns of the repeated fields.
-   * @param lengthProvider
-   *          Function to find out how many objects should be assumed to be contained for a column. Parameter to this
-   *          method is the "length" column (= the column of a repeated column that contains the number of elements in
-   *          that repeated column for each row). Callers can e.g. resolve the number of elements for a specific rowId
-   *          in "lengthProvider" or they could simply take the "max" value of the whole column to make this method
-   *          return a list of all possible column names that could be valid for all rows in the table.
    * @param patterns
    *          The patterns that should be resolved, adhering to the fact that they follow the same "path" (see above).
-   * @param parentColNamesAndStartIndices
-   *          While this method is being executed, it will recursively call itself. Then this list contains pairs of the
-   *          current column name of a specific pattern (matched by index in list) and the next index in the pattern
-   *          where the search for another [*] should start. For an initial call, provide a List with the same amount of
-   *          entries as "patterns", each Pair having an empty string and the index 0.
-   * @return Set of list of strings. Each list represents one combination of the patterns provided with filled in column
-   *         indices. The result can be empty.
+   * @return A {@link ColumnPatternContainer} that can be used to fetch the colnames.
    * @throws PatternException
    *           in case the patterns do not repeat on the same "path".
    * @throws LengthColumnMissingException
    *           In case a "length" column for one of the fields that are marked with "[*]" in the input patterns is not
    *           available in the provided env.
    */
-  public Set<List<String>> findColNamesForColNamePattern(ExecutionEnvironment env, List<String> patterns,
-      Function<QueryableLongColumnShard, Long> lengthProvider) throws PatternException, LengthColumnMissingException {
+  public ColumnPatternContainer findColNamesForColNamePattern(ExecutionEnvironment env, List<String> patterns)
+      throws PatternException, LengthColumnMissingException {
 
     if (patterns.size() > 1) {
       // Validate that patterns "repeat" in the same paths. For example the following is invalid:
@@ -166,7 +137,7 @@ public class ColumnPatternUtil {
       // each of the other "last repeated field" strings.
 
       List<String> lastRepeatedFields = patterns.stream().map(s -> {
-        int lastRepeatedIdx = s.lastIndexOf(allPattern);
+        int lastRepeatedIdx = s.lastIndexOf(repeatedColNames.allEntriesIdentifyingSubstr());
         if (lastRepeatedIdx == -1)
           // we no not care about fields that are not repeated at all.
           return null;
@@ -186,124 +157,24 @@ public class ColumnPatternUtil {
       }
     }
 
-    List<Pair<String, Integer>> parents =
-        patterns.stream().map(pattern -> new Pair<>("", 0)).collect(Collectors.toList());
+    if (!patterns.stream().anyMatch(p -> p.contains(repeatedColNames.allEntriesIdentifyingSubstr())))
+      throw new PatternException("No [*] in any pattern");
 
-    return findColNamesForColNamePattern(env, patterns, parents, lengthProvider);
-  }
+    List<List<String>> baseNames = new ArrayList<>();
+    for (String pattern : patterns) {
+      List<String> newBaseNames =
+          new ArrayList<>(Arrays.asList(pattern.split(Pattern.quote(repeatedColNames.allEntriesIdentifyingSubstr()))));
 
-  /**
-   * Implementation method doing the work to resolve the [*]s in the patterns.
-   * 
-   * See {@link #findColNamesForColNamePattern(ExecutionEnvironment, String, Function)} and
-   * {@link #findColNamesForColNamePattern(ExecutionEnvironment, List, Function)}.
-   * 
-   * @param parentColNamesAndStartIndices
-   *          While this method is being executed, it will recursively call itself. Then this list contains pairs of the
-   *          current column name of a specific pattern (matched by index in list) and the next index in the pattern
-   *          where the search for another [*] should start. For an initial call, provide a List with the same amount of
-   *          entries as "patterns", each Pair having an empty string and the index 0.
-   */
-  private Set<List<String>> findColNamesForColNamePattern(ExecutionEnvironment env, List<String> patterns,
-      List<Pair<String, Integer>> parentColNamesAndStartIndices,
-      Function<QueryableLongColumnShard, Long> lengthProvider) throws PatternException, LengthColumnMissingException {
-    Set<List<String>> res = new HashSet<>();
+      if (pattern.endsWith(repeatedColNames.allEntriesIdentifyingSubstr()))
+        // last baseName will not be repeated, but in this pattern the last one /is/ repeated. Append empty string to
+        // simulate correct behaviour.
 
-    @SuppressWarnings("unchecked")
-    List<Pair<String, Integer>> newParentColNamesBase = Arrays.asList(new Pair[parentColNamesAndStartIndices.size()]);
+        newBaseNames.add("");
 
-    // walk over all the patterns/parentColNamesAndStartIndices and identify (1) columns where still a [*] needs to be
-    // resolved and (2) if no more [*] need to be resolved for a pattern, find the final column name and put it into
-    // newParentColNamesBase.
-
-    // map from pair of "parentColName" (= the input to this method including a trailing . if needed) and "baseName" =
-    // the name of the next repeated field, relative to "parentColName" to a list of pattern-indices (index in patterns
-    // and parentColNames) where that combination of parentColName and baseName needs to be resolved next.
-    Map<Pair<String, String>, List<Integer>> repeatedNamesToIndex = new HashMap<>();
-    for (int patternIdx = 0; patternIdx < patterns.size(); patternIdx++) {
-      String pattern = patterns.get(patternIdx);
-      String parentColName = parentColNamesAndStartIndices.get(patternIdx).getLeft();
-      int startIdx = parentColNamesAndStartIndices.get(patternIdx).getRight();
-
-      if (startIdx == Integer.MAX_VALUE) {
-        // this is a final columns name.
-        newParentColNamesBase.set(patternIdx, parentColNamesAndStartIndices.get(patternIdx));
-        continue;
-      }
-
-      int idx = pattern.indexOf(allPattern, startIdx);
-      if (idx == -1) {
-        // for this pattern there are no more substitutions needed, so we create a "final" entry in parentColNames
-
-        StringBuilder sb = new StringBuilder();
-        sb.append(parentColName);
-        if (startIdx < pattern.length())
-          // if the pattern contains some substring /after/ the last [*] then we simply append it here, too.
-          sb.append(pattern.substring(startIdx));
-
-        String finalColName = sb.toString();
-
-        newParentColNamesBase.set(patternIdx, new Pair<String, Integer>(finalColName, Integer.MAX_VALUE));
-        continue;
-      }
-
-      // we found an additional [*] in the pattern.
-      String baseName;
-      if (startIdx == 0)
-        baseName = pattern.substring(startIdx, idx);
-      else
-        baseName = pattern.substring(startIdx + 1 /* skip previous . */, idx);
-
-      if (!parentColName.equals(""))
-        parentColName += ".";
-
-      Pair<String, String> newColPair = new Pair<>(parentColName, baseName);
-
-      // store pair of parentColName and baseName in repeatedNamesToIndex
-      if (!repeatedNamesToIndex.containsKey(newColPair))
-        repeatedNamesToIndex.put(newColPair, new ArrayList<>());
-      repeatedNamesToIndex.get(newColPair).add(patternIdx);
+      baseNames.add(newBaseNames);
     }
 
-    if (repeatedNamesToIndex.size() > 1)
-      throw new PatternException("Pattern resolves to different paths, which is not supported currently.");
-
-    // if we have any more [*] that were found, resolve them recursively. We typically expect only one entry in
-    // repeatedNamesToIndex, otherwise we would follow different "paths".
-    for (Pair<String, String> newColNamePair : repeatedNamesToIndex.keySet()) {
-      String parentColName = newColNamePair.getLeft();
-      String baseName = newColNamePair.getRight();
-
-      String lenColName = repeatedColNames.repeatedLength(parentColName + baseName);
-      QueryableLongColumnShard lenCol = env.getLongColumnShard(lenColName);
-      if (lenCol == null)
-        throw new LengthColumnMissingException("Column " + lenColName + " not available.");
-
-      long len = lengthProvider.apply(lenCol);
-
-      // we now have the length of that field that we need to iterate over, so lets do that.
-      for (long fieldIndex = 0; fieldIndex < len; fieldIndex++) {
-        List<Pair<String, Integer>> newParentColNames = new ArrayList<>(newParentColNamesBase);
-        String curColName = parentColName + repeatedColNames.repeatedAtIndex(baseName, fieldIndex);
-        int newStartIdx = parentColName.length() + baseName.length() + allPattern.length();
-
-        for (int patternIdx : repeatedNamesToIndex.get(newColNamePair))
-          newParentColNames.set(patternIdx, new Pair<>(curColName, newStartIdx));
-
-        // as we have only one path to follow (= only one entry in repeatedNamesToIndex) we now have all indice in
-        // newParentColNames set, so we can recurse deeper to resolve the next indices/create the final result.
-        res.addAll(findColNamesForColNamePattern(env, patterns, newParentColNames, lengthProvider));
-      }
-    }
-
-    if (repeatedNamesToIndex.isEmpty()) {
-      // we did not find any more [*] before, so we have our final result available in newParentColNamesBase, transform
-      // that into the final result representation.
-      List<String> finalColNames = newParentColNamesBase.stream().map(p -> p.getLeft()).collect(Collectors.toList());
-      res = new HashSet<>(Arrays.asList(finalColNames));
-    }
-
-    return res;
+    return new ColumnPatternContainer(env, baseNames);
   }
 
   /** for tests */
@@ -330,6 +201,250 @@ public class ColumnPatternUtil {
 
     public LengthColumnMissingException(String msg) {
       super(msg);
+    }
+  }
+
+  /**
+   * Contains the actual column names of resolved patterns.
+   */
+  public class ColumnPatternContainer {
+    private final long MAX_LEN = Long.MIN_VALUE;
+
+    /**
+     * Map from indices (for each occurrence of [*] one) to a list of {@link ConcatStringProvider}s, for each pattern
+     * one.
+     */
+    private Map<List<Long>, List<ConcatStringProvider>> stringProviders = new HashMap<>();
+    /**
+     * The input patterns, split up at [*]. The resulting column names will have indices after each basename, except for
+     * the last one (which will not be "repeated"). Note that each pattern may have a different number of baseNames, but
+     * all patterns are along the same "path".
+     */
+    private List<List<String>> baseNames;
+    /** index in {@link #baseNames} where the list of basenames is the longest. */
+    private int longestPatternBaseNameIndex;
+    /** number of [*] that need to be inserted. */
+    private int numberOfStars;
+    private ExecutionEnvironment env;
+
+    /**
+     * 
+     * @param baseNames
+     *          The patterns. Each pattern needs to be split up into a List<String> by splitting the string at [*]. This
+     *          {@link ColumnPatternContainer} will then fill in indices "between" two of these baseNames. Note that all
+     *          baseNames need to be along the same "path".
+     */
+    private ColumnPatternContainer(ExecutionEnvironment env, List<List<String>> baseNames)
+        throws LengthColumnMissingException {
+      this.env = env;
+      this.baseNames = baseNames;
+      numberOfStars = -1;
+      for (int i = 0; i < baseNames.size(); i++)
+        if (baseNames.get(i).size() > numberOfStars) {
+          numberOfStars = baseNames.get(i).size() - 1; // -1 -> last baseName will not get an [*] appended!
+          longestPatternBaseNameIndex = i;
+        }
+
+      List<ConcatStringProvider> parentProviders = new ArrayList<>(baseNames.size());
+      for (int i = 0; i < baseNames.size(); i++)
+        parentProviders.add(null);
+      createStringProviders(baseNames, 0, new ArrayList<>(numberOfStars), stringProviders, parentProviders);
+    }
+
+    /**
+     * Return a set of a list of colnames (for each input pattern one entry in the list) with filled in repetition
+     * indices for the lengths of the given rowId.
+     * 
+     * For each input pattern there will be one string in the returned lists. And there are potentially multiple lists
+     * in a set, each list containing a different index combination.
+     */
+    public Set<List<String>> getColumnPatterns(long rowId) {
+      Set<List<String>> res = new HashSet<>();
+      getColumnPatternsRecursive(rowId, 0, new ArrayList<>(), res);
+      return res;
+    }
+
+    /**
+     * See {@link #getColumnPatterns(long)}, but assuming there is only a single pattern, merges the values of the
+     * one-element-lists into the set directly.
+     */
+    public Set<String> getColumnPatternsSinglePattern(long rowId) {
+      return getColumnPatterns(rowId).stream().flatMap(l -> Stream.of(Iterables.getOnlyElement(l)))
+          .collect(Collectors.toSet());
+    }
+
+    /**
+     * Return a set of list of colnames (for each input pattern one entry in the list) with filled in repetition indices
+     * of the maximum length of all rows. This then is the union of the result of {@link #getColumnPatterns(long)} for
+     * all rowIds (in respect to the current {@link ExecutionEnvironment}, of course).
+     */
+    public Set<List<String>> getMaximumColumnPatterns() {
+      Set<List<String>> res = new HashSet<>();
+      getColumnPatternsRecursive(MAX_LEN, 0, new ArrayList<>(), res);
+      return res;
+    }
+
+    /**
+     * See {@link #getMaximumColumnPatterns()},but assuming there is only a single pattern, merges the values of the
+     * one-element-lists into the set directly.
+     */
+    public Set<String> getMaximumColumnPatternsSinglePattern() {
+      return getMaximumColumnPatterns().stream().flatMap(l -> Stream.of(Iterables.getOnlyElement(l)))
+          .collect(Collectors.toSet());
+    }
+
+    /**
+     * Returns the "length" columns for the column with the given parent indices.
+     */
+    private QueryableLongColumnShard getLengthColumn(List<Long> indices) throws LengthColumnMissingException {
+      StringBuilder sb = new StringBuilder();
+      for (int idx = 0; idx < indices.size(); idx++)
+        sb.append(
+            repeatedColNames.repeatedAtIndex(baseNames.get(longestPatternBaseNameIndex).get(idx), indices.get(idx)));
+
+      sb.append(baseNames.get(longestPatternBaseNameIndex).get(indices.size()));
+      String lenColName = repeatedColNames.repeatedLength(sb.toString());
+      QueryableLongColumnShard res = env.getLongColumnShard(lenColName);
+      if (res == null)
+        throw new LengthColumnMissingException("Missing column " + lenColName);
+      return res;
+    }
+
+    /**
+     * Recursively creates all columnNames that are valid for the given row.
+     * 
+     * @param rowId
+     *          The row to receive the lengths from. If {@link #MAX_LEN}, then not the lengths of a specific row will be
+     *          used, but the maximum lengths.
+     * @param replaceIdx
+     *          Index of the [*] whose value should be found in this recursive call. Provide 0 initially.
+     * @param rowIndices
+     *          List of indices the parent incarnations chose currently, provide empty list initially.
+     * @param res
+     *          The result. A Set of list where each list is one index possibility for all patterns.
+     */
+    private void getColumnPatternsRecursive(long rowId, int replaceIdx, List<Long> rowIndices, Set<List<String>> res)
+        throws LengthColumnMissingException {
+      if (replaceIdx == numberOfStars) {
+        List<String> cols = stringProviders.get(rowIndices).stream()
+            .map(concatStringProvider -> concatStringProvider.create()).collect(Collectors.toList());
+        res.add(cols);
+        return;
+      }
+
+      long len;
+      QueryableLongColumnShard lenCol = getLengthColumn(rowIndices);
+      if (rowId != MAX_LEN) {
+        long lenColValId = lenCol.resolveColumnValueIdForRow(rowId);
+        len = lenCol.getColumnShardDictionary().decompressValue(lenColValId);
+      } else
+        len = lenCol.getColumnShardDictionary().decompressValue(lenCol.getColumnShardDictionary().getMaxId());
+
+      rowIndices.add(0L);
+      for (long repetitionIdx = 0; repetitionIdx < len; repetitionIdx++) {
+        rowIndices.set(replaceIdx, repetitionIdx);
+        getColumnPatternsRecursive(rowId, replaceIdx + 1, rowIndices, res);
+      }
+      rowIndices.remove(rowIndices.size() - 1);
+    }
+
+    /**
+     * Create the {@link ConcatStringProvider}s for the given props.
+     * 
+     * @param baseNames
+     *          List of parts of patterns. Each part is a "baseName" - you can get them by basically splitting the
+     *          pattern at '[*]'. For each Pattern, there is a list of base names here.
+     * @param fillIdx
+     *          The index of the [*] that should be filled in this recursive call. 0 for a start.
+     * @param indices
+     *          List of indices the parent incarnations of this method created currently, an empty list for a start.
+     * @param res
+     *          Add results here: For each index combination there is a list of {@link ConcatStringProvider}s (for each
+     *          pattern one).
+     * @param parentStringProviders
+     *          List of the parent String providers of parent incarnations of this recursive method - indexed by the
+     *          baseName index (just like the outer list of param baseNames). For a start, use a list that contains
+     *          (length(baseNames) "null" values).
+     */
+    private void createStringProviders(List<List<String>> baseNames, int fillIdx, List<Long> indices,
+        Map<List<Long>, List<ConcatStringProvider>> res, List<ConcatStringProvider> parentStringProviders)
+            throws LengthColumnMissingException {
+      if (fillIdx == numberOfStars) {
+        // add the last parts of the patterns to the strings. These parts did not have a [*] appended!
+        List<ConcatStringProvider> finalProviders = new ArrayList<>();
+        for (int i = 0; i < parentStringProviders.size(); i++) {
+          ConcatStringProvider newProvider =
+              new ConcatStringProvider(parentStringProviders.get(i), Iterables.getLast(baseNames.get(i)), null);
+          finalProviders.add(newProvider);
+        }
+        res.put(new ArrayList<>(indices), finalProviders);
+        return;
+      }
+
+      QueryableLongColumnShard lengthCol = getLengthColumn(indices);
+      long maxLen =
+          lengthCol.getColumnShardDictionary().decompressValue(lengthCol.getColumnShardDictionary().getMaxId());
+      indices.add(0L);
+      for (long lenIdx = 0; lenIdx < maxLen; lenIdx++) {
+        List<ConcatStringProvider> delegateParentStringProviders = new ArrayList<>(parentStringProviders);
+
+        indices.set(indices.size() - 1, lenIdx);
+        for (int baseNameIdx = 0; baseNameIdx < baseNames.size(); baseNameIdx++) {
+          if (baseNames.get(baseNameIdx).size() - 1 > fillIdx) { // last baseName should not get repeated.
+            ConcatStringProvider newStringProvider = new ConcatStringProvider( //
+                parentStringProviders.get(baseNameIdx), //
+                baseNames.get(baseNameIdx).get(fillIdx), //
+                (int) lenIdx);
+            delegateParentStringProviders.set(baseNameIdx, newStringProvider);
+          }
+        }
+        createStringProviders(baseNames, fillIdx + 1, indices, res, delegateParentStringProviders);
+      }
+      indices.remove(indices.size() - 1);
+    }
+
+    /**
+     * Helper class: Hierarchical string creation with caching of the strings.
+     */
+    private class ConcatStringProvider {
+      private String cachedValue;
+      private ConcatStringProvider parent;
+      private String baseName;
+      private Integer repeatedIdx;
+
+      private ConcatStringProvider(ConcatStringProvider parent, String baseName, Integer repeatedIdx) {
+        this.parent = parent;
+        this.baseName = baseName;
+        this.repeatedIdx = repeatedIdx;
+      }
+
+      public String create() {
+        if (cachedValue != null)
+          return cachedValue;
+
+        StringBuilder sb = new StringBuilder();
+        createFill(sb);
+        cachedValue = sb.toString();
+
+        return cachedValue;
+      }
+
+      protected void createFill(StringBuilder sb) {
+        if (cachedValue != null) {
+          sb.append(cachedValue);
+          return;
+        }
+
+        if (parent != null)
+          parent.createFill(sb);
+
+        if (repeatedIdx != null)
+          sb.append(repeatedColNames.repeatedAtIndex(baseName, repeatedIdx));
+        else
+          sb.append(baseName);
+
+        cachedValue = sb.toString();
+      }
     }
   }
 }

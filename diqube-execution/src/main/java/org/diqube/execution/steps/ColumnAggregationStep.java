@@ -47,6 +47,7 @@ import org.diqube.execution.env.querystats.QueryableColumnShard;
 import org.diqube.execution.exception.ExecutablePlanBuildException;
 import org.diqube.execution.exception.ExecutablePlanExecutionException;
 import org.diqube.execution.util.ColumnPatternUtil;
+import org.diqube.execution.util.ColumnPatternUtil.ColumnPatternContainer;
 import org.diqube.execution.util.ColumnPatternUtil.LengthColumnMissingException;
 import org.diqube.function.AggregationFunction;
 import org.diqube.function.AggregationFunction.ValueProvider;
@@ -127,16 +128,16 @@ public class ColumnAggregationStep extends AbstractThreadedExecutablePlanStep {
     // validate if all "length" columns are available and all [index] columns, too - we do this by looking for all
     // columns with all indices that are contained in the length columns (= the maximum).
     Set<String> allColNames;
+    ColumnPatternContainer columnPatternContainer;
     try {
-      allColNames = columnPatternUtil.findColNamesForColNamePattern(defaultEnv, inputColumnNamePattern,
-          lenCol -> lenCol.getColumnShardDictionary().decompressValue(lenCol.getColumnShardDictionary().getMaxId()));
+      columnPatternContainer = columnPatternUtil.findColNamesForColNamePattern(defaultEnv, inputColumnNamePattern);
+      allColNames = columnPatternContainer.getMaximumColumnPatternsSinglePattern();
     } catch (LengthColumnMissingException e) {
       if (allColumnsAreBuilt.get()) {
         // retry to not face race conditions
         try {
-          allColNames =
-              columnPatternUtil.findColNamesForColNamePattern(defaultEnv, inputColumnNamePattern, lenCol -> lenCol
-                  .getColumnShardDictionary().decompressValue(lenCol.getColumnShardDictionary().getMaxId()));
+          columnPatternContainer = columnPatternUtil.findColNamesForColNamePattern(defaultEnv, inputColumnNamePattern);
+          allColNames = columnPatternContainer.getMaximumColumnPatternsSinglePattern();
         } catch (LengthColumnMissingException e2) {
           // still not all length cols available although all input columns should be built already, there is an error!
           throw new ExecutablePlanExecutionException("When trying to aggregate column values, not all repeated "
@@ -181,6 +182,8 @@ public class ColumnAggregationStep extends AbstractThreadedExecutablePlanStep {
     for (String colName : allColNames)
       finalAllColNames.put(colName, tmp++);
 
+    final ColumnPatternContainer finalColumnPatternContainer = columnPatternContainer;
+
     QueryUuidThreadState uuidState = QueryUuid.getCurrentThreadState();
     // work on all rowIds with a specific batch size
     LongStream.rangeClosed(defaultEnv.getFirstRowIdInShard(), lastRowIdInShard). //
@@ -222,11 +225,7 @@ public class ColumnAggregationStep extends AbstractThreadedExecutablePlanStep {
                 // will
                 // contain some sort of default values, which we do not want to include in the aggregation!
                 final long finalRowId = rowId;
-                Set<String> colNamesForCurRow =
-                    columnPatternUtil.findColNamesForColNamePattern(defaultEnv, inputColumnNamePattern, lenCol -> {
-                  long colValueId = lenCol.resolveColumnValueIdForRow(finalRowId);
-                  return lenCol.getColumnShardDictionary().decompressValue(colValueId);
-                });
+                Set<String> colNamesForCurRow = finalColumnPatternContainer.getColumnPatternsSinglePattern(finalRowId);
 
                 AggregationFunction<Object, IntermediaryResult<Object, Object, Object>, Object> aggFunction =
                     functionFactory.createAggregationFunction(functionNameLowerCase, inputColType);

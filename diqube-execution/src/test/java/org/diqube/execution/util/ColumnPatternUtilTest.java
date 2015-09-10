@@ -25,10 +25,16 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.diqube.data.lng.dict.LongDictionary;
 import org.diqube.data.util.RepeatedColumnNameGenerator;
 import org.diqube.execution.env.ExecutionEnvironment;
+import org.diqube.execution.env.querystats.QueryableLongColumnShard;
+import org.diqube.execution.util.ColumnPatternUtil.ColumnPatternContainer;
 import org.diqube.execution.util.ColumnPatternUtil.PatternException;
+import org.diqube.util.Triple;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -46,52 +52,69 @@ public class ColumnPatternUtilTest {
   public void before() {
     colPatternUtil = new ColumnPatternUtil();
     colPatternUtil.setRepeatedColNames(new RepeatedColumnNameGenerator());
-    colPatternUtil.initialize();
-    env = Mockito.mock(ExecutionEnvironment.class, Mockito.RETURNS_MOCKS);
+    env = Mockito.mock(ExecutionEnvironment.class);
   }
 
   @Test
   public void singlePatternSimple() {
-    // GIVEN WHEN
-    Set<String> res = colPatternUtil.findColNamesForColNamePattern(env, "a.b[*].c", colShard -> 2L);
+    // GIVEN
+    simulateLengths(new Triple<>("a.b", 5L, 2L));
+
+    // WHEN
+    ColumnPatternContainer patterns = colPatternUtil.findColNamesForColNamePattern(env, "a.b[*].c");
+    Set<List<String>> res = patterns.getColumnPatterns(1L);
 
     // THEN
-    Set<String> expected = new HashSet<>(Arrays.asList("a.b[0].c", "a.b[1].c"));
+    Set<List<String>> expected = new HashSet<>(Arrays.asList(Arrays.asList("a.b[0].c"), Arrays.asList("a.b[1].c")));
 
     Assert.assertEquals(res, expected, "Expected correct final colNames");
   }
 
   @Test
   public void singlePatternSimple2() {
-    // GIVEN WHEN
-    Set<String> res = colPatternUtil.findColNamesForColNamePattern(env, "a.b[*].c[*]", colShard -> 2L);
+    // GIVEN
+    simulateLengths(new Triple<>("a.b", 3L, 2L), //
+        new Triple<>("a.b[0].c", 7L, 1L), //
+        new Triple<>("a.b[1].c", 3L, 3L), //
+        new Triple<>("a.b[2].c", 1L, 0L));
+
+    // WHEN
+    ColumnPatternContainer patterns = colPatternUtil.findColNamesForColNamePattern(env, "a.b[*].c[*]");
+    Set<List<String>> res = patterns.getColumnPatterns(1L);
 
     // THEN
-    Set<String> expected = new HashSet<>(Arrays.asList("a.b[0].c[0]", "a.b[0].c[1]", "a.b[1].c[0]", "a.b[1].c[1]"));
+    Set<List<String>> expected = new HashSet<>(Arrays.asList( //
+        Arrays.asList("a.b[0].c[0]"), //
+        Arrays.asList("a.b[1].c[0]"), //
+        Arrays.asList("a.b[1].c[1]"), //
+        Arrays.asList("a.b[1].c[2]")));
 
     Assert.assertEquals(res, expected, "Expected correct final colNames");
   }
 
-  @Test
+  @Test(expectedExceptions = PatternException.class)
   public void singlePatternNone() {
-    // GIVEN WHEN
-    Set<String> res = colPatternUtil.findColNamesForColNamePattern(env, "a.b[1].c[0]", colShard -> 2L);
+    // GIVEN
 
-    // THEN
-    Set<String> expected = new HashSet<>(Arrays.asList("a.b[1].c[0]"));
+    // WHEN
+    colPatternUtil.findColNamesForColNamePattern(env, "a.b[1].c[0]");
 
-    Assert.assertEquals(res, expected, "Expected correct final colNames");
+    // THEN: PatternException (no [*])
   }
 
   @Test
   public void multiplePatternSimple() {
+    // GIVEN
+    simulateLengths(new Triple<>("a.b", 5L, 2L));
+
     // GIVEN WHEN
-    Set<List<String>> res =
-        colPatternUtil.findColNamesForColNamePattern(env, Arrays.asList("a.b[*].c", "a.b[*].d"), colShard -> 2L);
+    ColumnPatternContainer patterns =
+        colPatternUtil.findColNamesForColNamePattern(env, Arrays.asList("a.b[*].c", "a.b[*].d"));
+    Set<List<String>> res = patterns.getColumnPatterns(1L);
 
     // THEN
-    Set<List<String>> expected =
-        new HashSet<>(Arrays.asList(Arrays.asList("a.b[0].c", "a.b[0].d"), Arrays.asList("a.b[1].c", "a.b[1].d")));
+    Set<List<String>> expected = new HashSet<>(Arrays.asList(Arrays.asList("a.b[0].c", "a.b[0].d"), //
+        Arrays.asList("a.b[1].c", "a.b[1].d")));
 
     Assert.assertEquals(res, expected, "Expected correct final colNames");
   }
@@ -99,23 +122,30 @@ public class ColumnPatternUtilTest {
   @Test(expectedExceptions = PatternException.class)
   public void multiplePatternWrongRepetition() {
     // GIVEN WHEN
-    colPatternUtil.findColNamesForColNamePattern(env, Arrays.asList("a.b[*].c", "a.c[*].d[*]"), colShard -> 2L);
+    colPatternUtil.findColNamesForColNamePattern(env, Arrays.asList("a.b[*].c", "a.c[*].d[*]"));
 
     // THEN - exception
   }
 
   @Test
   public void multiplePatternTwoLevel() {
-    // GIVEN WHEN
-    Set<List<String>> res =
-        colPatternUtil.findColNamesForColNamePattern(env, Arrays.asList("a.b[*].c", "a.b[*].d[*].e"), colShard -> 2L);
+    // GIVEN
+    simulateLengths(new Triple<>("a.b", 3L, 3L), //
+        new Triple<>("a.b[0].d", 7L, 3L), //
+        new Triple<>("a.b[1].d", 2L, 1L), //
+        new Triple<>("a.b[2].d", 1L, 0L));
+
+    // WHEN
+    ColumnPatternContainer patterns =
+        colPatternUtil.findColNamesForColNamePattern(env, Arrays.asList("a.b[*].c", "a.b[*].d[*].e"));
+    Set<List<String>> res = patterns.getColumnPatterns(1L);
 
     // THEN
     Set<List<String>> expected = new HashSet<>(Arrays.asList( //
         Arrays.asList("a.b[0].c", "a.b[0].d[0].e"), //
         Arrays.asList("a.b[0].c", "a.b[0].d[1].e"), //
-        Arrays.asList("a.b[1].c", "a.b[1].d[0].e"), //
-        Arrays.asList("a.b[1].c", "a.b[1].d[1].e") //
+        Arrays.asList("a.b[0].c", "a.b[0].d[2].e"), //
+        Arrays.asList("a.b[1].c", "a.b[1].d[0].e") //
     ));
 
     Assert.assertEquals(res, expected, "Expected correct final colNames");
@@ -123,16 +153,23 @@ public class ColumnPatternUtilTest {
 
   @Test
   public void multiplePatternTwoLevel2() {
-    // GIVEN WHEN
-    Set<List<String>> res =
-        colPatternUtil.findColNamesForColNamePattern(env, Arrays.asList("a[*].b.c[*]", "a[*].b.d"), colShard -> 2L);
+    // GIVEN
+    simulateLengths(new Triple<>("a", 3L, 2L), //
+        new Triple<>("a[0].b.c", 3L, 2L), //
+        new Triple<>("a[1].b.c", 3L, 1L), //
+        new Triple<>("a[2].b.c", 1L, 1L) //
+    );
+
+    // WHEN
+    ColumnPatternContainer patterns =
+        colPatternUtil.findColNamesForColNamePattern(env, Arrays.asList("a[*].b.c[*]", "a[*].b.d"));
+    Set<List<String>> res = patterns.getColumnPatterns(1L);
 
     // THEN
     Set<List<String>> expected = new HashSet<>(Arrays.asList( //
         Arrays.asList("a[0].b.c[0]", "a[0].b.d"), //
         Arrays.asList("a[0].b.c[1]", "a[0].b.d"), //
-        Arrays.asList("a[1].b.c[0]", "a[1].b.d"), //
-        Arrays.asList("a[1].b.c[1]", "a[1].b.d") //
+        Arrays.asList("a[1].b.c[0]", "a[1].b.d") //
     ));
 
     Assert.assertEquals(res, expected, "Expected correct final colNames");
@@ -140,36 +177,80 @@ public class ColumnPatternUtilTest {
 
   @Test
   public void multiplePatternTwoLevel3() {
-    // GIVEN WHEN
-    Set<List<String>> res =
-        colPatternUtil.findColNamesForColNamePattern(env, Arrays.asList("a[*].b.c[*]", "a[*].b.c[*]"), colShard -> 2L);
+    // GIVEN
+    simulateLengths(new Triple<>("a", 3L, 2L), //
+        new Triple<>("a[0].b.c", 3L, 2L), //
+        new Triple<>("a[1].b.c", 3L, 1L), //
+        new Triple<>("a[2].b.c", 3L, 2L) //
+    );
+
+    // WHEN
+    ColumnPatternContainer patterns =
+        colPatternUtil.findColNamesForColNamePattern(env, Arrays.asList("a[*].b.c[*]", "a[*].b.c[*]"));
+    Set<List<String>> res = patterns.getColumnPatterns(1L);
 
     // THEN
     Set<List<String>> expected = new HashSet<>(Arrays.asList( //
         Arrays.asList("a[0].b.c[0]", "a[0].b.c[0]"), //
         Arrays.asList("a[0].b.c[1]", "a[0].b.c[1]"), //
-        Arrays.asList("a[1].b.c[0]", "a[1].b.c[0]"), //
-        Arrays.asList("a[1].b.c[1]", "a[1].b.c[1]") //
-    ));
+        Arrays.asList("a[1].b.c[0]", "a[1].b.c[0]")));
 
     Assert.assertEquals(res, expected, "Expected correct final colNames");
   }
 
   @Test
   public void multiplePatternTwoAndNone() {
-    // GIVEN WHEN
-    Set<List<String>> res =
-        colPatternUtil.findColNamesForColNamePattern(env, Arrays.asList("a[*].b.c[*]", "a.x"), colShard -> 2L);
+    // GIVEN
+    simulateLengths(new Triple<>("a", 3L, 2L), //
+        new Triple<>("a[0].b.c", 3L, 2L), //
+        new Triple<>("a[1].b.c", 3L, 1L), //
+        new Triple<>("a[2].b.c", 3L, 2L) //
+    );
+
+    // WHEN
+    ColumnPatternContainer patterns =
+        colPatternUtil.findColNamesForColNamePattern(env, Arrays.asList("a[*].b.c[*]", "a.x"));
+    Set<List<String>> res = patterns.getColumnPatterns(1L);
 
     // THEN
     Set<List<String>> expected = new HashSet<>(Arrays.asList( //
         Arrays.asList("a[0].b.c[0]", "a.x"), //
         Arrays.asList("a[0].b.c[1]", "a.x"), //
-        Arrays.asList("a[1].b.c[0]", "a.x"), //
-        Arrays.asList("a[1].b.c[1]", "a.x") //
-    ));
+        Arrays.asList("a[1].b.c[0]", "a.x")));
 
     Assert.assertEquals(res, expected, "Expected correct final colNames");
+  }
+
+  /**
+   * @param lengths
+   *          Triple of "colName", "maxLen", "len of requested row".
+   */
+  @SuppressWarnings({ "rawtypes", "unchecked" })
+  @SafeVarargs
+  private final void simulateLengths(Triple<String, Long, Long>... lengths) {
+    for (Triple<String, Long, Long> lengthTriple : lengths) {
+      String colName = lengthTriple.getLeft();
+      long maxLen = lengthTriple.getMiddle();
+      long len = lengthTriple.getRight();
+      LongDictionary<?> colDictMock = Mockito.mock(LongDictionary.class);
+      Mockito.when(colDictMock.getMaxId()).thenReturn(Long.valueOf(Long.MIN_VALUE));
+      Mockito.when(colDictMock.decompressValue(Mockito.anyLong())).thenAnswer(new Answer<Long>() {
+        @Override
+        public Long answer(InvocationOnMock invocation) throws Throwable {
+          if (invocation.getArguments()[0].equals(Long.MIN_VALUE))
+            return Long.valueOf(maxLen);
+          return Long.valueOf(len);
+        }
+      });
+
+      QueryableLongColumnShard lenColMock = Mockito.mock(QueryableLongColumnShard.class, Mockito.RETURNS_MOCKS);
+      Mockito.when(lenColMock.getColumnShardDictionary()).thenReturn((LongDictionary) colDictMock);
+      // any value != Long.MIN_VALUE.
+      Mockito.when(lenColMock.resolveColumnValueIdForRow(Mockito.anyLong())).thenReturn(99L);
+
+      Mockito.when(env.getLongColumnShard(new RepeatedColumnNameGenerator().repeatedLength(colName)))
+          .thenReturn(lenColMock);
+    }
   }
 
 }
