@@ -220,10 +220,8 @@ public class ColumnAggregationStep extends AbstractThreadedExecutablePlanStep {
               for (long rowId = firstRowId; rowId < firstRowId + BATCH_SIZE && rowId <= lastRowIdInShard; rowId++) {
 
                 // Ok, lets work on this single row. Let's first find all the column names that are important for this
-                // row
-                // - based on the value of the "length" columns at this row. The other rows (with indices >= length)
-                // will
-                // contain some sort of default values, which we do not want to include in the aggregation!
+                // row - based on the value of the "length" columns at this row. The other rows (with indices >= length)
+                // will contain some sort of default values, which we do not want to include in the aggregation!
                 final long finalRowId = rowId;
                 Set<String> colNamesForCurRow = finalColumnPatternContainer.getColumnPatternsSinglePattern(finalRowId);
 

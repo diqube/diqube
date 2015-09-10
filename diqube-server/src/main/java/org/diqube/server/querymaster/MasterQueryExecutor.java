@@ -247,21 +247,18 @@ class MasterQueryExecutor {
       boolean thereAreUpdates = false;
       try {
         synchronized (waiter) { // check for 0 and then wait to not block unneccesarily, see #scheduleUpdate.
-          if (updatesWaiting.get() == 0) {
+          if (updatesWaiting.get() == 0)
             waiter.wait(1000);
 
-            // Check if there are updates and re-set counter to 0.
-            // This is not 100% thread safe, but should be good enough - some updates might arrive after we set the
-            // flag and we would include those updates in the resultTable, although the counter is still increased
-            // - in that case we might ending up sending the same values twice. But that is better than loosing
-            // updates
-            // when setting the counter to 0 after creating the resultTable.
-            // On the other hand, it is safe to set the counter to 0 here, as we guarantee that we'll work on all the
-            // updates that are available right now. If we'd set the counter to 0 later on, on the other hand, we
-            // might
-            // loose updates - we're safe to not loose any updates if we do this re-setting inside the sync block.
-            thereAreUpdates = updatesWaiting.getAndSet(0) != 0;
-          }
+          // Check if there are updates and re-set counter to 0.
+          // This is not 100% thread safe, but should be good enough - some updates might arrive after we set the
+          // flag and we would include those updates in the resultTable, although the counter is still increased
+          // - in that case we might ending up sending the same values twice. But that is better than loosing
+          // updates when setting the counter to 0 after creating the resultTable.
+          // On the other hand, it is safe to set the counter to 0 here, as we guarantee that we'll work on all the
+          // updates that are available right now. If we'd set the counter to 0 later on, on the other hand, we
+          // might loose updates - we're safe to not loose any updates if we do this re-setting inside the sync block.
+          thereAreUpdates = updatesWaiting.getAndSet(0) != 0;
         }
       } catch (InterruptedException e) {
         // we were interrupted, let's quietly shut down this thread.

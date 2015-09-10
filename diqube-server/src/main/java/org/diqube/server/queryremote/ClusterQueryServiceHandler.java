@@ -36,6 +36,8 @@ import org.diqube.cluster.connection.Connection;
 import org.diqube.cluster.connection.ConnectionException;
 import org.diqube.cluster.connection.ConnectionPool;
 import org.diqube.cluster.connection.SocketListener;
+import org.diqube.config.Config;
+import org.diqube.config.ConfigKey;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.data.TableShard;
 import org.diqube.execution.ExecutablePlan;
@@ -113,6 +115,9 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
   @Inject
   private ClusterManager clusterManager;
 
+  @Config(ConfigKey.CONCURRENT_TABLE_SHARD_EXECUTION_PER_QUERY)
+  private int numberOfTableShardsToExecuteConcurrently;
+
   /**
    * Starts executing a {@link RExecutionPlan} on all {@link TableShard}s on this node, which act as "query remote"
    * node.
@@ -166,8 +171,8 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
 
     executionUuidsAndResultConnections.put(queryUuid, new Pair<>(executionUuid, resultConnection));
 
-    RemoteExecutionPlanExecutor executor =
-        new RemoteExecutionPlanExecutor(tableRegistry, executablePlanBuilderFactory, executorManager, queryRegistry);
+    RemoteExecutionPlanExecutor executor = new RemoteExecutionPlanExecutor(tableRegistry, executablePlanBuilderFactory,
+        executorManager, queryRegistry, numberOfTableShardsToExecuteConcurrently);
 
     // Exception handler that handles exceptions that are thrown during execution (one handler for all TableShards!)
     // This can also close all resources, if parameters "null,null" are passed.

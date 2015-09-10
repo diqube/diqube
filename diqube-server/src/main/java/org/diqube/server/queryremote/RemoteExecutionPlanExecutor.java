@@ -21,7 +21,9 @@
 package org.diqube.server.queryremote;
 
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -29,6 +31,8 @@ import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.diqube.data.TableShard;
@@ -73,12 +77,15 @@ public class RemoteExecutionPlanExecutor {
 
   private QueryRegistry queryRegistry;
 
+  private int numberOfTableShardsToExecuteConcurrently;
+
   public RemoteExecutionPlanExecutor(TableRegistry tableRegistry,
       ExecutablePlanFromRemoteBuilderFactory executablePlanBuilderFactory, ExecutorManager executorManager,
-      QueryRegistry queryRegistry) {
+      QueryRegistry queryRegistry, int numberOfTableShardsToExecuteConcurrently) {
     this.executablePlanBuilderFactory = executablePlanBuilderFactory;
     this.executorManager = executorManager;
     this.queryRegistry = queryRegistry;
+    this.numberOfTableShardsToExecuteConcurrently = numberOfTableShardsToExecuteConcurrently;
   }
 
   private short calculatePercentDoneDelta(List<ExecutionPercentage> executionPercentages) {
@@ -172,26 +179,57 @@ public class RemoteExecutionPlanExecutor {
     return new Pair<>(new Runnable() {
       @Override
       public void run() {
-        List<Future<?>> futures = new ArrayList<>();
 
         int numberOfThreads = 0;
-        for (ExecutablePlan plan : executablePlans) {
-          TableShard shard = plan.getDefaultExecutionEnvironment().getTableShardIfAvailable();
 
-          numberOfThreads += plan.preferredExecutorServiceSize();
+        Deque<ExecutablePlan> planQueue = new LinkedList<>(executablePlans);
 
-          Executor executor = executorManager.newQueryFixedThreadPool(plan.preferredExecutorServiceSize(),
-              "query-remote-worker-" + queryUuid + "-shard" + shard.getLowestRowId() + "-%d", queryUuid, executionUuid);
+        List<Future<Void>> activeFutures = new ArrayList<>();
+        while (!planQueue.isEmpty()) {
+          while (activeFutures.size() < numberOfTableShardsToExecuteConcurrently && !planQueue.isEmpty()) {
+            ExecutablePlan plan = planQueue.poll();
+            TableShard shard = plan.getDefaultExecutionEnvironment().getTableShardIfAvailable();
 
-          Future<Void> f = plan.executeAsynchronously(executor);
-          futures.add(f);
+            numberOfThreads += plan.preferredExecutorServiceSize();
+
+            Executor executor = executorManager.newQueryFixedThreadPool(plan.preferredExecutorServiceSize(),
+                "query-remote-worker-" + queryUuid + "-shard" + shard.getLowestRowId() + "-%d", queryUuid,
+                executionUuid);
+
+            logger.info("Starting to execute query {} execution {} on shard {}.", queryUuid, executionUuid,
+                shard.getLowestRowId());
+
+            Future<Void> f = plan.executeAsynchronously(executor);
+            activeFutures.add(f);
+          }
+
+          for (int i = 0; true; i++) {
+            i = i % activeFutures.size();
+            Future<Void> f = activeFutures.get(i);
+
+            try {
+              f.get(1, TimeUnit.SECONDS);
+              // if we get here, the future is done! Woohoo!
+              logger.info("One shard completed execution of query {} execution {}", queryUuid, executionUuid);
+              activeFutures.remove(i);
+              break; // check if we still have another plan to execute, continue in while loop!
+            } catch (ExecutionException e) {
+              // swallow, the exception will be handled by the "unhandedExceptionHandler" of the steps thread.
+              return;
+            } catch (InterruptedException e) {
+              // interrupted, stop quietly.
+              return;
+            } catch (TimeoutException e) {
+              // swallow, this future is not done yet. Try the next one.
+            }
+          }
         }
 
-        queryRegistry.getOrCreateCurrentStatsManager().setNumberOfThreads(numberOfThreads);
-
-        for (Future<?> f : futures)
+        // wait for the rest of the futures to be done.
+        for (Future<Void> f : activeFutures) {
           try {
             f.get();
+            break; // check if we still have another plan to execute, continue in while loop!
           } catch (ExecutionException e) {
             // swallow, the exception will be handled by the "unhandedExceptionHandler" of the steps thread.
             return;
@@ -199,6 +237,9 @@ public class RemoteExecutionPlanExecutor {
             // interrupted, stop quietly.
             return;
           }
+        }
+
+        queryRegistry.getOrCreateCurrentStatsManager().setNumberOfThreads(numberOfThreads);
         callback.executionDone();
       }
     }, executablePlans);

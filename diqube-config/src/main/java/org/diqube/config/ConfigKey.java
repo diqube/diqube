@@ -113,4 +113,14 @@ public class ConfigKey {
    * connections before these reach {@link #CONNECTION_IDLE_TIME_MS}.
    */
   public static final String CONNECTION_EARLY_CLOSE_LEVEL = "connectionEarlyCloseLevel";
+
+  /**
+   * The number of table shards that a new query should be executed on concurrently.
+   * 
+   * Each table might have multiple tableshards locally. A query is processed locally per table shard. The more table
+   * shards are processed concurrently, the longer it takes until the client receives first intermediary updates. The
+   * more table shards are processed concurrently, the longer it takes until intermediary unpdates are available, but
+   * the overall execution time until the final result is available might be lower.
+   */
+  public static final String CONCURRENT_TABLE_SHARD_EXECUTION_PER_QUERY = "concurrentTableShardExecutionPerQuery";
 }

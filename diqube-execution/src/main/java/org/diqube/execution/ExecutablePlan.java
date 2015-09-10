@@ -198,7 +198,13 @@ public class ExecutablePlan {
 
         getWait.wait(unit.toMillis(timeout));
       }
-      return null;
+
+      if (isDone())
+        return null;
+      if (isException)
+        throw new ExecutionException("There was an exception executing the plan", null);
+
+      throw new TimeoutException("ExecutablePlan not executed yet");
     }
 
     private void oneStepIsDone() {
