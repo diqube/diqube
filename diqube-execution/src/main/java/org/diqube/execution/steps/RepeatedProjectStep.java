@@ -20,16 +20,20 @@
  */
 package org.diqube.execution.steps;
 
+import java.lang.reflect.Array;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
+import java.util.function.LongConsumer;
 import java.util.stream.Collectors;
+import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
 import org.diqube.data.ColumnType;
@@ -54,9 +58,12 @@ import org.diqube.execution.util.ColumnPatternUtil.LengthColumnMissingException;
 import org.diqube.function.FunctionFactory;
 import org.diqube.function.ProjectionFunction;
 import org.diqube.loader.LoaderColumnInfo;
+import org.diqube.loader.columnshard.ColumnShardBuilder;
 import org.diqube.loader.columnshard.ColumnShardBuilderFactory;
 import org.diqube.loader.columnshard.ColumnShardBuilderManager;
 import org.diqube.queries.QueryRegistry;
+import org.diqube.queries.QueryUuid;
+import org.diqube.queries.QueryUuid.QueryUuidThreadState;
 import org.diqube.util.ColumnOrValue;
 import org.diqube.util.ColumnOrValue.Type;
 
@@ -84,6 +91,8 @@ import com.google.common.collect.Sets;
  * @author Bastian Gloeckle
  */
 public class RepeatedProjectStep extends AbstractThreadedExecutablePlanStep {
+  private static final int BATCH_SIZE = ColumnShardBuilder.PROPOSAL_ROWS; // approx work on whole ColumnPages.
+
   private AtomicBoolean allInputColumnsBuilt = new AtomicBoolean(false);
 
   private AbstractThreadedColumnBuiltConsumer colBuiltConsumer = new AbstractThreadedColumnBuiltConsumer(this) {
@@ -168,79 +177,144 @@ public class RepeatedProjectStep extends AbstractThreadedExecutablePlanStep {
       return;
     }
 
-    long lowestRowId = defaultEnv.getTableShardIfAvailable().getLowestRowId();
-    long numberOfRows = defaultEnv.getTableShardIfAvailable().getNumberOfRowsInShard();
-
-    ColumnType inputColType = null;
-    ColumnType outputColType = null;
+    long lowestRowIdInShard = defaultEnv.getTableShardIfAvailable().getLowestRowId();
+    long numberOfRowsInShard = defaultEnv.getTableShardIfAvailable().getNumberOfRowsInShard();
 
     LoaderColumnInfo colInfo = new LoaderColumnInfo(ColumnType.LONG); // LONG is fine for the length col, other ones are
                                                                       // specified below.
 
     ColumnShardBuilderManager colBuilderManager =
-        columnShardBuilderFactory.createColumnShardBuilderManager(colInfo, lowestRowId);
+        columnShardBuilderFactory.createColumnShardBuilderManager(colInfo, lowestRowIdInShard);
 
     // name of the resulting "length" column.
     String lengthColName = repeatedColNameGen.repeatedLength(outputColNameBase);
 
-    // process each input row by itself. This is expensive, but as each row might have different "lengths" of the input
-    // repeated cols, this is the cleanest way to implement this.
-    for (long rowId = lowestRowId; rowId < lowestRowId + numberOfRows; rowId++) {
-      long finalRowId = rowId;
-      // Find the input column index combinations that are valid in this row. For each of the returned lists, one result
-      // column will be built, all of those columns are a repeated field.
-      Set<List<String>> colCombinationsForRow = columnPatternContainer.getColumnPatterns(finalRowId);
+    ColumnType inputColType = defaultEnv.getColumnType(allNonLengthCols.iterator().next());
+    ProjectionFunction<Object, Object> fn =
+        functionFactory.createProjectionFunction(functionNameLowerCase, inputColType);
 
-      // fill the resulting "length" col.
-      colBuilderManager.addValues(lengthColName, new Long[] { (long) colCombinationsForRow.size() }, rowId);
+    if (fn == null)
+      throw new ExecutablePlanExecutionException(
+          "Cannot find function '" + functionNameLowerCase + "' with input data type " + inputColType);
 
-      Iterator<List<String>> colCombIt = colCombinationsForRow.iterator();
-      for (int colCombinationIdx = 0; colCombinationIdx < colCombinationsForRow.size(); colCombinationIdx++) {
-        List<String> colCombination = colCombIt.next();
+    ColumnType outputColType = fn.getOutputType();
 
-        if (inputColType == null)
-          inputColType = defaultEnv.getColumnType(colCombination.get(0));
+    // register type of output columns.
+    for (String outputColName : allNonLengthCols)
+      colInfo.registerColumnType(outputColName, outputColType);
 
-        ProjectionFunction<Object, Object> fn =
-            functionFactory.createProjectionFunction(functionNameLowerCase, inputColType);
+    QueryUuidThreadState uuidState = QueryUuid.getCurrentThreadState();
 
-        if (fn == null)
-          throw new ExecutablePlanExecutionException(
-              "Cannot find function '" + functionNameLowerCase + "' with input data type " + inputColType);
+    long lastRowIdInShard = defaultEnv.getLastRowIdInShard();
+    LongStream.rangeClosed(defaultEnv.getFirstRowIdInShard(), lastRowIdInShard). //
+        parallel().filter(l -> (l - defaultEnv.getFirstRowIdInShard()) % BATCH_SIZE == 0).forEach(new LongConsumer() {
+          @Override
+          public void accept(long firstRowId) {
+            QueryUuid.setCurrentThreadState(uuidState);
+            try {
+              // group RowIds by their colCombination (which takes into account what values the "length" columns
+              // actually
+              // have per row). We can then later process rowIds which have the same column combination at the same
+              // time.
+              // The default grouping algorithm we use here is based on hashing (a HashMap), so that should be fine for
+              // us.
+              long lastRowIdExcluded = Math.min(firstRowId + BATCH_SIZE, lowestRowIdInShard + numberOfRowsInShard);
+              Map<Set<List<String>>, List<Long>> rowIdsGroupedByColCombination =
+                  LongStream.range(firstRowId, lastRowIdExcluded).mapToObj(Long::valueOf)
+                      .collect(Collectors.groupingBy(rowId -> columnPatternContainer.getColumnPatterns(rowId)));
 
-        if (outputColType == null)
-          outputColType = fn.getOutputType();
+              for (Entry<Set<List<String>>, List<Long>> groupedRowIdsEntry : rowIdsGroupedByColCombination.entrySet()) {
+                Set<List<String>> colCombinations = groupedRowIdsEntry.getKey();
+                List<Long> rowIds = groupedRowIdsEntry.getValue();
 
-        for (int paramIdx = 0; paramIdx < functionParameters.length; paramIdx++) {
-          ColumnOrValue parameter = functionParameters[paramIdx];
-          Object value;
+                if (colCombinations.isEmpty())
+                  // skip rows that had length == 0 everywhere.
+                  continue;
 
-          if (parameter.getType().equals(Type.LITERAL))
-            value = parameter.getValue();
-          else {
-            int patternIdx = inputColPatternsIndex.get(parameter.getColumnName());
-            String actualColName = colCombination.get(patternIdx);
-            ColumnShard colShard = defaultEnv.getPureConstantColumnShard(actualColName);
+                // fill the resulting "length" cols.
+                for (long rowId : rowIds)
+                  colBuilderManager.addValues(lengthColName, new Long[] { (long) colCombinations.size() }, rowId);
 
-            if (colShard != null)
-              value = ((ConstantColumnShard) colShard).getValue();
-            else {
-              QueryableColumnShard queryableColShard = defaultEnv.getColumnShard(actualColName);
-              value = queryableColShard.getColumnShardDictionary()
-                  .decompressValue(queryableColShard.resolveColumnValueIdForRow(finalRowId));
+                Long[] rowIdsArray = rowIds.toArray(new Long[rowIds.size()]);
+
+                Map<Integer, List<Object>> functionParamValues = new HashMap<>();
+                Map<Integer, Object> constantFunctionParams = new HashMap<>();
+                for (int i = 0; i < functionParameters.length; i++)
+                  functionParamValues.put(i, new ArrayList<>());
+
+                for (List<String> colCombination : colCombinations) {
+                  for (int paramIdx = 0; paramIdx < functionParameters.length; paramIdx++) {
+                    ColumnOrValue parameter = functionParameters[paramIdx];
+                    if (parameter.getType().equals(Type.LITERAL))
+                      constantFunctionParams.put(paramIdx, parameter.getValue());
+                    else {
+                      int patternIdx = inputColPatternsIndex.get(parameter.getColumnName());
+                      String actualColName = colCombination.get(patternIdx);
+                      ColumnShard colShard = defaultEnv.getPureConstantColumnShard(actualColName);
+
+                      Object values[];
+                      if (colShard != null) {
+                        // Fill a full value array with the constant value, as the next colCombination probably will not
+                        // have the same constant value for this param, so we force ourselves to go into "array mode"
+                        // for
+                        // this parameter.
+                        Object constantValue = ((ConstantColumnShard) colShard).getValue();
+                        values = (Object[]) Array.newInstance(constantValue.getClass(), rowIds.size());
+                        Arrays.fill(values, constantValue);
+                      } else {
+                        QueryableColumnShard queryableColShard = defaultEnv.getColumnShard(actualColName);
+                        values = queryableColShard.getColumnShardDictionary()
+                            .decompressValues(queryableColShard.resolveColumnValueIdsForRowsFlat(rowIdsArray));
+                      }
+
+                      functionParamValues.get(paramIdx).addAll(Arrays.asList(values));
+                    }
+                  }
+                }
+
+                ProjectionFunction<Object, Object> fn =
+                    functionFactory.createProjectionFunction(functionNameLowerCase, inputColType);
+                for (Entry<Integer, Object> constantParamEntry : constantFunctionParams.entrySet())
+                  fn.provideConstantParameter(constantParamEntry.getKey(), constantParamEntry.getValue());
+
+                for (Integer normalParamIdx : Sets.difference(functionParamValues.keySet(),
+                    constantFunctionParams.keySet())) {
+                  List<Object> valuesList = functionParamValues.get(normalParamIdx);
+                  Object[] valuesArray = valuesList.toArray(
+                      (Object[]) Array.newInstance(valuesList.iterator().next().getClass(), valuesList.size()));
+                  fn.provideParameter(normalParamIdx, valuesArray);
+                }
+
+                Object[] functionResult = fn.execute();
+
+                // functionResult now contains the results for each colCombination and each row. The data is though
+                // "grouped" by colCombination, so now to add the result values to the colBuilderManager we have to pick
+                // the right indices of the array again.
+
+                Object[] rowValueArray = (Object[]) Array.newInstance(functionResult[0].getClass(), 1);
+
+                // TODO if rowIds are consecutive we can add multiple rows to the ColBuilderManager here at once.
+                for (int rowIdIdx = 0; rowIdIdx < rowIds.size(); rowIdIdx++) {
+                  for (int colCombinationIdx = 0; colCombinationIdx < colCombinations.size(); colCombinationIdx++) {
+                    String outputColName = repeatedColNameGen.repeatedAtIndex(outputColNameBase, colCombinationIdx);
+
+                    rowValueArray[0] = functionResult[colCombinationIdx * rowIds.size() + rowIdIdx];
+
+                    colBuilderManager.addValues(outputColName, rowValueArray, rowIds.get(rowIdIdx));
+                  }
+                }
+              }
+            } finally {
+              QueryUuid.clearCurrent();
             }
           }
-          fn.provideConstantParameter(paramIdx, value);
-        }
+        });
 
-        Object[] functionResult = fn.execute(); // single entry array as we provided only constant parameters.
+    QueryUuid.setCurrentThreadState(uuidState);
 
-        String outputColName = repeatedColNameGen.repeatedAtIndex(outputColNameBase, colCombinationIdx);
-
-        colInfo.registerColumnType(outputColName, outputColType);
-        colBuilderManager.addValues(outputColName, functionResult, rowId);
-      }
-    }
+    // make sure every row in each column is fully filled with default values, even if the last rows of repeated columns
+    // had a "length" of 0. Otherwise the latter would not be filled with default values.
+    colBuilderManager.expectToFillDataUpToRow(lowestRowIdInShard + numberOfRowsInShard - 1);
 
     // build the cols!
     for (String newColName : colBuilderManager.getAllColumnsWithValues()) {

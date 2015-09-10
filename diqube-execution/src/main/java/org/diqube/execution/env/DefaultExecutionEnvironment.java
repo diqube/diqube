@@ -25,6 +25,9 @@ import java.util.List;
 import java.util.Map;
 
 import org.diqube.data.TableShard;
+import org.diqube.data.dbl.DoubleColumnShard;
+import org.diqube.data.lng.LongColumnShard;
+import org.diqube.data.str.StringColumnShard;
 import org.diqube.execution.env.querystats.QueryableColumnShard;
 import org.diqube.execution.env.querystats.QueryableDoubleColumnShard;
 import org.diqube.execution.env.querystats.QueryableDoubleColumnShardFacade;
@@ -137,6 +140,27 @@ public class DefaultExecutionEnvironment extends AbstractExecutionEnvironment {
       res.putAll(delegateGetAllColumnShards());
 
     return res;
+  }
+
+  @Override
+  public void storeTemporaryLongColumnShard(LongColumnShard column) {
+    if (getColumnShard(column.getName()) != null)
+      throw new IllegalArgumentException("Column " + column.getName() + " already exists.");
+    super.storeTemporaryLongColumnShard(column);
+  }
+
+  @Override
+  public void storeTemporaryStringColumnShard(StringColumnShard column) {
+    if (getColumnShard(column.getName()) != null)
+      throw new IllegalArgumentException("Column " + column.getName() + " already exists.");
+    super.storeTemporaryStringColumnShard(column);
+  }
+
+  @Override
+  public void storeTemporaryDoubleColumnShard(DoubleColumnShard column) {
+    if (getColumnShard(column.getName()) != null)
+      throw new IllegalArgumentException("Column " + column.getName() + " already exists.");
+    super.storeTemporaryDoubleColumnShard(column);
   }
 
 }

@@ -143,10 +143,27 @@ public class ColumnShardBuilderManager {
   }
 
   /**
+   * Make this manager expect values up to the specified row (including).
+   * 
+   * When the {@link #buildAndFree(String)} method is called, empty rows of columns are filled with default values.
+   * 
+   * If this method is called, it is ensured on a call to {@link #buildAndFree(String)} that all rows up to and
+   * including the given rowId are filled with default values.
+   */
+  public void expectToFillDataUpToRow(long rowId) {
+    maxRow.getAndUpdate(oldVal -> Math.max(oldVal, rowId));
+  }
+
+  /**
    * Executes {@link ColumnShardBuilder#build()} and frees up the memory of the {@link ColumnShardBuilder} after that.
    * 
    * If this method is called after adding values for /all/ columns, the columns returned by this method will all have
-   * the same length - the empty rows of the column will be filled with default values.
+   * the same length (= same number of rows). Any empty rows of the column will be filled with default values. This is
+   * needed to make the column compatible e.g. with ColumnAggregationStep which resolves values before checking the
+   * length of repeated fields.
+   * 
+   * If a caller wants to make sure that all columns contain values up to a specific rowId, call
+   * {@link #expectToFillDataUpToRow(long)} before calling this method.
    */
   public StandardColumnShard buildAndFree(String colName) {
     ColumnShardBuilder<?> colBuilder = null;
