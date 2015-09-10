@@ -113,7 +113,7 @@
                 <artifactItem>
                   <groupId>org.apache.tomcat</groupId>
                   <artifactId>tomcat</artifactId>
-                  <version>8.0.24</version>
+                  <version>8.0.26</version>
                   <type>zip</type>
                   <destFileName>tomcat.zip</destFileName>
                 </artifactItem>

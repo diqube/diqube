@@ -9,6 +9,7 @@
         * NVD3, http://nvd3.org/
         * angularjs-nvd3-directives, http://angularjs-nvd3-directives.github.io/angularjs-nvd3-directives/
         * Apache Hadoop, http://hadoop.apache.org
+        * Apache Tomcat, http://tomcat.apache.org
 
     MIT License (AngularJS) [angular-mit.txt]:
 
