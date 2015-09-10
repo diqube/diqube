@@ -20,6 +20,7 @@
  */
 package org.diqube.function.projection;
 
+import org.apache.commons.math3.util.FastMath;
 import org.diqube.data.ColumnType;
 import org.diqube.function.Function;
 
@@ -34,6 +35,6 @@ public class RoundToLongFunction extends AbstractSingleParamProjectionFunction<D
   public static final String NAME = "round";
 
   public RoundToLongFunction() {
-    super(NAME, ColumnType.DOUBLE, ColumnType.LONG, Math::round);
+    super(NAME, ColumnType.DOUBLE, ColumnType.LONG, FastMath::round);
   }
 }

@@ -20,6 +20,7 @@
  */
 package org.diqube.function.projection;
 
+import org.apache.commons.math3.util.FastMath;
 import org.diqube.data.ColumnType;
 import org.diqube.function.Function;
 
@@ -38,6 +39,6 @@ public class LogLongFunction extends AbstractSingleParamProjectionFunction<Long,
   }
 
   public static double log(Long l) {
-    return Math.log(l);
+    return FastMath.log(l);
   }
 }
