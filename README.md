@@ -3,7 +3,7 @@
 diqube is a fast, distributed, in-memory column-store which enables you to analyze large amounts of read-only data
 easily. 
 
-##Geting started##
+##Getting started##
 
 To get started with diqube, you either need to 
 * prepare a [Docker](https://www.docker.com) image which will build & start a specific version of diqube for you or
