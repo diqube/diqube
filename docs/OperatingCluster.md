@@ -45,8 +45,8 @@ Of course you want to be able to load some data into each diqube server. First o
 
 When a query reaches one of the diqube servers in a cluster, it will in the end distribute the query to all cluster nodes that hold some part of the data of the table that is being queried. This means that first of all the data needs to be distributed in the cluster. 
 
-Currently diqube uses a very simple approach to this: It expects the data of a table to be split beforehand and only a *shard* of the table to be presented to a single diqube server instance for loading. A *shard* (or better: *table shard*) contains the data of a set of consecutive rows of a table - it's basically one piece of a row-wise table starting from a specific row index and includes all data of all rows up to another specific row index. This row index is called **row id** in diqube. Each diqube server can serve only *one* *table shard* of the same table currently (see #33), but serve table shards of multiple tables.
-After you have split the data of your table and created one file for each diqube server that should load the data, what you need additionally, is a `.control` file. The sample one currently is:
+Currently diqube uses a very simple approach to this: It expects the data of a table to be split beforehand and one or multiple *shard(s)* of the table to be loaded by a single diqube server instance. A *shard* (or better: *table shard*) contains the data of a set of consecutive rows of a table - it's basically one piece of a row-wise table starting from a specific row index and includes all data of all columns up to another specific row index. This row index is called **row id** in diqube. Each diqube server can serve multiple shards of the same table at once. When loading data from JSON or CSV files directly, the data of each file will be loaded into a single shard. For "diqube" files (see below), this is different.
+After you have split the data of your table and created one or multiple file(s) for each diqube server that should load the data, what you need additionally is one/multiple `.control` file(s) (for each data file you need one control file). The sample one currently is (see [here](https://github.com/diqube/diqube/tree/master/diqube-server/data)):
 
 ```
 table=age
@@ -59,23 +59,62 @@ firstRowId=0
 1. `table` denotes the name of the table the data file is part of.
 2. `file` points to the file on the local HDD from which the data should be loaded.
 3. `type` is the data type the data is available in. Currently there is `csv`, `json` and `diqube`, you should prefer `diqube`, but `json` is also somewhat fine (see below for a description of `diqube`).
-4. `defaultColumnType` is the column type that should be used as fallback. For `json` there is an automatic data type identification being executed currently, so you might choose any of the core column types here basically with effectively no effect: `string`, `double` or `long`. This value is ignroed for `diqube`. This will be re-worked in the future (see e.g. #15 and #16).
+4. `defaultColumnType` is the column type that should be used as fallback. For `json` there is an automatic data type identification being executed currently, so you might choose any of the core column types here basically with effectively no effect: `string`, `double` or `long`. This value is ignored for `diqube`. This might be re-worked in the future (see e.g. #15 and #16).
 5. `firstRowId` is the rowId of the first row of data that is available in the file.
 
-The last property is probably the most interesting for now: `firstRowId`. As stated before, the data of the whole table needs to be split before the data can be loaded by diqube. Nevertheless, *row ids* need to be maintained: Each *table shard* contains the data of a consecutive set of rows, starting from `firstRowId`. Therefore, the value needs to be different for each diqube server that loads a part of the table. 
+The last property is probably the most interesting for now: `firstRowId`. As stated before, the data of the whole table needs to be split before the data can be loaded by diqube. Nevertheless, *row ids* need to be maintained: Each data file contains the data of a consecutive set of rows, starting from `firstRowId` (potentially split into multiple table shards). Therefore, the value needs to be different for each diqube server that loads one or multiple part(s) of the table.
 
-When looking at the row ids of the whole table (=across all cluster nodes), the first row id of the table needs to be **0** and then for each row id there needs to be data available somewhere in the cluster, up to the biggest row id (= the last row id of the table).
+When looking at the row ids of the whole table (=across all cluster nodes), the first row id of the table needs to be **0** and then for each row id there needs to be data available somewhere in the cluster, up to the biggest row id (= the last row id of the table). If you operate a cluster with just one server (e.g. for testing purposes), the setting is trivial therefore: It's always "0" unless you load multiple files of a single table on that single diqube server.
 
 ###JSON format###
 
-When loading data from a JSON file, the file needs to have a specific layout: It needs to define an *array* object as top level object. This array then contains a list of objects, where each of those objects defines the data for one **row** of the table (shard). The row-objects in turn can be complex objects (=contain other complex objects) and contain arrays. Please note that each of the row-objects though has to define the same set of properties currently (see #14).
+When loading data from a JSON file, that file needs to have a specific layout: It needs to define an *array* object as top level object. This array then contains a list of objects, where each of those objects defines the data for one **row** of the table (shard). The row-objects in turn can be complex objects (=contain other complex objects) and contain arrays.
+
+Each JSON file that is loaded directly by a diqube server will result in one *table shard* being built, which will serve the rowId range starting from *firstRowId* (see control file).
 
 ###diqube format###
 
-When importing either JSON or CSV, the import data is always stored row-wise. As diqube is a column-store, it will store the values of one column of all rows together, which means it needs to transpose the input data (= read all rows, then cut the data into single columns and then start to compress single columns etc.).
-This transposing and compressing (1) takes some amount of time and (2) might take up a pretty notable amount of main memory. Usually when operating a cluster, you do not want the server process itself take up that much amount of memory for importing new data while it is serving requests at the same time - you do not want to risk that the process is killed because an out-of-memory error and you do not want to have queries being executed to slow down. Therefore you can transpose and compress the data in a separate step using the `diqube-tranpose` executable (it's a uber jar, too). That executable can read the usual input files for diqube, execute the transposing and the compression and then serialize that data into a file. That data can then easily be loaded by diqube-server, because it already is available in a columnar format and already compressed using diqube-mechanisms.
+When importing either JSON or CSV, the import data is always stored row-wise in that file. As diqube is a column-store, it will internally store the values of one column of all rows together, which means it needs to transpose the JSON/CSV input data (= read all rows, then cut the data into single columns and then start to compress single columns etc.).
+This transposing and compressing (1) takes some amount of time and (2) might take up a pretty notable amount of main memory. Usually when operating a cluster, you do not want the server process itself take up that much amount of memory for importing new data while it is serving requests at the same time - you do not want to risk that the process is killed because an out-of-memory error and you do not want to slow down any query executions.
 
-Files of the .diqube data format can also be created as output of a Apache Hadoop Map/Reduce job, using `DiqubeOutputFormat` which is available in diqube-hadoop/. Have a look at the [diqube Data Examples](https://github.com/diqube/diqube-data-examples) repository to see how to use it. 
+Therefore you can transpose and compress the data in a separate step using the [diqube-tool](https://github.com/diqube/diqube/tree/master/diqube-tool) (it's a uber jar, too). That executable has a command `transpose` which can read the usual input files for diqube, execute the transposing and the compression and then serialize that data into a file. That data can then easily and quickly be loaded by diqube-server, because it already is available in a columnar format and already compressed using diqubes own mechanisms.
+
+Files of the .diqube data format can also be created as output of a Apache Hadoop Map/Reduce job, using [DiqubeOutputFormat](https://github.com/diqube/diqube/blob/master/diqube-hadoop/src/main/java/org/diqube/hadoop/DiqubeOutputFormat.java) which is available in diqube-hadoop/. Have a look at the [diqube Data Examples](https://github.com/diqube/diqube-data-examples) repository to see how to use it. 
+
+In contrast to JSON or CSV files, diqube files can contain **multiple table shards** at once. That means that internally the diqube server will maintain multiple shards (which might influence query execution speed/responsiveness). Anyway, when specifying the *firstRowIds* in the corresponding control files, you can simply ignore that fact.
+
+####Example####
+
+Assume you have created two diqube files using diqube-hadoop. diqube-hadoop will automatically create diqube files which have multiple table shards in it: When the main memory taken by the reducers exceeds a specific amount, diqube-hadoop will start creating a table shard, flush that to the output file and therefore free up some main memory before accepting any more input data.
+
+If you now want to load these two diqube files on a single or multiple diqube servers, you need to create the control files first. 
+
+The first control file is simple, as it contains firstRowId = 0:
+
+```
+table=pums
+file=pums1.diqube
+type=diqube
+firstRowId=0
+```
+
+The data of the table shards that are served from that data then span the row IDs 0..[number of rows in pums1 - 1]. Therefore the second diqube file needs a control file with a firstRowId setting of [number fo rows in pums1], as this is the next free row ID. In order to get the number of rows stored in a diqube file, you can use [diqube-tool](https://github.com/diqube/diqube/tree/master/diqube-tool):
+
+```
+$ java -jar diqube-tool.jar info -i pums1.diqube
+Number of table shards: 7
+Total number of rows: 500000
+Comment: abc
+```
+
+Using this information, the second control file will look like this:
+
+```
+table=pums
+file=pums2.diqube
+type=diqube
+firstRowId=500000
+```
 
 ###Finally loading the data###
 

@@ -3,7 +3,21 @@
 diqube is a fast, distributed, in-memory column-store which enables you to analyze large amounts of read-only data
 easily. 
 
-##Building from source##
+##Geting started##
+
+To get started with diqube, you either need to 
+* prepare a [Docker](https://www.docker.com) image which will build & start a specific version of diqube for you or
+* install a build environment on your local machine and build and start diqube from there.
+
+In order to prepare some data to be loaded into diqube server, you might want to read the chapter "Loading data" of the 
+[Operating a cluster guide](docs/OperatingCluster.md).
+
+###Using Docker to get started###
+
+To create a Docker image, follow the instructions at
+[diqube-docker/build-and-run](https://github.com/diqube/diqube-docker/tree/master/build-and-run).
+
+###Building manually from source###
 
 [![Build Status](http://build.diqube.org/buildStatus/icon?job=diqube)](http://build.diqube.org)
 
@@ -34,9 +48,9 @@ setting the property "thrift.executable" in your settings.xml:
 
 After everything is prepared, execute the build using
 
-    $ mvn clean install
+    $ mvn clean install -DskipTests
 
-##Starting diqube##
+####Starting diqube####
 
 Execute the following after building:
 
