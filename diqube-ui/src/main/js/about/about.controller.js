@@ -18,21 +18,37 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-'use strict';
-
 (function() {
-    angular.module("diqube.route", [ "ngRoute", "diqube.query" ]).config([ "$routeProvider", function($routeProvider) {
-	$routeProvider.when("/query", {
-	    templateUrl : "query/query.html",
-	    controller : "QueryCtrl",
-	    controllerAs: "query"
-	}).when("/about", {
-	    templateUrl : "about/about.html",
-	    controller : "AboutCtrl",
-	    controllerAs: "about"
-	}).otherwise({
-	    redirectTo : "/query"
-	});
-    } ]);
+    "use strict";
 
+    angular.module("diqube.about", [ "diqube.remote" ]).controller("AboutCtrl",
+	    [ "remoteService", "$scope", function(remoteService, $scope) {
+		var me = this;
+		me.gitcommit = "";
+		me.gitcommitlong = "";
+		me.buildtimestamp = "";
+
+		// ====
+
+		function initialize() {
+		    var ws = remoteService.getSocket();
+		    ws.$$send({
+			type : "version",
+			data : {}
+		    });
+		    ws.$on("$message", function(data) {
+			if (data.type == "result") {
+			    $scope.$apply(function() {
+				me.gitcommit = data.data.gitCommitShort;
+				me.gitcommitlong = data.data.gitCommitLong;
+				me.buildtimestamp = data.data.buildTimestamp;
+			    });
+			}
+		    });
+		    ws.$on("$close", function() {
+		    });
+		}
+		
+		initialize();
+	    } ]);
 })();

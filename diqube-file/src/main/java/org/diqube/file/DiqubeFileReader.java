@@ -54,6 +54,7 @@ public class DiqubeFileReader {
   private DataDeserializer deserializer;
 
   private SDiqubeFileFooter footer;
+  private SDiqubeFileHeader header;
   private BigByteBuffer data;
   private long firstTableShardByteIndex;
   private long lastTableShardByteIndex;
@@ -67,7 +68,7 @@ public class DiqubeFileReader {
       TIOStreamTransport transport = new TIOStreamTransport(is);
       TProtocol compactProt = new TCompactProtocol(transport);
 
-      SDiqubeFileHeader header = new SDiqubeFileHeader();
+      header = new SDiqubeFileHeader();
       header.read(compactProt);
 
       // first TableShard byte is followed the SDiqubeFileHeader directly.
@@ -161,6 +162,20 @@ public class DiqubeFileReader {
    */
   public long getTableShardDataLastByteIndex() {
     return lastTableShardByteIndex;
+  }
+
+  /**
+   * @return The git commit ID of which the one who wrote this file was built from.
+   */
+  public String getWriterBuildGitCommit() {
+    return header.getWriterBuildGitCommit();
+  }
+
+  /**
+   * @return The timestamp on which the one who wrote this file was built.
+   */
+  public String getWriterBuildTimestamp() {
+    return header.getWriterBuildTimestamp();
   }
 
   /**

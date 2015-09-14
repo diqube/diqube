@@ -25,6 +25,7 @@
                                "ngWebsocket", 
                                "angular-toArrayFilter",
                                "diqube.route", 
+                               "diqube.about", 
                                "diqube.query", 
                                "diqube.remote" ]);
 })();

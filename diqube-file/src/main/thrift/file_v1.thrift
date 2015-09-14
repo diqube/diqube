@@ -24,7 +24,9 @@ namespace java org.diqube.file.v1
 struct SDiqubeFileHeader {
     1: string magic,
     2: i32 fileVersion,
-    3: i32 contentVersion
+    3: i32 contentVersion,
+    4: string writerBuildGitCommit,
+    5: string writerBuildTimestamp
 }
 
 struct SDiqubeFileFooter {

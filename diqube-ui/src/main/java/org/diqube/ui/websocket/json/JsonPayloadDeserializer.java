@@ -150,7 +150,6 @@ public class JsonPayloadDeserializer {
   static {
     payloadClasses = new ConcurrentHashMap<>();
     payloadClasses.put(JsonQueryCommand.PAYLOAD_TYPE, JsonQueryCommand.class);
-    payloadClasses.put(JsonExceptionPayload.PAYLOAD_TYPE, JsonExceptionPayload.class);
-    payloadClasses.put(JsonQueryResultPayload.PAYLOAD_TYPE, JsonQueryResultPayload.class);
+    payloadClasses.put(JsonVersionCommand.PAYLOAD_TYPE, JsonVersionCommand.class);
   }
 }

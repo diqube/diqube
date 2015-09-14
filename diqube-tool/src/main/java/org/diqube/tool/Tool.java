@@ -69,6 +69,17 @@ public class Tool implements ToolFunction {
   public void execute(String[] args) {
     if (args.length == 0 || !toolFunctions.containsKey(args[0])) {
       logger.error("No function name given or function unknown. Available functions: {}", toolFunctions.keySet());
+      System.out.println();
+      System.out.println("Copyright (C) 2015 Bastian Gloeckle");
+      System.out.println();
+      System.out.println(
+          "diqube is free software: you can redistribute it and/or modify it under the terms of the GNU Affero "
+              + "General Public License as published by the Free Software Foundation, either version 3 of the License, or "
+              + "(at your option) any later version. This program is distributed in the hope that it will be useful, but "
+              + "WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR "
+              + "PURPOSE. See the GNU Affero General Public License for more details.");
+      System.out
+          .println("For source code and more information see http://diqube.org and http://github.com/diqube/diqube.");
       System.exit(1);
       return;
     }

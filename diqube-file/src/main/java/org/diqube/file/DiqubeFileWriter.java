@@ -29,6 +29,7 @@ import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TCompactProtocol;
+import org.diqube.buildinfo.BuildInfo;
 import org.diqube.data.TableShard;
 import org.diqube.data.serialize.DataSerializer;
 import org.diqube.data.serialize.DataSerializer.ObjectDoneConsumer;
@@ -68,6 +69,8 @@ public class DiqubeFileWriter implements Closeable {
     fileHeader.setMagic(MAGIC_STRING);
     fileHeader.setFileVersion(FILE_VERSION);
     fileHeader.setContentVersion(DataSerializer.DATA_VERSION);
+    fileHeader.setWriterBuildGitCommit(BuildInfo.getGitCommitLong());
+    fileHeader.setWriterBuildTimestamp(BuildInfo.getTimestamp());
 
     try {
       byte[] headerBytes = compactSerializer.serialize(fileHeader);

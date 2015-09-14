@@ -59,6 +59,9 @@ public class InfoImplementation {
 
         System.out.println("Number of table shards:\t" + reader.getNumberOfTableShards());
         System.out.println("Total number of rows:\t" + reader.getNumberOfRows());
+        System.out.println("Writer build git:\t" + reader.getWriterBuildGitCommit());
+        System.out.println("Writer build timestamp:\t" + reader.getWriterBuildTimestamp());
+        System.out.println();
         System.out.println("Comment:\t\t" + reader.getComment());
       } catch (IOException e) {
         logger.error("Could not find information", e);

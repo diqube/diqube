@@ -45,7 +45,13 @@
     </developer>
   </developers>
 
+  <scm>
+    <url>https://github.com/diqube/diqube</url>
+    <connection>scm:git:git://github.com/diqube/diqube.git</connection>
+  </scm>
+
   <modules>
+    <module>diqube-buildinfo</module>
     <module>diqube-test-util</module>
     <module>diqube-listeners</module>
     <module>diqube-remote</module>
@@ -165,6 +171,11 @@
           <version>2.6</version>
         </plugin>
         <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>buildnumber-maven-plugin</artifactId>
+          <version>1.3</version>
+        </plugin>
+        <plugin>
           <!-- see https://github.com/mojohaus/license-maven-plugin -->
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>license-maven-plugin</artifactId>
@@ -239,6 +250,20 @@
                     <versionRange>[2.11,)</versionRange>
                     <goals>
                       <goal>format</goal>
+                    </goals>
+                  </pluginExecutionFilter>
+                  <action>
+                    <execute />
+                  </action>
+                </pluginExecution>
+                <pluginExecution>
+                  <pluginExecutionFilter>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>buildnumber-maven-plugin</artifactId>
+                    <versionRange>[1.3,)</versionRange>
+                    <goals>
+                      <goal>create</goal>
+                      <goal>create-timestamp</goal>
                     </goals>
                   </pluginExecutionFilter>
                   <action>
