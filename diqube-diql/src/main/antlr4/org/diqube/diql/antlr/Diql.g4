@@ -228,9 +228,9 @@ NEGATIVE_DECIMAL_LITERAL
  : '-' POSITIVE_DECIMAL_LITERAL
  ;
 
-// TODO #60 empty string
 STRING_LITERAL
- : '\'' .*? ~('\\') '\''
+ : '\'\''
+ | '\'' .*? ~('\\') '\''
  ;
 
 SINGLE_LINE_COMMENT
