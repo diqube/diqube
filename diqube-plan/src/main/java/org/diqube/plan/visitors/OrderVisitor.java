@@ -24,10 +24,10 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 import org.diqube.data.util.RepeatedColumnNameGenerator;
 import org.diqube.diql.antlr.DiqlBaseVisitor;
 import org.diqube.diql.antlr.DiqlParser.AnyValueContext;
-import org.diqube.diql.antlr.DiqlParser.DecimalLiteralValueContext;
 import org.diqube.diql.antlr.DiqlParser.LimitClauseContext;
 import org.diqube.diql.antlr.DiqlParser.OrderClauseContext;
 import org.diqube.diql.antlr.DiqlParser.OrderTermContext;
+import org.diqube.diql.antlr.DiqlParser.PositiveDecimalLiteralValueContext;
 import org.diqube.plan.exception.ParseException;
 import org.diqube.plan.request.OrderRequest;
 import org.diqube.plan.util.FunctionBasedColumnNameBuilderFactory;
@@ -73,12 +73,13 @@ public class OrderVisitor extends DiqlBaseVisitor<OrderRequest> {
     if (limitClauseCtx != null) {
       long limit;
       try {
-        limit = Long.parseLong(limitClauseCtx.getChild(DecimalLiteralValueContext.class, 0).getText());
+        limit = Long.parseLong(limitClauseCtx.getChild(PositiveDecimalLiteralValueContext.class, 0).getText());
       } catch (NumberFormatException e) {
         throw new ParseException("Could not parse limit value.");
       }
       res.setLimit(limit);
-      DecimalLiteralValueContext startCtx = limitClauseCtx.getChild(DecimalLiteralValueContext.class, 1);
+      PositiveDecimalLiteralValueContext startCtx =
+          limitClauseCtx.getChild(PositiveDecimalLiteralValueContext.class, 1);
       if (startCtx != null) {
         long limitStart;
         try {

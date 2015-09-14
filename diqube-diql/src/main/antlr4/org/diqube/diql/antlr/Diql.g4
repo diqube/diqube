@@ -66,7 +66,7 @@ orderClause
  ;
  
 limitClause
- : K_LIMIT decimalLiteralValue ( ',' decimalLiteralValue )?
+ : K_LIMIT positiveDecimalLiteralValue ( ',' positiveDecimalLiteralValue )?
  ;
  
 resultValue
@@ -84,8 +84,13 @@ literalValue
 // | K_NULL
  ;
 
+positiveDecimalLiteralValue
+ : POSITIVE_DECIMAL_LITERAL
+ ;
+
 decimalLiteralValue
- : DECIMAL_LITERAL
+ : POSITIVE_DECIMAL_LITERAL
+ | NEGATIVE_DECIMAL_LITERAL
  ;
  
 stringLiteralValue
@@ -165,7 +170,7 @@ tableName
  ;
 
 columnName 
- : anyName ( '[' ( 'length' | DECIMAL_LITERAL | '*' ) ']' )?
+ : anyName ( '[' ( 'length' | POSITIVE_DECIMAL_LITERAL | '*' ) ']' )?
  | columnName '.' columnName
  ;
  
@@ -210,13 +215,17 @@ ID
  ;
 
 DOUBLE_LITERAL
- : DIGIT+ '.' DIGIT*
+ : '-' DOUBLE_LITERAL
+ | DIGIT+ '.' DIGIT*
  | '.' DIGIT+
  ; 
 
-// TODO #60 negative numbers
-DECIMAL_LITERAL
+POSITIVE_DECIMAL_LITERAL
  : DIGIT+
+ ;
+
+NEGATIVE_DECIMAL_LITERAL
+ : '-' POSITIVE_DECIMAL_LITERAL
  ;
 
 // TODO #60 empty string

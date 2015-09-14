@@ -20,9 +20,12 @@
  */
 package org.diqube.server.execution.lng;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 
 import org.diqube.data.ColumnType;
 import org.diqube.execution.ExecutablePlan;
@@ -84,6 +87,42 @@ public class LongSimpleDiqlExecutionTest extends SimpleDiqlExecutionTest<Long> {
       Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
 
       Assert.assertTrue(resultValues.isEmpty(), "Did not expect to have a result");
+    } finally {
+      executor.shutdownNow();
+    }
+  }
+
+  @Test
+  public void negativeValueInDiqlTest() throws InterruptedException, ExecutionException {
+    initializeSimpleTable(COL_A_DEFAULT_VALUES, COL_B_DEFAULT_VALUES);
+    // GIVEN
+    ExecutablePlan executablePlan = buildExecutablePlan(
+        "Select add(" + COL_A + ", -1) from " + TABLE + " where " + COL_B + " > -1 and " + COL_A + " < 100");
+    ExecutorService executor = executors.newTestExecutor(executablePlan.preferredExecutorServiceSize());
+    try {
+      // WHEN
+      // executing it on the sample table
+      Future<Void> future = executablePlan.executeAsynchronously(executor);
+      future.get(); // wait until done.
+
+      // THEN
+      Assert.assertTrue(columnValueConsumerIsDone, "Source should have reported 'done'");
+      Assert.assertTrue(future.isDone(), "Future should report done");
+      Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
+
+      String outColName = functionBasedColumnNameBuilderFactory.create().withFunctionName("add")
+          .addParameterColumnName(COL_A).addParameterLiteralLong(-1L).build();
+
+      Assert.assertTrue(resultValues.containsKey(outColName), "Result values should be available for output column");
+      Assert.assertEquals(resultValues.size(), 1, "Result values should be available for one column only");
+
+      Set<Long> expected = new HashSet<>();
+      for (int i = 0; i < 100; i++)
+        expected.add((long) (i - 1));
+
+      Set<Long> actual = resultValues.get(outColName).values().stream().collect(Collectors.toSet());
+
+      Assert.assertEquals(actual, expected, "Expected to have correct results");
     } finally {
       executor.shutdownNow();
     }
