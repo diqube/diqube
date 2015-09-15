@@ -80,7 +80,7 @@ import com.google.common.collect.Iterables;
 public class ColumnAggregationStep extends AbstractThreadedExecutablePlanStep {
   private static final Logger logger = LoggerFactory.getLogger(ColumnAggregationStep.class);
 
-  private static final int BATCH_SIZE = ColumnShardBuilder.PROPOSAL_ROWS; // approx work on whole ColumnPages.
+  private static final int BATCH_SIZE = ColumnShardBuilder.PROPOSAL_ROWS / 2; // approx work on half ColumnPages.
 
   private AtomicBoolean allColumnsAreBuilt = new AtomicBoolean(false);
 
@@ -125,6 +125,8 @@ public class ColumnAggregationStep extends AbstractThreadedExecutablePlanStep {
 
   @Override
   protected void execute() {
+    boolean lastRun = allColumnsAreBuilt.get();
+
     // validate if all "length" columns are available and all [index] columns, too - we do this by looking for all
     // columns with all indices that are contained in the length columns (= the maximum).
     Set<String> allColNames;
@@ -133,20 +135,11 @@ public class ColumnAggregationStep extends AbstractThreadedExecutablePlanStep {
       columnPatternContainer = columnPatternUtil.findColNamesForColNamePattern(defaultEnv, inputColumnNamePattern);
       allColNames = columnPatternContainer.getMaximumColumnPatternsSinglePattern();
     } catch (LengthColumnMissingException e) {
-      if (allColumnsAreBuilt.get()) {
-        // retry to not face race conditions
-        try {
-          columnPatternContainer = columnPatternUtil.findColNamesForColNamePattern(defaultEnv, inputColumnNamePattern);
-          allColNames = columnPatternContainer.getMaximumColumnPatternsSinglePattern();
-        } catch (LengthColumnMissingException e2) {
-          // still not all length cols available although all input columns should be built already, there is an error!
-          throw new ExecutablePlanExecutionException("When trying to aggregate column values, not all repeated "
-              + "columns were available. It was expected to have repeated columns where the input column pattern "
-              + "specifies '[*]'. Perhaps not all of these columns are repeated columns?");
-        }
-      } else
-        // not all columns built yet, try again later.
-        return;
+      if (lastRun)
+        throw new ExecutablePlanExecutionException("When trying to aggregate column values, not all repeated "
+            + "columns were available. It was expected to have repeated columns where the input column pattern "
+            + "specifies '[*]'. Perhaps not all of these columns are repeated columns?");
+      return;
     }
 
     if (allColNames.isEmpty())
@@ -158,6 +151,12 @@ public class ColumnAggregationStep extends AbstractThreadedExecutablePlanStep {
     if (notAllColsAvailable) {
       logger.trace("Columns {} missing. Not proceeding.", allColNames.stream()
           .filter(reqiredCol -> defaultEnv.getColumnShard(reqiredCol) == null).collect(Collectors.toList()));
+
+      if (lastRun)
+        throw new ExecutablePlanExecutionException("When trying to aggregate column values, not all repeated "
+            + "columns were available. It was expected to have repeated columns where the input column pattern "
+            + "specifies '[*]'. Perhaps not all of these columns are repeated columns?");
+
       return;
     }
 

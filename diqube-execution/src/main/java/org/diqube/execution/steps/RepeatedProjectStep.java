@@ -37,7 +37,6 @@ import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
 import org.diqube.data.ColumnType;
-import org.diqube.data.TableShard;
 import org.diqube.data.colshard.ColumnShard;
 import org.diqube.data.colshard.ConstantColumnShard;
 import org.diqube.data.dbl.DoubleColumnShard;
@@ -81,8 +80,7 @@ import com.google.common.collect.Sets;
  * such a repeated projection is used correctly.
  * 
  * <p>
- * This step is currently pretty expensive, as it calculates the results for each row in the input {@link TableShard}
- * separately.
+ * This step is pretty expensive, although it tries to calculate the values of similar-looking rows together.
  * 
  * <p>
  * Input: multiple optional {@link ColumnBuiltConsumer} <br>
@@ -213,16 +211,15 @@ public class RepeatedProjectStep extends AbstractThreadedExecutablePlanStep {
             QueryUuid.setCurrentThreadState(uuidState);
             try {
               // group RowIds by their colCombination (which takes into account what values the "length" columns
-              // actually
-              // have per row). We can then later process rowIds which have the same column combination at the same
-              // time.
-              // The default grouping algorithm we use here is based on hashing (a HashMap), so that should be fine for
-              // us.
+              // actually have per row). We can then later process rowIds which have the same column combination at the
+              // same time. The default grouping algorithm we use here is based on hashing (a HashMap), so that should
+              // be fine for us to use sets of lists as keys.
               long lastRowIdExcluded = Math.min(firstRowId + BATCH_SIZE, lowestRowIdInShard + numberOfRowsInShard);
               Map<Set<List<String>>, List<Long>> rowIdsGroupedByColCombination =
                   LongStream.range(firstRowId, lastRowIdExcluded).mapToObj(Long::valueOf)
                       .collect(Collectors.groupingBy(rowId -> columnPatternContainer.getColumnPatterns(rowId)));
 
+              // work on the grouped tow IDs
               for (Entry<Set<List<String>>, List<Long>> groupedRowIdsEntry : rowIdsGroupedByColCombination.entrySet()) {
                 Set<List<String>> colCombinations = groupedRowIdsEntry.getKey();
                 List<Long> rowIds = groupedRowIdsEntry.getValue();
@@ -231,14 +228,17 @@ public class RepeatedProjectStep extends AbstractThreadedExecutablePlanStep {
                   // skip rows that had length == 0 everywhere.
                   continue;
 
-                // fill the resulting "length" cols.
+                // fill the resulting "length" cols. They all have the same length: For each colCombination there will
+                // be one element in the output array (=output repeated column). As all rowIds here have the same
+                // colCombination, they have the same length.
                 for (long rowId : rowIds)
                   colBuilderManager.addValues(lengthColName, new Long[] { (long) colCombinations.size() }, rowId);
 
                 Long[] rowIdsArray = rowIds.toArray(new Long[rowIds.size()]);
 
-                Map<Integer, List<Object>> functionParamValues = new HashMap<>();
+                // prepare parameters to the projection function
                 Map<Integer, Object> constantFunctionParams = new HashMap<>();
+                Map<Integer, List<Object>> functionParamValues = new HashMap<>();
                 for (int i = 0; i < functionParameters.length; i++)
                   functionParamValues.put(i, new ArrayList<>());
 
@@ -250,15 +250,15 @@ public class RepeatedProjectStep extends AbstractThreadedExecutablePlanStep {
                     else {
                       int patternIdx = inputColPatternsIndex.get(parameter.getColumnName());
                       String actualColName = colCombination.get(patternIdx);
-                      ColumnShard colShard = defaultEnv.getPureConstantColumnShard(actualColName);
-
                       Object values[];
-                      if (colShard != null) {
+
+                      // check if its a constant column or a standard one.
+                      ConstantColumnShard constantColShard = defaultEnv.getPureConstantColumnShard(actualColName);
+                      if (constantColShard != null) {
                         // Fill a full value array with the constant value, as the next colCombination probably will not
-                        // have the same constant value for this param, so we force ourselves to go into "array mode"
-                        // for
-                        // this parameter.
-                        Object constantValue = ((ConstantColumnShard) colShard).getValue();
+                        // have the same constant value for this paramIdx, so we force ourselves to go into "array mode"
+                        // for this parameter.
+                        Object constantValue = constantColShard.getValue();
                         values = (Object[]) Array.newInstance(constantValue.getClass(), rowIds.size());
                         Arrays.fill(values, constantValue);
                       } else {
@@ -285,6 +285,7 @@ public class RepeatedProjectStep extends AbstractThreadedExecutablePlanStep {
                   fn.provideParameter(normalParamIdx, valuesArray);
                 }
 
+                // everything prepared, execute projection function.
                 Object[] functionResult = fn.execute();
 
                 // functionResult now contains the results for each colCombination and each row. The data is though
