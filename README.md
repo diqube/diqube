@@ -1,5 +1,8 @@
 #diqube - Distributed Query Base#
 
+[![Build Status](http://build.diqube.org/buildStatus/icon?job=diqube)](http://build.diqube.org)
+[![Project Statistics](https://www.openhub.net/p/diqube/widgets/project_thin_badge?format=gif)](https://www.openhub.net/p/diqube)
+
 diqube is a fast, distributed, in-memory column-store which enables you to analyze large amounts of read-only data
 easily. 
 
@@ -18,8 +21,6 @@ To create a Docker image, follow the instructions at
 [diqube-docker/build-and-run](https://github.com/diqube/diqube-docker/tree/master/build-and-run).
 
 ###Building manually from source###
-
-[![Build Status](http://build.diqube.org/buildStatus/icon?job=diqube)](http://build.diqube.org)
 
 Make sure you have the prerequisites installed:
 
