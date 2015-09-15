@@ -55,7 +55,7 @@ public class TestExecutors {
 
     logger.info("Test method {}: Query {}, Execution {}", testMethod, queryUuid, executionUuid);
 
-    ExecutorService res = (ExecutorService) executorManager.newQueryFixedThreadPool(numberOfThreads + 1,
+    ExecutorService res = (ExecutorService) executorManager.newQueryFixedThreadPoolWithTimeout(numberOfThreads + 1,
         queryUuid + "#" + executionUuid + "#" + testMethod + "-%d", queryUuid, executionUuid);
 
     res.execute(new Runnable() {

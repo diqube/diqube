@@ -123,4 +123,9 @@ public class ConfigKey {
    * the overall execution time until the final result is available might be lower.
    */
   public static final String CONCURRENT_TABLE_SHARD_EXECUTION_PER_QUERY = "concurrentTableShardExecutionPerQuery";
+
+  /**
+   * The number of seconds after which an execution of a query is terminated.
+   */
+  public static final String QUERY_EXECUTION_TIMEOUT_SECONDS = "queryExecutionTimeoutSeconds";
 }

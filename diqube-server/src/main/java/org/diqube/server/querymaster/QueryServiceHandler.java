@@ -212,7 +212,8 @@ public class QueryServiceHandler implements Iface {
 
         queryRegistry.unregisterQueryExecution(queryUuid, executionUuid);
         queryRegistry.cleanupQueryFully(queryUuid);
-        executorManager.shutdownEverythingOfQueryExecution(queryUuid, executionUuid);
+        // kill all executions, also remote ones.
+        executorManager.shutdownEverythingOfQuery(queryUuid);
       }
     };
 
@@ -234,6 +235,7 @@ public class QueryServiceHandler implements Iface {
         try {
           synchronized (resultConnection) {
             resultService.queryException(queryRUuid, new RQueryException(t.getMessage()));
+            logger.trace("Sent exception to client, query {}", queryUuid);
           }
         } catch (TException | RuntimeException e) {
           logger.warn("Was not able to send out exception to " + resultAddress.toString() + " for " + queryUuid, e);
@@ -241,12 +243,15 @@ public class QueryServiceHandler implements Iface {
 
         if (remoteExecutionStepHolder.getValue() != null)
           cancelExecutionOnTriggeredRemotes(queryRUuid, remoteExecutionStepHolder.getValue());
+        else
+          logger.trace("Cannot cancel execution of {} on remotes because I do not know about the remotes", queryUuid);
 
         // shutdown everything.
         connectionPool.releaseConnection(resultConnection);
         queryRegistry.unregisterQueryExecution(queryUuid, executionUuid);
         queryRegistry.cleanupQueryFully(queryUuid);
-        executorManager.shutdownEverythingOfQueryExecution(queryUuid, executionUuid);
+        // kill all executions, also remote ones.
+        executorManager.shutdownEverythingOfQuery(queryUuid);
       }
     };
 
@@ -300,8 +305,8 @@ public class QueryServiceHandler implements Iface {
             connectionPool.releaseConnection(resultConnection);
             queryRegistry.unregisterQueryExecution(queryUuid, executionUuid);
             queryRegistry.cleanupQueryFully(queryUuid);
-            executorManager.shutdownEverythingOfQueryExecution(queryUuid, executionUuid); // this will kill our thread,
-                                                                                          // too!
+            // kill all executions, also remote ones. THis will kill our thread, too.
+            executorManager.shutdownEverythingOfQuery(queryUuid);
           }
 
           /**
@@ -376,9 +381,8 @@ public class QueryServiceHandler implements Iface {
             connectionPool.releaseConnection(resultConnection);
             queryRegistry.unregisterQueryExecution(queryUuid, executionUuid);
             queryRegistry.cleanupQueryFully(queryUuid);
-            executorManager.shutdownEverythingOfQueryExecution(queryUuid, executionUuid); // this will kill our thread,
-                                                                                          // too!
-
+            // kill all executions, also remote ones. This will kill our thread, too.
+            executorManager.shutdownEverythingOfQuery(queryUuid);
           }
         }, sendPartialUpdates);
 
@@ -400,8 +404,8 @@ public class QueryServiceHandler implements Iface {
       throw new RQueryException(e.getMessage());
     }
 
-    Executor executor =
-        executorManager.newQueryFixedThreadPool(1, "query-master-" + queryUuid + "-%d", queryUuid, executionUuid);
+    Executor executor = executorManager.newQueryFixedThreadPoolWithTimeout(1, "query-master-" + queryUuid + "-%d",
+        queryUuid, executionUuid);
 
     // start asynchronous execution.
     queryRegistry.getOrCreateStatsManager(queryUuid, executionUuid).setStartedNanos(System.nanoTime());
@@ -411,11 +415,10 @@ public class QueryServiceHandler implements Iface {
   private void cancelExecutionOnTriggeredRemotes(RUUID queryRUuid, ExecuteRemotePlanOnShardsStep remoteStep) {
     // check if we already spawned some calculations on query remotes. If we have any, try to cancel those
     // executions if possible.
-    Collection<RNodeAddress> remoteNodesTriggered = remoteStep.getRemotesActive();
-    if (remoteNodesTriggered != null && !remoteNodesTriggered.isEmpty()) {
-      logger.info("Cancelling execution on remotes for query {}: {}", RUuidUtil.toUuid(queryRUuid),
-          remoteNodesTriggered);
-      for (RNodeAddress triggeredRemote : remoteNodesTriggered) {
+    Collection<RNodeAddress> remoteNodesActive = remoteStep.getRemotesActive();
+    if (remoteNodesActive != null && !remoteNodesActive.isEmpty()) {
+      logger.info("Cancelling execution on remotes for query {}: {}", RUuidUtil.toUuid(queryRUuid), remoteNodesActive);
+      for (RNodeAddress triggeredRemote : remoteNodesActive) {
         try (Connection<ClusterQueryService.Client> conn = connectionPool.reserveConnection(
             ClusterQueryService.Client.class, ClusterQueryServiceConstants.SERVICE_NAME, triggeredRemote, null)) {
           conn.getService().cancelExecution(queryRUuid);
@@ -426,7 +429,8 @@ public class QueryServiceHandler implements Iface {
           return;
         }
       }
-    }
+    } else
+      logger.trace("Cannot cancel execution on remotes. remoteNodesActive: {}", remoteNodesActive);
   }
 
 }

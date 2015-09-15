@@ -44,18 +44,25 @@ import org.slf4j.LoggerFactory;
   private static final Logger logger = LoggerFactory.getLogger(DiqubeFixedThreadPoolExecutor.class);
 
   private UUID queryUuid;
+  private UUID executionUuid;
   private int numberOfThreads;
   private String nameFormat;
 
-  public DiqubeFixedThreadPoolExecutor(int numberOfThreads, ThreadFactory threadFactory, UUID queryUuid) {
+  public DiqubeFixedThreadPoolExecutor(int numberOfThreads, ThreadFactory threadFactory, UUID queryUuid,
+      UUID executionUuid) {
     super(numberOfThreads, numberOfThreads, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(),
         threadFactory);
     this.numberOfThreads = numberOfThreads;
     this.queryUuid = queryUuid;
+    this.executionUuid = executionUuid;
   }
 
   public UUID getQueryUuid() {
     return queryUuid;
+  }
+
+  public UUID getExecutionUuid() {
+    return executionUuid;
   }
 
   /* package */void setThreadNameFormatForToString(String nameFormat) {
@@ -64,8 +71,8 @@ import org.slf4j.LoggerFactory;
 
   @Override
   public String toString() {
-    return this.getClass().getSimpleName() + "[threads=" + numberOfThreads + ",queryUuid=" + queryUuid + ",nameFormat="
-        + ((nameFormat == null) ? "null" : nameFormat) + "]";
+    return this.getClass().getSimpleName() + "[threads=" + numberOfThreads + ",queryUuid=" + queryUuid
+        + ",executionUuid=" + executionUuid + ",nameFormat=" + ((nameFormat == null) ? "null" : nameFormat) + "]";
   }
 
   @Override
@@ -79,7 +86,7 @@ import org.slf4j.LoggerFactory;
         e.printStackTrace(writer);
         writer.flush();
         String stackTrace = stackTraceStream.toString("UTF-8");
-        logger.trace("Interrupting query {}, stacktrace: {}", queryUuid, stackTrace);
+        logger.trace("Interrupting query {}, execution {}, stacktrace: {}", queryUuid, executionUuid, stackTrace);
       } catch (UnsupportedEncodingException e) {
         logger.trace("Unable to log stack trace of interruption", e);
       }

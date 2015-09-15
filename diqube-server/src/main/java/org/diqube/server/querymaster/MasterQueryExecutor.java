@@ -222,7 +222,7 @@ class MasterQueryExecutor {
 
         queryRegistry.addRemotePercentHandler(queryUuid, remotePercentHandler);
 
-        Executor executor = executorManager.newQueryFixedThreadPool(plan.preferredExecutorServiceSize(),
+        Executor executor = executorManager.newQueryFixedThreadPoolWithTimeout(plan.preferredExecutorServiceSize(),
             "query-master-worker-" + queryUuid + "-%d", //
             queryUuid, executionUuid);
 

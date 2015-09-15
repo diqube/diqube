@@ -29,8 +29,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NavigableMap;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -40,11 +42,15 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 
+import org.diqube.config.Config;
+import org.diqube.config.ConfigKey;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.queries.QueryRegistry;
 import org.diqube.queries.QueryUuid;
@@ -70,17 +76,24 @@ public class ExecutorManager {
 
   private ShutdownThread shutdownThread = new ShutdownThread();
 
+  private TimeoutThread timeoutThread = new TimeoutThread();
+
   @Inject
   private QueryRegistry queryRegistry;
+
+  @Config(ConfigKey.QUERY_EXECUTION_TIMEOUT_SECONDS)
+  private int queryExecutionTimeoutSeconds;
 
   @PostConstruct
   public void initialize() {
     shutdownThread.start();
+    timeoutThread.start();
   }
 
   @PreDestroy
   public void cleanup() {
     shutdownThread.interrupt();
+    timeoutThread.interrupt();
   }
 
   /**
@@ -149,7 +162,9 @@ public class ExecutorManager {
    * <li>{@link #shutdownEverythingOfAllQueries()}
    * </ul>
    * 
-   * TODO #30 implement a timeout on the returned Executor, so there are no executors that will run forever.
+   * <p>
+   * The returned executor will be automatically terminated after {@link ConfigKey#QUERY_EXECUTION_TIMEOUT_SECONDS}
+   * seconds.
    * 
    * @param numberOfThreads
    *          Number of threads the thread pool should have
@@ -171,8 +186,8 @@ public class ExecutorManager {
    *         {@link ExecutorService#submit(java.util.concurrent.Callable)} etc. are called, becuase the ExecutorService
    *         won't forward the exception in that case, but encapsulate it in the corresponding {@link Future}.
    */
-  public synchronized Executor newQueryFixedThreadPool(int numberOfThreads, String nameFormat, UUID queryUuid,
-      UUID executionUuid) {
+  public synchronized Executor newQueryFixedThreadPoolWithTimeout(int numberOfThreads, String nameFormat,
+      UUID queryUuid, UUID executionUuid) {
     ThreadFactoryBuilder baseThreadFactoryBuilder = new ThreadFactoryBuilder();
     baseThreadFactoryBuilder.setNameFormat(nameFormat);
     // Use our ThreadFactory as facette in order to install our exception handling and enable the publication of the
@@ -180,7 +195,8 @@ public class ExecutorManager {
     ThreadFactory threadFactory =
         new QueryThreadFactory(baseThreadFactoryBuilder.build(), queryUuid, executionUuid, queryRegistry);
 
-    DiqubeFixedThreadPoolExecutor res = new DiqubeFixedThreadPoolExecutor(numberOfThreads, threadFactory, queryUuid);
+    DiqubeFixedThreadPoolExecutor res =
+        new DiqubeFixedThreadPoolExecutor(numberOfThreads, threadFactory, queryUuid, executionUuid);
     res.setThreadNameFormatForToString(nameFormat);
     synchronized (queryExecutors) {
       if (!queryExecutors.containsKey(queryUuid))
@@ -189,6 +205,8 @@ public class ExecutorManager {
         queryExecutors.get(queryUuid).put(executionUuid, new ArrayList<>());
       queryExecutors.get(queryUuid).get(executionUuid).add(res);
     }
+
+    timeoutThread.registerTimeout((System.nanoTime() / (long) 1e6) + (queryExecutionTimeoutSeconds * 1000), res);
 
     return res;
   }
@@ -235,6 +253,37 @@ public class ExecutorManager {
       if (queryExecutors.get(queryUuid).isEmpty())
         queryExecutors.remove(queryUuid);
     }
+
+    synchronized (shutdownThread.shutdownExecutors) {
+      shutdownThread.shutdownExecutors.addAll(shutdownExecutors);
+      shutdownThread.numberOfServicesToShutdown.addAndGet(shutdownExecutors.size());
+      synchronized (shutdownThread.sync) {
+        shutdownThread.sync.notifyAll();
+      }
+    }
+  }
+
+  /**
+   * Calls {@link ExecutorService#shutdownNow()} on all Executors that are registered for the given query and
+   * unregisters those executors.
+   */
+  public synchronized void shutdownEverythingOfQuery(UUID queryUuid) {
+    Collection<ExecutorService> shutdownExecutors = new ArrayList<>();
+    Map<UUID, List<DiqubeFixedThreadPoolExecutor>> executorsByExecutionUuid;
+    synchronized (queryExecutors) {
+      executorsByExecutionUuid = queryExecutors.remove(queryUuid);
+    }
+
+    if (executorsByExecutionUuid == null) {
+      logger.trace("Nothing is being executed for query {}, so there's nothing to shut down.", queryUuid);
+      return;
+    }
+
+    shutdownExecutors =
+        executorsByExecutionUuid.values().stream().flatMap(l -> l.stream()).collect(Collectors.toList());
+
+    logger.trace("Shutting down {} executors of query {} (all executions): {}", shutdownExecutors.size(), queryUuid,
+        shutdownExecutors);
 
     synchronized (shutdownThread.shutdownExecutors) {
       shutdownThread.shutdownExecutors.addAll(shutdownExecutors);
@@ -314,7 +363,7 @@ public class ExecutorManager {
       while (true) {
         synchronized (sync) {
           try {
-            sync.wait(10000);
+            sync.wait(1000);
           } catch (InterruptedException e) {
             // we were interrupted, lets quietly stop.
             return;
@@ -340,6 +389,90 @@ public class ExecutorManager {
           }
         }
       }
+    }
+  }
+
+  /**
+   * Thread that handles the timeouts of all executors created with
+   * {@link ExecutorManager#newQueryFixedThreadPoolWithTimeout(int, String, UUID, UUID)}.
+   */
+  private class TimeoutThread extends Thread {
+    private Object wait = new Object();
+
+    private NavigableMap<Long, DiqubeFixedThreadPoolExecutor> timeouts = new ConcurrentSkipListMap<>();
+
+    private ReentrantReadWriteLock timeoutLock = new ReentrantReadWriteLock();
+
+    public TimeoutThread() {
+      super("ExecutorManager-timeout");
+    }
+
+    public void registerTimeout(long timeoutAtMillis, DiqubeFixedThreadPoolExecutor executor) {
+      timeoutLock.readLock().lock();
+      try {
+        while (timeouts.putIfAbsent(timeoutAtMillis++, executor) != null)
+          ;
+      } finally {
+        timeoutLock.readLock().unlock();
+      }
+    }
+
+    @Override
+    public void run() {
+      while (true) {
+        synchronized (wait) {
+          try {
+            wait.wait(1000);
+          } catch (InterruptedException e) {
+            // exit quietly.
+            return;
+          }
+        }
+
+        List<DiqubeFixedThreadPoolExecutor> servicesToShutdown = new ArrayList<>();
+        long nowMillis = System.nanoTime() / (long) 1e6;
+        timeoutLock.writeLock().lock();
+        try {
+          NavigableMap<Long, DiqubeFixedThreadPoolExecutor> activeTimeouts = timeouts.headMap(nowMillis, true);
+          servicesToShutdown.addAll(activeTimeouts.values());
+          activeTimeouts.clear();
+        } finally {
+          timeoutLock.writeLock().unlock();
+        }
+
+        for (DiqubeFixedThreadPoolExecutor shutdownService : servicesToShutdown) {
+          if (!shutdownService.isTerminated()) {
+            UUID queryUuid = shutdownService.getQueryUuid();
+            UUID executionUuid = shutdownService.getExecutionUuid();
+            logger.info(
+                "An executor of query {} execution {} timed out after {} seconds. Terminating that query execution.",
+                queryUuid, executionUuid, queryExecutionTimeoutSeconds);
+
+            // issue an exception to give feedback to user.
+            queryRegistry.handleException(queryUuid, executionUuid,
+                new QueryTimeoutException("Query timeout after " + queryExecutionTimeoutSeconds + " seconds."));
+
+            // although the exception handler probably already shuts down everything, we want to really make sure that
+            // everything terminates. Note that the exception handler has to work synchronously! If it is asynchronous,
+            // the following line might be executed before the exception handler actually handled the exception and
+            // therefore that thread might be terminated before!
+            ExecutorManager.this.shutdownEverythingOfQueryExecution(queryUuid, executionUuid);
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * The execution of a query timed out.
+   * 
+   * Configured via {@link ConfigKey#QUERY_EXECUTION_TIMEOUT_SECONDS}.
+   */
+  public static class QueryTimeoutException extends RuntimeException {
+    private static final long serialVersionUID = 1L;
+
+    public QueryTimeoutException(String msg) {
+      super(msg);
     }
   }
 }

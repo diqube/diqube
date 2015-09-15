@@ -192,7 +192,7 @@ public class RemoteExecutionPlanExecutor {
 
             numberOfThreads += plan.preferredExecutorServiceSize();
 
-            Executor executor = executorManager.newQueryFixedThreadPool(plan.preferredExecutorServiceSize(),
+            Executor executor = executorManager.newQueryFixedThreadPoolWithTimeout(plan.preferredExecutorServiceSize(),
                 "query-remote-worker-" + queryUuid + "-shard" + shard.getLowestRowId() + "-%d", queryUuid,
                 executionUuid);
 

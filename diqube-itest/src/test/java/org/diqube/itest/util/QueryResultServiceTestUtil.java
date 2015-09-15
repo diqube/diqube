@@ -154,6 +154,10 @@ public class QueryResultServiceTestUtil {
       return thisServicesAddr;
     }
 
+    public RQueryException getException() {
+      return exception;
+    }
+
   }
 
   /**

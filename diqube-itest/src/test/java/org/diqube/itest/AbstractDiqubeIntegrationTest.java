@@ -33,6 +33,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.diqube.itest.annotations.NeedsProcessPid;
 import org.diqube.itest.annotations.NeedsServer;
 import org.diqube.itest.annotations.NeedsTomcat;
 import org.diqube.itest.control.LogfileSaver;
@@ -40,10 +41,12 @@ import org.diqube.itest.control.ServerClusterControl;
 import org.diqube.itest.control.ServerControl;
 import org.diqube.itest.control.TomcatControl;
 import org.diqube.itest.control.ToolControl;
+import org.diqube.itest.util.ProcessPidUtil;
 import org.diqube.itest.util.Unzip;
 import org.diqube.itest.util.Zip;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.testng.SkipException;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 
@@ -142,7 +145,10 @@ public abstract class AbstractDiqubeIntegrationTest {
   }
 
   @BeforeMethod
-  public void initializeTestMethodWorkDirectory(Method testMethod) {
+  public void initializeTestMethod(Method testMethod) {
+    if (testMethod.isAnnotationPresent(NeedsProcessPid.class))
+      validatePidAvailable(testMethod);
+
     testWorkDir = new File(classWorkDir, testMethod.getName());
     ensureDirExists(testWorkDir);
 
@@ -188,7 +194,7 @@ public abstract class AbstractDiqubeIntegrationTest {
   }
 
   @AfterMethod
-  public void cleanupTestMethodWorkDirectory(Method testMethod) {
+  public void cleanupTestMethod(Method testMethod) {
     if (tomcatControl != null && tomcatControl.isStarted())
       tomcatControl.stop();
 
@@ -220,6 +226,24 @@ public abstract class AbstractDiqubeIntegrationTest {
     toolControl = null;
     serverControl = null;
     clusterControl = null;
+  }
+
+  /**
+   * @throws SkipException
+   *           If we cannot identify PIDs on this system.
+   */
+  private void validatePidAvailable(Method testMethod) throws SkipException {
+    // start an arbitrary process and check if we can get the PID of it.
+    ProcessBuilder pb = new ProcessBuilder("java", "-version");
+    try {
+      Process p = pb.start();
+      ProcessPidUtil.getPid(p);
+      p.destroyForcibly();
+      // if no exception: we found a PID, so we're fine.
+    } catch (IOException | IllegalStateException e) {
+      throw new SkipException("Skipping test method, because this system cannot identify the PID of sub-processes: "
+          + testMethod.toString());
+    }
   }
 
   private void saveLogs(LogfileSaver logfileSaver, File logBaseDir, String subdir) {

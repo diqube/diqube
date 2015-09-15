@@ -27,6 +27,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -34,10 +35,13 @@ import java.util.Arrays;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 import org.apache.thrift.TException;
 import org.diqube.config.ConfigKey;
 import org.diqube.config.ConfigurationManager;
+import org.diqube.itest.annotations.NeedsProcessPid;
+import org.diqube.itest.util.ProcessPidUtil;
 import org.diqube.itest.util.TestThriftConnectionFactory;
 import org.diqube.itest.util.TestThriftConnectionFactory.TestConnection;
 import org.diqube.itest.util.TestThriftConnectionFactory.TestConnectionException;
@@ -102,6 +106,10 @@ public class ServerControl implements LogfileSaver {
   }
 
   public void start() {
+    start(null);
+  }
+
+  public void start(Consumer<Properties> serverPropertiesAdjust) {
     if (!manualOverride && isStarted())
       throw new RuntimeException("Server is started already.");
 
@@ -119,7 +127,8 @@ public class ServerControl implements LogfileSaver {
       serverProp.setProperty(ConfigKey.DATA_DIR, workDir.getAbsolutePath());
       serverProp.setProperty(ConfigKey.CLUSTER_NODES, clusterNodesProvider.getClusterNodeConfigurationString(ourAddr));
       serverProp.setProperty(ConfigKey.BIND, ourAddr.getHost()); // bind only to our addr, which is typically 127.0.0.1
-      // TODO support adjustment of the server properties by the tests
+      if (serverPropertiesAdjust != null)
+        serverPropertiesAdjust.accept(serverProp);
 
       serverPropertiesFile = new File(workDir, "server.properties");
       try (FileOutputStream propWrite = new FileOutputStream(serverPropertiesFile)) {
@@ -193,6 +202,40 @@ public class ServerControl implements LogfileSaver {
       }
     } else
       logger.warn("Cannot stop server at {} as it was manually overridden!", ourAddr);
+  }
+
+  /**
+   * Create a thread dump of the running server and output it to the given file.
+   * 
+   * <p>
+   * This depends on
+   * <ul>
+   * <li>{@link ProcessPidUtil} to work. Use {@link NeedsProcessPid} annotation on test method.
+   * <li>"jstack" to be installed on the host machine
+   * </ul>
+   */
+  public void createThreadDump(OutputStream outstream) {
+    int serverPid = ProcessPidUtil.getPid(serverProcess);
+    ProcessBuilder jstackProcessBuilder = new ProcessBuilder("jstack", Integer.toString(serverPid));
+
+    try {
+      Process jstackProcess = jstackProcessBuilder.start();
+      for (int i = 0; i < 10; i++) {
+        jstackProcess.waitFor(1, TimeUnit.SECONDS);
+        ByteStreams.copy(jstackProcess.getInputStream(), outstream);
+      }
+
+      ByteStreams.copy(jstackProcess.getInputStream(), outstream);
+      if (!jstackProcess.waitFor(1, TimeUnit.SECONDS)) {
+        jstackProcess.destroyForcibly();
+        throw new RuntimeException("jstack process did not shut down, killed it forcibly.");
+      }
+      ByteStreams.copy(jstackProcess.getInputStream(), outstream);
+    } catch (InterruptedException e) {
+      throw new RuntimeException("Interrupted", e);
+    } catch (IOException e) {
+      throw new RuntimeException("IOException while interacting with jstack.", e);
+    }
   }
 
   public boolean isStarted() {
