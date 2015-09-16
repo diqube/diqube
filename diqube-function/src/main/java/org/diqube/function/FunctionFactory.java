@@ -21,6 +21,8 @@
 package org.diqube.function;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -63,6 +65,17 @@ public class FunctionFactory {
     if (!projectionFunctionFactories.get(functionNameLowerCase).containsKey(inputColumnType))
       return null;
     return (ProjectionFunction<I, O>) projectionFunctionFactories.get(functionNameLowerCase).get(inputColumnType).get();
+  }
+
+  /**
+   * @return The input {@link ColumnType}s for which there is a {@link ProjectionFunction} available or
+   *         <code>null</code> if there is no {@link ProjectionFunction} with that name at all.
+   */
+  public Collection<ColumnType> getPossibleInputDataTypesForProjectionFunction(String functionNameLowerCase) {
+    if (!projectionFunctionFactories.containsKey(functionNameLowerCase))
+      return null;
+
+    return new ArrayList<>(projectionFunctionFactories.get(functionNameLowerCase).keySet());
   }
 
   /**

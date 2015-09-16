@@ -480,4 +480,49 @@ public class LongProjectionDiqlExecutionTest extends AbstractDiqlExecutionTest<L
       executor.shutdownNow();
     }
   }
+
+  @Test
+  public void twoProjectionDifferentOrderingTest() throws InterruptedException, ExecutionException {
+    initializeSimpleTable(COL_A_DEFAULT_VALUES, COL_B_DEFAULT_VALUES);
+    // GIVEN
+    // a simple select stmt
+    ExecutablePlan executablePlan =
+        buildExecutablePlan("Select add(" + COL_A + ", " + COL_B + "), add(" + COL_B + "," + COL_A + ") from " + TABLE);
+    ExecutorService executor = executors.newTestExecutor(executablePlan.preferredExecutorServiceSize());
+    try {
+      // WHEN
+      // executing it on the sample table
+      Future<Void> future = executablePlan.executeAsynchronously(executor);
+      future.get(); // wait until done.
+
+      // THEN
+      Assert.assertTrue(columnValueConsumerIsDone, "Source should have reported 'done'");
+      Assert.assertTrue(future.isDone(), "Future should report done");
+      Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
+
+      String resColName = functionBasedColumnNameBuilderFactory.create().withFunctionName("add")
+          .addParameterColumnName(COL_A).addParameterColumnName(COL_B).build();
+
+      String secondResColName = functionBasedColumnNameBuilderFactory.create().withFunctionName("add")
+          .addParameterColumnName(COL_B).addParameterColumnName(COL_A).build();
+
+      Assert.assertEquals(secondResColName, resColName,
+          "Expected that for both projections the same output colname is generated.");
+
+      Assert.assertTrue(resultValues.containsKey(resColName), "Result values should be available for result column");
+      Assert.assertEquals(resultValues.size(), 1, "Result values should be available for one column only");
+
+      Object[] expectedValues = dp.emptyArray(COL_A_DEFAULT_VALUES.length);
+      for (int i = 0; i < expectedValues.length; i++)
+        expectedValues[i] = (long) COL_A_DEFAULT_VALUES[i] + (long) COL_B_DEFAULT_VALUES[i];
+
+      Assert.assertEquals(new HashSet<>(resultValues.get(resColName).values()),
+          new HashSet<>(Arrays.asList(expectedValues)), "Expected to get sum as result");
+
+      Assert.assertEquals(resultValues.get(resColName).size(), VALUE_LENGTH,
+          "Expected specific number of rows in result");
+    } finally {
+      executor.shutdownNow();
+    }
+  }
 }

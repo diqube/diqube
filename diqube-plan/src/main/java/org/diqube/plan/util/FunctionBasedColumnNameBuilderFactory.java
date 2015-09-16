@@ -24,6 +24,7 @@ import javax.inject.Inject;
 
 import org.diqube.context.AutoInstatiate;
 import org.diqube.data.util.RepeatedColumnNameGenerator;
+import org.diqube.function.FunctionFactory;
 
 /**
  * Factory for {@link FunctionBasedColumnNameBuilder}.
@@ -36,7 +37,10 @@ public class FunctionBasedColumnNameBuilderFactory {
   @Inject
   private RepeatedColumnNameGenerator repeatedCols;
 
+  @Inject
+  private FunctionFactory functionFactory;
+
   public FunctionBasedColumnNameBuilder create() {
-    return new FunctionBasedColumnNameBuilder(repeatedCols);
+    return new FunctionBasedColumnNameBuilder(repeatedCols, functionFactory);
   }
 }

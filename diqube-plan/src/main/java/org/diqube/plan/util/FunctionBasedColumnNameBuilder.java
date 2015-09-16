@@ -21,9 +21,18 @@
 package org.diqube.plan.util;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
+import org.diqube.data.ColumnType;
 import org.diqube.data.util.RepeatedColumnNameGenerator;
+import org.diqube.function.FunctionFactory;
+
+import com.google.common.collect.Iterables;
 
 /**
  * Calculates the name of the result column when executing a function on some input data.
@@ -42,8 +51,12 @@ public class FunctionBasedColumnNameBuilder {
 
   private RepeatedColumnNameGenerator repeatedCols;
 
-  /* package */ FunctionBasedColumnNameBuilder(RepeatedColumnNameGenerator repeatedCols) {
+  private FunctionFactory functionFactory;
+
+  /* package */ FunctionBasedColumnNameBuilder(RepeatedColumnNameGenerator repeatedCols,
+      FunctionFactory functionFactory) {
     this.repeatedCols = repeatedCols;
+    this.functionFactory = functionFactory;
   }
 
   /**
@@ -80,13 +93,45 @@ public class FunctionBasedColumnNameBuilder {
   }
 
   public String build() {
+    // Try to exchange parameters in a deterministic way. This is only done for projection functions.
+    // We do this in order to not calculate the same result twice.
+    //
+    // For example: add(1, a) and add(a, 1) are two distinct columns which though have the exactly same values -> It
+    // would be nice to calculate that result only once. We can achieve this by giving those two function requests the
+    // same output column (see FunctionColumnInfoBuilder).
+    //
+    // In addition to calculating the same results only once, we facilitate caching of those columns - even if later
+    // queries might specify the params of the function in a different order.
+    if (parameterNames.size() > 1) {
+      Collection<ColumnType> inputColTypes =
+          functionFactory.getPossibleInputDataTypesForProjectionFunction(functionName);
+      if (inputColTypes != null) {
+        List<List<Set<Integer>>> exchangeableParamIdxDistinctList =
+            inputColTypes.stream().map(inColType -> functionFactory.createProjectionFunction(functionName, inColType)
+                .exchangeableParameterIndices()).distinct().collect(Collectors.toList());
+        if (exchangeableParamIdxDistinctList.size() == 1) {
+          // all functions with the same functionName have the same exchangeable parameter indices. So we can exchange
+          // them now!
+
+          List<Set<Integer>> exchangeIdxList = Iterables.getOnlyElement(exchangeableParamIdxDistinctList);
+          for (Set<Integer> exchangeIdxSet : exchangeIdxList) {
+            List<String> paramValues = new ArrayList<>(exchangeIdxSet.size());
+            exchangeIdxSet.forEach(idx -> paramValues.add(parameterNames.get(idx)));
+            paramValues.sort(Comparator.naturalOrder());
+            Iterator<Integer> idxIt = exchangeIdxSet.stream().sorted().iterator();
+            for (int i = 0; i < paramValues.size(); i++)
+              parameterNames.set(idxIt.next(), paramValues.get(i));
+          }
+        }
+      }
+    }
+
     StringBuilder sb = new StringBuilder();
     sb.append(functionName);
     sb.append("{");
     // TODO #26 if function does not care about order of parameters, we should create a standardized name (enables
     // better caching)
     // TODO #26 for caching of aggregate functions, we need to have the group-by cols in the name, too.
-    // TODO #43 Use exchangeableParameterIndices in order to not do too much work.
     for (String paramName : parameterNames) {
       sb.append(paramName);
       sb.append(",");

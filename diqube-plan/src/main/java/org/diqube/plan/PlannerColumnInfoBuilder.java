@@ -79,6 +79,8 @@ public class PlannerColumnInfoBuilder {
     List<PlannerColumnInfo> colAggregationFunctions = new ArrayList<>();
     Deque<PlannerColumnInfo> literalOnlyFunctions = new LinkedList<>();
 
+    // go through all FunctionRequest. If there are multiple requests with the same output col name, the latter will
+    // overwrite the earlier -> We end up creating each column only once.
     for (FunctionRequest func : executionRequest.getProjectAndAggregate()) {
       PlannerColumnInfo info = new PlannerColumnInfo(func.getOutputColumn());
       info.setType(func.getType());
