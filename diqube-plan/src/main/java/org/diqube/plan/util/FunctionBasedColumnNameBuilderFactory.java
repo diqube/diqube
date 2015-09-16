@@ -20,6 +20,10 @@
  */
 package org.diqube.plan.util;
 
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
 import javax.inject.Inject;
 
 import org.diqube.context.AutoInstatiate;
@@ -40,7 +44,9 @@ public class FunctionBasedColumnNameBuilderFactory {
   @Inject
   private FunctionFactory functionFactory;
 
+  private ConcurrentMap<String, List<List<Integer>>> exchangeableIndexCache = new ConcurrentHashMap<>();
+
   public FunctionBasedColumnNameBuilder create() {
-    return new FunctionBasedColumnNameBuilder(repeatedCols, functionFactory);
+    return new FunctionBasedColumnNameBuilder(repeatedCols, functionFactory, exchangeableIndexCache);
   }
 }

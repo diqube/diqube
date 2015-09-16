@@ -26,6 +26,7 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
 import org.diqube.data.ColumnType;
@@ -53,10 +54,13 @@ public class FunctionBasedColumnNameBuilder {
 
   private FunctionFactory functionFactory;
 
+  private ConcurrentMap<String, List<List<Integer>>> exchangeableIndicesCache;
+
   /* package */ FunctionBasedColumnNameBuilder(RepeatedColumnNameGenerator repeatedCols,
-      FunctionFactory functionFactory) {
+      FunctionFactory functionFactory, ConcurrentMap<String, List<List<Integer>>> exchangeableIndicesCache) {
     this.repeatedCols = repeatedCols;
     this.functionFactory = functionFactory;
+    this.exchangeableIndicesCache = exchangeableIndicesCache;
   }
 
   /**
@@ -103,25 +107,39 @@ public class FunctionBasedColumnNameBuilder {
     // In addition to calculating the same results only once, we facilitate caching of those columns - even if later
     // queries might specify the params of the function in a different order.
     if (parameterNames.size() > 1) {
-      Collection<ColumnType> inputColTypes =
-          functionFactory.getPossibleInputDataTypesForProjectionFunction(functionName);
-      if (inputColTypes != null) {
-        List<List<Set<Integer>>> exchangeableParamIdxDistinctList =
-            inputColTypes.stream().map(inColType -> functionFactory.createProjectionFunction(functionName, inColType)
-                .exchangeableParameterIndices()).distinct().collect(Collectors.toList());
-        if (exchangeableParamIdxDistinctList.size() == 1) {
-          // all functions with the same functionName have the same exchangeable parameter indices. So we can exchange
-          // them now!
+      if (!exchangeableIndicesCache.containsKey(functionName)) {
+        Collection<ColumnType> inputColTypes =
+            functionFactory.getPossibleInputDataTypesForProjectionFunction(functionName);
+        if (inputColTypes != null) {
+          List<List<Set<Integer>>> exchangeableParamIdxDistinctList =
+              inputColTypes.stream().map(inColType -> functionFactory.createProjectionFunction(functionName, inColType)
+                  .exchangeableParameterIndices()).distinct().collect(Collectors.toList());
+          if (exchangeableParamIdxDistinctList.size() == 1) {
+            // all functions with the same functionName have the same exchangeable parameter indices. So we can exchange
+            // them! Put them in the cache and process below.
 
-          List<Set<Integer>> exchangeIdxList = Iterables.getOnlyElement(exchangeableParamIdxDistinctList);
-          for (Set<Integer> exchangeIdxSet : exchangeIdxList) {
-            List<String> paramValues = new ArrayList<>(exchangeIdxSet.size());
-            exchangeIdxSet.forEach(idx -> paramValues.add(parameterNames.get(idx)));
-            paramValues.sort(Comparator.naturalOrder());
-            Iterator<Integer> idxIt = exchangeIdxSet.stream().sorted().iterator();
-            for (int i = 0; i < paramValues.size(); i++)
-              parameterNames.set(idxIt.next(), paramValues.get(i));
-          }
+            List<List<Integer>> exchangeableSortedIndices = Iterables.getOnlyElement(exchangeableParamIdxDistinctList)
+                .stream().map(set -> set.stream().sorted().collect(Collectors.toList())).collect(Collectors.toList());
+
+            exchangeableIndicesCache.put(functionName, exchangeableSortedIndices);
+          } else
+            exchangeableIndicesCache.put(functionName, new ArrayList<>()); // no exchangeable indices.
+        } else
+          exchangeableIndicesCache.put(functionName, new ArrayList<>()); // no exchangeable indices.
+      }
+
+      if (exchangeableIndicesCache.containsKey(functionName)) {
+        List<List<Integer>> exchangeIdxList = exchangeableIndicesCache.get(functionName);
+        for (List<Integer> exchangeIdxSortedList : exchangeIdxList) {
+
+          List<String> paramValues = new ArrayList<>(exchangeIdxSortedList.size());
+          exchangeIdxSortedList.forEach(idx -> paramValues.add(parameterNames.get(idx)));
+
+          paramValues.sort(Comparator.naturalOrder());
+
+          Iterator<Integer> idxIt = exchangeIdxSortedList.iterator();
+          for (int i = 0; i < paramValues.size(); i++)
+            parameterNames.set(idxIt.next(), paramValues.get(i));
         }
       }
     }
