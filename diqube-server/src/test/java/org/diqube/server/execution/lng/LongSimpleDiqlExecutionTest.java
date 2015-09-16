@@ -29,7 +29,10 @@ import java.util.stream.Collectors;
 
 import org.diqube.data.ColumnType;
 import org.diqube.execution.ExecutablePlan;
+import org.diqube.function.projection.IdLongFunction;
+import org.diqube.loader.LoadException;
 import org.diqube.server.execution.SimpleDiqlExecutionTest;
+import org.diqube.util.Pair;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -121,6 +124,47 @@ public class LongSimpleDiqlExecutionTest extends SimpleDiqlExecutionTest<Long> {
         expected.add((long) (i - 1));
 
       Set<Long> actual = resultValues.get(outColName).values().stream().collect(Collectors.toSet());
+
+      Assert.assertEquals(actual, expected, "Expected to have correct results");
+    } finally {
+      executor.shutdownNow();
+    }
+  }
+
+  @Test
+  public void columnSameNameAsFunctionTest() throws InterruptedException, ExecutionException, LoadException {
+    String colName = IdLongFunction.NAME;
+    initializeFromJson("[{\"" + colName + "\" : 1}]");
+    // GIVEN
+    ExecutablePlan executablePlan =
+        buildExecutablePlan("Select " + colName + ", " + IdLongFunction.NAME + "(" + colName + ") from " + TABLE);
+    ExecutorService executor = executors.newTestExecutor(executablePlan.preferredExecutorServiceSize());
+    try {
+      // WHEN
+      // executing it on the sample table
+      Future<Void> future = executablePlan.executeAsynchronously(executor);
+      future.get(); // wait until done.
+
+      String secondColName = functionBasedColumnNameBuilderFactory.create().withFunctionName(IdLongFunction.NAME)
+          .addParameterColumnName(colName).build();
+
+      // THEN
+      Assert.assertTrue(columnValueConsumerIsDone, "Source should have reported 'done'");
+      Assert.assertTrue(future.isDone(), "Future should report done");
+      Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
+
+      Assert.assertTrue(resultValues.containsKey(colName), "Result values should be available for output column");
+      Assert.assertTrue(resultValues.containsKey(secondColName),
+          "Result values should be available for second output column");
+      Assert.assertEquals(resultValues.size(), 2, "Result values should be available for two columns only");
+
+      Set<Pair<Long, Long>> expected = new HashSet<>();
+      for (int i = 0; i < 100; i++)
+        expected.add(new Pair<>(1L, 1L));
+
+      Set<Pair<Long, Long>> actual = new HashSet<>();
+      for (long rowId : resultValues.get(colName).keySet())
+        actual.add(new Pair<>(resultValues.get(colName).get(rowId), resultValues.get(secondColName).get(rowId)));
 
       Assert.assertEquals(actual, expected, "Expected to have correct results");
     } finally {

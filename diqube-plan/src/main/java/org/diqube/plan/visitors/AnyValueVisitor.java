@@ -78,6 +78,8 @@ public class AnyValueVisitor extends DiqlBaseVisitor<Pair<ColumnOrValue, Boolean
     if (ctx.getChild(0) instanceof ProjectionFunctionNameContext) {
       ProjectionFunctionNameContext projCtx = (ProjectionFunctionNameContext) ctx.getChild(0);
       String functionName = projCtx.getText().toLowerCase();
+      if (functionName.endsWith("("))
+        functionName = functionName.substring(0, functionName.length() - 1);
 
       functionRequest.setFunctionName(functionName);
       functionRequest.setType(Type.PROJECTION);
@@ -86,6 +88,8 @@ public class AnyValueVisitor extends DiqlBaseVisitor<Pair<ColumnOrValue, Boolean
     } else if (ctx.getChild(0) instanceof AggregationFunctionNameContext) {
       AggregationFunctionNameContext projCtx = (AggregationFunctionNameContext) ctx.getChild(0);
       String functionName = projCtx.getText().toLowerCase();
+      if (functionName.endsWith("("))
+        functionName = functionName.substring(0, functionName.length() - 1);
 
       functionRequest.setFunctionName(functionName);
       functionRequest.setType(Type.AGGREGATION_ROW);

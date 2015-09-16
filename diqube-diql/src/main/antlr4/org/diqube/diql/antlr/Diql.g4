@@ -44,14 +44,14 @@ comparison
  ;
 
 function
- : projectionFunctionName '(' ( anyValue ( ',' anyValue )* )? ')'
- | aggregationFunctionName '(' ( anyValue ( ',' anyValue )* )? ')'
+ : projectionFunctionName ( anyValue ( ',' anyValue )* )? ')'
+ | aggregationFunctionName ( anyValue ( ',' anyValue )* )? ')'
  ;
 
 anyValue
- : function 
+ : columnName 
  | literalValue                                       
- | columnName                                         
+ | function                               
 // | anyValue ( '*' | '/' ) anyValue                    # Multiplication
 // | anyValue ( '+' | '-' ) anyValue                    # Addition
 // | '(' anyValue ')'                                    # AnyValueRecursive
@@ -194,21 +194,22 @@ K_ORDER : O R D E R;
 K_SELECT : S E L E C T;
 K_WHERE : W H E R E;
 
-F_COUNT: C O U N T;
-F_ADD: A D D;
-F_ID: I D;
-F_CONCAT: C O N C A T;
-F_AVG: A V G;
-F_ROUND: R O U N D;
-F_ANY: A N Y;
-F_MIN: M I N;
-F_MAX: M A X;
-F_DIV: D I V;
-F_MUL: M U L;
-F_SUB: S U B;
-F_CONCATGROUP: C O N C A T G R O U P;
-F_SUM: S U M;
-F_LOG: L O G;
+F_COUNT: C O U N T '(';
+F_ADD: A D D '(';
+F_ID: I D '(';
+F_CONCAT: C O N C A T '(';
+F_AVG: A V G '(';
+F_ROUND: R O U N D '(';
+F_ANY: A N Y '(';
+F_MIN: M I N '(';
+F_MAX: M A X '(';
+F_DIV: D I V '(';
+F_MUL: M U L '(';
+F_SUB: S U B '(';
+F_CONCATGROUP: C O N C A T G R O U P '(';
+F_SUM: S U M '(';
+F_LOG: L O G '(';
+
 
 ID
  : [a-zA-Z_] [a-zA-Z_0-9]* 
