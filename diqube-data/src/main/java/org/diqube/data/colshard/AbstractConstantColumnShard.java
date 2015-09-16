@@ -93,4 +93,11 @@ public abstract class AbstractConstantColumnShard implements ConstantColumnShard
     return 0L; // constant, as created by #createColumnShardDictionary
   }
 
+  @Override
+  public long calculateApproximateSizeInBytes() {
+    return 16 + // object header of this.
+        24 + // small fields
+        name.getBytes().length + //
+        columnShardDictionary.calculateApproximateSizeInBytes(); // ignore other minor data.
+  }
 }

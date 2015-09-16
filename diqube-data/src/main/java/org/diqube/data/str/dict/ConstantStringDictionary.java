@@ -226,4 +226,10 @@ public class ConstantStringDictionary implements StringDictionary<SStringDiction
     value = source.getValue();
   }
 
+  @Override
+  public long calculateApproximateSizeInBytes() {
+    return 16 + // object header of this.
+        value.getBytes().length;
+  }
+
 }

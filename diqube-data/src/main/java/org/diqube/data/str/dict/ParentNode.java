@@ -53,6 +53,17 @@ public class ParentNode extends TrieNode<SStringDictionaryTrieParentNode> {
     this.maxId = maxId;
   }
 
+  @Override
+  public long calculateApproximateSizeInBytes() {
+    long childSize = 0L;
+    for (int i = 0; i < childChars.length; i++)
+      childSize += childChars[i].length + childNodes[i].calculateApproximateSizeInBytes();
+
+    return 16 + // object header of "this"
+        16 + // small longs
+        childSize;
+  }
+
   public TrieNode<?>[] getChildNodes() {
     return childNodes;
   }
@@ -96,4 +107,5 @@ public class ParentNode extends TrieNode<SStringDictionaryTrieParentNode> {
       i++;
     }
   }
+
 }

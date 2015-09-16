@@ -314,7 +314,7 @@ public class ColumnShardBuilder<T> {
   /**
    * Returns an approximation of the memory consumption by this ColumnShardBuilder.
    */
-  public long calculateApproximateMemoryConsumption() {
+  public long calculateApproximateSizeInBytes() {
     return columnDictKeysByteSizeApprox.get() + // keys in column Dict
         columnDict.size() * 8 + // values in columnDict
         pageProposals.size() * PROPOSAL_ROWS * 8 + // size taken up by the added rows in the proposals.

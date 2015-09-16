@@ -323,4 +323,14 @@ public class RunLengthLongArray extends AbstractTransitiveExplorableCompressedLo
     }
   }
 
+  @Override
+  public long calculateApproximateSizeInBytes() {
+    return 16 + // object header of this
+        53 + // small fields
+        ((compressedCounts != null) ? compressedCounts.length * 8 : 0)
+        + ((compressedValues != null) ? compressedValues.length * 8 : 0)
+        + ((delegateCompressedCounts != null) ? delegateCompressedCounts.calculateApproximateSizeInBytes() : 0)
+        + ((delegateCompressedValue != null) ? delegateCompressedValue.calculateApproximateSizeInBytes() : 0);
+  }
+
 }

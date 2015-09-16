@@ -214,4 +214,10 @@ public class ConstantLongDictionary implements LongDictionary<SLongDictionaryCon
     decompressedValue = source.getValue();
   }
 
+  @Override
+  public long calculateApproximateSizeInBytes() {
+    return 16 + // object header of this.
+        4; // 4 bytes long.
+  }
+
 }

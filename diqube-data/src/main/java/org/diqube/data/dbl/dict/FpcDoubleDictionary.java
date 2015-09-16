@@ -582,6 +582,19 @@ public class FpcDoubleDictionary implements DoubleDictionary<SDoubleDictionaryFp
     }
   }
 
+  @Override
+  public long calculateApproximateSizeInBytes() {
+    long pagesSize = 0L;
+    pagesSize += pages.size() * (8 + 16); // "Long" keys in pages
+    for (FpcPage page : pages.values())
+      pagesSize += page.calculateApproximateSizeInBytes();
+
+    return 16 + // object header of this
+        pagesSize + //
+        24 // other small fields
+        ;
+  }
+
   /**
    * Callback interface for {@link FpcDoubleDictionary#iterateOverValues(FpcDoubleDictionary, IterationCallback)}, see
    * that java doc.

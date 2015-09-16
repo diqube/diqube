@@ -172,4 +172,18 @@ public abstract class AbstractStandardColumnShard implements StandardColumnShard
     }
   }
 
+  @Override
+  public long calculateApproximateSizeInBytes() {
+    long pagesSize = 0L;
+    // "Long" keys: 8 bytes long value, 16 bytes object header
+    pagesSize += pages.size() * (8 + 16);
+    // ColumnPages:
+    for (ColumnPage page : pages.values()) {
+      pagesSize += page.calculateApproximateSizeInBytes();
+    }
+    return 16 + // object header of this.
+        name.getBytes().length + //
+        columnShardDictionary.calculateApproximateSizeInBytes() + pagesSize;
+  }
+
 }

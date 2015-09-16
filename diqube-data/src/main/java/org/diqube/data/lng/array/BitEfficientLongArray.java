@@ -521,6 +521,14 @@ public class BitEfficientLongArray extends AbstractExplorableCompressedLongArray
     return avgBitsPerEntryCompressed / uncompressedNumberOfBitsPerValue;
   }
 
+  @Override
+  public long calculateApproximateSizeInBytes() {
+    return 16 + // object header of this
+        39 + // small fields (= non array fields)
+        ((compressedValues != null) ? compressedValues.length * 8 : 0) + //
+        ((longMinValueLocations != null) ? longMinValueLocations.length * 4 : 0);
+  }
+
   /**
    * Calculate an approximate compression ratio based not on a full array (use
    * {@link #expectedCompressionRatio(long[], boolean)} for that), but based on a few values calculated for an input

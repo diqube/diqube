@@ -515,4 +515,13 @@ public class TrieStringDictionary implements StringDictionary<SStringDictionaryT
     root = mgr.deserializeChild(ParentNode.class, source.getRootNode());
   }
 
+  @Override
+  public long calculateApproximateSizeInBytes() {
+    return 16 + // object header of this
+        8 + // small fields
+        firstValue.getBytes().length + //
+        lastValue.getBytes().length + //
+        root.calculateApproximateSizeInBytes();
+  }
+
 }

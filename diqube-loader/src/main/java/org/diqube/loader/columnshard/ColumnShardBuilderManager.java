@@ -195,11 +195,11 @@ public class ColumnShardBuilderManager {
    * 
    * @see ColumnShardBuilder#calculateApproximateMemoryConsumption().
    */
-  public long calculateApproximateMemoryConsumption() {
+  public long calculateApproximateSizeInBytes() {
     long res = 0;
     for (ColumnShardBuilder<?> builder : Iterables.concat(stringBuilders.values(), longBuilders.values(),
         doubleBuilders.values())) {
-      res += builder.calculateApproximateMemoryConsumption();
+      res += builder.calculateApproximateSizeInBytes();
     }
     return res;
   }

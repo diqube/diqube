@@ -112,4 +112,13 @@ public class ColumnPage implements DataSerialization<SColumnPage> {
   /* package */void setFirstRowId(long firstRowId) {
     this.firstRowId = firstRowId;
   }
+
+  /**
+   * @return An approximate number of bytes taken up by this {@link ColumnPage}. Note that this is only an
+   *         approximation!
+   */
+  public long calculateApproximateSizeInBytes() {
+    return 16 + // object header of this.
+        columnPageDict.calculateApproximateSizeInBytes() + values.calculateApproximateSizeInBytes();
+  }
 }

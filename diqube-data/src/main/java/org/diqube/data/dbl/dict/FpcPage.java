@@ -339,6 +339,20 @@ public class FpcPage implements DataSerialization<SDoubleDictionaryFpcPage> {
   }
 
   /**
+   * @return approx number of bytes used by this page. Approx only!
+   */
+  public long calculateApproximateSizeInBytes() {
+    long stateLength = 0L;
+    if (startState != null)
+      stateLength += 16 + // object header of State.
+          startState.fcmHashTable.length * 4 + //
+          startState.dfcmHashTable.length * 4 + //
+          10;
+    return 16 + // object header of this
+        stateLength + data.length;
+  }
+
+  /**
    * Internally used callback interface for decompressing.
    */
   private static interface DecompressCallback {

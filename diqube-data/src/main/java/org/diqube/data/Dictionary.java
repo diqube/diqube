@@ -219,4 +219,10 @@ public interface Dictionary<T> {
    *         smaller</b> than all values in the otherDict whose value is >= otherId.
    */
   public NavigableMap<Long, Long> findLtEqIds(Dictionary<T> otherDict);
+
+  /**
+   * @return An approximate number of bytes taken up by this {@link Dictionary}. Note that this is only an
+   *         approximation!
+   */
+  public long calculateApproximateSizeInBytes();
 }

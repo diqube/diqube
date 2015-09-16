@@ -243,4 +243,13 @@ public class ReferenceBasedLongArray
     }
   }
 
+  @Override
+  public long calculateApproximateSizeInBytes() {
+    return 16 + // object header of this
+        34 + // small fields
+        ((compressedValues != null) ? compressedValues.length * 8 : 0) + //
+        ((delegateCompressedValueLongArray != null) ? delegateCompressedValueLongArray.calculateApproximateSizeInBytes()
+            : 0);
+  }
+
 }

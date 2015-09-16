@@ -145,4 +145,8 @@ public class EmptyLongDictionary implements LongDictionary<SLongDictionaryEmpty>
   public void deserialize(DataSerializationHelper mgr, SLongDictionaryEmpty source) throws DeserializationException {
   }
 
+  @Override
+  public long calculateApproximateSizeInBytes() {
+    return 16; // object header of this.
+  }
 }

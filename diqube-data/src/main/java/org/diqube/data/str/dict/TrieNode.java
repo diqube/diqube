@@ -39,6 +39,11 @@ import org.diqube.util.Pair;
     deserializationDelegationManager = TrieNodeDeserializationDelegation.class)
 public abstract class TrieNode<T extends TBase<?, ?>> implements DataSerialization<T> {
   /**
+   * @return Size in bytes of the whole sub-trie. Approx only.
+   */
+  public abstract long calculateApproximateSizeInBytes();
+
+  /**
    * A {@link DataSerializationDelegationManager} for trie nodes.
    */
   public static class TrieNodeDeserializationDelegation

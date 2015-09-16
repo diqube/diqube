@@ -241,5 +241,10 @@ public class CompressedStringDictionaryBuilder {
         throws DeserializationException {
       // noop
     }
+
+    @Override
+    public long calculateApproximateSizeInBytes() {
+      return 0;
+    }
   }
 }

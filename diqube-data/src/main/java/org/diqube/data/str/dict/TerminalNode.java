@@ -23,7 +23,6 @@ package org.diqube.data.str.dict;
 import org.diqube.data.serialize.DataSerializable;
 import org.diqube.data.serialize.DeserializationException;
 import org.diqube.data.serialize.SerializationException;
-import org.diqube.data.serialize.DataSerialization.DataSerializationHelper;
 import org.diqube.data.serialize.thrift.v1.SStringDictionaryTrieTerminalNode;
 
 /**
@@ -56,5 +55,11 @@ public class TerminalNode extends TrieNode<SStringDictionaryTrieTerminalNode> {
   public void deserialize(DataSerializationHelper mgr, SStringDictionaryTrieTerminalNode source)
       throws DeserializationException {
     terminalId = source.getTerminalId();
+  }
+
+  @Override
+  public long calculateApproximateSizeInBytes() {
+    return 16 + // object header of this
+        8;
   }
 }

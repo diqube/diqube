@@ -120,7 +120,7 @@ public class DiqubeRecordWriter extends RecordWriter<NullWritable, DiqubeRow> {
     addRowToColumnShardBuilderManager(row, rowId);
     long numberOfRowsInCurShard = numberOfRowsInCurrentColShardBuilders.incrementAndGet();
     if (numberOfRowsInCurShard % memoryCheckRowCount == 0) {
-      long memoryConsumptionBytes = columnShardBuilderManager.calculateApproximateMemoryConsumption();
+      long memoryConsumptionBytes = columnShardBuilderManager.calculateApproximateSizeInBytes();
       logger.info("Current approximate memory consumption: {} MB", memoryConsumptionBytes / (1024 * 1024));
       if (memoryConsumptionBytes / (1024 * 1024) >= memoryFlushMb)
         flushNewTableShard();

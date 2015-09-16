@@ -64,6 +64,13 @@ public abstract class AbstractQueryableColumnShardFacade implements QueryableCol
   }
 
   @Override
+  public long calculateApproximateSizeInBytes() {
+    return delegate.calculateApproximateSizeInBytes() + //
+        9 // some constant for the other fields.
+        ;
+  }
+
+  @Override
   public Dictionary<?> getColumnShardDictionary() {
     return delegate.getColumnShardDictionary();
   }

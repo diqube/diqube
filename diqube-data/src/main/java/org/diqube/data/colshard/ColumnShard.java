@@ -67,4 +67,10 @@ public interface ColumnShard {
    */
   public long getFirstRowId();
 
+  /**
+   * @return An approximate number of bytes taken up by this {@link ColumnShard}. Note that this is only an
+   *         approximation!
+   */
+  public long calculateApproximateSizeInBytes();
+
 }

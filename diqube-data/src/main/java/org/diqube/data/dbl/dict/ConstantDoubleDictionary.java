@@ -225,4 +225,10 @@ public class ConstantDoubleDictionary implements DoubleDictionary<SDoubleDiction
     value = source.getValue();
   }
 
+  @Override
+  public long calculateApproximateSizeInBytes() {
+    return 16 + // object header of this.
+        8 + 16; // 8 bytes double + 16 byte object header
+  }
+
 }

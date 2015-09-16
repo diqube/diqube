@@ -498,4 +498,10 @@ public class ArrayCompressedLongDictionary implements LongDictionary<SLongDictio
     sortedValues = mgr.deserializeChild(CompressedLongArray.class, source.getArr());
   }
 
+  @Override
+  public long calculateApproximateSizeInBytes() {
+    return 16 + // object header of this.
+        sortedValues.calculateApproximateSizeInBytes();
+  }
+
 }

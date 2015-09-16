@@ -62,4 +62,10 @@ public interface CompressedLongArray<T extends TBase<?, ?>> extends DataSerializ
    *           If index is invalid.
    */
   public long get(int index) throws ArrayIndexOutOfBoundsException;
+
+  /**
+   * @return An approximate number of bytes taken up by this {@link CompressedLongArray}. Note that this is only an
+   *         approximation!
+   */
+  public long calculateApproximateSizeInBytes();
 }
