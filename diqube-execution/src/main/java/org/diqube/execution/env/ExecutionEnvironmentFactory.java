@@ -24,6 +24,7 @@ import javax.inject.Inject;
 
 import org.diqube.context.AutoInstatiate;
 import org.diqube.data.TableShard;
+import org.diqube.execution.cache.TableCacheRegistry;
 import org.diqube.queries.QueryRegistry;
 
 /**
@@ -37,12 +38,16 @@ public class ExecutionEnvironmentFactory {
   @Inject
   private QueryRegistry queryRegistry;
 
+  @Inject
+  private TableCacheRegistry tableCacheRegistry;
+
   public ExecutionEnvironment createQueryMasterExecutionEnvironment() {
-    return new DefaultExecutionEnvironment(queryRegistry, null);
+    return new DefaultExecutionEnvironment(queryRegistry, null, null);
   }
 
-  public ExecutionEnvironment createExecutionEnvironment(TableShard tableShard) {
-    return new DefaultExecutionEnvironment(queryRegistry, tableShard);
+  public ExecutionEnvironment createQueryRemoteExecutionEnvironment(TableShard tableShard) {
+    return new DefaultExecutionEnvironment(queryRegistry, tableShard,
+        tableCacheRegistry.getOrCreateTableCache(tableShard.getTableName()));
   }
 
   public DelegatingExecutionEnvironment createDelegatingExecutionEnvironment(ExecutionEnvironment delegate,

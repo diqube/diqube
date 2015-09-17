@@ -123,7 +123,7 @@ public class GroupStepTest {
     columnShardBuilderManager.addValues(COL_B, colBValues, 0L);
 
     TableShard table = buildTable(columnShardBuilderManager);
-    ExecutionEnvironment env = executionEnvironmentFactory.createExecutionEnvironment(table);
+    ExecutionEnvironment env = executionEnvironmentFactory.createQueryRemoteExecutionEnvironment(table);
 
     // RowIdEquals and ResolveValue steps
     List<AbstractThreadedExecutablePlanStep> steps =
@@ -188,7 +188,7 @@ public class GroupStepTest {
     columnShardBuilderManager.addValues(COL_C, colCValues, 0L);
 
     TableShard table = buildTable(columnShardBuilderManager);
-    ExecutionEnvironment env = executionEnvironmentFactory.createExecutionEnvironment(table);
+    ExecutionEnvironment env = executionEnvironmentFactory.createQueryRemoteExecutionEnvironment(table);
 
     // RowIdEquals and ResolveValue steps
     List<AbstractThreadedExecutablePlanStep> steps =

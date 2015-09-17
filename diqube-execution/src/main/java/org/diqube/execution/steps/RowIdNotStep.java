@@ -76,15 +76,15 @@ public class RowIdNotStep extends AbstractThreadedExecutablePlanStep {
     super(stepId, queryRegistry);
     this.defaultEnv = defaultEnv;
 
-    if (defaultEnv.getTableShardIfAvailable() == null)
+    if (defaultEnv.getNumberOfRowsInShard() == -1L)
       throw new ExecutablePlanBuildException("NOT step only supported if there's a TableShard.");
   }
 
   @Override
   protected void execute() {
     if (sourceIsEmpty.get()) {
-      long lowestRowId = defaultEnv.getTableShardIfAvailable().getLowestRowId();
-      long numberOfRows = defaultEnv.getTableShardIfAvailable().getNumberOfRowsInShard();
+      long lowestRowId = defaultEnv.getFirstRowIdInShard();
+      long numberOfRows = defaultEnv.getNumberOfRowsInShard();
 
       Set<Long> rowIdSet = new HashSet<Long>(rowIds);
 

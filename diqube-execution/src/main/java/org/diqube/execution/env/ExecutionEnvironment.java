@@ -64,7 +64,11 @@ public interface ExecutionEnvironment {
   /**
    * Returns a {@link QueryableLongColumnShard} for a specific column.
    * 
+   * <p>
    * That column shard can either be a temporary one or a "real" one from a {@link TableShard}.
+   * 
+   * <p>
+   * Note that this method might actually return a different instance each time called.
    * 
    * @return A {@link QueryableLongColumnShard} for the column with the given name or <code>null</code> if it does not
    *         exist.
@@ -74,7 +78,11 @@ public interface ExecutionEnvironment {
   /**
    * Returns a {@link QueryableStringColumnShard} for a specific column.
    * 
+   * <p>
    * That column shard can either be a temporary one or a "real" one from a {@link TableShard}.
+   * 
+   * <p>
+   * Note that this method might actually return a different instance each time called.
    * 
    * @return A {@link QueryableStringColumnShard} for the column with the given name or <code>null</code> if it does not
    *         exist.
@@ -84,7 +92,11 @@ public interface ExecutionEnvironment {
   /**
    * Returns a {@link QueryableDoubleColumnShard} for a specific column.
    * 
+   * <p>
    * That column shard can either be a temporary one or a "real" one from a {@link TableShard}.
+   * 
+   * <p>
+   * Note that this method might actually return a different instance each time called.
    * 
    * @return A {@link QueryableDoubleColumnShard} for the column with the given name or <code>null</code> if it does not
    *         exist.
@@ -103,7 +115,11 @@ public interface ExecutionEnvironment {
    * Returns a {@link QueryableColumnShard} for a specific column (no matter what data type the corresponding column
    * has).
    * 
+   * <p>
    * That column shard can either be a temporary one or a "real" one from a {@link TableShard}.
+   * 
+   * <p>
+   * Note that this method might actually return a different instance each time called.
    * 
    * @return A {@link QueryableColumnShard} for the column with the given name or <code>null</code> if it does not
    *         exist.
@@ -113,7 +129,11 @@ public interface ExecutionEnvironment {
   /**
    * Get the "real" (non-facaded) {@link StandardColumnShard} of a specific column.
    * 
+   * <p>
    * That column shard can either be a temporary one or a "real" one from a {@link TableShard}.
+   * 
+   * <p>
+   * Note that this method might actually return a different instance each time called.
    * 
    * @return A {@link StandardColumnShard} for the column or <code>null</code> if the column not exists or if it is no
    *         {@link StandardColumnShard}.
@@ -122,8 +142,12 @@ public interface ExecutionEnvironment {
 
   /**
    * Get the "real" (non-facaded) {@link ConstantColumnShard} of a specific column.
-   * 
+   *
+   * <p>
    * That column shard can either be a temporary one or a "real" one from a {@link TableShard}.
+   * 
+   * <p>
+   * Note that this method might actually return a different instance each time called.
    * 
    * @return A {@link ConstantColumnShard} for the column or <code>null</code> if the column not exists or if it is no
    *         {@link ConstantColumnShard}.
@@ -137,7 +161,8 @@ public interface ExecutionEnvironment {
   public boolean isTemporaryColumn(String colName);
 
   /**
-   * @return Map from colName to {@link QueryableColumnShard} for all available column shards.
+   * @return Map from colName to {@link QueryableColumnShard} for all available column shards. Note that the actual
+   *         column shard objects might be different instances with each call.
    */
   public Map<String, QueryableColumnShard> getAllColumnShards();
 
@@ -145,7 +170,8 @@ public interface ExecutionEnvironment {
    * Returns a map from colName to a list of {@link QueryableColumnShard}s for all temporary columns.
    * 
    * On the query master we may have several versions of a column (see {@link VersionedExecutionEnvironment}), this
-   * method returns all versions of all columns, the last entry in the list being the newest version.
+   * method returns all versions of all columns, the last entry in the list being the newest version. Note that the
+   * actual column shard objects might be different instances with each call.
    */
   public Map<String, List<QueryableColumnShard>> getAllTemporaryColumnShards();
 
@@ -153,7 +179,8 @@ public interface ExecutionEnvironment {
    * Returns a map from colName to a list of {@link QueryableColumnShard}s for all non-temporary columns.
    * 
    * On the query master we may have several versions of a column (see {@link VersionedExecutionEnvironment}), this
-   * method returns all versions of all columns, the last entry in the list being the newest version.
+   * method returns all versions of all columns, the last entry in the list being the newest version. Note that the
+   * actual column shard objects might be different instances with each call.
    */
   public Map<String, QueryableColumnShard> getAllNonTemporaryColumnShards();
 
@@ -173,18 +200,19 @@ public interface ExecutionEnvironment {
   public void storeTemporaryDoubleColumnShard(DoubleColumnShard column);
 
   /**
-   * The {@link TableShard} backing this {@link ExecutionEnvironment}. Can be <code>null</code> in case this execution
-   * happens on the query master and there is no backing {@link TableShard} object available.
-   */
-  public TableShard getTableShardIfAvailable();
-
-  /**
    * @return The overall lowest rowID of all columns of this {@link ExecutionEnvironment}.
    */
   public long getFirstRowIdInShard();
 
   /**
-   * @return -1 if unknown.
+   * @return -1 if unknown, which typically happens on the query master, as it does not have a backing
+   *         {@link TableShard}.
    */
   public long getLastRowIdInShard();
+
+  /**
+   * @return -1 if unknown, which typically happens on the query master, as it does not have a backing
+   *         {@link TableShard}.
+   */
+  public long getNumberOfRowsInShard();
 }

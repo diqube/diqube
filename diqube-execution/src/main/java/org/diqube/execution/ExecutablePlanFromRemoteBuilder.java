@@ -123,7 +123,7 @@ public class ExecutablePlanFromRemoteBuilder {
     List<ExecutablePlan> res = new ArrayList<>(table.getShards().size());
 
     for (TableShard tableShard : table.getShards()) {
-      ExecutionEnvironment defaultEnv = executionEnvironmentFactory.createExecutionEnvironment(tableShard);
+      ExecutionEnvironment defaultEnv = executionEnvironmentFactory.createQueryRemoteExecutionEnvironment(tableShard);
       Map<Integer, ExecutablePlanStep> steps = new HashMap<>();
 
       for (RExecutionPlanStep remoteStep : plan.getSteps()) {

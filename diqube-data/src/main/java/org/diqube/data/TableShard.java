@@ -154,4 +154,8 @@ public class TableShard implements DataSerialization<STableShard> {
   public void setTableName(String tableName) {
     this.tableName = tableName;
   }
+
+  public String getTableName() {
+    return tableName;
+  }
 }

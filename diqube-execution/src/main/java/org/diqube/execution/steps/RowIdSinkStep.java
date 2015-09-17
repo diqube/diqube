@@ -90,9 +90,9 @@ public class RowIdSinkStep extends AbstractThreadedExecutablePlanStep {
 
       // check if we have a TableShard available (will not be the case for QueryMaster, but for cluster nodes executing
       // a query - this step though should not be executed on the query master).
-      if (env.getTableShardIfAvailable() != null) {
-        long lowestRowId = env.getTableShardIfAvailable().getLowestRowId();
-        long numberOfRows = env.getTableShardIfAvailable().getNumberOfRowsInShard();
+      if (env.getNumberOfRowsInShard() != -1L) {
+        long lowestRowId = env.getFirstRowIdInShard();
+        long numberOfRows = env.getNumberOfRowsInShard();
         if (numberOfRows > 0) {
           // TODO think about not passing an array with all rowIDs.
           Long[] rowIds = LongStream.range(lowestRowId, lowestRowId + numberOfRows).mapToObj(Long::valueOf)

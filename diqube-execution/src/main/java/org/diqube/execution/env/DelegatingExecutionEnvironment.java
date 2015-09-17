@@ -23,7 +23,6 @@ package org.diqube.execution.env;
 import java.util.List;
 import java.util.Map;
 
-import org.diqube.data.TableShard;
 import org.diqube.data.colshard.ColumnShard;
 import org.diqube.data.colshard.StandardColumnShard;
 import org.diqube.data.dbl.DoubleColumnShard;
@@ -52,11 +51,6 @@ public class DelegatingExecutionEnvironment extends AbstractExecutionEnvironment
     super(queryRegistry);
     this.delegate = delegate;
     this.version = version;
-  }
-
-  @Override
-  public TableShard getTableShardIfAvailable() {
-    return delegate.getTableShardIfAvailable();
   }
 
   @Override
@@ -155,5 +149,10 @@ public class DelegatingExecutionEnvironment extends AbstractExecutionEnvironment
   @Override
   protected Map<String, QueryableColumnShard> delegateGetAllNonTemporaryColumnShards() {
     return delegate.getAllNonTemporaryColumnShards();
+  }
+
+  @Override
+  public long getNumberOfRowsInShard() {
+    return delegate.getNumberOfRowsInShard();
   }
 }

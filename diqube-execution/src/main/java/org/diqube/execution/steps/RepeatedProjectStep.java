@@ -175,8 +175,8 @@ public class RepeatedProjectStep extends AbstractThreadedExecutablePlanStep {
       return;
     }
 
-    long lowestRowIdInShard = defaultEnv.getTableShardIfAvailable().getLowestRowId();
-    long numberOfRowsInShard = defaultEnv.getTableShardIfAvailable().getNumberOfRowsInShard();
+    long lowestRowIdInShard = defaultEnv.getFirstRowIdInShard();
+    long numberOfRowsInShard = defaultEnv.getNumberOfRowsInShard();
 
     LoaderColumnInfo colInfo = new LoaderColumnInfo(ColumnType.LONG); // LONG is fine for the length col, other ones are
                                                                       // specified below.

@@ -100,7 +100,7 @@ public class RowIdEqualsStepTest {
     columnShardBuilderManager.addValues(COL_A, colAValues, 0L);
 
     TableShard table = buildTable(columnShardBuilderManager);
-    ExecutionEnvironment env = executionEnvironmentFactory.createExecutionEnvironment(table);
+    ExecutionEnvironment env = executionEnvironmentFactory.createQueryRemoteExecutionEnvironment(table);
 
     // RowIdEquals and ResolveValue steps
     List<AbstractThreadedExecutablePlanStep> steps =
@@ -130,7 +130,7 @@ public class RowIdEqualsStepTest {
     columnShardBuilderManager.addValues(COL_B, colBValues, 0L);
 
     TableShard table = buildTable(columnShardBuilderManager);
-    ExecutionEnvironment env = executionEnvironmentFactory.createExecutionEnvironment(table);
+    ExecutionEnvironment env = executionEnvironmentFactory.createQueryRemoteExecutionEnvironment(table);
 
     // RowIdEquals and ResolveValue steps, search in one column, select from the other.
     List<AbstractThreadedExecutablePlanStep> steps =

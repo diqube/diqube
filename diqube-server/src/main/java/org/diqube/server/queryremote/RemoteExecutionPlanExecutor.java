@@ -188,16 +188,15 @@ public class RemoteExecutionPlanExecutor {
         while (!planQueue.isEmpty()) {
           while (activeFutures.size() < numberOfTableShardsToExecuteConcurrently && !planQueue.isEmpty()) {
             ExecutablePlan plan = planQueue.poll();
-            TableShard shard = plan.getDefaultExecutionEnvironment().getTableShardIfAvailable();
+            long firstRowIdInShard = plan.getDefaultExecutionEnvironment().getFirstRowIdInShard();
 
             numberOfThreads += plan.preferredExecutorServiceSize();
 
             Executor executor = executorManager.newQueryFixedThreadPoolWithTimeout(plan.preferredExecutorServiceSize(),
-                "query-remote-worker-" + queryUuid + "-shard" + shard.getLowestRowId() + "-%d", queryUuid,
-                executionUuid);
+                "query-remote-worker-" + queryUuid + "-shard" + firstRowIdInShard + "-%d", queryUuid, executionUuid);
 
             logger.info("Starting to execute query {} execution {} on shard {}.", queryUuid, executionUuid,
-                shard.getLowestRowId());
+                firstRowIdInShard);
 
             Future<Void> f = plan.executeAsynchronously(executor);
             activeFutures.add(f);
