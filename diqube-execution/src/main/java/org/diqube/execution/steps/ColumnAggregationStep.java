@@ -125,6 +125,15 @@ public class ColumnAggregationStep extends AbstractThreadedExecutablePlanStep {
 
   @Override
   protected void execute() {
+    if (defaultEnv.getColumnShard(outputColName) != null) {
+      // This is true if we can serve the column from a cache.
+      logger.trace("Using cached result...");
+      forEachOutputConsumerOfType(ColumnBuiltConsumer.class, c -> c.columnBuilt(outputColName));
+      forEachOutputConsumerOfType(GenericConsumer.class, c -> c.sourceIsDone());
+      doneProcessing();
+      return;
+    }
+
     boolean lastRun = allColumnsAreBuilt.get();
 
     // validate if all "length" columns are available and all [index] columns, too - we do this by looking for all

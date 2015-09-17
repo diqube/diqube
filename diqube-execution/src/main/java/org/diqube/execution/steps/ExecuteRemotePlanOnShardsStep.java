@@ -37,9 +37,6 @@ import org.diqube.cluster.connection.Connection;
 import org.diqube.cluster.connection.ConnectionException;
 import org.diqube.cluster.connection.ConnectionPool;
 import org.diqube.cluster.connection.SocketListener;
-import org.diqube.execution.ExecutablePlan;
-import org.diqube.execution.ExecutablePlanFromRemoteBuilder;
-import org.diqube.execution.ExecutablePlanFromRemoteBuilderFactory;
 import org.diqube.execution.RemotesTriggeredListener;
 import org.diqube.execution.consumers.ColumnValueConsumer;
 import org.diqube.execution.consumers.DoneConsumer;
@@ -282,38 +279,6 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
   @Override
   protected String getAdditionalToStringDetails() {
     return "remoteExecutionPlan=" + remoteExecutionPlan;
-  }
-
-  /**
-   * Abstraction interface that can build {@link ExecutablePlan}s from a {@link RExecutionPlan}. Used for testing.
-   */
-  /* package */static interface RemotePlanBuilder {
-    public List<ExecutablePlan> build(RExecutionPlan remotePlan,
-        GroupIntermediaryAggregationConsumer groupIntermediaryAggregationConsumer,
-        ColumnValueConsumer columnValueConsumer);
-  }
-
-  /* package */static class DefaultRemotePlanBuilder implements RemotePlanBuilder {
-
-    private ExecutablePlanFromRemoteBuilderFactory executablePlanFromRemoteBuilderFactory;
-
-    public DefaultRemotePlanBuilder(ExecutablePlanFromRemoteBuilderFactory executablePlanFromRemoteBuilderFactory) {
-      this.executablePlanFromRemoteBuilderFactory = executablePlanFromRemoteBuilderFactory;
-    }
-
-    @Override
-    public List<ExecutablePlan> build(RExecutionPlan remotePlan,
-        GroupIntermediaryAggregationConsumer groupIntermediaryAggregationConsumer,
-        ColumnValueConsumer columnValueConsumer) {
-      ExecutablePlanFromRemoteBuilder builder =
-          executablePlanFromRemoteBuilderFactory.createExecutablePlanFromRemoteBuilder();
-      builder.withRemoteExecutionPlan(remotePlan);
-      builder.withFinalColumnValueConsumer(columnValueConsumer);
-      builder.withFinalGroupIntermediateAggregationConsumer(groupIntermediaryAggregationConsumer);
-
-      return builder.build();
-    }
-
   }
 
   @Override

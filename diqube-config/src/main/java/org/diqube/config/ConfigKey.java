@@ -128,4 +128,18 @@ public class ConfigKey {
    * The number of seconds after which an execution of a query is terminated.
    */
   public static final String QUERY_EXECUTION_TIMEOUT_SECONDS = "queryExecutionTimeoutSeconds";
+
+  /**
+   * Memory size the Table cache should take up approximately <b>per table</b>.
+   * 
+   * <p>
+   * Each table being served from this diqube server has a cache where it puts the most often requested intermediate
+   * computation results from queries (more accurate: The most often used temporary columns). We can measure the amount
+   * of data that cache takes approximately. Use this setting to set the maximum of that approximation up to that the
+   * table should cache.
+   * 
+   * <p>
+   * Set this to a value <= 0 to disable the cache.
+   */
+  public static final String TABLE_CACHE_APPROX_MAX_PER_TABLE_MB = "tableCacheApproxMaxPerTableMb";
 }

@@ -21,6 +21,9 @@
 package org.diqube.execution.cache;
 
 import org.diqube.data.Table;
+import org.diqube.data.TableShard;
+import org.diqube.data.colshard.ColumnShard;
+import org.diqube.loader.columnshard.SparseColumnShardBuilder;
 
 /**
  * A Table cache caches objects in the context of a {@link Table}, this class allows updating the cache.
@@ -28,4 +31,17 @@ import org.diqube.data.Table;
  * @author Bastian Gloeckle
  */
 public interface WritableTableCache extends TableCache {
+
+  /**
+   * Register that a specific {@link ColumnShard} has been created/used once and offer the cache to cache that column
+   * shard at the discretion of the cache.
+   * 
+   * @param firstRowIdInTableShard
+   *          {@link TableShard#getLowestRowId()} of the shard the given col was created for.
+   * @param createdColumnShard
+   *          The column shard that has been created and should perhaps be cached. Note that this must not be a
+   *          {@link ColumnShard} that has been created using the {@link SparseColumnShardBuilder}, as such a col shard
+   *          cannot be used by anyone else.
+   */
+  public void registerUsageOfColumnShardPossiblyCache(long firstRowIdInTableShard, ColumnShard createdColumnShard);
 }

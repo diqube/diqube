@@ -68,7 +68,8 @@ public interface ExecutionEnvironment {
    * That column shard can either be a temporary one or a "real" one from a {@link TableShard}.
    * 
    * <p>
-   * Note that this method might actually return a different instance each time called.
+   * Note that this method might actually return a different instance each time called, but when a column for a name was
+   * returned once, there will be data available until this {@link ExecutionEnvironment} is at its end of life.
    * 
    * @return A {@link QueryableLongColumnShard} for the column with the given name or <code>null</code> if it does not
    *         exist.
@@ -82,7 +83,8 @@ public interface ExecutionEnvironment {
    * That column shard can either be a temporary one or a "real" one from a {@link TableShard}.
    * 
    * <p>
-   * Note that this method might actually return a different instance each time called.
+   * Note that this method might actually return a different instance each time called, but when a column for a name was
+   * returned once, there will be data available until this {@link ExecutionEnvironment} is at its end of life.
    * 
    * @return A {@link QueryableStringColumnShard} for the column with the given name or <code>null</code> if it does not
    *         exist.
@@ -96,7 +98,8 @@ public interface ExecutionEnvironment {
    * That column shard can either be a temporary one or a "real" one from a {@link TableShard}.
    * 
    * <p>
-   * Note that this method might actually return a different instance each time called.
+   * Note that this method might actually return a different instance each time called, but when a column for a name was
+   * returned once, there will be data available until this {@link ExecutionEnvironment} is at its end of life.
    * 
    * @return A {@link QueryableDoubleColumnShard} for the column with the given name or <code>null</code> if it does not
    *         exist.
@@ -119,7 +122,8 @@ public interface ExecutionEnvironment {
    * That column shard can either be a temporary one or a "real" one from a {@link TableShard}.
    * 
    * <p>
-   * Note that this method might actually return a different instance each time called.
+   * Note that this method might actually return a different instance each time called, but when a column for a name was
+   * returned once, there will be data available until this {@link ExecutionEnvironment} is at its end of life.
    * 
    * @return A {@link QueryableColumnShard} for the column with the given name or <code>null</code> if it does not
    *         exist.
@@ -133,7 +137,8 @@ public interface ExecutionEnvironment {
    * That column shard can either be a temporary one or a "real" one from a {@link TableShard}.
    * 
    * <p>
-   * Note that this method might actually return a different instance each time called.
+   * Note that this method might actually return a different instance each time called, but when a column for a name was
+   * returned once, there will be data available until this {@link ExecutionEnvironment} is at its end of life.
    * 
    * @return A {@link StandardColumnShard} for the column or <code>null</code> if the column not exists or if it is no
    *         {@link StandardColumnShard}.
@@ -147,7 +152,8 @@ public interface ExecutionEnvironment {
    * That column shard can either be a temporary one or a "real" one from a {@link TableShard}.
    * 
    * <p>
-   * Note that this method might actually return a different instance each time called.
+   * Note that this method might actually return a different instance each time called, but when a column for a name was
+   * returned once, there will be data available until this {@link ExecutionEnvironment} is at its end of life.
    * 
    * @return A {@link ConstantColumnShard} for the column or <code>null</code> if the column not exists or if it is no
    *         {@link ConstantColumnShard}.

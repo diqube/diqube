@@ -36,6 +36,10 @@ import org.diqube.execution.env.VersionedExecutionEnvironment;
  * Compare to {@link ColumnBuiltConsumer}. The {@link ColumnVersionBuiltConsumer} might be used on the query master node
  * and is therefore usually available in each {@link ExecutablePlanStep} where a {@link ColumnBuiltConsumer} is
  * available, too.
+ * 
+ * <p>
+ * Implementations should always listen on the {@link ColumnBuiltConsumer}, too and not only on the
+ * {@link ColumnVersionBuiltConsumer}, as the results of {@link ColumnBuiltConsumer} are the "final" ones.
  *
  * @author Bastian Gloeckle
  */

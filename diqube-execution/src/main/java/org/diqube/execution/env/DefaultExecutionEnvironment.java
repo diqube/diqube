@@ -44,8 +44,8 @@ import org.diqube.queries.QueryRegistry;
  * it is used on a query remote.
  * 
  * <p>
- * This implementation is {@link TableCache}-aware. This means that it will provide columns that are stored in
- * the {@link TableCache} for the corresponding {@link TableShard}.
+ * This implementation is {@link TableCache}-aware. This means that it will provide columns that are stored in the
+ * {@link TableCache} for the corresponding {@link TableShard}.
  * 
  * If a {@link ColumnShard} is found to be cached, it is put directly into this {@link DefaultExecutionEnvironment} as
  * "temporary" column (just like when somebody calls {@link #storeTemporaryDoubleColumnShard(DoubleColumnShard)} etc).
@@ -66,8 +66,7 @@ public class DefaultExecutionEnvironment extends AbstractExecutionEnvironment {
    * @param tableCache
    *          The cache to read ColumnShards from.
    */
-  public DefaultExecutionEnvironment(QueryRegistry queryRegistry, TableShard tableShard,
-      TableCache tableCache) {
+  public DefaultExecutionEnvironment(QueryRegistry queryRegistry, TableShard tableShard, TableCache tableCache) {
     super(queryRegistry);
     this.tableShard = tableShard;
     this.tableCache = tableCache;
@@ -225,27 +224,6 @@ public class DefaultExecutionEnvironment extends AbstractExecutionEnvironment {
       res.putAll(delegateGetAllColumnShards());
 
     return res;
-  }
-
-  @Override
-  public void storeTemporaryLongColumnShard(LongColumnShard column) {
-    if (getColumnShard(column.getName()) != null)
-      throw new IllegalArgumentException("Column " + column.getName() + " already exists.");
-    super.storeTemporaryLongColumnShard(column);
-  }
-
-  @Override
-  public void storeTemporaryStringColumnShard(StringColumnShard column) {
-    if (getColumnShard(column.getName()) != null)
-      throw new IllegalArgumentException("Column " + column.getName() + " already exists.");
-    super.storeTemporaryStringColumnShard(column);
-  }
-
-  @Override
-  public void storeTemporaryDoubleColumnShard(DoubleColumnShard column) {
-    if (getColumnShard(column.getName()) != null)
-      throw new IllegalArgumentException("Column " + column.getName() + " already exists.");
-    super.storeTemporaryDoubleColumnShard(column);
   }
 
 }

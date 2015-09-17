@@ -23,6 +23,8 @@ package org.diqube.execution.cache;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import org.diqube.config.Config;
+import org.diqube.config.ConfigKey;
 import org.diqube.context.AutoInstatiate;
 
 /**
@@ -32,7 +34,10 @@ import org.diqube.context.AutoInstatiate;
  */
 @AutoInstatiate
 public class TableCacheRegistry {
-  private ConcurrentMap<String, DefaultTableCache> caches = new ConcurrentHashMap<>();
+  private ConcurrentMap<String, WritableTableCache> caches = new ConcurrentHashMap<>();
+
+  @Config(ConfigKey.TABLE_CACHE_APPROX_MAX_PER_TABLE_MB)
+  public int tableCacheApproxMaxPerTableMb;
 
   /**
    * @return The cache for the given table or <code>null</code> if not available.
@@ -45,6 +50,10 @@ public class TableCacheRegistry {
    * @return The cache for the given table. If there was none, one is created.
    */
   public WritableTableCache getOrCreateTableCache(String tableName) {
-    return caches.computeIfAbsent(tableName, s -> new DefaultTableCache());
+    if (tableCacheApproxMaxPerTableMb <= 0)
+      return caches.computeIfAbsent(tableName, s -> new NoopTableCache());
+    else
+      return caches.computeIfAbsent(tableName,
+          s -> new DefaultTableCache(tableCacheApproxMaxPerTableMb * 1024L * 1024L));
   }
 }
