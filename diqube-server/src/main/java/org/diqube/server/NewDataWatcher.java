@@ -146,6 +146,11 @@ public class NewDataWatcher implements ClusterManagerListener {
   }
 
   private void loadControlFile(File controlFile) {
+    if (tableInfoByControlFilePath.containsKey(controlFile.getAbsolutePath())) {
+      logger.info("Found control file {}, but that is loaded already. Skipping.", controlFile.getAbsolutePath());
+      return;
+    }
+
     logger.info("Found new control file {}. Starting to load new table shard.", controlFile.getAbsolutePath());
     try {
       Pair<String, List<Long>> tableInfo =
@@ -234,6 +239,8 @@ public class NewDataWatcher implements ClusterManagerListener {
 
       while (true) {
         if (watchService == null) {
+          watchService = watchServiceSupplier.get();
+
           File[] controlFiles =
               watchPath.toFile().listFiles((dir, fileName) -> fileName.toLowerCase().endsWith(CONTROL_FILE_EXTENSION));
 
@@ -241,8 +248,6 @@ public class NewDataWatcher implements ClusterManagerListener {
           if (controlFiles != null) {
             for (File controlFile : controlFiles)
               loadControlFile(controlFile);
-
-            watchService = watchServiceSupplier.get();
           }
 
           if (watchService == null) {
