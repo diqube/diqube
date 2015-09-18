@@ -30,7 +30,7 @@ import org.diqube.data.colshard.ColumnShard;
  *
  * @author Bastian Gloeckle
  */
-public class NoopTableCache implements WritableTableCache {
+public class NoopColumnShardCache implements WritableColumnShardCache {
 
   @Override
   public ColumnShard getCachedColumnShard(long firstRowIdTableShard, String colName) {

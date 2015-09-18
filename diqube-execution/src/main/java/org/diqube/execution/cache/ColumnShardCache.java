@@ -22,12 +22,11 @@ package org.diqube.execution.cache;
 
 import java.util.Collection;
 
-import org.diqube.data.Table;
 import org.diqube.data.TableShard;
 import org.diqube.data.colshard.ColumnShard;
 
 /**
- * Caches objects in the context of a {@link Table}.
+ * An instance caches column shards for a single table.
  * 
  * <p>
  * Typically, objects that need to be cached belong to one {@link TableShard} of the table. To get better
@@ -38,7 +37,7 @@ import org.diqube.data.colshard.ColumnShard;
  * 
  * @author Bastian Gloeckle
  */
-public interface TableCache {
+public interface ColumnShardCache {
   /**
    * Returns a specific cached {@link ColumnShard} of a TableShard inside this table if available.
    * 

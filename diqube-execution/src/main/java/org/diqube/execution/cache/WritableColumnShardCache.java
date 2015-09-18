@@ -20,17 +20,16 @@
  */
 package org.diqube.execution.cache;
 
-import org.diqube.data.Table;
 import org.diqube.data.TableShard;
 import org.diqube.data.colshard.ColumnShard;
 import org.diqube.loader.columnshard.SparseColumnShardBuilder;
 
 /**
- * A Table cache caches objects in the context of a {@link Table}, this class allows updating the cache.
+ * A Column Shard cache caches column shards for a single table, this interface allows updating the cache.
  * 
  * @author Bastian Gloeckle
  */
-public interface WritableTableCache extends TableCache {
+public interface WritableColumnShardCache extends ColumnShardCache {
 
   /**
    * Register that a specific {@link ColumnShard} has been created/used once and offer the cache to cache that column

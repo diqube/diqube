@@ -44,8 +44,8 @@ import org.diqube.data.colshard.ColumnShard;
 import org.diqube.execution.ExecutablePlan;
 import org.diqube.execution.ExecutablePlanFromRemoteBuilderFactory;
 import org.diqube.execution.TableRegistry;
-import org.diqube.execution.cache.TableCacheRegistry;
-import org.diqube.execution.cache.WritableTableCache;
+import org.diqube.execution.cache.ColumnShardCacheRegistry;
+import org.diqube.execution.cache.WritableColumnShardCache;
 import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.env.querystats.QueryableColumnShard;
 import org.diqube.function.IntermediaryResult;
@@ -123,7 +123,7 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
   private ClusterManager clusterManager;
 
   @Inject
-  private TableCacheRegistry tableCacheRegistry;
+  private ColumnShardCacheRegistry tableCacheRegistry;
 
   @Config(ConfigKey.CONCURRENT_TABLE_SHARD_EXECUTION_PER_QUERY)
   private int numberOfTableShardsToExecuteConcurrently;
@@ -266,7 +266,7 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
             }
 
             // update table cache
-            WritableTableCache tableCache = tableCacheRegistry.getTableCache(executionPlan.getTable());
+            WritableColumnShardCache tableCache = tableCacheRegistry.getColumnShardCache(executionPlan.getTable());
             if (tableCache != null) {
               logger.info("Updating the table cache with results of query {}, execution {}", queryUuid, executionUuid);
               for (ExecutablePlan plan : executablePlansHolder.getValue()) {

@@ -28,13 +28,13 @@ import org.diqube.config.ConfigKey;
 import org.diqube.context.AutoInstatiate;
 
 /**
- * Manages {@link WritableTableCache} instances.
+ * Manages {@link WritableColumnShardCache} instances.
  *
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
-public class TableCacheRegistry {
-  private ConcurrentMap<String, WritableTableCache> caches = new ConcurrentHashMap<>();
+public class ColumnShardCacheRegistry {
+  private ConcurrentMap<String, WritableColumnShardCache> caches = new ConcurrentHashMap<>();
 
   @Config(ConfigKey.TABLE_CACHE_APPROX_MAX_PER_TABLE_MB)
   public int tableCacheApproxMaxPerTableMb;
@@ -42,18 +42,18 @@ public class TableCacheRegistry {
   /**
    * @return The cache for the given table or <code>null</code> if not available.
    */
-  public WritableTableCache getTableCache(String tableName) {
+  public WritableColumnShardCache getColumnShardCache(String tableName) {
     return caches.get(tableName);
   }
 
   /**
    * @return The cache for the given table. If there was none, one is created.
    */
-  public WritableTableCache getOrCreateTableCache(String tableName) {
+  public WritableColumnShardCache getOrCreateColumnShardCache(String tableName) {
     if (tableCacheApproxMaxPerTableMb <= 0)
-      return caches.computeIfAbsent(tableName, s -> new NoopTableCache());
+      return caches.computeIfAbsent(tableName, s -> new NoopColumnShardCache());
     else
       return caches.computeIfAbsent(tableName,
-          s -> new DefaultTableCache(tableCacheApproxMaxPerTableMb * 1024L * 1024L));
+          s -> new DefaultColumnShardCache(tableCacheApproxMaxPerTableMb * 1024L * 1024L));
   }
 }

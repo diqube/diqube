@@ -33,7 +33,6 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import org.diqube.data.Table;
 import org.diqube.data.TableShard;
 import org.diqube.data.colshard.ColumnShard;
 import org.diqube.util.DiqubeIterables;
@@ -44,12 +43,12 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Sets;
 
 /**
- * Default implementation of a cache that caches data in the context of a {@link Table}.
+ * Default implementation of a cache that caches column shards for a single table.
  *
  * @author Bastian Gloeckle
  */
-public class DefaultTableCache implements WritableTableCache {
-  private static final Logger logger = LoggerFactory.getLogger(DefaultTableCache.class);
+public class DefaultColumnShardCache implements WritableColumnShardCache {
+  private static final Logger logger = LoggerFactory.getLogger(DefaultColumnShardCache.class);
 
   private ConcurrentMap<Long, ConcurrentMap<String, ColumnShard>> allCachesByTableShard = new ConcurrentHashMap<>();
 
@@ -66,7 +65,7 @@ public class DefaultTableCache implements WritableTableCache {
 
   private long maxMemoryBytes;
 
-  /* package */ DefaultTableCache(long maxMemoryBytes) {
+  /* package */ DefaultColumnShardCache(long maxMemoryBytes) {
     this.maxMemoryBytes = maxMemoryBytes;
   }
 
