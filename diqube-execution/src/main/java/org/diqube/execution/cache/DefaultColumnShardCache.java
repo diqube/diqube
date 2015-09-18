@@ -130,6 +130,7 @@ public class DefaultColumnShardCache implements WritableColumnShardCache {
           long nextMemory = memoryOfCols.get(colIdCount.getLeft());
           if (memory + nextMemory > maxMemoryBytes)
             break;
+          memory += nextMemory;
           colIdsThatShouldBeCached.add(colIdCount.getLeft());
         }
 
@@ -155,7 +156,9 @@ public class DefaultColumnShardCache implements WritableColumnShardCache {
             // we succeeded!
             retry = false;
           }
-        }
+        } else
+          // we do not need to take any action, so we're done!
+          retry = false;
       }
     } finally {
       cleanupLock.readLock().unlock();
