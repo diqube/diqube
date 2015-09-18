@@ -51,6 +51,7 @@ import org.diqube.plan.exception.ParseException;
 import org.diqube.plan.exception.ValidationException;
 import org.diqube.queries.QueryRegistry;
 import org.diqube.queries.QueryRegistry.QueryPercentHandler;
+import org.diqube.queries.QueryUuid.QueryUuidThreadState;
 import org.diqube.remote.base.thrift.RValue;
 import org.diqube.remote.base.util.RValueUtil;
 import org.diqube.remote.query.thrift.RResultTable;
@@ -128,7 +129,9 @@ class MasterQueryExecutor {
    * 
    * @return A triple consisting of the Runnable mentioned above, the {@link ExecutablePlan} that will be executed on
    *         query master and the {@link ExecuteRemotePlanOnShardsStep} if there is one available in the created plan
-   *         (otherwise <code>null</code>).
+   *         (otherwise <code>null</code>). Note that the {@link Runnable} needs to be called in a thread that has
+   *         correct {@link QueryUuidThreadState} set (e.g. using an Executor from
+   *         {@link ExecutorManager#newQueryFixedThreadPoolWithTimeout(int, String, UUID, UUID)}).
    * @throws ParseException
    *           in case the query cannot be parsed.
    * @throws ValidationException

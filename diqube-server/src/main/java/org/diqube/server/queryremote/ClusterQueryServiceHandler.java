@@ -317,7 +317,6 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
     // start execution of ExecutablePlan(s) asynchronously.
     queryRegistry.getOrCreateStatsManager(queryUuid, executionUuid).setStartedNanos(System.nanoTime());
     threadPool.execute(prepareRes.getLeft());
-
   }
 
   /**

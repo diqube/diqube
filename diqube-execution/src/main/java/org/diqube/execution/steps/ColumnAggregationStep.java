@@ -121,7 +121,7 @@ public class ColumnAggregationStep extends AbstractThreadedExecutablePlanStep {
   }
 
   @Override
-  protected void initialize() {
+  public void initialize() {
     columnShardBuilderManagerSupplier = (outputColType) -> {
       LoaderColumnInfo columnInfo = new LoaderColumnInfo(outputColType);
       return columnShardBuilderFactory.createColumnShardBuilderManager(columnInfo, defaultEnv.getFirstRowIdInShard());

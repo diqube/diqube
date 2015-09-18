@@ -143,7 +143,7 @@ public class RepeatedProjectStep extends AbstractThreadedExecutablePlanStep {
   }
 
   @Override
-  protected void initialize() {
+  public void initialize() {
     // remove [*].
     if (this.outputColNameBase.endsWith(repeatedColNameGen.allEntriesIdentifyingSubstr()))
       this.outputColNameBase = this.outputColNameBase.substring(0,

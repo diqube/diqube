@@ -101,7 +101,8 @@ public abstract class AbstractThreadedExecutablePlanStep implements ExecutablePl
    * As you must not use e.g. the {@link ExecutionEnvironment} in the constructor, you can use this method to initialize
    * anything that might rely on the {@link QueryUuidThreadState}.
    */
-  protected void initialize() {
+  @Override
+  public void initialize() {
 
   }
 
@@ -109,7 +110,6 @@ public abstract class AbstractThreadedExecutablePlanStep implements ExecutablePl
   public void run() {
     queryUuidThreadState = QueryUuid.getCurrentThreadState();
     validateWiredStatus();
-    initialize();
     while (!doneProcessing.get()) {
       numberOfEventsNotProcessed.set(0);
 

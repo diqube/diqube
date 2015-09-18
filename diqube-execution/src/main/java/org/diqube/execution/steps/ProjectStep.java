@@ -191,7 +191,7 @@ public class ProjectStep extends AbstractThreadedExecutablePlanStep {
   }
 
   @Override
-  protected void initialize() {
+  public void initialize() {
     inputColNames = new HashSet<>();
     for (ColumnOrValue param : functionParameters)
       if (param.getType().equals(ColumnOrValue.Type.COLUMN))

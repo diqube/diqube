@@ -23,6 +23,7 @@ package org.diqube.execution;
 import org.diqube.execution.consumers.DoneConsumer;
 import org.diqube.execution.consumers.GenericConsumer;
 import org.diqube.execution.exception.ExecutablePlanBuildException;
+import org.diqube.queries.QueryUuid.QueryUuidThreadState;
 import org.diqube.remote.cluster.thrift.RExecutionPlanStep;
 
 /**
@@ -45,8 +46,17 @@ import org.diqube.remote.cluster.thrift.RExecutionPlanStep;
 public interface ExecutablePlanStep extends Runnable {
 
   /**
+   * Call this method before {@link #run()} in order to initialize this step.
+   * 
+   * Note that when calling this, the correct {@link QueryUuidThreadState} has to be set.
+   */
+  public void initialize();
+
+  /**
    * This method processes any new data that is available through the input consumers. It is executed in a single
    * thread.
+   * 
+   * Note that when calling this, the correct {@link QueryUuidThreadState} has to be set.
    */
   @Override
   public void run();

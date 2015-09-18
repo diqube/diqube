@@ -34,6 +34,7 @@ import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.env.VersionedExecutionEnvironment;
 import org.diqube.queries.QueryRegistry;
 import org.diqube.queries.QueryUuid;
+import org.diqube.queries.QueryUuid.QueryUuidThreadState;
 import org.diqube.threads.ExecutorManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -93,7 +94,10 @@ public class ExecutablePlan {
    *          The {@link Executor} to be used to execute the steps. This Executor should have
    *          {@link #preferredExecutorServiceSize()} free threads, as specific threads might block while executing a
    *          specific step (as the step is e.g. waiting for additional data to be provided by other steps). If there a
-   *          not enough threads available, it is not guaranteed that there will be no deadlock.
+   *          not enough threads available, it is not guaranteed that there will be no deadlock. Additionally, all
+   *          threads of the executor should have the correct {@link QueryUuidThreadState} set (e.g. by having it
+   *          created by
+   *          {@link ExecutorManager#newQueryFixedThreadPoolWithTimeout(int, String, java.util.UUID, java.util.UUID)}).
    * @return A Future that can be used to query the state of the computation of all steps. Note that
    *         {@link Future#cancel(boolean)} will not work on the returned future, stop the executor passed to this
    *         method instead (one might want to use
@@ -104,6 +108,34 @@ public class ExecutablePlan {
     logger.trace("Executing asynchronously {}", this);
     ExecutionFuture future = new ExecutionFuture(steps.size());
 
+    // first: initialize all steps
+    AtomicInteger initializedCount = new AtomicInteger(0);
+    Object initializedSync = new Object();
+    for (ExecutablePlanStep step : steps) {
+      executor.execute(new Runnable() {
+        @Override
+        public void run() {
+          step.initialize();
+          initializedCount.incrementAndGet();
+          synchronized (initializedSync) {
+            initializedSync.notifyAll();
+          }
+        }
+      });
+    }
+
+    // wait until all are initialized.
+    while (initializedCount.get() < steps.size()) {
+      synchronized (initializedSync) {
+        try {
+          initializedSync.wait(1000);
+        } catch (InterruptedException e) {
+          // interrupted, exit quietly
+        }
+      }
+    }
+
+    // start executing the steps.
     for (ExecutablePlanStep step : steps)
       executor.execute(new Runnable() {
         @Override

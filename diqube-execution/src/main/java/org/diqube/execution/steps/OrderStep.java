@@ -239,7 +239,7 @@ public class OrderStep extends AbstractThreadedExecutablePlanStep {
   }
 
   @Override
-  protected void initialize() {
+  public void initialize() {
     sortColSet = sortCols.stream().map(p -> p.getLeft()).collect(Collectors.toSet());
     columnsThatNeedToBeBuilt = new ConcurrentSkipListSet<>(sortColSet);
     columnsThatNeedToBeBuilt.removeAll(defaultEnv.getAllColumnShards().keySet());

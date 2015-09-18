@@ -130,7 +130,7 @@ public class GroupStep extends AbstractThreadedExecutablePlanStep {
   }
 
   @Override
-  protected void initialize() {
+  public void initialize() {
     columnsThatNeedToBeBuilt = new ConcurrentSkipListSet<>(colNamesToGroupBy);
     columnsThatNeedToBeBuilt.removeAll(defaultEnv.getAllColumnShards().keySet());
   }

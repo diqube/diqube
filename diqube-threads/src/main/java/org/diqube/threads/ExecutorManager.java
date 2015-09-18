@@ -54,6 +54,7 @@ import org.diqube.config.ConfigKey;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.queries.QueryRegistry;
 import org.diqube.queries.QueryUuid;
+import org.diqube.queries.QueryUuid.QueryUuidThreadState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -144,7 +145,8 @@ public class ExecutorManager {
 
   /**
    * Create a new thread pool with a fixed set of threads, see {@link Executors#newFixedThreadPool(int)}. The returned
-   * {@link ExecutorService} should be used for executing a specific diql query.
+   * {@link ExecutorService} should be used for executing a specific diql query, with having the correct
+   * {@link QueryUuidThreadState} set.
    * 
    * <p>
    * All threads that are used by the returned {@link Executor} will be "bound" to the specific diql query: That means

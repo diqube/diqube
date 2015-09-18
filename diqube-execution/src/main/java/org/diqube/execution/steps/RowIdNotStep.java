@@ -78,7 +78,7 @@ public class RowIdNotStep extends AbstractThreadedExecutablePlanStep {
   }
 
   @Override
-  protected void initialize() {
+  public void initialize() {
     if (defaultEnv.getNumberOfRowsInShard() == -1L)
       throw new ExecutablePlanBuildException("NOT step only supported if there's a TableShard.");
   }

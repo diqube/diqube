@@ -34,7 +34,6 @@ exception RQueryException {
 }
 
 service QueryService {
-  RResultTable syncExecuteQuery(1: string diql) throws (1: RQueryException queryException),
   void asyncExecuteQuery(1: base.RUUID queryRUuid, 
                          2: string diql, 
                          3: bool sendPartialUpdates, 
