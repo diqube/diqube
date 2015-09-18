@@ -34,6 +34,7 @@ import org.diqube.execution.consumers.AbstractPlanStepBasedGenericConsumer;
 import org.diqube.execution.consumers.ContinuousConsumer;
 import org.diqube.execution.consumers.DoneConsumer;
 import org.diqube.execution.consumers.GenericConsumer;
+import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.exception.ExecutablePlanBuildException;
 import org.diqube.queries.QueryRegistry;
 import org.diqube.queries.QueryUuid;
@@ -84,15 +85,31 @@ public abstract class AbstractThreadedExecutablePlanStep implements ExecutablePl
 
   private boolean currentlyMeasuringTime = false;
 
+  /**
+   * Note that constructors of {@link ExecutablePlanStep}s should execute very quickly and must NOT execute any
+   * initialization code, especially not such code that relies on correct {@link QueryUuidThreadState} (which includes
+   * accessing {@link ExecutionEnvironment}).
+   */
   public AbstractThreadedExecutablePlanStep(int stepId, QueryRegistry queryRegistry) {
     this.stepId = stepId;
     this.queryRegistry = queryRegistry;
+  }
+
+  /**
+   * Overwrite this method to initialize anything.
+   * 
+   * As you must not use e.g. the {@link ExecutionEnvironment} in the constructor, you can use this method to initialize
+   * anything that might rely on the {@link QueryUuidThreadState}.
+   */
+  protected void initialize() {
+
   }
 
   @Override
   public void run() {
     queryUuidThreadState = QueryUuid.getCurrentThreadState();
     validateWiredStatus();
+    initialize();
     while (!doneProcessing.get()) {
       numberOfEventsNotProcessed.set(0);
 

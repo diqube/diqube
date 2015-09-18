@@ -161,12 +161,13 @@ struct RClusterQueryStatistics {
   2: i64 startedUntilDoneMs,
   3: map<i32, i64> stepThreadActiveMs,
   4: i32 numberOfThreads,
-  5: i32 numberOfTemporaryColumnsCreated,
-  6: map<string, i32> numberOfPageAccesses,
-  7: map<string, i32> numberOfTemporaryPageAccesses,
-  8: i32 numberOfPages,
-  9: i32 numberOfTemporaryPages,
-  10: map<string, i32> numberOfTemporaryVersionsPerColName
+  5: i32 numberOfTemporaryColumnShardsCreated,
+  6: i32 numberOfTemporaryColumnShardsFromCache,
+  7: map<string, i32> numberOfPageAccesses,
+  8: map<string, i32> numberOfTemporaryPageAccesses,
+  9: i32 numberOfPagesInTable,
+  10: i32 numberOfTemporaryPages,
+  11: map<string, i32> numberOfTemporaryVersionsPerColName
 }
 
 

@@ -49,7 +49,10 @@ public class JsonQueryStatsPayload implements JsonPayload {
   private List<Integer> numberOfThreads = new ArrayList<>();
 
   @JsonProperty
-  private List<Integer> numberOfTemporaryColumnsCreated = new ArrayList<>();
+  private List<Integer> numberOfTemporaryColumnShardsCreated = new ArrayList<>();
+
+  @JsonProperty
+  private List<Integer> numberOfTemporaryColumnShardsFromCache = new ArrayList<>();
 
   @JsonProperty
   private Map<String, List<Long>> stepsActiveMs = new HashMap<>();
@@ -61,7 +64,7 @@ public class JsonQueryStatsPayload implements JsonPayload {
   private Map<String, List<Integer>> numberOfTemporaryPageAccesses = new HashMap<>();
 
   @JsonProperty
-  private List<Integer> numberOfPages = new ArrayList<>();
+  private List<Integer> numberOfPagesInTable = new ArrayList<>();
 
   @JsonProperty
   private List<Integer> numberOfTemporaryPages = new ArrayList<>();
@@ -93,8 +96,9 @@ public class JsonQueryStatsPayload implements JsonPayload {
       first = false;
       startedUntilDoneMs.add(detail.getStartedUntilDoneMs());
       numberOfThreads.add(detail.getNumberOfThreads());
-      numberOfTemporaryColumnsCreated.add(detail.getNumberOfTemporaryColumnsCreated());
-      numberOfPages.add(detail.getNumberOfPages());
+      numberOfTemporaryColumnShardsCreated.add(detail.getNumberOfTemporaryColumnShardsCreated());
+      numberOfTemporaryColumnShardsFromCache.add(detail.getNumberOfTemporaryColumnShardsFromCache());
+      numberOfPagesInTable.add(detail.getNumberOfPagesInTable());
       numberOfTemporaryPages.add(detail.getNumberOfTemporaryPages());
 
       for (String stepName : stepsActiveMs.keySet())

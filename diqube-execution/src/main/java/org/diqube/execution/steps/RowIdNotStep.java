@@ -75,7 +75,10 @@ public class RowIdNotStep extends AbstractThreadedExecutablePlanStep {
   public RowIdNotStep(int stepId, QueryRegistry queryRegistry, ExecutionEnvironment defaultEnv) {
     super(stepId, queryRegistry);
     this.defaultEnv = defaultEnv;
+  }
 
+  @Override
+  protected void initialize() {
     if (defaultEnv.getNumberOfRowsInShard() == -1L)
       throw new ExecutablePlanBuildException("NOT step only supported if there's a TableShard.");
   }

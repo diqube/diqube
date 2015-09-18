@@ -139,7 +139,8 @@ public class DefaultColumnShardCache implements WritableColumnShardCache {
         Collection<ColId> colIdsToBeRemovedFromCache =
             new ArrayList<>(Sets.difference(curCurrentlyCachedCols, colIdsThatShouldBeCached));
 
-        boolean shouldAddNewColToCache = colIdsThatShouldBeCached.contains(colId);
+        boolean shouldAddNewColToCache =
+            !curCurrentlyCachedCols.contains(colId) && colIdsThatShouldBeCached.contains(colId);
 
         if (!colIdsToBeRemovedFromCache.isEmpty() || colIdsThatShouldBeCached.contains(colId)) {
           synchronized (updateCacheSync) {

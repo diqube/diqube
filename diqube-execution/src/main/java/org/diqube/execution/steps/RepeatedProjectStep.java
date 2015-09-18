@@ -140,7 +140,10 @@ public class RepeatedProjectStep extends AbstractThreadedExecutablePlanStep {
     this.functionNameLowerCase = functionNameLowerCase;
     this.functionParameters = functionParameters;
     this.outputColNameBase = outputColPattern;
+  }
 
+  @Override
+  protected void initialize() {
     // remove [*].
     if (this.outputColNameBase.endsWith(repeatedColNameGen.allEntriesIdentifyingSubstr()))
       this.outputColNameBase = this.outputColNameBase.substring(0,

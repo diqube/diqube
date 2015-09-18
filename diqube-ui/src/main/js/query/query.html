@@ -72,12 +72,16 @@
         <td ng-repeat="val in query.stats.numberOfThreads track by $index">{{val}}</td>
       </tr>    
       <tr>
-        <td colspan="2">numberOfTemporaryColumnsCreated</td>
-        <td ng-repeat="val in query.stats.numberOfTemporaryColumnsCreated track by $index">{{val}}</td>
+        <td colspan="2">numberOfTemporaryColumnShardsCreated</td>
+        <td ng-repeat="val in query.stats.numberOfTemporaryColumnShardsCreated track by $index">{{val}}</td>
       </tr>    
       <tr>
-        <td colspan="2">numberOfPages</td>
-        <td ng-repeat="val in query.stats.numberOfPages track by $index">{{val}}</td>
+        <td colspan="2">numberOfTemporaryColumnShardsFromCache</td>
+        <td ng-repeat="val in query.stats.numberOfTemporaryColumnShardsFromCache track by $index">{{val}}</td>
+      </tr>    
+      <tr>
+        <td colspan="2">numberOfPagesInTable</td>
+        <td ng-repeat="val in query.stats.numberOfPagesInTable track by $index">{{val}}</td>
       </tr>    
       <tr>
         <td colspan="2">numberOfTemporaryPages</td>

@@ -126,19 +126,31 @@ public abstract class AbstractExecutionEnvironment implements ExecutionEnvironme
 
   @Override
   public void storeTemporaryLongColumnShard(LongColumnShard column) {
-    queryRegistry.getOrCreateCurrentStatsManager().incNumberOfTemporaryColumnsCreated();
+    queryRegistry.getOrCreateCurrentStatsManager().incNumberOfTemporaryColumnShardsCreated();
+    internalStoreTemporaryLongColumnShard(column);
+  }
+
+  protected void internalStoreTemporaryLongColumnShard(LongColumnShard column) {
     tempLongColumns.put(column.getName(), new QueryableLongColumnShardFacade(column, true, queryRegistry));
   }
 
   @Override
   public void storeTemporaryStringColumnShard(StringColumnShard column) {
-    queryRegistry.getOrCreateCurrentStatsManager().incNumberOfTemporaryColumnsCreated();
+    queryRegistry.getOrCreateCurrentStatsManager().incNumberOfTemporaryColumnShardsCreated();
+    internalStoreTemporaryStringColumnShard(column);
+  }
+
+  protected void internalStoreTemporaryStringColumnShard(StringColumnShard column) {
     tempStringColumns.put(column.getName(), new QueryableStringColumnShardFacade(column, true, queryRegistry));
   }
 
   @Override
   public void storeTemporaryDoubleColumnShard(DoubleColumnShard column) {
-    queryRegistry.getOrCreateCurrentStatsManager().incNumberOfTemporaryColumnsCreated();
+    queryRegistry.getOrCreateCurrentStatsManager().incNumberOfTemporaryColumnShardsCreated();
+    internalStoreTemporaryDoubleColumnShard(column);
+  }
+
+  protected void internalStoreTemporaryDoubleColumnShard(DoubleColumnShard column) {
     tempDoubleColumns.put(column.getName(), new QueryableDoubleColumnShardFacade(column, true, queryRegistry));
   }
 

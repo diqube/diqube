@@ -45,13 +45,14 @@ struct RQueryStatisticsDetails {
   1: string node,
   2: i64 startedUntilDoneMs,
   3: i32 numberOfThreads,
-  4: i32 numberOfTemporaryColumnsCreated,
-  5: map<string, i64> stepsActiveMs,
-  6: map<string, i32> numberOfPageAccesses,
-  7: map<string, i32> numberOfTemporaryPageAccesses,
-  8: i32 numberOfPages,
-  9: i32 numberOfTemporaryPages,
-  10: map<string, i32> numberOfTemporaryVersionsPerColName
+  4: i32 numberOfTemporaryColumnShardsCreated,
+  5: i32 numberOfTemporaryColumnShardsFromCache,
+  6: map<string, i64> stepsActiveMs,
+  7: map<string, i32> numberOfPageAccesses,
+  8: map<string, i32> numberOfTemporaryPageAccesses,
+  9: i32 numberOfPagesInTable,
+  10: i32 numberOfTemporaryPages,
+  11: map<string, i32> numberOfTemporaryVersionsPerColName
 }  
 
 

@@ -34,13 +34,15 @@ public class QueryStats {
 
   private int numberOfThreads;
 
-  private int numberOfTemporaryColumnsCreated;
+  private int numberOfTemporaryColumnShardsCreated;
+
+  private int numberOfTemporaryColumnShardsFromCache;
 
   private Map<String, Integer> pageAccess;
 
   private Map<String, Integer> temporaryPageAccess;
 
-  private int numberOfPages;
+  private int numberOfPagesInTable;
 
   private int numberOfTemporaryPages;
 
@@ -49,17 +51,18 @@ public class QueryStats {
   private String nodeName;
 
   public QueryStats(String nodeName, long startedUntilDoneMs, Map<Integer, Long> stepThreadActiveMs,
-      int numberOfThreads, int numberOfTemporaryColumnsCreated, Map<String, Integer> pageAccess,
-      Map<String, Integer> temporaryPageAccess, int numberOfPages, int numberOfTemporaryPages,
-      Map<String, Integer> numberOfTemporaryVersionsPerColName) {
+      int numberOfThreads, int numberOfTemporaryColumnShardsCreated, int numberOfTemporaryColumnShardsFromCache,
+      Map<String, Integer> pageAccess, Map<String, Integer> temporaryPageAccess, int numberOfPagesInTable,
+      int numberOfTemporaryPages, Map<String, Integer> numberOfTemporaryVersionsPerColName) {
     this.nodeName = nodeName;
     this.startedUntilDoneMs = startedUntilDoneMs;
     this.stepThreadActiveMs = stepThreadActiveMs;
     this.numberOfThreads = numberOfThreads;
-    this.numberOfTemporaryColumnsCreated = numberOfTemporaryColumnsCreated;
+    this.numberOfTemporaryColumnShardsCreated = numberOfTemporaryColumnShardsCreated;
+    this.numberOfTemporaryColumnShardsFromCache = numberOfTemporaryColumnShardsFromCache;
     this.pageAccess = pageAccess;
     this.temporaryPageAccess = temporaryPageAccess;
-    this.numberOfPages = numberOfPages;
+    this.numberOfPagesInTable = numberOfPagesInTable;
     this.numberOfTemporaryPages = numberOfTemporaryPages;
     this.numberOfTemporaryVersionsPerColName = numberOfTemporaryVersionsPerColName;
   }
@@ -76,8 +79,12 @@ public class QueryStats {
     return numberOfThreads;
   }
 
-  public int getNumberOfTemporaryColumnsCreated() {
-    return numberOfTemporaryColumnsCreated;
+  public int getNumberOfTemporaryColumnShardsCreated() {
+    return numberOfTemporaryColumnShardsCreated;
+  }
+
+  public int getNumberOfTemporaryColumnShardsFromCache() {
+    return numberOfTemporaryColumnShardsFromCache;
   }
 
   public Map<String, Integer> getPageAccess() {
@@ -88,8 +95,8 @@ public class QueryStats {
     return temporaryPageAccess;
   }
 
-  public int getNumberOfPages() {
-    return numberOfPages;
+  public int getNumberOfPagesInTable() {
+    return numberOfPagesInTable;
   }
 
   public int getNumberOfTemporaryPages() {

@@ -75,7 +75,8 @@ public class MasterQueryStatisticsMerger {
 
     res.setStartedUntilDoneMs(stats.getStartedUntilDoneMs());
     res.setNumberOfThreads(stats.getNumberOfThreads());
-    res.setNumberOfTemporaryColumnsCreated(stats.getNumberOfTemporaryColumnsCreated());
+    res.setNumberOfTemporaryColumnShardsCreated(stats.getNumberOfTemporaryColumnShardsCreated());
+    res.setNumberOfTemporaryColumnShardsFromCache(stats.getNumberOfTemporaryColumnShardsFromCache());
 
     Map<String, Long> timesInSteps = new HashMap<>();
     for (int stepId : stats.getStepThreadActiveMs().keySet())
@@ -84,7 +85,7 @@ public class MasterQueryStatisticsMerger {
 
     res.setNumberOfPageAccesses(stats.getPageAccess());
     res.setNumberOfTemporaryPageAccesses(stats.getTemporaryPageAccess());
-    res.setNumberOfPages(stats.getNumberOfPages());
+    res.setNumberOfPagesInTable(stats.getNumberOfPagesInTable());
     res.setNumberOfTemporaryPages(stats.getNumberOfTemporaryPages());
     res.setNumberOfTemporaryVersionsPerColName(stats.getNumberOfTemporaryVersionsPerColName());
 

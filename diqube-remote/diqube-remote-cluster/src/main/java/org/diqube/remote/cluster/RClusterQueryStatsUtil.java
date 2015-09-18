@@ -31,13 +31,14 @@ public class RClusterQueryStatsUtil {
   public static RClusterQueryStatistics createRQueryStats(QueryStats queryStats) {
     RClusterQueryStatistics res = new RClusterQueryStatistics();
     res.setNodeName(queryStats.getNodeName());
-    res.setNumberOfTemporaryColumnsCreated(queryStats.getNumberOfTemporaryColumnsCreated());
+    res.setNumberOfTemporaryColumnShardsCreated(queryStats.getNumberOfTemporaryColumnShardsCreated());
+    res.setNumberOfTemporaryColumnShardsFromCache(queryStats.getNumberOfTemporaryColumnShardsFromCache());
     res.setNumberOfThreads(queryStats.getNumberOfThreads());
     res.setStartedUntilDoneMs(queryStats.getStartedUntilDoneMs());
     res.setStepThreadActiveMs(queryStats.getStepThreadActiveMs());
     res.setNumberOfPageAccesses(queryStats.getPageAccess());
     res.setNumberOfTemporaryPageAccesses(queryStats.getTemporaryPageAccess());
-    res.setNumberOfPages(queryStats.getNumberOfPages());
+    res.setNumberOfPagesInTable(queryStats.getNumberOfPagesInTable());
     res.setNumberOfTemporaryPages(queryStats.getNumberOfTemporaryPages());
     res.setNumberOfTemporaryVersionsPerColName(queryStats.getNumberOfTemporaryVersionsPerColName());
     return res;
@@ -48,10 +49,11 @@ public class RClusterQueryStatsUtil {
         remote.getStartedUntilDoneMs(), //
         remote.getStepThreadActiveMs(), //
         remote.getNumberOfThreads(), //
-        remote.getNumberOfTemporaryColumnsCreated(), //
+        remote.getNumberOfTemporaryColumnShardsCreated(), //
+        remote.getNumberOfTemporaryColumnShardsFromCache(), //
         remote.getNumberOfPageAccesses(), //
         remote.getNumberOfTemporaryPageAccesses(), //
-        remote.getNumberOfPages(), //
+        remote.getNumberOfPagesInTable(), //
         remote.getNumberOfTemporaryPages(), //
         remote.getNumberOfTemporaryVersionsPerColName());
     return res;

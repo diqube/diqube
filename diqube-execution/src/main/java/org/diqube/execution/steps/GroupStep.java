@@ -127,9 +127,12 @@ public class GroupStep extends AbstractThreadedExecutablePlanStep {
     super(stepId, queryRegistry);
     this.defaultEnv = env;
     this.colNamesToGroupBy = colNamesToGroupBy;
+  }
 
+  @Override
+  protected void initialize() {
     columnsThatNeedToBeBuilt = new ConcurrentSkipListSet<>(colNamesToGroupBy);
-    columnsThatNeedToBeBuilt.removeAll(env.getAllColumnShards().keySet());
+    columnsThatNeedToBeBuilt.removeAll(defaultEnv.getAllColumnShards().keySet());
   }
 
   /**

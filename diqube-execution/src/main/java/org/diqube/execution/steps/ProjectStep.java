@@ -159,8 +159,8 @@ public class ProjectStep extends AbstractThreadedExecutablePlanStep {
 
   private Function<ColumnType, ColumnShardBuilderManager> columnShardBuilderManagerSupplier;
   private ColumnVersionManager columnVersionManager;
-
   private ColumnShardFactory columnShardFactory;
+  private ColumnShardBuilderFactory columnShardBuilderFactory;
 
   /**
    * @param functionNameLowerCase
@@ -185,9 +185,13 @@ public class ProjectStep extends AbstractThreadedExecutablePlanStep {
     this.functionNameLowerCase = functionNameLowerCase;
     this.functionParameters = functionParameters;
     this.outputColName = outputColName;
+    this.columnShardBuilderFactory = columnShardBuilderFactory;
     this.columnShardFactory = columnShardFactory;
     this.columnVersionManager = columnVersionManager;
+  }
 
+  @Override
+  protected void initialize() {
     inputColNames = new HashSet<>();
     for (ColumnOrValue param : functionParameters)
       if (param.getType().equals(ColumnOrValue.Type.COLUMN))

@@ -99,6 +99,7 @@ public class ColumnAggregationStep extends AbstractThreadedExecutablePlanStep {
   private String functionNameLowerCase;
   private String outputColName;
   private ExecutionEnvironment defaultEnv;
+  private ColumnShardBuilderFactory columnShardBuilderFactory;
   private String inputColumnNamePattern;
   private Function<ColumnType, ColumnShardBuilderManager> columnShardBuilderManagerSupplier;
   private ColumnPatternUtil columnPatternUtil;
@@ -111,17 +112,21 @@ public class ColumnAggregationStep extends AbstractThreadedExecutablePlanStep {
     super(stepId, queryRegistry);
     this.defaultEnv = defaultEnv;
     this.columnPatternUtil = columnPatternUtil;
+    this.columnShardBuilderFactory = columnShardBuilderFactory;
     this.functionFactory = functionFactory;
     this.functionNameLowerCase = functionNameLowerCase;
     this.outputColName = outputColName;
     this.inputColumnNamePattern = inputColumnNamePattern;
     this.constantFunctionParameters = constantFunctionParameters;
+  }
 
+  @Override
+  protected void initialize() {
     columnShardBuilderManagerSupplier = (outputColType) -> {
       LoaderColumnInfo columnInfo = new LoaderColumnInfo(outputColType);
       return columnShardBuilderFactory.createColumnShardBuilderManager(columnInfo, defaultEnv.getFirstRowIdInShard());
     };
-  }
+  };
 
   @Override
   protected void execute() {

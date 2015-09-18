@@ -236,7 +236,10 @@ public class OrderStep extends AbstractThreadedExecutablePlanStep {
       if (limitStart != null)
         sortedRowIdsMaxLength += limitStart;
     }
+  }
 
+  @Override
+  protected void initialize() {
     sortColSet = sortCols.stream().map(p -> p.getLeft()).collect(Collectors.toSet());
     columnsThatNeedToBeBuilt = new ConcurrentSkipListSet<>(sortColSet);
     columnsThatNeedToBeBuilt.removeAll(defaultEnv.getAllColumnShards().keySet());

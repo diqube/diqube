@@ -46,7 +46,9 @@ public class QueryStatsManager {
 
   private int numberOfThreads = 0;
 
-  private AtomicInteger numberOfTemporaryColumnsCreated = new AtomicInteger(0);
+  private AtomicInteger numberOfTemporaryColumnShardsCreated = new AtomicInteger(0);
+
+  private AtomicInteger numberOfTemporaryColumnShardsFromCache = new AtomicInteger(0);
 
   private Map<Integer, AtomicInteger> pageAccess = new ConcurrentHashMap<>();
 
@@ -54,7 +56,7 @@ public class QueryStatsManager {
 
   private Map<Integer, String> pageNames = new ConcurrentHashMap<>();
 
-  private int numberOfPages = 0;
+  private int numberOfPagesInTable = 0;
 
   private int numberOfTemporaryPages = 0;
 
@@ -74,16 +76,24 @@ public class QueryStatsManager {
     this.numberOfThreads = numberOfThreads;
   }
 
-  public void incNumberOfTemporaryColumnsCreated() {
-    numberOfTemporaryColumnsCreated.incrementAndGet();
+  public void incNumberOfTemporaryColumnShardsCreated() {
+    numberOfTemporaryColumnShardsCreated.incrementAndGet();
+  }
+
+  public void incNumberOfTemporaryColumnShardsFromCache() {
+    numberOfTemporaryColumnShardsFromCache.incrementAndGet();
   }
 
   public void setStepThreadActiveMs(ConcurrentMap<Integer, Long> stepThreadActiveMs) {
     this.stepThreadActiveMs = stepThreadActiveMs;
   }
 
-  public void setNumberOfTemporaryColumnsCreated(int numberOfTemporaryColumnsCreated) {
-    this.numberOfTemporaryColumnsCreated.set(numberOfTemporaryColumnsCreated);
+  public void setNumberOfTemporaryColumnShardsCreated(int numberOfTemporaryColumnShardsCreated) {
+    this.numberOfTemporaryColumnShardsCreated.set(numberOfTemporaryColumnShardsCreated);
+  }
+
+  public void setNumberOfTemporaryColumnShardsFromCache(int numberOfTemporaryColumnShardsFromCache) {
+    this.numberOfTemporaryColumnShardsFromCache.set(numberOfTemporaryColumnShardsFromCache);
   }
 
   public void registerPageAccess(ColumnPage page, boolean isTempColumn) {
@@ -111,7 +121,7 @@ public class QueryStatsManager {
   }
 
   public void setNumberOfPages(int numberOfPages) {
-    this.numberOfPages = numberOfPages;
+    this.numberOfPagesInTable = numberOfPages;
   }
 
   public void setNumberOfTemporaryPages(int numberOfTemporaryPages) {
@@ -119,7 +129,7 @@ public class QueryStatsManager {
   }
 
   public int getNumberOfPages() {
-    return numberOfPages;
+    return numberOfPagesInTable;
   }
 
   public void setNumberOfTemporaryVersionsOfColumn(String colName, int value) {
@@ -138,8 +148,8 @@ public class QueryStatsManager {
     long startedUntilDoneMs = (long) ((completedNanos - startedNanos) / 1e6);
 
     return new QueryStats(nodeName, startedUntilDoneMs, new HashMap<>(stepThreadActiveMs), numberOfThreads,
-        numberOfTemporaryColumnsCreated.get(), pageAccess, temporaryPageAccess, numberOfPages, numberOfTemporaryPages,
-        numberOfTemporaryVersionsPerColName);
+        numberOfTemporaryColumnShardsCreated.get(), numberOfTemporaryColumnShardsFromCache.get(), pageAccess, temporaryPageAccess,
+        numberOfPagesInTable, numberOfTemporaryPages, numberOfTemporaryVersionsPerColName);
   }
 
   public void setStartedNanos(long startedNanos) {

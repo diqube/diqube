@@ -21,8 +21,11 @@
 package org.diqube.execution.env;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.diqube.data.TableShard;
 import org.diqube.data.colshard.ColumnShard;
@@ -38,6 +41,8 @@ import org.diqube.execution.env.querystats.QueryableLongColumnShardFacade;
 import org.diqube.execution.env.querystats.QueryableStringColumnShard;
 import org.diqube.execution.env.querystats.QueryableStringColumnShardFacade;
 import org.diqube.queries.QueryRegistry;
+
+import com.google.common.collect.Sets;
 
 /**
  * Default implementation of a {@link ExecutionEnvironment} which is based on the resources of a {@link TableShard} if
@@ -75,16 +80,6 @@ public class DefaultExecutionEnvironment extends AbstractExecutionEnvironment {
 
     if (columnShardCache != null && tableShard == null)
       throw new IllegalArgumentException();
-
-    if (columnShardCache != null)
-      for (ColumnShard cs : columnShardCache.getAllCachedColumnShards(tableShard.getLowestRowId())) {
-        if (cs instanceof StringColumnShard)
-          storeTemporaryStringColumnShard((StringColumnShard) cs);
-        else if (cs instanceof LongColumnShard)
-          storeTemporaryLongColumnShard((LongColumnShard) cs);
-        else if (cs instanceof DoubleColumnShard)
-          storeTemporaryDoubleColumnShard((DoubleColumnShard) cs);
-      }
   }
 
   @Override
@@ -122,7 +117,8 @@ public class DefaultExecutionEnvironment extends AbstractExecutionEnvironment {
       if (cachedShard != null && cachedShard instanceof LongColumnShard) {
         sourceColumnShard = (LongColumnShard) cachedShard;
         // store col shard directly in our "temporary columns". see class comment.
-        storeTemporaryLongColumnShard(sourceColumnShard);
+        queryRegistry.getOrCreateCurrentStatsManager().incNumberOfTemporaryColumnShardsFromCache();
+        internalStoreTemporaryLongColumnShard(sourceColumnShard);
       }
     }
 
@@ -142,7 +138,8 @@ public class DefaultExecutionEnvironment extends AbstractExecutionEnvironment {
       if (cachedShard != null && cachedShard instanceof StringColumnShard) {
         sourceColumnShard = (StringColumnShard) cachedShard;
         // store col shard directly in our "temporary columns". see class comment.
-        storeTemporaryStringColumnShard(sourceColumnShard);
+        queryRegistry.getOrCreateCurrentStatsManager().incNumberOfTemporaryColumnShardsFromCache();
+        internalStoreTemporaryStringColumnShard(sourceColumnShard);
       }
     }
 
@@ -162,7 +159,8 @@ public class DefaultExecutionEnvironment extends AbstractExecutionEnvironment {
       if (cachedShard != null && cachedShard instanceof DoubleColumnShard) {
         sourceColumnShard = (DoubleColumnShard) cachedShard;
         // store col shard directly in our "temporary columns". see class comment.
-        storeTemporaryDoubleColumnShard(sourceColumnShard);
+        queryRegistry.getOrCreateCurrentStatsManager().incNumberOfTemporaryColumnShardsFromCache();
+        internalStoreTemporaryDoubleColumnShard(sourceColumnShard);
       }
     }
 
@@ -174,29 +172,22 @@ public class DefaultExecutionEnvironment extends AbstractExecutionEnvironment {
   @Override
   protected Map<String, QueryableColumnShard> delegateGetAllColumnShards() {
     Map<String, QueryableColumnShard> res = new HashMap<>();
+
+    Set<String> allColNames = new HashSet<>();
+
     if (tableShard != null) {
-      tableShard.getDoubleColumns().entrySet().stream().forEach(entry -> res.put(entry.getKey(),
-          new QueryableDoubleColumnShardFacade(entry.getValue(), false, queryRegistry)));
-
-      tableShard.getStringColumns().entrySet().stream().forEach(entry -> res.put(entry.getKey(),
-          new QueryableStringColumnShardFacade(entry.getValue(), false, queryRegistry)));
-
-      tableShard.getLongColumns().entrySet().stream().forEach(
-          entry -> res.put(entry.getKey(), new QueryableLongColumnShardFacade(entry.getValue(), false, queryRegistry)));
+      allColNames
+          .addAll(Sets.union(Sets.union(tableShard.getDoubleColumns().keySet(), tableShard.getLongColumns().keySet()),
+              tableShard.getStringColumns().keySet()));
+    }
+    if (columnShardCache != null) {
+      allColNames.addAll(columnShardCache.getAllCachedColumnShards(tableShard.getLowestRowId()).stream()
+          .map(shard -> shard.getName()).collect(Collectors.toList()));
     }
 
-    if (columnShardCache != null) {
-      for (ColumnShard cachedShard : columnShardCache.getAllCachedColumnShards(tableShard.getLowestRowId())) {
-        if (cachedShard instanceof StringColumnShard)
-          res.put(cachedShard.getName(),
-              new QueryableStringColumnShardFacade((StringColumnShard) cachedShard, true, queryRegistry));
-        else if (cachedShard instanceof LongColumnShard)
-          res.put(cachedShard.getName(),
-              new QueryableLongColumnShardFacade((LongColumnShard) cachedShard, true, queryRegistry));
-        else if (cachedShard instanceof DoubleColumnShard)
-          res.put(cachedShard.getName(),
-              new QueryableDoubleColumnShardFacade((DoubleColumnShard) cachedShard, true, queryRegistry));
-      }
+    for (String colName : allColNames) {
+      QueryableColumnShard colShard = getColumnShard(colName);
+      res.put(colName, colShard);
     }
 
     return res;
