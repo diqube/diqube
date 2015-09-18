@@ -18,38 +18,28 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.execution.cache;
+package org.diqube.server.execution;
 
-import java.util.ArrayList;
-import java.util.Collection;
-
-import org.diqube.data.colshard.ColumnShard;
+import org.diqube.data.ColumnType;
+import org.testng.annotations.Factory;
 
 /**
- * A cache that does not cache anything. Will be implemented in case the user configuration disables caching.
+ * All subclasses will execute their test methods in a second round based on {@link CacheDoubleTestUtil}.
  *
  * @author Bastian Gloeckle
  */
-public class NoopColumnShardCache implements WritableColumnShardCache {
-
-  @Override
-  public ColumnShard getCachedColumnShard(long firstRowIdTableShard, String colName) {
-    return null;
+public abstract class AbstractCacheDoubleDiqlExecutionTest<T> extends AbstractDiqlExecutionTest<T> {
+  public AbstractCacheDoubleDiqlExecutionTest(ColumnType colType, TestDataProvider<T> dp) {
+    super(colType, dp);
   }
 
-  @Override
-  public Collection<ColumnShard> getAllCachedColumnShards(long firstRowIdInTableShard) {
-    return new ArrayList<>();
+  @Factory
+  public Object[] cacheDoubleTests() {
+    // execute all tests again. In the second run, execute each test twice on a single bean context.
+    try {
+      return CacheDoubleTestUtil.createTestObjects(this);
+    } catch (Throwable t) {
+      throw new RuntimeException("Exception while factorying for class " + this.getClass().getName(), t);
+    }
   }
-
-  @Override
-  public void registerUsageOfColumnShardPossiblyCache(long firstRowIdInTableShard, ColumnShard createdColumnShard) {
-    // noop.
-  }
-
-  @Override
-  public int getNumberOfColumnShardsCached() {
-    return 0;
-  }
-
 }

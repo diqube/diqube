@@ -51,7 +51,7 @@ import org.testng.annotations.BeforeMethod;
  * 
  * @author Bastian Gloeckle
  */
-public abstract class AbstractRemoteEmulatingDiqlExecutionTest<T> extends AbstractDiqlExecutionTest<T> {
+public abstract class AbstractRemoteEmulatingDiqlExecutionTest<T> extends AbstractCacheDoubleDiqlExecutionTest<T> {
 
   protected QueryRegistry queryRegistry;
 

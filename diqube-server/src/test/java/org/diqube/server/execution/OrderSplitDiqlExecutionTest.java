@@ -52,7 +52,7 @@ import org.testng.annotations.Test;
  *
  * @author Bastian Gloeckle
  */
-public abstract class OrderSplitDiqlExecutionTest<T> extends AbstractDiqlExecutionTest<T> {
+public abstract class OrderSplitDiqlExecutionTest<T> extends AbstractCacheDoubleDiqlExecutionTest<T> {
 
   public OrderSplitDiqlExecutionTest(ColumnType colType, TestDataProvider<T> dp) {
     super(colType, dp);

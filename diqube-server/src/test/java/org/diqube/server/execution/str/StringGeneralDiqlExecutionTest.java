@@ -29,7 +29,7 @@ import java.util.concurrent.Future;
 import org.diqube.data.ColumnType;
 import org.diqube.execution.ExecutablePlan;
 import org.diqube.plan.exception.ParseException;
-import org.diqube.server.execution.AbstractDiqlExecutionTest;
+import org.diqube.server.execution.AbstractCacheDoubleDiqlExecutionTest;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -39,7 +39,7 @@ import org.testng.annotations.Test;
  * @author Bastian Gloeckle
  */
 @Test
-public class StringGeneralDiqlExecutionTest extends AbstractDiqlExecutionTest<String> {
+public class StringGeneralDiqlExecutionTest extends AbstractCacheDoubleDiqlExecutionTest<String> {
 
   public StringGeneralDiqlExecutionTest() {
     super(ColumnType.STRING, new StringTestDataProvider());

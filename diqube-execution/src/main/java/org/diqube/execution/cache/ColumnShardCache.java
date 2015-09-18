@@ -59,4 +59,9 @@ public interface ColumnShardCache {
    * @return The cached {@link ColumnShard}s.
    */
   public Collection<ColumnShard> getAllCachedColumnShards(long firstRowIdInTableShard);
+
+  /**
+   * @return The number of {@link ColumnShard}s cached currently.
+   */
+  public int getNumberOfColumnShardsCached();
 }

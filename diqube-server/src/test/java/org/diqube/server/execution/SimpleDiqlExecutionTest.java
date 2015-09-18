@@ -41,7 +41,7 @@ import org.testng.annotations.Test;
  *
  * @author Bastian Gloeckle
  */
-public abstract class SimpleDiqlExecutionTest<T> extends AbstractDiqlExecutionTest<T> {
+public abstract class SimpleDiqlExecutionTest<T> extends AbstractCacheDoubleDiqlExecutionTest<T> {
 
   public SimpleDiqlExecutionTest(ColumnType colType, TestDataProvider<T> dp) {
     super(colType, dp);

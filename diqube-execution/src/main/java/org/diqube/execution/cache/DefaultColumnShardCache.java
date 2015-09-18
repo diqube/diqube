@@ -254,4 +254,9 @@ public class DefaultColumnShardCache implements WritableColumnShardCache {
       return getLeft().compareTo(o.getLeft());
     }
   }
+
+  @Override
+  public int getNumberOfColumnShardsCached() {
+    return currentlyCachedCols.size();
+  }
 }

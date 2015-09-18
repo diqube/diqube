@@ -416,6 +416,11 @@
         <artifactId>commons-math3</artifactId>
         <version>3.5</version>
       </dependency>
+      <dependency>
+        <groupId>net.bytebuddy</groupId>
+        <artifactId>byte-buddy-dep</artifactId>
+        <version>0.6.15</version>
+      </dependency>
 
 
       <!-- Spring dependencies -->
@@ -499,6 +504,8 @@
                     <licenseMerge>BSD (abego) [abego-bsd.txt]|BSD 3-Clause "New" or "Revised" License (BSD-3-Clause)</licenseMerge>
                     <!-- "ANTLR" uses the following license name, use a different, more clear one. -->
                     <licenseMerge>BSD (ANTLR) [antlr-bsd.txt]|BSD 3-Clause License</licenseMerge>
+                    <!-- "ASM" uses the following license name, use a different, more clear one. -->
+                    <licenseMerge>BSD (ASM) [asm-bsd.txt]|BSD</licenseMerge>
                     <!-- "BeanShell" uses the LGPL, make it clear. Additionally, "Logback" uses either LGPL or EPL, we choose 
                       LGPL, so merge EPL to LGPL, too. -->
                     <licenseMerge>LGPL [lgpl.txt]|GNU Lesser General Public License|GNU LESSER GENERAL PUBLIC LICENSE|Eclipse Public License - v 1.0</licenseMerge>

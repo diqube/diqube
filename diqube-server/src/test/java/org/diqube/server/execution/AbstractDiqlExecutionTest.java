@@ -264,6 +264,12 @@ public abstract class AbstractDiqlExecutionTest<T> {
   }
 
   protected void initializeFromJson(String json) throws LoadException {
+    if (tableRegistry.getTable(TABLE) != null) {
+      logger.warn("TableRegistry knows the table {} already, skipping creation.", TABLE);
+      // this typically happens for test classes created by CacheDoubleTestUtil
+      return;
+    }
+
     JsonLoader loader = dataContext.getBean(JsonLoader.class);
     TableShard tableShard = Iterables
         .getOnlyElement(loader.load(0L, new BigByteBuffer(json.getBytes()), TABLE, new LoaderColumnInfo(colType)));
@@ -278,6 +284,12 @@ public abstract class AbstractDiqlExecutionTest<T> {
    * provided list should contain one pair of values for colA and colB.
    */
   protected void initializeMultiShardTable(List<Pair<Object[], Object[]>> shardValues) throws IllegalStateException {
+    if (tableRegistry.getTable(TABLE) != null) {
+      logger.warn("TableRegistry knows the table {} already, skipping creation.", TABLE);
+      // this typically happens for test classes created by CacheDoubleTestUtil
+      return;
+    }
+
     List<TableShard> tableShards = new ArrayList<>();
 
     long firstRowId = 0;
@@ -299,6 +311,10 @@ public abstract class AbstractDiqlExecutionTest<T> {
     }
 
     tableRegistry.addTable(TABLE, tableFactory.createTable(TABLE, tableShards));
+  }
+
+  /* package */ AnnotationConfigApplicationContext getDataContext() {
+    return dataContext;
   }
 
 }

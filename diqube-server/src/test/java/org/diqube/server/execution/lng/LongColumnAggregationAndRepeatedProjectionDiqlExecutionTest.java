@@ -30,7 +30,7 @@ import org.diqube.data.ColumnType;
 import org.diqube.execution.ExecutablePlan;
 import org.diqube.loader.LoadException;
 import org.diqube.plan.exception.ValidationException;
-import org.diqube.server.execution.AbstractDiqlExecutionTest;
+import org.diqube.server.execution.AbstractCacheDoubleDiqlExecutionTest;
 import org.diqube.util.Pair;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -46,7 +46,8 @@ import com.google.common.collect.Iterables;
  *
  * @author Bastian Gloeckle
  */
-public class LongColumnAggregationAndRepeatedProjectionDiqlExecutionTest extends AbstractDiqlExecutionTest<Long> {
+public class LongColumnAggregationAndRepeatedProjectionDiqlExecutionTest
+    extends AbstractCacheDoubleDiqlExecutionTest<Long> {
   public LongColumnAggregationAndRepeatedProjectionDiqlExecutionTest() {
     super(ColumnType.LONG, new LongTestDataProvider());
   }

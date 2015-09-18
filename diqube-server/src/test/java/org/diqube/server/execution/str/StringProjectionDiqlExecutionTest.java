@@ -28,7 +28,7 @@ import java.util.concurrent.Future;
 
 import org.diqube.data.ColumnType;
 import org.diqube.execution.ExecutablePlan;
-import org.diqube.server.execution.AbstractDiqlExecutionTest;
+import org.diqube.server.execution.AbstractCacheDoubleDiqlExecutionTest;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -38,7 +38,7 @@ import org.testng.annotations.Test;
  * @author Bastian Gloeckle
  */
 @Test
-public class StringProjectionDiqlExecutionTest extends AbstractDiqlExecutionTest<String> {
+public class StringProjectionDiqlExecutionTest extends AbstractCacheDoubleDiqlExecutionTest<String> {
   public StringProjectionDiqlExecutionTest() {
     super(ColumnType.STRING, new StringTestDataProvider());
   }

@@ -34,7 +34,7 @@ import org.testng.annotations.Test;
  *
  * @author Bastian Gloeckle
  */
-public abstract class GroupHavingDiqlExecutionTest<T> extends AbstractDiqlExecutionTest<T> {
+public abstract class GroupHavingDiqlExecutionTest<T> extends AbstractCacheDoubleDiqlExecutionTest<T> {
   public GroupHavingDiqlExecutionTest(ColumnType colType, TestDataProvider<T> dp) {
     super(colType, dp);
   }
