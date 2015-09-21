@@ -20,31 +20,18 @@
  */
 package org.diqube.server.execution.lng;
 
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.function.Supplier;
 
 import org.diqube.data.ColumnType;
-import org.diqube.data.colshard.ColumnShard;
-import org.diqube.data.colshard.StandardColumnShard;
 import org.diqube.execution.ExecutablePlan;
-import org.diqube.execution.cache.ColumnShardCache;
-import org.diqube.execution.cache.ColumnShardCacheRegistry;
-import org.diqube.execution.cache.DefaultColumnShardCache;
-import org.diqube.execution.cache.DefaultColumnShardCacheTestUtil;
-import org.diqube.execution.cache.WritableColumnShardCache;
-import org.diqube.execution.steps.RepeatedProjectStep;
 import org.diqube.loader.LoadException;
 import org.diqube.plan.exception.ValidationException;
 import org.diqube.server.execution.AbstractCacheDoubleDiqlExecutionTest;
-import org.diqube.server.execution.CacheDoubleTestUtil.IgnoreInCacheDoubleTestUtil;
 import org.diqube.util.Pair;
-import org.mockito.Mockito;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -803,122 +790,4 @@ public class LongColumnAggregationAndRepeatedProjectionDiqlExecutionTest
     }
   }
 
-  /**
-   * Fairly complex test: Executes a repeated projection and then removes some of the results of that repeated
-   * projection from the {@link ColumnShardCache}. Then it is executed again - and should succeed. This basically tests
-   * the logic to re-create only those columns in a {@link RepeatedProjectStep} that are not yet cached.
-   */
-  @IgnoreInCacheDoubleTestUtil // do not double-test for cache again.
-  @Test
-  public void repeatedPartlyCacheInvalidation() throws LoadException, InterruptedException, ExecutionException {
-    initializeFromJson( //
-        "[ { \"a\": 1, \"b\": [ { \"c\": 20 }, { \"c\": 30 } ] },"//
-            + "{ \"a\": 1, \"b\": [ { \"c\": 40 } ] } " //
-            + " ]");
-
-    // make some data structures readily usable.
-    ColumnShardCacheRegistry cacheRegistry = dataContext.getBean(ColumnShardCacheRegistry.class);
-    WritableColumnShardCache cache = cacheRegistry.getOrCreateColumnShardCache(TABLE);
-    String projectedColName1 = repeatedColNameGen.repeatedAtIndex(functionBasedColumnNameBuilderFactory.create()
-        .withFunctionName("add").addParameterColumnName("b[*].c").addParameterLiteralLong(1L).build(), 0);
-    String projectedColName2 = repeatedColNameGen.repeatedAtIndex(functionBasedColumnNameBuilderFactory.create()
-        .withFunctionName("add").addParameterColumnName("b[*].c").addParameterLiteralLong(1L).build(), 1);
-    String projectedColNameLength = repeatedColNameGen.repeatedLength(functionBasedColumnNameBuilderFactory.create()
-        .withFunctionName("add").addParameterColumnName("b[*].c").addParameterLiteralLong(1L).build());
-
-    // as we execute the query multiple times, the following supplier will create and execute a new query and return the
-    // Future on the plan.
-    List<ExecutorService> executorsCreated = new ArrayList<>();
-    Supplier<Future<?>> createAndExecutePlan = new Supplier<Future<?>>() {
-      @Override
-      public Future<?> get() {
-        ExecutablePlan plan = buildExecutablePlan("select a, sum(sum(add(b[*].c, 1))) from " + TABLE + " group by a");
-        ExecutorService executor = executors.newTestExecutor(plan.preferredExecutorServiceSize());
-        executorsCreated.add(executor);
-        return plan.executeAsynchronously(executor);
-      }
-    };
-
-    // asserts a correct result after executing the query.
-    Supplier<Void> assertCorrectResult = new Supplier<Void>() {
-      @Override
-      public Void get() {
-        String resAggColName = functionBasedColumnNameBuilderFactory.create().withFunctionName("sum")
-            .addParameterColumnName(functionBasedColumnNameBuilderFactory.create().withFunctionName("sum") //
-                .addParameterColumnName( //
-                    functionBasedColumnNameBuilderFactory.create().withFunctionName("add") //
-                        .addParameterColumnName("b[*].c").addParameterLiteralLong(1L).build()
-                        + repeatedColNameGen.allEntriesIdentifyingSubstr())
-                .build())
-            .build();
-
-        Assert.assertTrue(resultValues.containsKey("a"), "Expected to have a result for col");
-        Assert.assertTrue(resultValues.containsKey(resAggColName),
-            "Expected that there's results for the aggregation func");
-        Assert.assertEquals(resultValues.keySet().size(), 2, "Expected to have results for correct number of cols");
-
-        Assert.assertEquals(resultValues.get("a").size(), 1, "Expected to receive a specific amout of rows");
-        Assert.assertEquals(resultValues.get(resAggColName).size(), 1, "Expected to receive a specific amout of rows");
-
-        Set<Pair<Long, Long>> expected = new HashSet<>();
-        expected.add(new Pair<>(1L, 93L));
-
-        Set<Pair<Long, Long>> actual = new HashSet<>();
-
-        for (long rowId : resultValues.get("a").keySet())
-          actual.add(new Pair<>(resultValues.get("a").get(rowId), resultValues.get(resAggColName).get(rowId)));
-
-        Assert.assertEquals(actual, expected, "Expected correct result values");
-        return null;
-      }
-    };
-
-    // Ok, let's start testing!
-    try {
-      createAndExecutePlan.get().get(); // execute and wait until done
-
-      assertCorrectResult.get();
-
-      // assert that the result columns of the repeated project were put in the cache, otherwise the rest of the
-      // test does not make sense.
-      Assert.assertNotNull(cache.getCachedColumnShard(0L, projectedColName1), "Expected [0] to be inside cache.");
-      Assert.assertNotNull(cache.getCachedColumnShard(0L, projectedColName2), "Expected [1] to be inside cache.");
-      Assert.assertNotNull(cache.getCachedColumnShard(0L, projectedColNameLength),
-          "Expected [length] to be inside cache.");
-
-      // Now we want to remove [1] from the cache and execute the query again.
-
-      // make sure add{b[a].c, 1,}[0] is used most often so it won't get removed from cache
-      ColumnShard cachedColShard = cache.getCachedColumnShard(0L, projectedColName1);
-      for (int i = 0; i < 100; i++)
-        cache.registerUsageOfColumnShardPossiblyCache(0L, cachedColShard);
-
-      long cachedColShardSize = cachedColShard.calculateApproximateSizeInBytes();
-      long cacheSize = DefaultColumnShardCacheTestUtil.getMaxMemoryBytes((DefaultColumnShardCache) cache);
-
-      // add another col shard as cached which is (1) exactly that big to fill up the cache and (2) is used more often
-      // than the other columns (so everything should get evicted!)
-      StandardColumnShard mockedColShard = Mockito.mock(StandardColumnShard.class, Mockito.RETURNS_MOCKS);
-      Mockito.when(mockedColShard.calculateApproximateSizeInBytes()).thenReturn(cacheSize - cachedColShardSize);
-      Mockito.when(mockedColShard.getName()).thenReturn("mockedCol");
-      for (int i = 0; i < 100; i++)
-        cache.registerUsageOfColumnShardPossiblyCache(0L, mockedColShard);
-
-      // -> expected: the other column shards that was cached is now evicted from the cache.
-      Assert.assertNull(cache.getCachedColumnShard(0L, projectedColName2), "Expected [1] to NOT be inside cache.");
-      Assert.assertNull(cache.getCachedColumnShard(0L, projectedColNameLength),
-          "Expected [length] NOT to be inside cache.");
-
-      // Ok, [0] is now in the cache, nothing else (except the mocked column, but we can ignore that).
-      createAndExecutePlan.get().get(); // execute and wait
-
-      // assert result is good.
-      assertCorrectResult.get();
-
-      Assert.assertTrue(cachedColShard == cache.getCachedColumnShard(0L, cachedColShard.getName()),
-          "Expected that cached col shard was not re-created.");
-    } finally {
-      executorsCreated.forEach(ex -> ex.shutdownNow());
-    }
-  }
 }
