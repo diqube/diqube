@@ -213,8 +213,19 @@ public class DefaultExecutionEnvironment extends AbstractExecutionEnvironment {
   @Override
   protected Map<String, QueryableColumnShard> delegateGetAllNonTemporaryColumnShards() {
     Map<String, QueryableColumnShard> res = new HashMap<>();
-    if (tableShard != null)
-      res.putAll(delegateGetAllColumnShards());
+
+    Set<String> allColNames = new HashSet<>();
+
+    if (tableShard != null) {
+      allColNames
+          .addAll(Sets.union(Sets.union(tableShard.getDoubleColumns().keySet(), tableShard.getLongColumns().keySet()),
+              tableShard.getStringColumns().keySet()));
+    }
+
+    for (String colName : allColNames) {
+      QueryableColumnShard colShard = getColumnShard(colName);
+      res.put(colName, colShard);
+    }
 
     return res;
   }

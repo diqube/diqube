@@ -167,6 +167,9 @@ public interface ExecutionEnvironment {
   public boolean isTemporaryColumn(String colName);
 
   /**
+   * TODO #26: Remove this method. It loads all cached cols into this EE, which will then lead to these cols being
+   * counted as "used" - which they are not.
+   * 
    * @return Map from colName to {@link QueryableColumnShard} for all available column shards. Note that the actual
    *         column shard objects might be different instances with each call.
    */

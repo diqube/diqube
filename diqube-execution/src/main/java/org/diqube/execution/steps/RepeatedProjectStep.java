@@ -23,13 +23,18 @@ package org.diqube.execution.steps;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NavigableSet;
 import java.util.Set;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.function.LongConsumer;
 import java.util.stream.Collectors;
@@ -65,6 +70,8 @@ import org.diqube.queries.QueryUuid;
 import org.diqube.queries.QueryUuid.QueryUuidThreadState;
 import org.diqube.util.ColumnOrValue;
 import org.diqube.util.ColumnOrValue.Type;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
 
@@ -91,7 +98,36 @@ import com.google.common.collect.Sets;
  * @author Bastian Gloeckle
  */
 public class RepeatedProjectStep extends AbstractThreadedExecutablePlanStep {
+  private static final Logger logger = LoggerFactory.getLogger(RepeatedProjectStep.class);
+
   private static final int BATCH_SIZE = ColumnShardBuilder.PROPOSAL_ROWS; // approx work on whole ColumnPages.
+
+  private static final Comparator<List<String>> LIST_COMPARATOR = new Comparator<List<String>>() {
+    @Override
+    public int compare(List<String> o1, List<String> o2) {
+      if (o1 == null && o2 == null)
+        return 0;
+      if (o1 == null ^ o2 == null)
+        return (o1 == null) ? -1 : 1; // sort nulls before anything else.
+
+      Iterator<String> i1 = o1.iterator();
+      Iterator<String> i2 = o2.iterator();
+
+      while (i1.hasNext()) {
+        String next1 = i1.next();
+        if (!i2.hasNext())
+          return 1; // o1 > o2, because o1 longer than o2 & all of o2 elements match o1.
+        String next2 = i2.next();
+        int cmp = next1.compareTo(next2);
+        if (cmp != 0)
+          return cmp;
+      }
+
+      if (i2.hasNext())
+        return -1; // o1 < o2, because o2 longer than o1 & all of o1 elements match o2.
+      return 0;
+    }
+  };
 
   private AtomicBoolean allInputColumnsBuilt = new AtomicBoolean(false);
 
@@ -186,6 +222,10 @@ public class RepeatedProjectStep extends AbstractThreadedExecutablePlanStep {
     LoaderColumnInfo colInfo = new LoaderColumnInfo(ColumnType.LONG); // LONG is fine for the length col, other ones are
                                                                       // specified below.
 
+    // colNamesAvailable will contain those column names of cached columns. An arbitrary number of output columns of the
+    // RepeatedProjectStep may be cached already.
+    Set<String> allColNamesAvailable = new HashSet<>(defaultEnv.getAllColumnShards().keySet());
+
     ColumnShardBuilderManager colBuilderManager =
         columnShardBuilderFactory.createColumnShardBuilderManager(colInfo, lowestRowIdInShard);
 
@@ -215,6 +255,8 @@ public class RepeatedProjectStep extends AbstractThreadedExecutablePlanStep {
           public void accept(long firstRowId) {
             QueryUuid.setCurrentThreadState(uuidState);
             try {
+              logger.trace("Executing batch {}", firstRowId);
+
               // group RowIds by their colCombination (which takes into account what values the "length" columns
               // actually have per row). We can then later process rowIds which have the same column combination at the
               // same time. The default grouping algorithm we use here is based on hashing (a HashMap), so that should
@@ -224,20 +266,35 @@ public class RepeatedProjectStep extends AbstractThreadedExecutablePlanStep {
                   LongStream.range(firstRowId, lastRowIdExcluded).mapToObj(Long::valueOf)
                       .collect(Collectors.groupingBy(rowId -> columnPatternContainer.getColumnPatterns(rowId)));
 
-              // work on the grouped tow IDs
+              logger.trace("Found {} groups for batch {}", rowIdsGroupedByColCombination.size(), firstRowId);
+
+              // work on the grouped row IDs
               for (Entry<Set<List<String>>, List<Long>> groupedRowIdsEntry : rowIdsGroupedByColCombination.entrySet()) {
-                Set<List<String>> colCombinations = groupedRowIdsEntry.getKey();
+                Set<List<String>> colCombinationsSet = groupedRowIdsEntry.getKey();
                 List<Long> rowIds = groupedRowIdsEntry.getValue();
 
-                if (colCombinations.isEmpty())
+                if (colCombinationsSet.isEmpty())
                   // skip rows that had length == 0 everywhere.
                   continue;
+
+                // sort col combinations and only work on the sorted set. This is needed, as the index in the
+                // colcombination list corresponds to the index in the output column. And of that output column, several
+                // indices might be cached already, so we need to make sure to traverse the col combinations in the same
+                // order as before.
+                List<List<String>> colCombinations =
+                    colCombinationsSet.stream().sorted(LIST_COMPARATOR).collect(Collectors.toList());
+
+                logger.trace("Working on col combinations {}", colCombinations);
 
                 // fill the resulting "length" cols. They all have the same length: For each colCombination there will
                 // be one element in the output array (=output repeated column). As all rowIds here have the same
                 // colCombination, they have the same length.
-                for (long rowId : rowIds)
-                  colBuilderManager.addValues(lengthColName, new Long[] { (long) colCombinations.size() }, rowId);
+                if (!allColNamesAvailable.contains(lengthColName)) { // length col might be cached already.
+                  logger.trace("Filling length outcol for batch {}", firstRowId);
+                  for (long rowId : rowIds)
+                    colBuilderManager.addValues(lengthColName, new Long[] { (long) colCombinations.size() }, rowId);
+                } else
+                  logger.trace("No need to fill length outcol for batch {} as it exists already.", firstRowId);
 
                 Long[] rowIdsArray = rowIds.toArray(new Long[rowIds.size()]);
 
@@ -247,7 +304,25 @@ public class RepeatedProjectStep extends AbstractThreadedExecutablePlanStep {
                 for (int i = 0; i < functionParameters.length; i++)
                   functionParamValues.put(i, new ArrayList<>());
 
-                for (List<String> colCombination : colCombinations) {
+                Set<Integer> skipColCombinationIndices = new HashSet<>(
+                    findAllColumnCombinationIndicesToSkip(colCombinations.size()).headSet(colCombinations.size()));
+
+                logger.info("Will skip {} out of {} col combinations on batch {}", skipColCombinationIndices.size(),
+                    colCombinations.size(), firstRowId);
+
+                if (skipColCombinationIndices.size() == colCombinations.size())
+                  // we skip all col combinations. continue with next grouped rowId set!
+                  continue;
+
+                for (int colCombinationIdx = 0; colCombinationIdx < colCombinations.size(); colCombinationIdx++) {
+                  if (skipColCombinationIndices.contains(colCombinationIdx))
+                    // we skip this colCombination because the corresponding output column is available already.
+                    continue;
+
+                  List<String> colCombination = colCombinations.get(colCombinationIdx);
+
+                  logger.trace("Working on col combination {} for batch {}", colCombination, firstRowId);
+
                   for (int paramIdx = 0; paramIdx < functionParameters.length; paramIdx++) {
                     ColumnOrValue parameter = functionParameters[paramIdx];
                     if (parameter.getType().equals(Type.LITERAL))
@@ -290,29 +365,66 @@ public class RepeatedProjectStep extends AbstractThreadedExecutablePlanStep {
                   fn.provideParameter(normalParamIdx, valuesArray);
                 }
 
+                logger.trace("Prepared params to projection function in batch {}, will execute it now!", firstRowId);
+
                 // everything prepared, execute projection function.
                 Object[] functionResult = fn.execute();
 
-                // functionResult now contains the results for each colCombination and each row. The data is though
-                // "grouped" by colCombination, so now to add the result values to the colBuilderManager we have to pick
-                // the right indices of the array again.
+                // functionResult now contains the results for each colCombination (nut not the skipped ones!) and each
+                // row. The data is though "grouped" by colCombination, so now to add the result values to the
+                // colBuilderManager we have to pick the right indices of the array again.
 
                 Object[] rowValueArray = (Object[]) Array.newInstance(functionResult[0].getClass(), 1);
 
+                logger.trace("Function executed, putting results into output columns for batch {}", firstRowId);
+
                 // TODO if rowIds are consecutive we can add multiple rows to the ColBuilderManager here at once.
                 for (int rowIdIdx = 0; rowIdIdx < rowIds.size(); rowIdIdx++) {
+                  int cleanColCombinationIndex = 0; // colCombinationIndex not counting those colCombinations that have
+                                                    // been skipped.
+
                   for (int colCombinationIdx = 0; colCombinationIdx < colCombinations.size(); colCombinationIdx++) {
+                    if (skipColCombinationIndices.contains(colCombinationIdx))
+                      // we did not produce results for this colCombination!
+                      continue;
+
                     String outputColName = repeatedColNameGen.repeatedAtIndex(outputColNameBase, colCombinationIdx);
 
-                    rowValueArray[0] = functionResult[colCombinationIdx * rowIds.size() + rowIdIdx];
-
+                    rowValueArray[0] = functionResult[cleanColCombinationIndex * rowIds.size() + rowIdIdx];
                     colBuilderManager.addValues(outputColName, rowValueArray, rowIds.get(rowIdIdx));
+                    cleanColCombinationIndex++;
                   }
                 }
               }
             } finally {
               QueryUuid.clearCurrent();
             }
+          }
+
+          private ConcurrentSkipListSet<Integer> indicesToSkip = new ConcurrentSkipListSet<>();
+          private AtomicInteger indicesToSkipMaxCheckedLength = new AtomicInteger(-1);
+
+          /**
+           * @return The indices in ColCombinations to be skipped, because the output columns already exist. This is
+           *         thread safe. This method re-uses results from previous calls. It is guaraneteed that for a given
+           *         maxNumber the set of indices to skip in the range 0..(maxNumber - 1) will not change even if other
+           *         threads call this method with a different parameter.
+           */
+          private NavigableSet<Integer> findAllColumnCombinationIndicesToSkip(int maxNumberOfColCombinations) {
+            int previousMaxLength = indicesToSkipMaxCheckedLength.get();
+            if (maxNumberOfColCombinations <= previousMaxLength)
+              return indicesToSkip;
+
+            // calculate new skipped indices before updating indicesToSkipMaxCheckedIndex -> as soon as
+            // indicesToSkipMaxCheckedIndex is updated, the values in indicesToSkip are valid for that max index. If
+            // we're unfortunate, we might calculate the skipped indices twice, though, but that is not as bad.
+            for (int idx = previousMaxLength; idx < maxNumberOfColCombinations; idx++) {
+              if (allColNamesAvailable.contains(repeatedColNameGen.repeatedAtIndex(outputColNameBase, idx)))
+                indicesToSkip.add(idx);
+            }
+
+            indicesToSkipMaxCheckedLength.getAndUpdate(previous -> Math.max(previous, maxNumberOfColCombinations));
+            return indicesToSkip;
           }
         });
 
@@ -321,6 +433,8 @@ public class RepeatedProjectStep extends AbstractThreadedExecutablePlanStep {
     // make sure every row in each column is fully filled with default values, even if the last rows of repeated columns
     // had a "length" of 0. Otherwise the latter would not be filled with default values.
     colBuilderManager.expectToFillDataUpToRow(lowestRowIdInShard + numberOfRowsInShard - 1);
+
+    logger.trace("Creating output columns: {}", colBuilderManager.getAllColumnsWithValues());
 
     // build the cols!
     for (String newColName : colBuilderManager.getAllColumnsWithValues()) {
@@ -342,6 +456,8 @@ public class RepeatedProjectStep extends AbstractThreadedExecutablePlanStep {
         break;
       }
     }
+
+    logger.trace("Output columns created");
 
     // Inform everyone that the columns are built. Inform about the length column last!
     for (String newColName : Sets.difference(colBuilderManager.getAllColumnsWithValues(),

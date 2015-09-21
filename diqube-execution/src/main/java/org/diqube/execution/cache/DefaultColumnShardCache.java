@@ -263,4 +263,9 @@ public class DefaultColumnShardCache implements WritableColumnShardCache {
   public int getNumberOfColumnShardsCached() {
     return currentlyCachedCols.size();
   }
+
+  // for testing.
+  /* package */long getMaxMemoryBytes() {
+    return maxMemoryBytes;
+  }
 }

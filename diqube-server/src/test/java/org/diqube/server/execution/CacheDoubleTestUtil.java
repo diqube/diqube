@@ -20,6 +20,10 @@
  */
 package org.diqube.server.execution;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -77,7 +81,7 @@ public class CacheDoubleTestUtil {
   public static Object[] createTestObjects(AbstractDiqlExecutionTest<?> baseTest) {
     List<Object> res = new ArrayList<>();
     for (Method m : baseTest.getClass().getMethods()) {
-      if (m.isAnnotationPresent(Test.class)) {
+      if (m.isAnnotationPresent(Test.class) && !m.isAnnotationPresent(IgnoreInCacheDoubleTestUtil.class)) {
         res.add(createTestClassObject(baseTest, m));
       }
     }
@@ -171,5 +175,15 @@ public class CacheDoubleTestUtil {
             e);
       }
     }
+  }
+
+  /**
+   * Annotate a {@link Test} method with this annotation to <b>NOT</b> let {@link CacheDoubleTestUtil} create a
+   * double-test for this method!
+   */
+  @Target(value = ElementType.METHOD)
+  @Retention(RetentionPolicy.RUNTIME)
+  public static @interface IgnoreInCacheDoubleTestUtil {
+
   }
 }
