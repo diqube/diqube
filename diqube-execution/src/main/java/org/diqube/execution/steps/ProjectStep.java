@@ -218,15 +218,6 @@ public class ProjectStep extends AbstractThreadedExecutablePlanStep {
 
   @Override
   protected void execute() {
-    if (defaultEnv.getColumnShard(outputColName) != null) {
-      // This is true if we can serve the column from a cache.
-      logger.trace("Using cached result...");
-      forEachOutputConsumerOfType(ColumnBuiltConsumer.class, c -> c.columnBuilt(outputColName));
-      forEachOutputConsumerOfType(GenericConsumer.class, c -> c.sourceIsDone());
-      doneProcessing();
-      return;
-    }
-
     // Did we fill the output column completely and are we done?
     boolean columnFullyBuilt = false;
 

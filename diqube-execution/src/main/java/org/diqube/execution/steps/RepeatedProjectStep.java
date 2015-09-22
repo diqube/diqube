@@ -48,6 +48,7 @@ import org.diqube.data.dbl.DoubleColumnShard;
 import org.diqube.data.lng.LongColumnShard;
 import org.diqube.data.str.StringColumnShard;
 import org.diqube.data.util.RepeatedColumnNameGenerator;
+import org.diqube.execution.cache.ColumnShardCache;
 import org.diqube.execution.consumers.AbstractThreadedColumnBuiltConsumer;
 import org.diqube.execution.consumers.ColumnBuiltConsumer;
 import org.diqube.execution.consumers.DoneConsumer;
@@ -90,8 +91,12 @@ import com.google.common.collect.Sets;
  * This step is pretty expensive, although it tries to calculate the values of similar-looking rows together.
  * 
  * <p>
+ * This step does an extensive inspection in what output columns are available in the {@link ExecutionEnvironment}
+ * already (i.e. are in the {@link ColumnShardCache}) and will create only those columns that are not in the cache.
+ * 
+ * <p>
  * Input: multiple optional {@link ColumnBuiltConsumer} <br>
- * Output: {@link ColumnBuiltConsumer} (the resulting "length" column will be published last to this consumer).
+ * Output: {@link ColumnBuiltConsumer}.
  *
  * @author Bastian Gloeckle
  */
@@ -460,7 +465,8 @@ public class RepeatedProjectStep extends AbstractThreadedExecutablePlanStep {
         new HashSet<>(Arrays.asList(lengthColName))))
       forEachOutputConsumerOfType(ColumnBuiltConsumer.class, c -> c.columnBuilt(newColName));
 
-    forEachOutputConsumerOfType(ColumnBuiltConsumer.class, c -> c.columnBuilt(lengthColName));
+    if (!lengthColumnIsCached)
+      forEachOutputConsumerOfType(ColumnBuiltConsumer.class, c -> c.columnBuilt(lengthColName));
 
     forEachOutputConsumerOfType(GenericConsumer.class, c -> c.sourceIsDone());
     doneProcessing();

@@ -125,16 +125,20 @@ public class ExecutablePlanFromRemoteBuilder {
     for (TableShard tableShard : table.getShards()) {
       ExecutionEnvironment defaultEnv = executionEnvironmentFactory.createQueryRemoteExecutionEnvironment(tableShard);
       Map<Integer, ExecutablePlanStep> steps = new HashMap<>();
+      Map<Integer, RExecutionPlanStep> remoteSteps = new HashMap<>();
 
-      for (RExecutionPlanStep remoteStep : plan.getSteps()) {
+      RExecutionPlan optimizedRemotePlan = new ExecutablePlanFromRemoteOptimizer().optimize(defaultEnv, plan);
+
+      for (RExecutionPlanStep remoteStep : optimizedRemotePlan.getSteps()) {
         ExecutablePlanStep newStep = executablePlanStepFactory.createExecutableStep(defaultEnv, remoteStep);
         steps.put(remoteStep.getStepId(), newStep);
+        remoteSteps.put(remoteStep.getStepId(), remoteStep);
       }
 
       // Wire the data flow.
       for (Entry<Integer, ExecutablePlanStep> stepEntry : steps.entrySet()) {
         ExecutablePlanStep sourceStep = stepEntry.getValue();
-        RExecutionPlanStep remoteStep = plan.getSteps().get(sourceStep.getStepId());
+        RExecutionPlanStep remoteStep = remoteSteps.get(sourceStep.getStepId());
 
         // Use the data flow specifications from the RExecutionPlan.
         if (remoteStep.getProvideDataForStepsSize() > 0) {
@@ -163,7 +167,7 @@ public class ExecutablePlanFromRemoteBuilder {
           sourceStep.addOutputConsumer(groupIntermediaryAggregationConsumer);
       }
 
-      ExecutablePlanInfo info = createExecutablePlanInfo(plan);
+      ExecutablePlanInfo info = createExecutablePlanInfo(optimizedRemotePlan);
       ExecutablePlan executablePlan =
           executablePlanFactory.createExecutablePlan(defaultEnv, new ArrayList<>(steps.values()), info,
               null /* no col version manager on remote as there are no colversions used here */);
