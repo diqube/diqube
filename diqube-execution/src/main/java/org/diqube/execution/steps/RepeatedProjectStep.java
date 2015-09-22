@@ -222,15 +222,12 @@ public class RepeatedProjectStep extends AbstractThreadedExecutablePlanStep {
     LoaderColumnInfo colInfo = new LoaderColumnInfo(ColumnType.LONG); // LONG is fine for the length col, other ones are
                                                                       // specified below.
 
-    // colNamesAvailable will contain those column names of cached columns. An arbitrary number of output columns of the
-    // RepeatedProjectStep may be cached already.
-    Set<String> allColNamesAvailable = new HashSet<>(defaultEnv.getAllColumnShards().keySet());
-
     ColumnShardBuilderManager colBuilderManager =
         columnShardBuilderFactory.createColumnShardBuilderManager(colInfo, lowestRowIdInShard);
 
     // name of the resulting "length" column.
     String lengthColName = repeatedColNameGen.repeatedLength(outputColNameBase);
+    boolean lengthColumnIsCached = defaultEnv.getColumnShard(lengthColName) != null;
 
     ColumnType inputColType = defaultEnv.getColumnType(allNonLengthCols.iterator().next());
     ProjectionFunction<Object, Object> fn =
@@ -289,7 +286,7 @@ public class RepeatedProjectStep extends AbstractThreadedExecutablePlanStep {
                 // fill the resulting "length" cols. They all have the same length: For each colCombination there will
                 // be one element in the output array (=output repeated column). As all rowIds here have the same
                 // colCombination, they have the same length.
-                if (!allColNamesAvailable.contains(lengthColName)) { // length col might be cached already.
+                if (!lengthColumnIsCached) { // length col might be cached already.
                   logger.trace("Filling length outcol for batch {}", firstRowId);
                   for (long rowId : rowIds)
                     colBuilderManager.addValues(lengthColName, new Long[] { (long) colCombinations.size() }, rowId);
@@ -419,7 +416,8 @@ public class RepeatedProjectStep extends AbstractThreadedExecutablePlanStep {
             // indicesToSkipMaxCheckedIndex is updated, the values in indicesToSkip are valid for that max index. If
             // we're unfortunate, we might calculate the skipped indices twice, though, but that is not as bad.
             for (int idx = previousMaxLength; idx < maxNumberOfColCombinations; idx++) {
-              if (allColNamesAvailable.contains(repeatedColNameGen.repeatedAtIndex(outputColNameBase, idx)))
+              String colName = repeatedColNameGen.repeatedAtIndex(outputColNameBase, idx);
+              if (defaultEnv.getColumnShard(colName) != null)
                 indicesToSkip.add(idx);
             }
 

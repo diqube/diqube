@@ -23,6 +23,7 @@ package org.diqube.execution.steps;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.NavigableSet;
 import java.util.Set;
@@ -242,7 +243,9 @@ public class OrderStep extends AbstractThreadedExecutablePlanStep {
   public void initialize() {
     sortColSet = sortCols.stream().map(p -> p.getLeft()).collect(Collectors.toSet());
     columnsThatNeedToBeBuilt = new ConcurrentSkipListSet<>(sortColSet);
-    columnsThatNeedToBeBuilt.removeAll(defaultEnv.getAllColumnShards().keySet());
+    for (Iterator<String> it = columnsThatNeedToBeBuilt.iterator(); it.hasNext();)
+      if (defaultEnv.getColumnShard(it.next()) != null)
+        it.remove();
 
     // factory method for comparators based on a specific env.
     headComparatorProvider = (executionEnvironment) -> {
@@ -310,13 +313,12 @@ public class OrderStep extends AbstractThreadedExecutablePlanStep {
 
     if (intermediateRun) {
       // Make sure that we only order those rows, where we have values for all columns.
-      // TODO #8 only check availability in interested columns.
       // Please note the following:
       // We only make sure that each column contains /any/ value on the row IDs, these might be as well default values
       // filled in by SparseColumnShardBuilder! We therefore might order based on "wrong" values here. But this is not
       // as important, because as soon as we have correct values and the orderStep is executed again (either still in
       // 'intermediary' mode or in 'isLastRun' mode) the row will be ordered correctly.
-      new ColumnVersionBuiltHelper().publishActiveRowIds(env, activeRowIdsSet, notYetProcessedRowIds);
+      new ColumnVersionBuiltHelper().publishActiveRowIds(env, sortColSet, activeRowIdsSet, notYetProcessedRowIds);
     } else {
       if (notYetProcessedRowIds.size() > 0) {
         activeRowIdsSet.addAll(notYetProcessedRowIds);

@@ -208,8 +208,14 @@ public class ResolveColumnDictIdsStep extends AbstractThreadedExecutablePlanStep
 
     if (intermediateRun) {
       // restrict active row IDs to only contain available rows and include & publish notYetProcessedRowIds.
-      long maxAvailableRowId =
-          new ColumnVersionBuiltHelper().publishActiveRowIds(env, activeRowIds, notYetProcessedRowIds);
+      long maxAvailableRowId = new ColumnVersionBuiltHelper().publishActiveRowIds(env, Arrays.asList(colName),
+          activeRowIds, notYetProcessedRowIds);
+
+      if (maxAvailableRowId == -1L) {
+        // our column is not built. Should not happen, but just to be sure...
+        logger.warn("ColumnVersionBuiltHelper told us that our column is notr built. This should not happen.");
+        return;
+      }
 
       // adjust set of rows that have been adjusted - shrink them to the row IDs that are available. If other rowIds
       // have changed their value this is not interesting to us, because we did notyet resolve their values anyway.

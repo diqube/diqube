@@ -23,6 +23,7 @@ package org.diqube.execution.steps;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
@@ -198,7 +199,9 @@ public class ProjectStep extends AbstractThreadedExecutablePlanStep {
         inputColNames.add(param.getColumnName());
 
     columnsThatStillNeedToBeBuilt = new ConcurrentSkipListSet<>(inputColNames);
-    columnsThatStillNeedToBeBuilt.removeAll(defaultEnv.getAllColumnShards().keySet());
+    for (Iterator<String> it = columnsThatStillNeedToBeBuilt.iterator(); it.hasNext();)
+      if (defaultEnv.getColumnShard(it.next()) != null)
+        it.remove();
 
     columnShardBuilderManagerSupplier = (outputColType) -> {
       LoaderColumnInfo columnInfo = new LoaderColumnInfo(outputColType);

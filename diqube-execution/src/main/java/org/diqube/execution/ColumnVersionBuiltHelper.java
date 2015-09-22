@@ -23,6 +23,7 @@ package org.diqube.execution;
 import java.util.Collection;
 import java.util.NavigableSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.diqube.execution.consumers.ColumnVersionBuiltConsumer;
 import org.diqube.execution.consumers.GenericConsumer;
@@ -36,12 +37,13 @@ import org.diqube.execution.env.querystats.QueryableColumnShard;
  */
 public class ColumnVersionBuiltHelper {
   /**
-   * Finds those row IDs out of a set of row IDs whose values are all available in an {@link ExecutionEnvironment} and
-   * manages a set of row IDs that could not be processed yet.
+   * Finds those row IDs out of a set of row IDs whose values are all available in specific columns of an
+   * {@link ExecutionEnvironment} and manages a set of row IDs that could not be processed yet.
    * 
    * @param env
-   *          The {@link ExecutionEnvironment} that is queried for the rows that are available in all columns. // -----
-   *          TODO #8 support subset of cols
+   *          The {@link ExecutionEnvironment} that is queried for the rows that are available in the specified columns.
+   * @param columns
+   *          The columns that should be checked in "env" for the availability of values for the given rowIds.
    * @param activeRowIds
    *          The row IDs that should be worked on now as provided by any other input {@link GenericConsumer}. This set
    *          will be adjusted accordingly. After this method returns, the activeRowIds will contain only row IDs that
@@ -51,12 +53,22 @@ public class ColumnVersionBuiltHelper {
    *          row IDs that are added to activeRowIds from notYetProcessedRowIds are removed from the latter.
    * @param notYetProcessedRowIds
    *          A set containing those row IDs that have not yet been processed. See details above.
-   * @return The maximum row ID for which all columns contain values.
+   * @return The maximum row ID for which all columns contain values or -1 if not all columns are available in the given
+   *         env.
    */
-  public long publishActiveRowIds(ExecutionEnvironment env, NavigableSet<Long> activeRowIds,
+  public long publishActiveRowIds(ExecutionEnvironment env, Collection<String> columns, NavigableSet<Long> activeRowIds,
       NavigableSet<Long> notYetProcessedRowIds) {
     long maxRowId;
-    Collection<QueryableColumnShard> cols = env.getAllColumnShards().values();
+    Collection<QueryableColumnShard> cols =
+        columns.stream().map(colName -> env.getColumnShard(colName)).collect(Collectors.toList());
+
+    if (cols.stream().anyMatch(col -> col == null)) {
+      // at least one of the needed columns is not available at all yet.
+      notYetProcessedRowIds.addAll(activeRowIds);
+      activeRowIds.clear();
+      return -1L;
+    }
+
     if (cols.stream().anyMatch(col -> env.getPureStandardColumnShard(col.getName()) != null)) {
       maxRowId = cols.stream().filter(col -> env.getPureStandardColumnShard(col.getName()) != null)
           .mapToLong(column -> column.getFirstRowId()

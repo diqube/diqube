@@ -21,7 +21,6 @@
 package org.diqube.execution.env;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -185,18 +184,6 @@ public abstract class AbstractExecutionEnvironment implements ExecutionEnvironme
 
     return null;
   }
-
-  @Override
-  public Map<String, QueryableColumnShard> getAllColumnShards() {
-    Map<String, QueryableColumnShard> res = new HashMap<>(delegateGetAllColumnShards());
-    // temp cols stored in this EE override any delegate information.
-    res.putAll(tempDoubleColumns);
-    res.putAll(tempStringColumns);
-    res.putAll(tempLongColumns);
-    return res;
-  }
-
-  abstract protected Map<String, QueryableColumnShard> delegateGetAllColumnShards();
 
   protected Set<String> getAllColumnNamesDefinedInThisEnv() {
     Set<String> res = new HashSet<>();

@@ -25,7 +25,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.diqube.data.TableShard;
 import org.diqube.data.colshard.ColumnShard;
@@ -167,30 +166,6 @@ public class DefaultExecutionEnvironment extends AbstractExecutionEnvironment {
     if (sourceColumnShard != null)
       return new QueryableDoubleColumnShardFacade(sourceColumnShard, false, queryRegistry);
     return null;
-  }
-
-  @Override
-  protected Map<String, QueryableColumnShard> delegateGetAllColumnShards() {
-    Map<String, QueryableColumnShard> res = new HashMap<>();
-
-    Set<String> allColNames = new HashSet<>();
-
-    if (tableShard != null) {
-      allColNames
-          .addAll(Sets.union(Sets.union(tableShard.getDoubleColumns().keySet(), tableShard.getLongColumns().keySet()),
-              tableShard.getStringColumns().keySet()));
-    }
-    if (columnShardCache != null) {
-      allColNames.addAll(columnShardCache.getAllCachedColumnShards(tableShard.getLowestRowId()).stream()
-          .map(shard -> shard.getName()).collect(Collectors.toList()));
-    }
-
-    for (String colName : allColNames) {
-      QueryableColumnShard colShard = getColumnShard(colName);
-      res.put(colName, colShard);
-    }
-
-    return res;
   }
 
   @Override

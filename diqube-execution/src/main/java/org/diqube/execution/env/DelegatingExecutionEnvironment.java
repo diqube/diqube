@@ -98,11 +98,6 @@ public class DelegatingExecutionEnvironment extends AbstractExecutionEnvironment
   }
 
   @Override
-  protected Map<String, QueryableColumnShard> delegateGetAllColumnShards() {
-    return delegate.getAllColumnShards();
-  }
-
-  @Override
   public String toString() {
     return this.getClass().getSimpleName() + "[version=" + getVersion() + "]";
   }

@@ -167,20 +167,21 @@ public interface ExecutionEnvironment {
   public boolean isTemporaryColumn(String colName);
 
   /**
-   * TODO #26: Remove this method. It loads all cached cols into this EE, which will then lead to these cols being
-   * counted as "used" - which they are not.
-   * 
-   * @return Map from colName to {@link QueryableColumnShard} for all available column shards. Note that the actual
-   *         column shard objects might be different instances with each call.
-   */
-  public Map<String, QueryableColumnShard> getAllColumnShards();
-
-  /**
    * Returns a map from colName to a list of {@link QueryableColumnShard}s for all temporary columns.
    * 
+   * <p>
    * On the query master we may have several versions of a column (see {@link VersionedExecutionEnvironment}), this
    * method returns all versions of all columns, the last entry in the list being the newest version. Note that the
    * actual column shard objects might be different instances with each call.
+   * 
+   * <p>
+   * This method will <b>not</b> return cached columns which have not been requested at least once using
+   * {@link #getColumnShard(String)} etc. It will <b>not</b> load any other cached column shards into this
+   * ExecutionEnvironment in order to make sure that the column stays available.
+   * 
+   * <p>
+   * This method <b>will</b> return all column shards that were loaded from a cache because of a call to
+   * {@link #getColumnShard(String)} etc.
    */
   public Map<String, List<QueryableColumnShard>> getAllTemporaryColumnShards();
 
