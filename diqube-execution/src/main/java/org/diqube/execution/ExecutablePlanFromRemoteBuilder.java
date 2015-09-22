@@ -44,6 +44,7 @@ import org.diqube.execution.env.ExecutionEnvironmentFactory;
 import org.diqube.execution.exception.ExecutablePlanBuildException;
 import org.diqube.execution.steps.GroupIntermediaryAggregationStep;
 import org.diqube.execution.steps.ResolveValuesStep;
+import org.diqube.queries.QueryUuid.QueryUuidThreadState;
 import org.diqube.remote.cluster.thrift.RExecutionPlan;
 import org.diqube.remote.cluster.thrift.RExecutionPlanStep;
 import org.diqube.remote.cluster.thrift.RExecutionPlanStepDataType;
@@ -113,6 +114,10 @@ public class ExecutablePlanFromRemoteBuilder {
 
   /**
    * Build the {@link ExecutablePlan}s, for each {@link TableShard} that is available on this node one.
+   * 
+   * <p>
+   * This method must be executed with correct {@link QueryUuidThreadState} set, as
+   * {@link ExecutablePlanFromRemoteOptimizer} needs correct thread state!
    */
   public List<ExecutablePlan> build() throws ExecutablePlanBuildException {
     Table table = tableRegistry.getTable(plan.getTable());

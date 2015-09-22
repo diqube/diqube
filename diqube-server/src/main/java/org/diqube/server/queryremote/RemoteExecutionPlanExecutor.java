@@ -45,6 +45,8 @@ import org.diqube.execution.consumers.AbstractThreadedColumnValueConsumer;
 import org.diqube.execution.consumers.AbstractThreadedGroupIntermediaryAggregationConsumer;
 import org.diqube.function.IntermediaryResult;
 import org.diqube.queries.QueryRegistry;
+import org.diqube.queries.QueryUuid;
+import org.diqube.queries.QueryUuid.QueryUuidThreadState;
 import org.diqube.remote.base.thrift.RValue;
 import org.diqube.remote.base.util.RValueUtil;
 import org.diqube.remote.cluster.RIntermediateAggregationResultUtil;
@@ -159,7 +161,16 @@ public class RemoteExecutionPlanExecutor {
                 calculatePercentDoneDelta(executionPercentageHolder.getValue()));
           }
         });
-    List<ExecutablePlan> executablePlans = executablePlanBuilder.build();
+
+    // build the plans, be sure to have correct QueryUuid Thread state!
+    QueryUuidThreadState backupThreadState = QueryUuid.getCurrentThreadState();
+    List<ExecutablePlan> executablePlans;
+    try {
+      QueryUuid.setCurrentQueryUuidAndExecutionUuid(queryUuid, executionUuid);
+      executablePlans = executablePlanBuilder.build();
+    } finally {
+      QueryUuid.setCurrentThreadState(backupThreadState);
+    }
 
     if (executablePlans.size() == 0) {
       logger.info(

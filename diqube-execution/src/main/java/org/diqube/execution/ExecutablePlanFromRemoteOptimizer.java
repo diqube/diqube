@@ -32,6 +32,7 @@ import org.diqube.data.TableShard;
 import org.diqube.data.colshard.ColumnShard;
 import org.diqube.execution.cache.ColumnShardCache;
 import org.diqube.execution.env.ExecutionEnvironment;
+import org.diqube.queries.QueryUuid.QueryUuidThreadState;
 import org.diqube.remote.cluster.thrift.RColOrValue;
 import org.diqube.remote.cluster.thrift.RExecutionPlan;
 import org.diqube.remote.cluster.thrift.RExecutionPlanStep;
@@ -58,6 +59,10 @@ public class ExecutablePlanFromRemoteOptimizer {
    * Note that when running this, {@link ColumnShard}s from the {@link ColumnShardCache} might already be put into the
    * provided {@link ExecutionEnvironment}.
    * 
+   * <p>
+   * This method must be executed with correct {@link QueryUuidThreadState} set, as it accesses the
+   * {@link ExecutionEnvironment}.
+   * 
    * @param defaultEnv
    *          The {@link ExecutionEnvironment} the resulting plan should be executed on. This is expected to be backed
    *          by a concrete {@link TableShard} (and probably a {@link ColumnShardCache}). These properties of these
@@ -74,7 +79,8 @@ public class ExecutablePlanFromRemoteOptimizer {
   public RExecutionPlan optimize(ExecutionEnvironment defaultEnv, RExecutionPlan plan) {
     RExecutionPlan res = new RExecutionPlan(plan);
     removeUnneededColumnCreations(defaultEnv, res);
-    logger.info("Optimized plan to {}", res.toString());
+    if (!res.equals(plan))
+      logger.info("Optimized plan to {}", res.toString());
     return res;
   }
 
