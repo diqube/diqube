@@ -46,6 +46,8 @@ import org.diqube.util.Pair;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import com.google.common.collect.Sets;
+
 /**
  * Validates ORDER BY diql queries that target for the split of the order by statement on cluster nodes and the query
  * master. Compare how {@link OrderRequestBuilder}s are used in {@link ExecutionPlanner}.
@@ -139,17 +141,21 @@ public abstract class OrderSplitDiqlExecutionTest<T> extends AbstractCacheDouble
 
       // check if correct rowIDs have been reported to query master. We check this by inspecting the values of colA and
       // colB for the rowIds that have been reported and how often those values were reported.
+      // Note that we check that _at least_ a certain number of rows with the values was returned. If the timing of the
+      // threads is unfortunate on the remotes, the OrderStep might get woken up before all rowIds have been reported to
+      // it -> it has a smaller number of rows to order -> it might send rowIds on their journey which would not be part
+      // if all the rowIds would have been available to it right away.
 
-      Map<Pair<Object, Object>, Integer> expectedRowIdValues = new HashMap<>();
-      expectedRowIdValues.clear();
+      Map<Pair<Object, Object>, Integer> expectedRowIdMinValues = new HashMap<>();
+      expectedRowIdMinValues.clear();
       // ColA: 1, ColB: 100, number of times reported: 2
-      expectedRowIdValues.put(new Pair<>(dp.v(1), dp.v(100)), 2);
+      expectedRowIdMinValues.put(new Pair<>(dp.v(1), dp.v(100)), 2);
       // ColA: 2, ColB: 400, number of times reported: 1
-      expectedRowIdValues.put(new Pair<>(dp.v(2), dp.v(400)), 1);
+      expectedRowIdMinValues.put(new Pair<>(dp.v(2), dp.v(400)), 1);
       // ColA: 2, ColB: 300, number of times reported: 2
-      expectedRowIdValues.put(new Pair<>(dp.v(2), dp.v(300)), 2);
+      expectedRowIdMinValues.put(new Pair<>(dp.v(2), dp.v(300)), 2);
       // ColA: 2, ColB: 0, number of times reported: 1
-      expectedRowIdValues.put(new Pair<>(dp.v(2), dp.v(0)), 1);
+      expectedRowIdMinValues.put(new Pair<>(dp.v(2), dp.v(0)), 1);
 
       Map<Pair<Object, Object>, Integer> actualRowIdValues = new HashMap<>();
       for (Long reportedRowId : allRowIdsReportedByClusterNodes) {
@@ -165,9 +171,16 @@ public abstract class OrderSplitDiqlExecutionTest<T> extends AbstractCacheDouble
           actualRowIdValues.put(value, 1);
       }
 
-      Assert.assertEquals(actualRowIdValues, expectedRowIdValues,
+      Set<Pair<Object, Object>> valuesNotReported =
+          Sets.difference(expectedRowIdMinValues.keySet(), actualRowIdValues.keySet());
+      Assert.assertTrue(valuesNotReported.isEmpty(),
           "Expected that query master was provided with all interesting row IDs, so that it was "
-              + "able to do the ordering correctly");
+              + "able to do the ordering correctly. Not reported values: " + valuesNotReported);
+
+      for (Pair<Object, Object> p : expectedRowIdMinValues.keySet())
+        Assert.assertTrue(expectedRowIdMinValues.get(p) <= actualRowIdValues.get(p),
+            "Expected to receive " + p + "at least " + expectedRowIdMinValues.get(p) + " times, but did receive it "
+                + actualRowIdValues.get(p) + " times.");
     } finally {
       executor.shutdownNow();
     }
@@ -248,15 +261,19 @@ public abstract class OrderSplitDiqlExecutionTest<T> extends AbstractCacheDouble
 
       // check if correct rowIDs have been reported to query master. We check this by inspecting the values of colA and
       // colB for the rowIds that have been reported and how often those values were reported.
+      // Note that we check that _at least_ a certain number of rows with the values was returned. If the timing of the
+      // threads is unfortunate on the remotes, the OrderStep might get woken up before all rowIds have been reported to
+      // it -> it has a smaller number of rows to order -> it might send rowIds on their journey which would not be part
+      // if all the rowIds would have been available to it right away.
 
-      Map<Pair<Object, Object>, Integer> expectedRowIdValues = new HashMap<>();
-      expectedRowIdValues.clear();
+      Map<Pair<Object, Object>, Integer> expectedRowIdMinValues = new HashMap<>();
+      expectedRowIdMinValues.clear();
       // ColA: 1, ColB: 100, number of times reported: 1
-      expectedRowIdValues.put(new Pair<>(dp.v(1), dp.v(100)), 1);
+      expectedRowIdMinValues.put(new Pair<>(dp.v(1), dp.v(100)), 1);
       // ColA: 2, ColB: 400, number of times reported: 2
-      expectedRowIdValues.put(new Pair<>(dp.v(2), dp.v(400)), 2);
+      expectedRowIdMinValues.put(new Pair<>(dp.v(2), dp.v(400)), 2);
       // ColA: 2, ColB: 300, number of times reported: 1
-      expectedRowIdValues.put(new Pair<>(dp.v(2), dp.v(300)), 1);
+      expectedRowIdMinValues.put(new Pair<>(dp.v(2), dp.v(300)), 1);
 
       Map<Pair<Object, Object>, Integer> actualRowIdValues = new HashMap<>();
       for (Long reportedRowId : allRowIdsReportedByClusterNodes) {
@@ -272,9 +289,16 @@ public abstract class OrderSplitDiqlExecutionTest<T> extends AbstractCacheDouble
           actualRowIdValues.put(value, 1);
       }
 
-      Assert.assertEquals(actualRowIdValues, expectedRowIdValues,
-          "Expected that query master was provided with all interesting row IDs, "
-              + "so that it was able to do the ordering correctly");
+      Set<Pair<Object, Object>> valuesNotReported =
+          Sets.difference(expectedRowIdMinValues.keySet(), actualRowIdValues.keySet());
+      Assert.assertTrue(valuesNotReported.isEmpty(),
+          "Expected that query master was provided with all interesting row IDs, so that it was "
+              + "able to do the ordering correctly. Not reported values: " + valuesNotReported);
+
+      for (Pair<Object, Object> p : expectedRowIdMinValues.keySet())
+        Assert.assertTrue(expectedRowIdMinValues.get(p) <= actualRowIdValues.get(p),
+            "Expected to receive " + p + "at least " + expectedRowIdMinValues.get(p) + " times, but did receive it "
+                + actualRowIdValues.get(p) + " times.");
     } finally {
       executor.shutdownNow();
     }
