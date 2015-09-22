@@ -25,12 +25,14 @@ import java.util.Map;
 
 import org.diqube.data.ColumnType;
 import org.diqube.data.TableShard;
+import org.diqube.data.colshard.ColumnShard;
 import org.diqube.data.colshard.ConstantColumnShard;
 import org.diqube.data.colshard.StandardColumnShard;
 import org.diqube.data.dbl.DoubleColumnShard;
 import org.diqube.data.lng.LongColumnShard;
 import org.diqube.data.str.StringColumnShard;
 import org.diqube.execution.ExecutablePlanStep;
+import org.diqube.execution.cache.ColumnShardCache;
 import org.diqube.execution.env.querystats.QueryableColumnShard;
 import org.diqube.execution.env.querystats.QueryableDoubleColumnShard;
 import org.diqube.execution.env.querystats.QueryableLongColumnShard;
@@ -56,6 +58,19 @@ import org.diqube.execution.env.querystats.QueryableStringColumnShard;
  * intermediary column out of the results of the first remote and start executing its steps based on that intermediary
  * column, in order to produce user-facing results as soon as possible. Note that on remotes, no
  * {@link VersionedExecutionEnvironment} will be used.
+ * 
+ * <p>
+ * An {@link ExecutionEnvironment} might optionally be based on a {@link ColumnShardCache}, which will be the case on
+ * query remotes. Note that such an {@link ExecutionEnvironment} will not only load existing column shards from a
+ * backing {@link TableShard}, but also from the cache. As such cached {@link ColumnShard}s may be evicted from the
+ * cache at any time, though, the {@link ExecutionEnvironment} will add such a cached column to the "temporary columns"
+ * of the {@link ExecutionEnvironment} itself as soon as the column is fetched from the cache. With that procedure, the
+ * {@link ExecutionEnvironment} can guarantee that a specific column that was once "visible" to the
+ * {@link #getColumnShard(String)} methods (and similar) will be available throughout the execution of a whole query
+ * (=until the {@link ExecutionEnvironment} is invalidated). At the same time, the cache will be based on the temporary
+ * columns that are available in the {@link ExecutionEnvironment} of a query after its execution is complete - so cached
+ * columns will be presented again to the cache if they have been loaded into a {@link ExecutionEnvironment}. This
+ * allows the cache then to count the usages of specific {@link ColumnShard}s and allows to tune the cache.
  *
  * @author Bastian Gloeckle
  */

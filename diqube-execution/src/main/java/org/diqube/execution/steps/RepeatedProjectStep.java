@@ -89,8 +89,6 @@ import com.google.common.collect.Sets;
  * <p>
  * This step is pretty expensive, although it tries to calculate the values of similar-looking rows together.
  * 
- * TODO #26: Reasonable creation of non-cached columns
- * 
  * <p>
  * Input: multiple optional {@link ColumnBuiltConsumer} <br>
  * Output: {@link ColumnBuiltConsumer} (the resulting "length" column will be published last to this consumer).

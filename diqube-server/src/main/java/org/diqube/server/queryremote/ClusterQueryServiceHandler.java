@@ -265,7 +265,10 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
 
             }
 
-            // update table cache
+            // update table cache with the results of this query execution. Note that if this query execution loaded
+            // specific columns from the cache, they will be available in the ExecutionEnv as "temporary columns" - and
+            // we will present them to the cache again right away. With this mechanism the cache can actively count the
+            // usages of specific columns and therefore tune what it should cache and what not.
             WritableColumnShardCache tableCache = tableCacheRegistry.getColumnShardCache(executionPlan.getTable());
             if (tableCache != null) {
               logger.info("Updating the table cache with results of query {}, execution {}", queryUuid, executionUuid);
