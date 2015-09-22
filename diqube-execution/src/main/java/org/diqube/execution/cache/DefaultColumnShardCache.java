@@ -21,15 +21,16 @@
 package org.diqube.execution.cache;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -40,15 +41,34 @@ import org.diqube.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 /**
  * Default implementation of a cache that caches column shards for a single table.
+ * 
+ * <p>
+ * It caches those {@link ColumnShard}s that were used the most often times - it therefore counts the usages of these.
+ * This cache caches up to a maximum memory size, which is calculated using
+ * {@link ColumnShard#calculateApproximateSizeInBytes()}. If there are multiple {@link ColumnShard}s used the same
+ * amount of times and they are at the that max-memory border, the ColumnShards are ordered by the name of the column -
+ * the columns with the "lesser" names may be cached.
+ * 
+ * <p>
+ * This cache maintains itself and does execute cleanup actions on internally used data structures at its own
+ * discretion.
  *
  * @author Bastian Gloeckle
  */
 public class DefaultColumnShardCache implements WritableColumnShardCache {
   private static final Logger logger = LoggerFactory.getLogger(DefaultColumnShardCache.class);
+
+  /**
+   * The default cleanup strategy cleans up randomly in approx. 3% of cases.
+   * 
+   * Use 128 as base so random is implemented faster. Scale "3" (%) equally (* 1.28).
+   */
+  private static final CleanupStrategy DEFAULT_CLEANUP_STRATEGY = () -> ThreadLocalRandom.current().nextInt(128) < 4;
 
   private ConcurrentMap<Long, ConcurrentMap<String, ColumnShard>> allCachesByTableShard = new ConcurrentHashMap<>();
 
@@ -61,12 +81,20 @@ public class DefaultColumnShardCache implements WritableColumnShardCache {
 
   /** gets write-locked when cleanup is running. Use read-lock to execute something while not cleaning up. */
   private ReentrantReadWriteLock cleanupLock = new ReentrantReadWriteLock();
-  private Random cleanupRandom = new Random();
+  private CleanupStrategy cleanupStrategy;
 
   private long maxMemoryBytes;
 
   /* package */ DefaultColumnShardCache(long maxMemoryBytes) {
+    this(maxMemoryBytes, DEFAULT_CLEANUP_STRATEGY);
+  }
+
+  /**
+   * Constructor mainly for tests to customize the cleanup strategy.
+   */
+  /* package */ DefaultColumnShardCache(long maxMemoryBytes, CleanupStrategy cleanupStrategy) {
     this.maxMemoryBytes = maxMemoryBytes;
+    this.cleanupStrategy = cleanupStrategy;
   }
 
   @Override
@@ -165,8 +193,7 @@ public class DefaultColumnShardCache implements WritableColumnShardCache {
       cleanupLock.readLock().unlock();
     }
 
-    if (cleanupRandom.nextInt(128) < 4) // use 128 as base so random is implemented faster. Scale "3" (%) equally (1.28)
-      // execute approx on 3% of calls.
+    if (cleanupStrategy.executeCleanup())
       intermediaryCleanup();
   }
 
@@ -178,13 +205,11 @@ public class DefaultColumnShardCache implements WritableColumnShardCache {
     try {
       logger.trace("Executing cache cleanup...");
 
-      // remove memory information of all cols that are not cached - Next time someone wants to insert such a col, we
-      // can recalculate the size without problems.
-      memoryOfCols.keySet().retainAll(currentlyCachedCols);
-
       // clean topCounts: Remove any ColIdCounts of ColIds where we have bigger counts (=earlier in topCounts) and/or
       // which are not currently cached.
+      boolean lastTopCountWasCached = true;
       Set<ColId> colIdsVisited = new HashSet<>();
+      ColId notCachedInterestingColId = null;
       for (Iterator<ColIdCount> it = topCounts.iterator(); it.hasNext();) {
         ColIdCount curCnt = it.next();
 
@@ -194,9 +219,28 @@ public class DefaultColumnShardCache implements WritableColumnShardCache {
         }
         colIdsVisited.add(curCnt.getLeft());
 
-        if (!currentlyCachedCols.contains(curCnt.getLeft()))
+        boolean curCntIsCached = currentlyCachedCols.contains(curCnt.getLeft());
+
+        if (!curCntIsCached && !lastTopCountWasCached)
+          // remove all entries from topCount but leave only the cached ones and the one right after that. The latter
+          // one is needed to make sure not new entries are cached (= are in topCount and memory does match), but would
+          // actually have a lower ColIdCount value than the one following the cachedTopCounts (this can happen e.g. in
+          // the one after the cached topCounts is a very memory-intensive col, does therefore not get cached - we do
+          // not cache any "lower" ColIdCounts though!).
           it.remove();
+        else if (!curCntIsCached && lastTopCountWasCached)
+          notCachedInterestingColId = curCnt.getLeft();
+
+        lastTopCountWasCached = curCntIsCached;
       }
+
+      // remove memory information of all cols that are not interesting (=cached cols are interesting, if there is
+      // another col left in topCount, that is interesting, too) - Next time someone wants to insert a col we remove
+      // now, we can recalculate the size without problems.
+      Collection<ColId> retainColIds = currentlyCachedCols;
+      if (notCachedInterestingColId != null)
+        retainColIds = Sets.newHashSet(Iterables.concat(currentlyCachedCols, Arrays.asList(notCachedInterestingColId)));
+      memoryOfCols.keySet().retainAll(retainColIds);
     } finally {
       cleanupLock.writeLock().unlock();
     }
@@ -224,6 +268,16 @@ public class DefaultColumnShardCache implements WritableColumnShardCache {
     ConcurrentMap<String, ColumnShard> tableShardCache =
         allCachesByTableShard.computeIfAbsent(colId.getLeft(), id -> new ConcurrentHashMap<>());
     tableShardCache.put(colId.getRight(), colShard);
+  }
+
+  @Override
+  public int getNumberOfColumnShardsCached() {
+    return currentlyCachedCols.size();
+  }
+
+  // for testing.
+  /* package */long getMaxMemoryBytes() {
+    return maxMemoryBytes;
   }
 
   /**
@@ -259,13 +313,13 @@ public class DefaultColumnShardCache implements WritableColumnShardCache {
     }
   }
 
-  @Override
-  public int getNumberOfColumnShardsCached() {
-    return currentlyCachedCols.size();
-  }
-
-  // for testing.
-  /* package */long getMaxMemoryBytes() {
-    return maxMemoryBytes;
+  /**
+   * Mainly for testing: Extract strategy on when to cleanup.
+   */
+  /* package */ static interface CleanupStrategy {
+    /**
+     * @return true if cleanup should be execued, false otherwise.
+     */
+    public boolean executeCleanup();
   }
 }

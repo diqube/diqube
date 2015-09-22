@@ -35,10 +35,20 @@ import org.testng.annotations.Test;
  * @author Bastian Gloeckle
  */
 public class DefaultColumnShardCacheTest {
+
   @Test
-  public void simpleAddition() {
+  public void simpleAdditionCleanupAlways() {
+    simpleAddition(true);
+  }
+
+  @Test
+  public void simpleAdditionCleanupNever() {
+    simpleAddition(false);
+  }
+
+  private void simpleAddition(boolean cleanupAlways) {
     // GIVEN
-    DefaultColumnShardCache cache = new DefaultColumnShardCache(100);
+    DefaultColumnShardCache cache = new DefaultColumnShardCache(100, () -> cleanupAlways);
 
     // WHEN
     cache.registerUsageOfColumnShardPossiblyCache(0, shard("1", 50));
@@ -56,9 +66,18 @@ public class DefaultColumnShardCacheTest {
   }
 
   @Test
-  public void simpleAdditionWithEvict() {
+  public void simpleAdditionWithEvictCleanupAlways() {
+    simpleAdditionWithEvict(true);
+  }
+
+  @Test
+  public void simpleAdditionWithEvictCleanupNever() {
+    simpleAdditionWithEvict(false);
+  }
+
+  private void simpleAdditionWithEvict(boolean cleanupAlways) {
     // GIVEN
-    DefaultColumnShardCache cache = new DefaultColumnShardCache(100);
+    DefaultColumnShardCache cache = new DefaultColumnShardCache(100, () -> cleanupAlways);
 
     // WHEN
     cache.registerUsageOfColumnShardPossiblyCache(0, shard("1", 50));
@@ -77,9 +96,18 @@ public class DefaultColumnShardCacheTest {
   }
 
   @Test
-  public void firstAdditionTooBig() {
+  public void firstAdditionTooBigCleanupAlways() {
+    firstAdditionTooBig(true);
+  }
+
+  @Test
+  public void firstAdditionTooBigCleanupNever() {
+    firstAdditionTooBig(false);
+  }
+
+  private void firstAdditionTooBig(boolean cleanupAlways) {
     // GIVEN
-    DefaultColumnShardCache cache = new DefaultColumnShardCache(100);
+    DefaultColumnShardCache cache = new DefaultColumnShardCache(100, () -> cleanupAlways);
 
     // WHEN
     cache.registerUsageOfColumnShardPossiblyCache(0, shard("1", 101));
@@ -98,9 +126,18 @@ public class DefaultColumnShardCacheTest {
   }
 
   @Test
-  public void firstAdditionTooBigSecondMoreCount() {
+  public void firstAdditionTooBigSecondMoreCountCleanupAlways() {
+    firstAdditionTooBigSecondMoreCount(true);
+  }
+
+  @Test
+  public void firstAdditionTooBigSecondMoreCountCleanupNever() {
+    firstAdditionTooBigSecondMoreCount(false);
+  }
+
+  private void firstAdditionTooBigSecondMoreCount(boolean cleanupAlways) {
     // GIVEN
-    DefaultColumnShardCache cache = new DefaultColumnShardCache(100);
+    DefaultColumnShardCache cache = new DefaultColumnShardCache(100, () -> cleanupAlways);
 
     // WHEN
     cache.registerUsageOfColumnShardPossiblyCache(0, shard("1", 101));
@@ -118,9 +155,18 @@ public class DefaultColumnShardCacheTest {
   }
 
   @Test
-  public void firstAdditionTooBigSecondMoreCountOnSingleTableShard() {
+  public void firstAdditionTooBigSecondMoreCountOnSingleTableShardCleanupAlways() {
+    firstAdditionTooBigSecondMoreCountOnSingleTableShard(true);
+  }
+
+  @Test
+  public void firstAdditionTooBigSecondMoreCountOnSingleTableShardCleanupNever() {
+    firstAdditionTooBigSecondMoreCountOnSingleTableShard(false);
+  }
+
+  private void firstAdditionTooBigSecondMoreCountOnSingleTableShard(boolean cleanupAlways) {
     // GIVEN
-    DefaultColumnShardCache cache = new DefaultColumnShardCache(100);
+    DefaultColumnShardCache cache = new DefaultColumnShardCache(100, () -> cleanupAlways);
 
     // WHEN
     cache.registerUsageOfColumnShardPossiblyCache(0, shard("1", 101));
