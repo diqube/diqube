@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.diqube.data.TableShard;
+import org.diqube.data.colshard.ColumnShard;
 import org.diqube.execution.cache.ColumnShardCache;
 import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.remote.cluster.thrift.RColOrValue;
@@ -53,6 +54,10 @@ public class ExecutablePlanFromRemoteOptimizer {
   /**
    * Optimizes the given plan to be executed on the given {@link ExecutionEnvironment}.
    * 
+   * <p>
+   * Note that when running this, {@link ColumnShard}s from the {@link ColumnShardCache} might already be put into the
+   * provided {@link ExecutionEnvironment}.
+   * 
    * @param defaultEnv
    *          The {@link ExecutionEnvironment} the resulting plan should be executed on. This is expected to be backed
    *          by a concrete {@link TableShard} (and probably a {@link ColumnShardCache}). These properties of these
@@ -69,7 +74,7 @@ public class ExecutablePlanFromRemoteOptimizer {
   public RExecutionPlan optimize(ExecutionEnvironment defaultEnv, RExecutionPlan plan) {
     RExecutionPlan res = new RExecutionPlan(plan);
     removeUnneededColumnCreations(defaultEnv, res);
-    logger.info("Optimized plan to {}", plan.toString());
+    logger.info("Optimized plan to {}", res.toString());
     return res;
   }
 
@@ -111,7 +116,7 @@ public class ExecutablePlanFromRemoteOptimizer {
     // Note that this will /never/ happen for RepeatedProjectSteps, as their output column has '[*]' appended - that
     // column will never exist. This is because that step will not only create one, but multiple columns (a repeated
     // field). These steps will therefore /always/ run, even when all of their output cols would be in the cache,
-    // although these results are needed only for a column which in turn is already cached. Running the
+    // but only when these results are needed only for a column which in turn is already cached. Running the
     // RepeatedProjectStep though is not as bad, as that step itself checks what columns it needs to create and which
     // ones are available.
     for (String colName : columnCreatingSteps.keySet())
