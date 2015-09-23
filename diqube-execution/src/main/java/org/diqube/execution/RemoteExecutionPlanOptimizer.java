@@ -21,8 +21,10 @@
 package org.diqube.execution;
 
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -41,16 +43,14 @@ import org.diqube.remote.cluster.thrift.RExecutionPlanStepType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Sets;
-
 /**
  * Optimizes a {@link RExecutionPlan} that was received from a query master according to the circumstances a local
  * {@link TableShard} provides.
  *
  * @author Bastian Gloeckle
  */
-public class ExecutablePlanFromRemoteOptimizer {
-  private static final Logger logger = LoggerFactory.getLogger(ExecutablePlanFromRemoteOptimizer.class);
+public class RemoteExecutionPlanOptimizer {
+  private static final Logger logger = LoggerFactory.getLogger(RemoteExecutionPlanOptimizer.class);
 
   /**
    * Optimizes the given plan to be executed on the given {@link ExecutionEnvironment}.
@@ -125,36 +125,35 @@ public class ExecutablePlanFromRemoteOptimizer {
     // but only when these results are needed only for a column which in turn is already cached. Running the
     // RepeatedProjectStep though is not as bad, as that step itself checks what columns it needs to create and which
     // ones are available.
+    Deque<String> emptyStepQueue = new LinkedList<>();
     for (String colName : columnCreatingSteps.keySet())
       if (defaultEnv.getColumnShard(colName) != null) {
         logger.trace("Column {} is available already (cache). Will remove the corresponding step from the plan.",
             colName);
         numberOfFollowUpSteps.put(colName, 0);
+        emptyStepQueue.add(colName);
       }
 
     Set<RExecutionPlanStep> stepsToDelete = new HashSet<>();
 
     // now keep searching the steps which have no output any more, marking the steps with no output for removal.
     Set<String> columnsWorkedOn = new HashSet<>();
-    boolean changedSomething = true;
-    while (changedSomething) {
-      changedSomething = false;
-      Set<String> columnsWithNoOutput = numberOfFollowUpSteps.entrySet().stream()
-          .filter(entry -> entry.getValue().intValue() <= 0).map(entry -> entry.getKey()).collect(Collectors.toSet());
-      columnsWithNoOutput = Sets.difference(columnsWithNoOutput, columnsWorkedOn);
+    while (!emptyStepQueue.isEmpty()) {
+      String colWithNoOutput = emptyStepQueue.poll();
 
-      for (String colWithNoOutput : columnsWithNoOutput) {
-        stepsToDelete.add(columnCreatingSteps.get(colWithNoOutput));
-        for (String sourceCol : sourceColumns.get(colWithNoOutput)) {
-          // only work on cols we know of - i.e. not on cols of the TableShard, but only on function-created cols.
-          if (sourceColumns.containsKey(sourceCol)) {
-            numberOfFollowUpSteps.compute(sourceCol, (k, count) -> count - 1);
-            changedSomething = true;
-          }
+      if (columnsWorkedOn.contains(colWithNoOutput))
+        continue;
+      columnsWorkedOn.add(colWithNoOutput);
+
+      stepsToDelete.add(columnCreatingSteps.get(colWithNoOutput));
+      for (String sourceCol : sourceColumns.get(colWithNoOutput)) {
+        // only work on cols we know of - i.e. not on cols of the TableShard, but only on function-created cols.
+        if (sourceColumns.containsKey(sourceCol)) {
+          int newCount = numberOfFollowUpSteps.compute(sourceCol, (k, count) -> count - 1);
+          if (newCount == 0)
+            emptyStepQueue.add(sourceCol);
         }
       }
-
-      columnsWorkedOn.addAll(columnsWithNoOutput);
     }
 
     if (!stepsToDelete.isEmpty()) {

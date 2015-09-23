@@ -117,7 +117,7 @@ public class ExecutablePlanFromRemoteBuilder {
    * 
    * <p>
    * This method must be executed with correct {@link QueryUuidThreadState} set, as
-   * {@link ExecutablePlanFromRemoteOptimizer} needs correct thread state!
+   * {@link RemoteExecutionPlanOptimizer} needs correct thread state!
    */
   public List<ExecutablePlan> build() throws ExecutablePlanBuildException {
     Table table = tableRegistry.getTable(plan.getTable());
@@ -132,7 +132,8 @@ public class ExecutablePlanFromRemoteBuilder {
       Map<Integer, ExecutablePlanStep> steps = new HashMap<>();
       Map<Integer, RExecutionPlanStep> remoteSteps = new HashMap<>();
 
-      RExecutionPlan optimizedRemotePlan = new ExecutablePlanFromRemoteOptimizer().optimize(defaultEnv, plan);
+      // note that the following optimization might already put some columns in the Env (from the ColumnShardCache).
+      RExecutionPlan optimizedRemotePlan = new RemoteExecutionPlanOptimizer().optimize(defaultEnv, plan);
 
       for (RExecutionPlanStep remoteStep : optimizedRemotePlan.getSteps()) {
         ExecutablePlanStep newStep = executablePlanStepFactory.createExecutableStep(defaultEnv, remoteStep);
