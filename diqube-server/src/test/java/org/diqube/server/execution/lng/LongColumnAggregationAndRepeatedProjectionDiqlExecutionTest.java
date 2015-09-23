@@ -41,6 +41,7 @@ import org.diqube.execution.cache.WritableColumnShardCache;
 import org.diqube.loader.LoadException;
 import org.diqube.plan.exception.ValidationException;
 import org.diqube.server.execution.AbstractCacheDoubleDiqlExecutionTest;
+import org.diqube.server.execution.CacheDoubleTestUtil.IgnoreInCacheDoubleTestUtil;
 import org.diqube.util.DoubleUtil;
 import org.diqube.util.Pair;
 import org.mockito.Mockito;
@@ -803,6 +804,7 @@ public class LongColumnAggregationAndRepeatedProjectionDiqlExecutionTest
   }
 
   @Test
+  @IgnoreInCacheDoubleTestUtil
   public void colAggregationCachedProjectionNotExecuted()
       throws LoadException, InterruptedException, ExecutionException {
     initializeFromJson( //
