@@ -32,6 +32,8 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Supplier;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -129,7 +131,7 @@ public class ConnectionPool implements ClusterNodeDiedListener {
   private Map<UUID, AtomicInteger> openConnectionsByExecutionUuid = new ConcurrentHashMap<>();
 
   /**
-   * Map from timestamp when a connection times out and should be closed to the connection itself.
+   * Map from timestamp when a connection times out and should be checked to be closed. Maps to the connection itself.
    * 
    * timestamps are values from {@link System#nanoTime()}.
    * 
@@ -138,9 +140,24 @@ public class ConnectionPool implements ClusterNodeDiedListener {
    * 
    * The values of this map are no collections, but single connections. If there are two connections that time out at
    * the same nanoTime, they should search linearily for a place in this map with increasing timeout times.
+   * 
+   * See {@link #connectionTimeoutLock} for a lock on this.
+   * 
+   * Note that connections are added here when they are released. Therefore,
+   * {@link #timeoutCloseConnectionIfViable(Supplier)} checks if the connection actually is not used before actually
+   * freeing it. One can therefore safely poll elements from this map and pass it on to
+   * {@link #timeoutCloseConnectionIfViable(Supplier)}, as for connections which are still life, entries into this map
+   * will be (re-)added to this map when those connections are released.
    */
   private ConcurrentNavigableMap<Long, Connection<? extends TServiceClient>> connectionTimeouts =
       new ConcurrentSkipListMap<>();
+
+  /**
+   * Lock for {@link #connectionTimeouts}.
+   * 
+   * Acquire the read-lock before adding new elements to {@link #connectionTimeoutLock}, a write-lock when removing.
+   */
+  private ReentrantReadWriteLock connectionTimeoutLock = new ReentrantReadWriteLock();
 
   private AtomicInteger overallOpenConnections = new AtomicInteger(0);
 
@@ -210,9 +227,9 @@ public class ConnectionPool implements ClusterNodeDiedListener {
       // pretty quickly.
       if (res == null) {
         if (overallOpenConnections.get() >= Math.round(earlyCloseLevel * connectionSoftLimit)) {
-          Entry<Long, Connection<? extends TServiceClient>> timeoutEntry;
-          while ((timeoutEntry = connectionTimeouts.pollFirstEntry()) != null)
-            if (timeoutCloseConnectionIfViable(timeoutEntry.getKey(), timeoutEntry.getValue()))
+          // it would be safe to empty #connectionTimeouts here, as no connections are freed which are in use, anyway.
+          while (!connectionTimeouts.isEmpty())
+            if (timeoutCloseConnectionIfViable(() -> connectionTimeouts.pollFirstEntry()))
               break;
         }
         res = reserveAvailableConnection(thriftClientClass, thriftServiceName, addr, socketListener);
@@ -406,23 +423,23 @@ public class ConnectionPool implements ClusterNodeDiedListener {
         connection.getAddress());
 
     // be aware that changing this procedure here might interfere with the timeout management in
-    // timeoutCloseConnectionIfViable (called from MaintananceThread)!
+    // timeoutCloseConnectionIfViable (called from MaintananceThread and reserve connection)!
     // Be VERY careful!
 
     // manage idle timeout
     if (connection.getTimeout() != null)
+      // explicitly no need to lock on connectionTimeoutLock here, as we remove a old connection which had its place in
+      // connectionTimeouts anyway.
       connectionTimeouts.remove(connection.getTimeout());
 
-    long timeout = System.nanoTime() + connectionIdleTimeMs * 1_000_000L;
-    @SuppressWarnings("unchecked")
-    final Connection<? extends TServiceClient> castedConn = (Connection<? extends TServiceClient>) connection;
-    while (connectionTimeouts.putIfAbsent(timeout, castedConn) != null)
-      timeout++;
-    connection.setTimeout(timeout);
-    // re-put here, in case the conn was removed from connectionTimeouts in the meantime, when the conn object itself
-    // did not yet have to correct timeout set. If the conn was fully processed already, it will be looked into in the
-    // next run of timeouts again, but that won't matter.
-    connectionTimeouts.put(timeout, castedConn);
+    long newTimeout = System.nanoTime() + connectionIdleTimeMs * 1_000_000L;
+    // set preliminary new timeout - this might get adjusted below, but we want to make sure that this connection is not
+    // removed (timeout) just because its timeout value still matches an old entry in connectionTimeouts.
+    connection.setTimeout(newTimeout);
+
+    // manage execution UUID mapping
+    decreaseOpenConnectionsByExecutionUuid(connection.getExecutionUuid());
+    connection.setExecutionUuid(null);
 
     // adjust socket listener
     defaultSocketListeners.get(connection).init(null);
@@ -447,9 +464,21 @@ public class ConnectionPool implements ClusterNodeDiedListener {
       }
     }
 
-    // manage execution UUID mapping
-    decreaseOpenConnectionsByExecutionUuid(connection.getExecutionUuid());
-    c.setExecutionUuid(null);
+    // Add connection to connectionTimeouts and find final timeout. It could be that someone reserves that connection
+    // again while we still do that stuff, but that does not matter as it won't be timeouted early or something like
+    // that.
+    connectionTimeoutLock.readLock().lock();
+    try {
+      @SuppressWarnings("unchecked")
+      final Connection<? extends TServiceClient> castedConn = (Connection<? extends TServiceClient>) connection;
+
+      while (connectionTimeouts.putIfAbsent(newTimeout, castedConn) != null)
+        newTimeout++;
+      connection.setTimeout(newTimeout);
+      // from now on, the timeouts might remove this connection!
+    } finally {
+      connectionTimeoutLock.readLock().unlock();
+    }
 
     synchronized (connectionsAvailableWait) {
       connectionsAvailableWait.notifyAll();
@@ -518,20 +547,33 @@ public class ConnectionPool implements ClusterNodeDiedListener {
   }
 
   /**
-   * Check if a given connection that was fetched from {@link #connectionTimeouts} is viable for being closed because of
-   * a timeout. If so, do it and remove the connection from {@link #availableConnections}.
+   * Check if a given connection that gets fetched from {@link #connectionTimeouts} is viable for being closed because
+   * of a timeout. If so, do it and remove the connection from {@link #availableConnections}.
    * 
-   * Please note that the connection that is passed to this method should already be removed from
-   * {@link #connectionTimeouts}.
+   * The connection will not be closed if it is currently in use again, of course, nevertheless it is safe to remove the
+   * connection from {@link #connectionTimeouts}.
    * 
-   * @param proposedTimeoutTime
-   *          The timeout time the given connection had in {@link #connectionTimeouts}
-   * @param timedOutConn
-   *          The connection that was fetched from {@link #connectionTimeouts}
+   * @param connectionSupplier
+   *          Fetches an entry from {@link #connectionTimeouts} that should be checked for a timeout. Note that this
+   *          entry must be <b>removed</b> from {@link #connectionTimeouts} in the supplier! This supplier will be
+   *          called with {@link #connectionTimeoutLock}s writeLock being acquired.
    * @return true in case the connection was closed, false if it was not.
    */
-  private boolean timeoutCloseConnectionIfViable(long proposedTimeoutTime,
-      Connection<? extends TServiceClient> timedOutConn) {
+  private boolean timeoutCloseConnectionIfViable(
+      Supplier<Entry<Long, Connection<? extends TServiceClient>>> connectionSupplier) {
+
+    Connection<? extends TServiceClient> timedOutConn;
+    long proposedTimeoutTime;
+
+    connectionTimeoutLock.writeLock().lock();
+    try {
+      Entry<Long, Connection<? extends TServiceClient>> e = connectionSupplier.get();
+      proposedTimeoutTime = e.getKey();
+      timedOutConn = e.getValue();
+    } finally {
+      connectionTimeoutLock.writeLock().unlock();
+    }
+
     if (!timedOutConn.isEnabled())
       return false;
 
@@ -675,10 +717,9 @@ public class ConnectionPool implements ClusterNodeDiedListener {
     private void executeTimeouts(long curTime) {
       ConcurrentNavigableMap<Long, Connection<? extends TServiceClient>> timedOutMap =
           connectionTimeouts.headMap(curTime, true);
-      Entry<Long, Connection<? extends TServiceClient>> timedOutConn;
 
-      while ((timedOutConn = timedOutMap.pollFirstEntry()) != null)
-        timeoutCloseConnectionIfViable(timedOutConn.getKey(), timedOutConn.getValue());
+      while (!timedOutMap.isEmpty())
+        timeoutCloseConnectionIfViable(() -> timedOutMap.pollFirstEntry());
 
       // search for empty entries in availableConnections and release the resources.
       Iterator<Entry<RNodeAddress, Deque<Connection<? extends TServiceClient>>>> it =
