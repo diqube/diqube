@@ -30,4 +30,8 @@ public class DefaultColumnShardCacheTestUtil {
   public static long getMaxMemoryBytes(DefaultColumnShardCache cache) {
     return cache.getMaxMemoryBytes();
   }
+
+  public static void removeFromCache(DefaultColumnShardCache cache, long firstRowIdInTableShard, String colName) {
+    cache.removeColumnShardFromCache(firstRowIdInTableShard, colName);
+  }
 }

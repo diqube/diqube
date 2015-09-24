@@ -280,6 +280,18 @@ public class DefaultColumnShardCache implements WritableColumnShardCache {
     return maxMemoryBytes;
   }
 
+  // for testing only!
+  /* package */void removeColumnShardFromCache(long firstRowIdInTableShard, String colName) {
+    cleanupLock.writeLock().lock();
+    try {
+      synchronized (updateCacheSync) {
+        removeFromCache(new ColId(firstRowIdInTableShard, colName));
+      }
+    } finally {
+      cleanupLock.writeLock().unlock();
+    }
+  }
+
   /**
    * Identifies a column shard inside a table shard.
    * 

@@ -32,19 +32,16 @@ import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 import org.diqube.data.ColumnType;
-import org.diqube.data.colshard.StandardColumnShard;
 import org.diqube.execution.ExecutablePlan;
 import org.diqube.execution.cache.ColumnShardCacheRegistry;
 import org.diqube.execution.cache.DefaultColumnShardCache;
 import org.diqube.execution.cache.DefaultColumnShardCacheTestUtil;
-import org.diqube.execution.cache.WritableColumnShardCache;
 import org.diqube.loader.LoadException;
 import org.diqube.plan.exception.ValidationException;
 import org.diqube.server.execution.AbstractCacheDoubleDiqlExecutionTest;
 import org.diqube.server.execution.CacheDoubleTestUtil.IgnoreInCacheDoubleTestUtil;
 import org.diqube.util.DoubleUtil;
 import org.diqube.util.Pair;
-import org.mockito.Mockito;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -822,7 +819,7 @@ public class LongColumnAggregationAndRepeatedProjectionDiqlExecutionTest
     }
 
     ColumnShardCacheRegistry cacheReg = dataContext.getBean(ColumnShardCacheRegistry.class);
-    WritableColumnShardCache cache = cacheReg.getColumnShardCache(TABLE);
+    DefaultColumnShardCache cache = (DefaultColumnShardCache) cacheReg.getColumnShardCache(TABLE);
     Collection<String> cachedShards =
         cache.getAllCachedColumnShards(0L).stream().map(shard -> shard.getName()).collect(Collectors.toList());
 
@@ -834,15 +831,8 @@ public class LongColumnAggregationAndRepeatedProjectionDiqlExecutionTest
     Assert.assertEquals(new HashSet<>(cachedShards), new HashSet<>(Arrays.asList(innerColName, outerColName)),
         "Expected to have correct columns in cache after executing query for the first time");
 
-    long cachedColShardSize = cache.getCachedColumnShard(0L, outerColName).calculateApproximateSizeInBytes();
-    long cacheSize = DefaultColumnShardCacheTestUtil.getMaxMemoryBytes((DefaultColumnShardCache) cache);
-    // add another col shard to cache which is (1) exactly that big to fill up the cache and (2) is used more often
-    // than the columns that should be evicted!
-    StandardColumnShard mockedColShard = Mockito.mock(StandardColumnShard.class, Mockito.RETURNS_MOCKS);
-    Mockito.when(mockedColShard.calculateApproximateSizeInBytes()).thenReturn(cacheSize - cachedColShardSize);
-    Mockito.when(mockedColShard.getName()).thenReturn("mockedCol");
-    for (int i = 0; i < 100; i++)
-      cache.registerUsageOfColumnShardPossiblyCache(0L, mockedColShard);
+    // remove the inner column from the cache
+    DefaultColumnShardCacheTestUtil.removeFromCache(cache, 0L, innerColName);
 
     // now execute a second time
     executor = executors.newTestExecutor(plan.preferredExecutorServiceSize());
@@ -874,10 +864,10 @@ public class LongColumnAggregationAndRepeatedProjectionDiqlExecutionTest
                 + " but was: " + valueFn);
       }
 
-      // we expect to have /the same/ columns in the cache, there should be /no/ entry for the innerColumn etc, because
-      // that execution should have been removed as we did not need the result (because the outer column is cached).
-      Assert.assertEquals(new HashSet<>(cachedShards), new HashSet<>(Arrays.asList(innerColName, outerColName)),
-          "Expected to have correct columns in cache after executing query for the second time");
+      // we expect to NOT have something in the cache for the innerColumn, as we (1) removed it and (2) the second
+      // execution should not have executed that step.
+      Assert.assertNull(cache.getCachedColumnShard(0L, innerColName),
+          "Expected to have NOT have executed the calculation of the unneeded column");
     } finally {
       executor.shutdownNow();
     }

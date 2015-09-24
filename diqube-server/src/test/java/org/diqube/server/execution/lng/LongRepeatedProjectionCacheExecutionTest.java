@@ -33,7 +33,6 @@ import java.util.stream.Collectors;
 
 import org.diqube.data.ColumnType;
 import org.diqube.data.colshard.ColumnShard;
-import org.diqube.data.colshard.StandardColumnShard;
 import org.diqube.execution.ExecutablePlan;
 import org.diqube.execution.cache.ColumnShardCache;
 import org.diqube.execution.cache.ColumnShardCacheRegistry;
@@ -44,7 +43,6 @@ import org.diqube.execution.steps.RepeatedProjectStep;
 import org.diqube.loader.LoadException;
 import org.diqube.server.execution.AbstractDiqlExecutionTest;
 import org.diqube.util.Pair;
-import org.mockito.Mockito;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -227,25 +225,17 @@ public class LongRepeatedProjectionCacheExecutionTest extends AbstractDiqlExecut
 
       // Now we take care of keeping only those columns in the cache that were requested to be kept in it!
 
-      Set<ColumnShard> cachedColumnShards = columnNamesOfColumnsToKeepInCache.stream()
-          .map(colName -> cache.getCachedColumnShard(0L, colName)).collect(Collectors.toSet());
+      Set<String> columnShardNamesToRemoveFromCache =
+          cache.getAllCachedColumnShards(0L).stream().map(c -> c.getName()).collect(Collectors.toSet());
+      columnShardNamesToRemoveFromCache.removeAll(columnNamesOfColumnsToKeepInCache);
 
-      // make sure that the columns to be kept are "used" enough times.
-      for (ColumnShard colShard : cachedColumnShards)
-        for (int i = 0; i < 100; i++)
-          cache.registerUsageOfColumnShardPossiblyCache(0L, colShard);
+      Set<ColumnShard> cachedColumnShards = cache.getAllCachedColumnShards(0L).stream()
+          .filter(colShard -> columnNamesOfColumnsToKeepInCache.contains(colShard.getName()))
+          .collect(Collectors.toSet());
 
-      long cachedColShardSize =
-          cachedColumnShards.stream().mapToLong(shard -> shard.calculateApproximateSizeInBytes()).sum();
-      long cacheSize = DefaultColumnShardCacheTestUtil.getMaxMemoryBytes((DefaultColumnShardCache) cache);
-
-      // add another col shard to cache which is (1) exactly that big to fill up the cache and (2) is used more often
-      // than the columns that should be evicted!
-      StandardColumnShard mockedColShard = Mockito.mock(StandardColumnShard.class, Mockito.RETURNS_MOCKS);
-      Mockito.when(mockedColShard.calculateApproximateSizeInBytes()).thenReturn(cacheSize - cachedColShardSize);
-      Mockito.when(mockedColShard.getName()).thenReturn("mockedCol");
-      for (int i = 0; i < 100; i++)
-        cache.registerUsageOfColumnShardPossiblyCache(0L, mockedColShard);
+      // remove not-wanted cols from cache.
+      for (String shardName : columnShardNamesToRemoveFromCache)
+        DefaultColumnShardCacheTestUtil.removeFromCache((DefaultColumnShardCache) cache, 0L, shardName);
 
       // -> expected: the other column shards that was cached is now evicted from the cache.
       for (String colNameNotLongerInCache : Sets.difference(allInterestingColumnnames,
