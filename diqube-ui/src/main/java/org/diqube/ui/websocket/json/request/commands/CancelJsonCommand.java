@@ -18,26 +18,24 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.ui.websocket.json;
+package org.diqube.ui.websocket.json.request.commands;
 
-import javax.inject.Inject;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import org.diqube.ui.websocket.json.request.CommandClusterInteraction;
+import org.diqube.ui.websocket.json.request.CommandResultHandler;
 
 /**
- * JSON data that is transferred between the browser and the UI server on websockets is deserialized into
- * {@link JsonPayload} objects.
- * 
- * Implementing classes may contain fields annotated with both, {@link Inject} and {@link JsonIgnore} in which case the
- * {@link JsonPayloadDeserializer} will wire beans from the bean context accordingly. This is probably most interesting
- * for classes implementing the sub-interface {@link JsonCommand}.
- * 
+ * Cancels the execution of the request that was executed with the same reuqestId.
+ *
  * @author Bastian Gloeckle
  */
-public interface JsonPayload {
-  /**
-   * @return unique string identifying the type of payload. This string will be used in JavaScript, too, to identify
-   *         different types of payloads.
-   */
-  public String getPayloadType();
+@CommandInformation(name = CancelJsonCommand.NAME)
+public class CancelJsonCommand implements JsonCommand {
+  public static final String NAME = "cancel";
+
+  @Override
+  public void execute(CommandResultHandler resultHandler, CommandClusterInteraction clusterInteraction)
+      throws RuntimeException {
+    // currently only queries can be cancelled.
+    clusterInteraction.cancelQuery();
+  }
 }

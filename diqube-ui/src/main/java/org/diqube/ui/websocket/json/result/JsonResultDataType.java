@@ -1,4 +1,4 @@
-/*
+/**
  * diqube: Distributed Query Base.
  *
  * Copyright (C) 2015 Bastian Gloeckle
@@ -18,30 +18,22 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-(function() {
-  "use strict";
+package org.diqube.ui.websocket.json.result;
 
-  angular.module("diqube.about", [ "diqube.remote" ]).controller("AboutCtrl",
-      [ "remoteService", "$scope", function(remoteService, $scope) {
-        var me = this;
-        me.gitcommit = "";
-        me.gitcommitlong = "";
-        me.buildtimestamp = "";
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-        // ====
-
-        function initialize() {
-          remoteService.execute($scope, "version", null, new (function() {
-            this.data = function data_(dataType, data) {
-              if (dataType == "version") {
-                me.gitcommit = data.gitCommitShort;
-                me.gitcommitlong = data.gitCommitLong;
-                me.buildtimestamp = data.buildTimestamp;
-              }
-            }
-          })());
-        }
-
-        initialize();
-      } ]);
-})();
+/**
+ * Annotation for all {@link JsonResult} implementations that denote a unique string by which the client can distinguish
+ * the results sent.
+ *
+ * @author Bastian Gloeckle
+ */
+@Retention(RetentionPolicy.RUNTIME)
+@Target(value = ElementType.TYPE)
+public @interface JsonResultDataType {
+  /** Unique identifier for the type of data this {@link JsonResult} represents. */
+  String value();
+}

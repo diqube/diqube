@@ -18,27 +18,40 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.ui.websocket.json;
+package org.diqube.ui.websocket.json.result;
+
+import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * A simple {@link JsonPayload} containing information about an exception that occured while executing a query.
+ * A simple {@link JsonResult} containing information about results of a query.
  *
  * @author Bastian Gloeckle
  */
-public class JsonExceptionPayload implements JsonPayload {
-  public static final String PAYLOAD_TYPE = "exception";
+@JsonResultDataType(TableJsonResult.TYPE)
+public class TableJsonResult implements JsonResult {
+  public static final String TYPE = "table";
 
   @JsonProperty
-  public String text;
+  public List<String> columnNames;
 
-  @Override
-  public String getPayloadType() {
-    return PAYLOAD_TYPE;
+  @JsonProperty
+  public List<List<Object>> rows;
+
+  @JsonProperty
+  public short percentComplete;
+
+  public void setColumnNames(List<String> columnNames) {
+    this.columnNames = columnNames;
   }
 
-  public void setText(String text) {
-    this.text = text;
+  public void setRows(List<List<Object>> rows) {
+    this.rows = rows;
   }
+
+  public void setPercentComplete(short percentComplete) {
+    this.percentComplete = percentComplete;
+  }
+
 }

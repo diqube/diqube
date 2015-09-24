@@ -18,43 +18,41 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.ui.websocket.json;
+package org.diqube.ui.websocket.json.result;
 
-import java.util.List;
+import org.diqube.ui.websocket.json.request.commands.VersionJsonCommand;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * A simple {@link JsonPayload} containing information about results of a query.
+ * Payload containing the results of {@link VersionJsonCommand}.
  *
  * @author Bastian Gloeckle
  */
-public class JsonQueryResultPayload implements JsonPayload {
-  public static final String PAYLOAD_TYPE = "result";
+@JsonResultDataType(VersionJsonResult.TYPE)
+public class VersionJsonResult implements JsonResult {
+
+  public static final String TYPE = "version";
 
   @JsonProperty
-  public List<String> columnNames;
+  public String gitCommitLong;
 
   @JsonProperty
-  public List<List<Object>> rows;
+  public String gitCommitShort;
 
   @JsonProperty
-  public short percentComplete;
+  public String buildTimestamp;
 
-  public void setColumnNames(List<String> columnNames) {
-    this.columnNames = columnNames;
+  public void setGitCommitLong(String gitCommitLong) {
+    this.gitCommitLong = gitCommitLong;
   }
 
-  public void setRows(List<List<Object>> rows) {
-    this.rows = rows;
+  public void setGitCommitShort(String gitCommitShort) {
+    this.gitCommitShort = gitCommitShort;
   }
 
-  public void setPercentComplete(short percentComplete) {
-    this.percentComplete = percentComplete;
+  public void setBuildTimestamp(String buildTimestamp) {
+    this.buildTimestamp = buildTimestamp;
   }
 
-  @Override
-  public String getPayloadType() {
-    return PAYLOAD_TYPE;
-  }
 }

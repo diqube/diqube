@@ -26,7 +26,8 @@
 
 <p><textarea ng-model="query.diql" rows="6" class="diql-full"> </textarea></p>
 <div class="execute-buttons">
-  <button class="btn btn-primary" ng-click="query.execute()">Execute</button>
+  <button class="btn btn-primary" ng-click="query.execute()" ng-disabled="query.isExecuting">Execute</button>
+  <button class="btn btn-primary" ng-click="query.cancel()" ng-disabled="!query.isExecuting">Cancel</button>
 
   <div class="btn-toolbar pull-right"  style="{{ query.stats ? '' : 'display: none'}}">
     <div class="btn-group">

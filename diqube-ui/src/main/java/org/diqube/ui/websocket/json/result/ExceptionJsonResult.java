@@ -1,4 +1,4 @@
-/*
+/**
  * diqube: Distributed Query Base.
  *
  * Copyright (C) 2015 Bastian Gloeckle
@@ -18,30 +18,23 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-(function() {
-  "use strict";
+package org.diqube.ui.websocket.json.result;
 
-  angular.module("diqube.about", [ "diqube.remote" ]).controller("AboutCtrl",
-      [ "remoteService", "$scope", function(remoteService, $scope) {
-        var me = this;
-        me.gitcommit = "";
-        me.gitcommitlong = "";
-        me.buildtimestamp = "";
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-        // ====
+/**
+ * A simple {@link JsonResult} containing information about an exception that occurred while executing a query.
+ *
+ * @author Bastian Gloeckle
+ */
+@JsonResultDataType(ExceptionJsonResult.TYPE)
+public class ExceptionJsonResult implements JsonResult {
+  public static final String TYPE = "exception";
 
-        function initialize() {
-          remoteService.execute($scope, "version", null, new (function() {
-            this.data = function data_(dataType, data) {
-              if (dataType == "version") {
-                me.gitcommit = data.gitCommitShort;
-                me.gitcommitlong = data.gitCommitLong;
-                me.buildtimestamp = data.buildTimestamp;
-              }
-            }
-          })());
-        }
+  @JsonProperty
+  public String text;
 
-        initialize();
-      } ]);
-})();
+  public void setText(String text) {
+    this.text = text;
+  }
+}

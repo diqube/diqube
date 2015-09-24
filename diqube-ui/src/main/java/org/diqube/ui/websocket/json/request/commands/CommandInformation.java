@@ -18,43 +18,23 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.ui.websocket.json;
+package org.diqube.ui.websocket.json.request.commands;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /**
- * Payload containing the results of {@link JsonVersionCommand}.
+ * Denotes information on a {@link JsonCommand}.
+ * 
+ * Every subclass of {@link JsonCommand} that wants to be callable by the client needs to have this annotation.
  *
  * @author Bastian Gloeckle
  */
-public class JsonVersionResultPayload implements JsonPayload {
-
-  public static final String PAYLOAD_TYPE = "result";
-
-  @JsonProperty
-  public String gitCommitLong;
-
-  @JsonProperty
-  public String gitCommitShort;
-
-  @JsonProperty
-  public String buildTimestamp;
-
-  @Override
-  public String getPayloadType() {
-    return PAYLOAD_TYPE;
-  }
-
-  public void setGitCommitLong(String gitCommitLong) {
-    this.gitCommitLong = gitCommitLong;
-  }
-
-  public void setGitCommitShort(String gitCommitShort) {
-    this.gitCommitShort = gitCommitShort;
-  }
-
-  public void setBuildTimestamp(String buildTimestamp) {
-    this.buildTimestamp = buildTimestamp;
-  }
-
+@Retention(RetentionPolicy.RUNTIME)
+@Target(value = ElementType.TYPE)
+public @interface CommandInformation {
+  /** The name of the command. This is the string that the client can use to call this command. Needs to be unique. */
+  String name();
 }

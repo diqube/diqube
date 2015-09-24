@@ -19,69 +19,100 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 (function() {
-    "use strict";
+  "use strict";
 
-    angular.module("diqube.query", [ "angular-toArrayFilter", "diqube.remote" ]).controller("QueryCtrl",
-	    [ "remoteService", "$scope", function(remoteService, $scope) {
-		var me = this;
-		me.diql = "";
-		me.result = null;
-		me.exception = null;
-		me.stats = null;
-		me.displayResultsOrStats = "";
-		me.execute = execute;
-		me.displayResults = displayResults;
-		me.displayStats = displayStats;
-		me.numberOfKeys = numberOfKeys;
+  angular.module("diqube.query", [ "angular-toArrayFilter", "diqube.remote" ]).controller("QueryCtrl",
+      [ "remoteService", "$scope", function(remoteService, $scope) {
+        var me = this;
+        me.diql = "";
+        me.result = null;
+        me.exception = null;
+        me.stats = null;
+        me.displayResultsOrStats = "";
+        me.displayResults = displayResults;
+        me.displayStats = displayStats;
+        me.numberOfKeys = numberOfKeys;
+        me.isExecuting = false;
 
-		// ====
+        me.execute = execute;
+        me.cancel = cancel;
 
-		function execute() {
-		    me.data = null;
-		    me.exception = null;
-		    me.stats = null;
-		    me.displayResultsOrStats = "";
+        // ====
 
-		    var ws = remoteService.getSocket();
-		    ws.$$send({
-			type : "query",
-			data : {
-			    diql : me.diql
-			}
-		    });
-		    ws.$on("$message", function(data) {
-			if (data.type == "result" && me.exception === null) {
-			    $scope.$apply(function() {
-				me.result = data.data;
-				me.displayResultsOrStats = "results";
-			    });
-			} else if (data.type == "exception") {
-			    $scope.$apply(function() {
-				me.exception = data.data.text;
-				me.result = null;
-				me.stats = null;
-			    });
-			} else if (data.type == "stats" && me.exception === null) {
-			    $scope.$apply(function() {
-				me.stats = data.data;
-			    });
-			}
+        me.currentRequestId = null;
 
-		    });
-		    ws.$on("$close", function() {
-		    });
-		}
-		
-		function displayResults() {
-		    me.displayResultsOrStats = "results";
-		}
-		
-		function displayStats() {
-		    me.displayResultsOrStats = "stats";
-		}
-		
-		function numberOfKeys(o) {
-		    return Object.keys(o).length;
-		}
-	    } ]);
+        function execute() {
+          if (me.isExecuting)
+            // call cancel!
+            return;
+
+          me.data = null;
+          me.exception = null;
+          me.stats = null;
+          me.displayResultsOrStats = "";
+
+          var fn = this;
+          fn.lastPercentComplete = 0;
+
+          me.isExecuting = true;
+          me.currentRequestId = remoteService.execute($scope, "query", {
+            diql : me.diql
+          }, new (function() {
+            this.data = function data_(dataType, data) {
+              if (dataType == "table" && me.exception === null) {
+                if (data.percentComplete >= fn.lastPercentComplete) {
+                  me.result = data;
+                  me.displayResultsOrStats = "results";
+
+                  fn.lastPercentComplete = me.result.percentComplete;
+                }
+                
+                if (fn.lastPercentComplete == 100 && me.stats != null) {
+                  me.isExecuting = false;
+                  return true; // done!
+                }
+              } else if (dataType == "stats" && me.exception === null) {
+                me.stats = data;
+                
+                if (fn.lastPercentComplete == 100) {
+                  //me.isExecuting = false;
+                  // return true; // done!
+                }
+              }
+              return false; // not yet done.
+            };
+            this.exception = function exception_(text) {
+              me.exception = text;
+              me.result = null;
+              me.stats = null;
+
+              me.isExecuting = false;
+            }
+            this.done = function done_() {
+              me.isExecuting = false;
+            }
+          })());
+        }
+
+        function cancel() {
+          if (!me.isExecuting)
+            return;
+          remoteService.cancel(me.currentRequestId);
+          me.currentRequestId = null;
+
+          me.isExecuting = false;
+        }
+
+        function displayResults() {
+          me.displayResultsOrStats = "results";
+        }
+
+        function displayStats() {
+          me.displayResultsOrStats = "stats";
+        }
+
+        function numberOfKeys(o) {
+          return Object.keys(o).length;
+        }
+      } ]);
 })();

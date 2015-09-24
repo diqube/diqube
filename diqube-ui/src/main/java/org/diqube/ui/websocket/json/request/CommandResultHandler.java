@@ -1,4 +1,4 @@
-/*
+/**
  * diqube: Distributed Query Base.
  *
  * Copyright (C) 2015 Bastian Gloeckle
@@ -18,30 +18,32 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-(function() {
-  "use strict";
+package org.diqube.ui.websocket.json.request;
 
-  angular.module("diqube.about", [ "diqube.remote" ]).controller("AboutCtrl",
-      [ "remoteService", "$scope", function(remoteService, $scope) {
-        var me = this;
-        me.gitcommit = "";
-        me.gitcommitlong = "";
-        me.buildtimestamp = "";
+import org.diqube.ui.websocket.json.request.commands.JsonCommand;
+import org.diqube.ui.websocket.json.result.JsonResult;
 
-        // ====
+/**
+ * Sends results of a {@link JsonCommand} to the client that requested it.
+ *
+ * @author Bastian Gloeckle
+ */
+public interface CommandResultHandler {
+  /**
+   * Send data to the client.
+   * 
+   * @param data
+   *          The data to be sent.
+   */
+  public void sendData(JsonResult data);
 
-        function initialize() {
-          remoteService.execute($scope, "version", null, new (function() {
-            this.data = function data_(dataType, data) {
-              if (dataType == "version") {
-                me.gitcommit = data.gitCommitShort;
-                me.gitcommitlong = data.gitCommitLong;
-                me.buildtimestamp = data.buildTimestamp;
-              }
-            }
-          })());
-        }
+  /**
+   * Inform the client that the execution of the command has completed.
+   */
+  public void sendDone();
 
-        initialize();
-      } ]);
-})();
+  /**
+   * Send information to the client that there was an exception while executing the command.
+   */
+  public void sendException(Throwable t);
+}

@@ -18,7 +18,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.ui.websocket.json;
+package org.diqube.ui.websocket.json.result;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -32,12 +32,13 @@ import org.diqube.remote.query.thrift.RQueryStatisticsDetails;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * A simple {@link JsonPayload} containing information about results of a query.
+ * A simple {@link JsonResult} containing information about statistics of a query.
  *
  * @author Bastian Gloeckle
  */
-public class JsonQueryStatsPayload implements JsonPayload {
-  public static final String PAYLOAD_TYPE = "stats";
+@JsonResultDataType(StatsJsonResult.TYPE)
+public class StatsJsonResult implements JsonResult {
+  public static final String TYPE = "stats";
 
   @JsonProperty
   public List<String> nodeNames = new ArrayList<>();
@@ -114,8 +115,4 @@ public class JsonQueryStatsPayload implements JsonPayload {
     }
   }
 
-  @Override
-  public String getPayloadType() {
-    return PAYLOAD_TYPE;
-  }
 }

@@ -1,4 +1,4 @@
-/*
+/**
  * diqube: Distributed Query Base.
  *
  * Copyright (C) 2015 Bastian Gloeckle
@@ -18,30 +18,16 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-(function() {
-  "use strict";
+package org.diqube.ui.websocket.json.result;
 
-  angular.module("diqube.about", [ "diqube.remote" ]).controller("AboutCtrl",
-      [ "remoteService", "$scope", function(remoteService, $scope) {
-        var me = this;
-        me.gitcommit = "";
-        me.gitcommitlong = "";
-        me.buildtimestamp = "";
+import org.diqube.ui.websocket.json.request.commands.JsonCommand;
 
-        // ====
-
-        function initialize() {
-          remoteService.execute($scope, "version", null, new (function() {
-            this.data = function data_(dataType, data) {
-              if (dataType == "version") {
-                me.gitcommit = data.gitCommitShort;
-                me.gitcommitlong = data.gitCommitLong;
-                me.buildtimestamp = data.buildTimestamp;
-              }
-            }
-          })());
-        }
-
-        initialize();
-      } ]);
-})();
+/**
+ * Result data of a {@link JsonCommand} that will be serialized to JSON.
+ * 
+ * Note that each class implementing this interface needs to have a {@link JsonResultDataType} annotation!
+ * 
+ * @author Bastian Gloeckle
+ */
+public interface JsonResult {
+}

@@ -1,4 +1,4 @@
-/*
+/**
  * diqube: Distributed Query Base.
  *
  * Copyright (C) 2015 Bastian Gloeckle
@@ -18,30 +18,21 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-(function() {
-  "use strict";
+package org.diqube.ui.websocket.json.request.commands;
 
-  angular.module("diqube.about", [ "diqube.remote" ]).controller("AboutCtrl",
-      [ "remoteService", "$scope", function(remoteService, $scope) {
-        var me = this;
-        me.gitcommit = "";
-        me.gitcommitlong = "";
-        me.buildtimestamp = "";
+import org.diqube.ui.websocket.json.request.CommandClusterInteraction;
 
-        // ====
-
-        function initialize() {
-          remoteService.execute($scope, "version", null, new (function() {
-            this.data = function data_(dataType, data) {
-              if (dataType == "version") {
-                me.gitcommit = data.gitCommitShort;
-                me.gitcommitlong = data.gitCommitLong;
-                me.buildtimestamp = data.buildTimestamp;
-              }
-            }
-          })());
-        }
-
-        initialize();
-      } ]);
-})();
+/**
+ * An asynchronous {@link JsonCommand} executes the logic asynchronously.
+ *
+ * @author Bastian Gloeckle
+ */
+public interface AsyncJsonCommand extends JsonCommand {
+  /**
+   * If the command is still executing, try the best to cancel the execution.
+   * 
+   * @param clusterInteraction
+   *          interaction with the cluster.
+   */
+  public void cancel(CommandClusterInteraction clusterInteraction);
+}

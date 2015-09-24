@@ -1,4 +1,4 @@
-/*
+/**
  * diqube: Distributed Query Base.
  *
  * Copyright (C) 2015 Bastian Gloeckle
@@ -18,30 +18,26 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-(function() {
-  "use strict";
+package org.diqube.ui.websocket.json.request;
 
-  angular.module("diqube.about", [ "diqube.remote" ]).controller("AboutCtrl",
-      [ "remoteService", "$scope", function(remoteService, $scope) {
-        var me = this;
-        me.gitcommit = "";
-        me.gitcommitlong = "";
-        me.buildtimestamp = "";
+import org.diqube.remote.query.thrift.QueryResultService;
 
-        // ====
+/**
+ * Enables a command to interact with the diqube-server cluster.
+ * 
+ * An instance of this interface is specific to a session/requestId.
+ *
+ * @author Bastian Gloeckle
+ */
+public interface CommandClusterInteraction {
+  /**
+   * Execute a diql query and provide results to the given result handler.
+   */
+  public void executeDiqlQuery(String diql, QueryResultService.Iface resultHandler);
 
-        function initialize() {
-          remoteService.execute($scope, "version", null, new (function() {
-            this.data = function data_(dataType, data) {
-              if (dataType == "version") {
-                me.gitcommit = data.gitCommitShort;
-                me.gitcommitlong = data.gitCommitLong;
-                me.buildtimestamp = data.buildTimestamp;
-              }
-            }
-          })());
-        }
-
-        initialize();
-      } ]);
-})();
+  /**
+   * Execute the query that was started with
+   * {@link #executeDiqlQuery(String, org.diqube.remote.query.thrift.QueryResultService.Iface)}.
+   */
+  public void cancelQuery();
+}

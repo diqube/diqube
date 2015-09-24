@@ -20,6 +20,8 @@
  */
 package org.diqube.ui.websocket;
 
+import java.util.Collection;
+
 import javax.websocket.CloseReason;
 import javax.websocket.EndpointConfig;
 import javax.websocket.OnClose;
@@ -29,14 +31,9 @@ import javax.websocket.OnOpen;
 import javax.websocket.Session;
 
 import org.diqube.ui.DiqubeServletContextListener;
-import org.diqube.ui.QueryResultRegistry;
-import org.diqube.ui.websocket.json.JsonCommand;
-import org.diqube.ui.websocket.json.JsonExceptionPayload;
-import org.diqube.ui.websocket.json.JsonPayload;
-import org.diqube.ui.websocket.json.JsonPayloadDeserializer;
-import org.diqube.ui.websocket.json.JsonPayloadDeserializer.JsonPayloadDeserializerException;
-import org.diqube.ui.websocket.json.JsonPayloadSerializer;
-import org.diqube.ui.websocket.json.JsonPayloadSerializer.JsonPayloadSerializerException;
+import org.diqube.ui.websocket.json.request.JsonRequest;
+import org.diqube.ui.websocket.json.request.JsonRequestDeserializer;
+import org.diqube.ui.websocket.json.request.JsonRequestRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -68,39 +65,39 @@ public class WebSocketEndpoint {
   }
 
   @OnMessage
-  public void onMessage(String msg, Session session) {
+  public void onMessage(String msg, Session session) throws Exception {
     try {
-      JsonPayload payload = getBeanCtx(session).getBean(JsonPayloadDeserializer.class).deserialize(msg, session);
+      logger.trace("Received message on session {}", session);
+      JsonRequestDeserializer deserializer = getBeanCtx(session).getBean(JsonRequestDeserializer.class);
+      JsonRequestRegistry requestRegistry = getBeanCtx(session).getBean(JsonRequestRegistry.class);
+      JsonRequest request = deserializer.deserialize(msg, session);
 
-      if (!(payload instanceof JsonCommand))
-        throw new RuntimeException("Could not correctly deserialize command!");
+      requestRegistry.registerRequest(session, request);
 
-      ((JsonCommand) payload).execute();
-    } catch (JsonPayloadDeserializerException e) {
-      throw new RuntimeException("Could not correctly deserialize command!");
-    } catch (RuntimeException e) {
-      JsonExceptionPayload exPayload = new JsonExceptionPayload();
-      exPayload.setText(e.getMessage());
-      try {
-        String serializedException = getBeanCtx(session).getBean(JsonPayloadSerializer.class).serialize(exPayload);
-        session.getAsyncRemote().sendText(serializedException);
-        logger.error("Uncaught RuntimeException", e);
-      } catch (JsonPayloadSerializerException e2) {
-        logger.error("Uncaught RuntimeException in onMessage and was not able to serialize the exception message", e,
-            e2);
-      }
+      request.executeCommand();
+    } catch (Exception e) {
+      logger.error("Exception on session {}", session, e);
+      throw e;
     }
   }
 
   @OnClose
   public void onClose(Session session, CloseReason reason) {
-    System.out.println("Received CLOSE (" + session + "): " + reason);
-    getBeanCtx(session).getBean(QueryResultRegistry.class).unregisterSession(session);
+    JsonRequestRegistry requestRegistry = getBeanCtx(session).getBean(JsonRequestRegistry.class);
+    Collection<JsonRequest> requests = requestRegistry.getRequestsOfSession(session);
+    logger.trace("Closing session {} because the websocket has been closed. This session has {} "
+        + "open requests which will be cancelled.", session, requests.size());
+    for (JsonRequest request : requests)
+      try {
+        request.cancel();
+      } catch (RuntimeException e) {
+        logger.warn("Could not cancel a request.", e);
+      }
   }
 
   @OnError
   public void onError(Session session, Throwable throwable) {
-    System.out.println("Received ERROR (" + session + "): " + throwable.toString());
+    logger.trace("Received ERROR ({})", session, throwable.toString());
   }
 
   private ApplicationContext getBeanCtx(Session session) {
