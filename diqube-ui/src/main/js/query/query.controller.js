@@ -31,7 +31,6 @@
         me.displayResultsOrStats = "";
         me.displayResults = displayResults;
         me.displayStats = displayStats;
-        me.numberOfKeys = numberOfKeys;
         me.isExecuting = false;
 
         me.execute = execute;
@@ -43,7 +42,6 @@
 
         function execute() {
           if (me.isExecuting)
-            // call cancel!
             return;
 
           me.data = null;
@@ -66,18 +64,8 @@
 
                   fn.lastPercentComplete = me.result.percentComplete;
                 }
-                
-                if (fn.lastPercentComplete == 100 && me.stats != null) {
-                  me.isExecuting = false;
-                  return true; // done!
-                }
               } else if (dataType == "stats" && me.exception === null) {
                 me.stats = data;
-                
-                if (fn.lastPercentComplete == 100) {
-                  //me.isExecuting = false;
-                  // return true; // done!
-                }
               }
               return false; // not yet done.
             };
@@ -109,10 +97,6 @@
 
         function displayStats() {
           me.displayResultsOrStats = "stats";
-        }
-
-        function numberOfKeys(o) {
-          return Object.keys(o).length;
         }
       } ]);
 })();

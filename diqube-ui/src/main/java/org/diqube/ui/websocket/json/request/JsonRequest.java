@@ -20,6 +20,7 @@
  */
 package org.diqube.ui.websocket.json.request;
 
+import java.io.IOException;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -39,6 +40,8 @@ import org.diqube.ui.websocket.json.result.JsonResultSerializer;
 import org.diqube.ui.websocket.json.result.JsonResultSerializer.JsonPayloadSerializerException;
 import org.diqube.util.Holder;
 import org.diqube.util.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
@@ -60,6 +63,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
  * @author Bastian Gloeckle
  */
 public class JsonRequest {
+  private static final Logger logger = LoggerFactory.getLogger(JsonRequest.class);
+
   /**
    * The requestID that was created by the client to uniquely identify this request. Note that the uniqueness is <b>not
    * global</b>, but only local to the {@link #session}. This means that different sessions might (and actually will)
@@ -156,7 +161,11 @@ public class JsonRequest {
         try {
           String serialized = serializer.serializeWithEnvelope(requestId, JsonResultEnvelope.STATUS_DATA, data);
           synchronized (session) {
-            session.getAsyncRemote().sendText(serialized);
+            try {
+              session.getBasicRemote().sendText(serialized);
+            } catch (IOException e) {
+              logger.warn("Could not send data to client", e);
+            }
           }
         } catch (JsonPayloadSerializerException e) {
           throw new RuntimeException("Could not serialize data", e);
@@ -204,7 +213,11 @@ public class JsonRequest {
     try {
       String serialized = serializer.serializeWithEnvelope(requestId, JsonResultEnvelope.STATUS_DONE, null);
       synchronized (session) {
-        session.getAsyncRemote().sendText(serialized);
+        try {
+          session.getBasicRemote().sendText(serialized);
+        } catch (IOException e) {
+          logger.warn("Could not send done to client", e);
+        }
       }
     } catch (JsonPayloadSerializerException e) {
       throw new RuntimeException("Could not serialize 'done'", e);
@@ -231,7 +244,11 @@ public class JsonRequest {
       throw new RuntimeException("Could not serialize result", e);
     }
     synchronized (session) {
-      session.getAsyncRemote().sendText(serialized);
+      try {
+        session.getBasicRemote().sendText(serialized);
+      } catch (IOException e) {
+        logger.warn("Could not send exception to client", e);
+      }
     }
   }
 
