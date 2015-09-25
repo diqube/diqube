@@ -18,21 +18,26 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.ui.websocket.json.request.commands;
+package org.diqube.ui.websocket.request;
 
-import org.diqube.ui.websocket.json.request.CommandClusterInteraction;
+import org.diqube.remote.query.thrift.QueryResultService;
 
 /**
- * An asynchronous {@link JsonCommand} executes the logic asynchronously.
+ * Enables a command to interact with the diqube-server cluster.
+ * 
+ * An instance of this interface is specific to a session/requestId.
  *
  * @author Bastian Gloeckle
  */
-public interface AsyncJsonCommand extends JsonCommand {
+public interface CommandClusterInteraction {
   /**
-   * If the command is still executing, try the best to cancel the execution.
-   * 
-   * @param clusterInteraction
-   *          interaction with the cluster.
+   * Execute a diql query and provide results to the given result handler.
    */
-  public void cancel(CommandClusterInteraction clusterInteraction);
+  public void executeDiqlQuery(String diql, QueryResultService.Iface resultHandler);
+
+  /**
+   * Execute the query that was started with
+   * {@link #executeDiqlQuery(String, org.diqube.remote.query.thrift.QueryResultService.Iface)}.
+   */
+  public void cancelQuery();
 }

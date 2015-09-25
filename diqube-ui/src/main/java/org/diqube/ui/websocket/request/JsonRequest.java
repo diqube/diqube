@@ -18,7 +18,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.ui.websocket.json.request;
+package org.diqube.ui.websocket.request;
 
 import java.io.IOException;
 import java.util.UUID;
@@ -31,13 +31,13 @@ import javax.websocket.Session;
 import org.diqube.remote.query.thrift.QueryResultService.Iface;
 import org.diqube.ui.DiqubeServletConfig;
 import org.diqube.ui.UiQueryRegistry;
-import org.diqube.ui.websocket.json.request.commands.AsyncJsonCommand;
-import org.diqube.ui.websocket.json.request.commands.JsonCommand;
-import org.diqube.ui.websocket.json.result.ExceptionJsonResult;
-import org.diqube.ui.websocket.json.result.JsonResult;
-import org.diqube.ui.websocket.json.result.JsonResultEnvelope;
-import org.diqube.ui.websocket.json.result.JsonResultSerializer;
-import org.diqube.ui.websocket.json.result.JsonResultSerializer.JsonPayloadSerializerException;
+import org.diqube.ui.websocket.request.commands.AsyncJsonCommand;
+import org.diqube.ui.websocket.request.commands.JsonCommand;
+import org.diqube.ui.websocket.result.ExceptionJsonResult;
+import org.diqube.ui.websocket.result.JsonResult;
+import org.diqube.ui.websocket.result.JsonResultEnvelope;
+import org.diqube.ui.websocket.result.JsonResultSerializer;
+import org.diqube.ui.websocket.result.JsonResultSerializer.JsonPayloadSerializerException;
 import org.diqube.util.Holder;
 import org.diqube.util.Pair;
 import org.slf4j.Logger;

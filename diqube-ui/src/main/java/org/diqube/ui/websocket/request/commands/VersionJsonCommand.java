@@ -18,16 +18,22 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.ui.websocket.json.request.commands;
+package org.diqube.ui.websocket.request.commands;
 
 import org.diqube.buildinfo.BuildInfo;
-import org.diqube.ui.websocket.json.request.CommandClusterInteraction;
-import org.diqube.ui.websocket.json.request.CommandResultHandler;
-import org.diqube.ui.websocket.json.result.VersionJsonResult;
+import org.diqube.ui.websocket.request.CommandClusterInteraction;
+import org.diqube.ui.websocket.request.CommandResultHandler;
+import org.diqube.ui.websocket.result.VersionJsonResult;
 
 /**
  * Command that returns version information when executed.
  *
+ * <p>
+ * Sends following results:
+ * <ul>
+ * <li>{@link VersionJsonResult}
+ * </ul>
+ * 
  * @author Bastian Gloeckle
  */
 @CommandInformation(name = VersionJsonCommand.NAME)

@@ -18,10 +18,10 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.ui.websocket.json.request;
+package org.diqube.ui.websocket.request;
 
-import org.diqube.ui.websocket.json.request.commands.JsonCommand;
-import org.diqube.ui.websocket.json.result.JsonResult;
+import org.diqube.ui.websocket.request.commands.JsonCommand;
+import org.diqube.ui.websocket.result.JsonResult;
 
 /**
  * Sends results of a {@link JsonCommand} to the client that requested it.

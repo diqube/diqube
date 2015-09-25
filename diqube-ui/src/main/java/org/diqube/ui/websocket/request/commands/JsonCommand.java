@@ -18,11 +18,11 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.ui.websocket.json.request.commands;
+package org.diqube.ui.websocket.request.commands;
 
-import org.diqube.ui.websocket.json.request.CommandClusterInteraction;
-import org.diqube.ui.websocket.json.request.CommandResultHandler;
-import org.diqube.ui.websocket.json.request.JsonRequestDeserializer;
+import org.diqube.ui.websocket.request.CommandClusterInteraction;
+import org.diqube.ui.websocket.request.CommandResultHandler;
+import org.diqube.ui.websocket.request.JsonRequestDeserializer;
 
 /**
  * A command that is executable and was sent by the browser encoded in JSON.

@@ -31,9 +31,9 @@ import javax.websocket.OnOpen;
 import javax.websocket.Session;
 
 import org.diqube.ui.DiqubeServletContextListener;
-import org.diqube.ui.websocket.json.request.JsonRequest;
-import org.diqube.ui.websocket.json.request.JsonRequestDeserializer;
-import org.diqube.ui.websocket.json.request.JsonRequestRegistry;
+import org.diqube.ui.websocket.request.JsonRequest;
+import org.diqube.ui.websocket.request.JsonRequestDeserializer;
+import org.diqube.ui.websocket.request.JsonRequestRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;

@@ -18,26 +18,22 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.ui.websocket.json.request;
+package org.diqube.ui.websocket.result;
 
-import org.diqube.remote.query.thrift.QueryResultService;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /**
- * Enables a command to interact with the diqube-server cluster.
- * 
- * An instance of this interface is specific to a session/requestId.
+ * Annotation for all {@link JsonResult} implementations that denote a unique string by which the client can distinguish
+ * the results sent.
  *
  * @author Bastian Gloeckle
  */
-public interface CommandClusterInteraction {
-  /**
-   * Execute a diql query and provide results to the given result handler.
-   */
-  public void executeDiqlQuery(String diql, QueryResultService.Iface resultHandler);
-
-  /**
-   * Execute the query that was started with
-   * {@link #executeDiqlQuery(String, org.diqube.remote.query.thrift.QueryResultService.Iface)}.
-   */
-  public void cancelQuery();
+@Retention(RetentionPolicy.RUNTIME)
+@Target(value = ElementType.TYPE)
+public @interface JsonResultDataType {
+  /** Unique identifier for the type of data this {@link JsonResult} represents. */
+  String value();
 }

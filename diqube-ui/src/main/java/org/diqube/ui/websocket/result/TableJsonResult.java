@@ -18,22 +18,40 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.ui.websocket.json.result;
+package org.diqube.ui.websocket.result;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * Annotation for all {@link JsonResult} implementations that denote a unique string by which the client can distinguish
- * the results sent.
+ * A simple {@link JsonResult} containing information about results of a query.
  *
  * @author Bastian Gloeckle
  */
-@Retention(RetentionPolicy.RUNTIME)
-@Target(value = ElementType.TYPE)
-public @interface JsonResultDataType {
-  /** Unique identifier for the type of data this {@link JsonResult} represents. */
-  String value();
+@JsonResultDataType(TableJsonResult.TYPE)
+public class TableJsonResult implements JsonResult {
+  public static final String TYPE = "table";
+
+  @JsonProperty
+  public List<String> columnNames;
+
+  @JsonProperty
+  public List<List<Object>> rows;
+
+  @JsonProperty
+  public short percentComplete;
+
+  public void setColumnNames(List<String> columnNames) {
+    this.columnNames = columnNames;
+  }
+
+  public void setRows(List<List<Object>> rows) {
+    this.rows = rows;
+  }
+
+  public void setPercentComplete(short percentComplete) {
+    this.percentComplete = percentComplete;
+  }
+
 }

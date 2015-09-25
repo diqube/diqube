@@ -18,7 +18,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.ui.websocket.json.request;
+package org.diqube.ui.websocket.request;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -34,9 +34,9 @@ import javax.inject.Inject;
 import javax.websocket.Session;
 
 import org.diqube.context.AutoInstatiate;
-import org.diqube.ui.websocket.json.request.commands.CommandInformation;
-import org.diqube.ui.websocket.json.request.commands.JsonCommand;
-import org.diqube.ui.websocket.json.result.JsonResult;
+import org.diqube.ui.websocket.request.commands.CommandInformation;
+import org.diqube.ui.websocket.request.commands.JsonCommand;
+import org.diqube.ui.websocket.result.JsonResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;

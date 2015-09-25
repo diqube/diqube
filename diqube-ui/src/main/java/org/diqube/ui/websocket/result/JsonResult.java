@@ -18,24 +18,16 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.ui.websocket.json.request.commands;
+package org.diqube.ui.websocket.result;
 
-import org.diqube.ui.websocket.json.request.CommandClusterInteraction;
-import org.diqube.ui.websocket.json.request.CommandResultHandler;
+import org.diqube.ui.websocket.request.commands.JsonCommand;
 
 /**
- * Cancels the execution of the request that was executed with the same reuqestId.
- *
+ * Result data of a {@link JsonCommand} that will be serialized to JSON.
+ * 
+ * Note that each class implementing this interface needs to have a {@link JsonResultDataType} annotation!
+ * 
  * @author Bastian Gloeckle
  */
-@CommandInformation(name = CancelJsonCommand.NAME)
-public class CancelJsonCommand implements JsonCommand {
-  public static final String NAME = "cancel";
-
-  @Override
-  public void execute(CommandResultHandler resultHandler, CommandClusterInteraction clusterInteraction)
-      throws RuntimeException {
-    // currently only queries can be cancelled.
-    clusterInteraction.cancelQuery();
-  }
+public interface JsonResult {
 }

@@ -18,16 +18,21 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.ui.websocket.json.result;
+package org.diqube.ui.websocket.request.commands;
 
-import org.diqube.ui.websocket.json.request.commands.JsonCommand;
+import org.diqube.ui.websocket.request.CommandClusterInteraction;
 
 /**
- * Result data of a {@link JsonCommand} that will be serialized to JSON.
- * 
- * Note that each class implementing this interface needs to have a {@link JsonResultDataType} annotation!
- * 
+ * An asynchronous {@link JsonCommand} executes the logic asynchronously.
+ *
  * @author Bastian Gloeckle
  */
-public interface JsonResult {
+public interface AsyncJsonCommand extends JsonCommand {
+  /**
+   * If the command is still executing, try the best to cancel the execution.
+   * 
+   * @param clusterInteraction
+   *          interaction with the cluster.
+   */
+  public void cancel(CommandClusterInteraction clusterInteraction);
 }

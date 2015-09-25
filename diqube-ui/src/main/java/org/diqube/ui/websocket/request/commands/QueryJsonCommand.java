@@ -18,7 +18,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.ui.websocket.json.request.commands;
+package org.diqube.ui.websocket.request.commands;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,16 +34,23 @@ import org.diqube.remote.query.thrift.QueryResultService;
 import org.diqube.remote.query.thrift.RQueryException;
 import org.diqube.remote.query.thrift.RQueryStatistics;
 import org.diqube.remote.query.thrift.RResultTable;
-import org.diqube.ui.websocket.json.request.CommandClusterInteraction;
-import org.diqube.ui.websocket.json.request.CommandResultHandler;
-import org.diqube.ui.websocket.json.result.StatsJsonResult;
-import org.diqube.ui.websocket.json.result.TableJsonResult;
+import org.diqube.ui.websocket.request.CommandClusterInteraction;
+import org.diqube.ui.websocket.request.CommandResultHandler;
+import org.diqube.ui.websocket.result.StatsJsonResult;
+import org.diqube.ui.websocket.result.TableJsonResult;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * A {@link AsyncJsonCommand} that takes a diql query string and starts executing that query on the available cluster
  * nodes.
+ * 
+ * <p>
+ * Sends following results:
+ * <ul>
+ * <li>{@link TableJsonResult} (multiple)
+ * <li>{@link StatsJsonResult}
+ * </ul>
  *
  * @author Bastian Gloeckle
  */
