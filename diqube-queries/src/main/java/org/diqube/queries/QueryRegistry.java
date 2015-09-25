@@ -24,14 +24,21 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.NavigableMap;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ConcurrentNavigableMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
+import java.util.stream.Collectors;
 
 import org.diqube.config.Config;
 import org.diqube.config.ConfigKey;
@@ -39,7 +46,10 @@ import org.diqube.context.AutoInstatiate;
 import org.diqube.context.InjectOptional;
 import org.diqube.function.IntermediaryResult;
 import org.diqube.listeners.providers.OurNodeAddressProvider;
+import org.diqube.queries.QueryUuid.QueryUuidThreadState;
 import org.diqube.util.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * All queries being executed are registered here. This class will be informed about any asynchronous exceptions that
@@ -48,17 +58,25 @@ import org.diqube.util.Pair;
  * 
  * <p>
  * All queries that will be executed should be (1) registered in this class and (2) all {@link Executor}s that will
- * execute anything for the query should be created by the ExecutorManager (diqube-threads).
+ * execute anything for the query should be created by the ExecutorManager (diqube-threads), to make sure that these
+ * threads have a valid {@link QueryUuidThreadState} set.
  *
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
 public class QueryRegistry {
-  private Map<Pair<UUID, UUID>, QueryExceptionHandler> exceptionHandlers = new ConcurrentHashMap<>();
-  private Map<UUID, Deque<QueryResultHandler>> resultHandlers = new ConcurrentHashMap<>();
-  private Map<UUID, Deque<QueryPercentHandler>> percentHandlers = new ConcurrentHashMap<>();
-  private Map<UUID, QueryStatsManager> queryStats = new ConcurrentHashMap<>();
-  private ConcurrentMap<UUID, Map<UUID, QueryStatsListener>> queryStatsListeners = new ConcurrentHashMap<>();;
+  private static final Logger logger = LoggerFactory.getLogger(QueryRegistry.class);
+
+  /**
+   * Map from queryUuid/executionUuid pair to Pair of exception handler for that execution and a boolean indicating if
+   * the queryUuid/executionUuid pair is the pair for the query master of that queryUuid.
+   */
+  private ConcurrentNavigableMap<Pair<UUID, UUID>, Pair<QueryExceptionHandler, Boolean>> queryExecutionInformation =
+      new ConcurrentSkipListMap<>();
+  private ConcurrentMap<UUID, Deque<QueryResultHandler>> resultHandlers = new ConcurrentHashMap<>();
+  private ConcurrentMap<UUID, Deque<QueryPercentHandler>> percentHandlers = new ConcurrentHashMap<>();
+  private ConcurrentMap<UUID, QueryStatsManager> queryStats = new ConcurrentHashMap<>();
+  private ConcurrentMap<UUID, Map<UUID, QueryStatsListener>> queryStatsListeners = new ConcurrentHashMap<>();
 
   @Config(ConfigKey.OUR_HOST)
   private String ourHost;
@@ -74,8 +92,9 @@ public class QueryRegistry {
    * {@link #unregisterQueryExecution(UUID)} has to be called. For query UUID/execution UUID, see {@link QueryUuid} and
    * ExecutablePlan.
    */
-  public void registerQueryExecution(UUID queryUuid, UUID executionUuid, QueryExceptionHandler exceptionHandler) {
-    exceptionHandlers.put(new Pair<>(queryUuid, executionUuid), exceptionHandler);
+  public void registerQueryExecution(UUID queryUuid, UUID executionUuid, QueryExceptionHandler exceptionHandler,
+      boolean isQueryMaster) {
+    queryExecutionInformation.put(new Pair<>(queryUuid, executionUuid), new Pair<>(exceptionHandler, isQueryMaster));
   }
 
   /**
@@ -170,7 +189,8 @@ public class QueryRegistry {
    * the future will not be passed on to the registered {@link QueryExceptionHandler} any more!
    */
   public void unregisterQueryExecution(UUID queryUuid, UUID executionUuid) {
-    exceptionHandlers.remove(new Pair<>(queryUuid, executionUuid));
+    logger.trace("Unregistering query {} execution {}", queryUuid, executionUuid);
+    queryExecutionInformation.remove(new Pair<>(queryUuid, executionUuid));
     queryStats.remove(executionUuid);
     if (queryStatsListeners.containsKey(queryUuid)) {
       synchronized (queryStatsListeners) {
@@ -187,18 +207,35 @@ public class QueryRegistry {
    * Cleans up any resources that might be remaining for the given query. THis should only be called on the query
    * master: There might be a query remote being executed on the same node as the master and that node must not clear
    * any resources of the master!
-   * 
-   * <p>
-   * Note that this will not clear any exceptionHandlers that were installed with
-   * {@link #registerQueryExecution(UUID, UUID, QueryExceptionHandler)}! Please call
-   * {@link #unregisterQueryExecution(UUID, UUID)} before this method!
    */
   public void cleanupQueryFully(UUID queryUuid) {
+    logger.trace("Cleaning up query {} fully.", queryUuid);
+
+    // pair of queryUuid to executionUuid for the given query.
+    Set<Pair<UUID, UUID>> queryExecutionPairs = new HashSet<>();
+
+    // exceptionHandlers is sorted. We pick a sub-map that will start with the Pair<UUID, UUID>s that contain our
+    // queryUuid. As soon as we find another UUID as "left" we can stop traversing, because there will be no other pair
+    // with our queryUuid.
+    NavigableMap<Pair<UUID, UUID>, Pair<QueryExceptionHandler, Boolean>> searchMap =
+        queryExecutionInformation.tailMap(new Pair<>(queryUuid, new UUID(Long.MIN_VALUE, Long.MIN_VALUE)));
+    for (Pair<UUID, UUID> p : searchMap.keySet()) {
+      if (!p.getLeft().equals(queryUuid))
+        break;
+      queryExecutionPairs.add(p);
+    }
+
+    for (Pair<UUID, UUID> p : queryExecutionPairs)
+      queryExecutionInformation.remove(p);
+
+    Set<UUID> executionUuids = queryExecutionPairs.stream().map(p -> p.getRight()).collect(Collectors.toSet());
+
     synchronized (percentHandlers) {
       percentHandlers.remove(queryUuid);
     }
     synchronized (queryStats) {
-      queryStats.remove(queryUuid);
+      for (UUID executionUuid : executionUuids)
+        queryStats.remove(executionUuid);
     }
     synchronized (queryUuid) {
       resultHandlers.remove(queryUuid);
@@ -209,16 +246,42 @@ public class QueryRegistry {
   }
 
   /**
+   * Tries to find the executionUuid of the query master of the given query.
+   * 
+   * If it is not available locally, <code>null</code> will be returned.
+   */
+  public UUID getMasterExecutionUuid(UUID queryUuid) {
+    Pair<UUID, UUID> masterPair = null;
+    NavigableMap<Pair<UUID, UUID>, Pair<QueryExceptionHandler, Boolean>> searchMap =
+        queryExecutionInformation.tailMap(new Pair<>(queryUuid, new UUID(Long.MIN_VALUE, Long.MIN_VALUE)));
+    for (Entry<Pair<UUID, UUID>, Pair<QueryExceptionHandler, Boolean>> e : searchMap.entrySet()) {
+
+      if (!e.getKey().getLeft().equals(queryUuid))
+        break;
+
+      if (e.getValue().getRight()) {
+        masterPair = e.getKey();
+        break;
+      }
+    }
+
+    if (masterPair == null)
+      return null;
+
+    return masterPair.getRight();
+  }
+
+  /**
    * Call if an exception occurred while executing a given query.
    * 
    * @return <code>true</code> when the exception was handled by an exception handler, <code>false</code> otherwise.
    */
   public boolean handleException(UUID queryUuid, UUID executionUuid, Throwable t) {
-    QueryExceptionHandler exceptionHandler = exceptionHandlers.get(new Pair<>(queryUuid, executionUuid));
-    if (exceptionHandler == null)
+    Pair<QueryExceptionHandler, Boolean> p = queryExecutionInformation.get(new Pair<>(queryUuid, executionUuid));
+    if (p == null)
       return false;
 
-    exceptionHandler.handleException(t);
+    p.getLeft().handleException(t);
     unregisterQueryExecution(queryUuid, executionUuid);
     return true;
   }

@@ -30,7 +30,7 @@ import javax.websocket.Session;
 
 import org.diqube.remote.query.thrift.QueryResultService.Iface;
 import org.diqube.ui.DiqubeServletConfig;
-import org.diqube.ui.QueryRegistry;
+import org.diqube.ui.UiQueryRegistry;
 import org.diqube.ui.websocket.json.request.commands.AsyncJsonCommand;
 import org.diqube.ui.websocket.json.request.commands.JsonCommand;
 import org.diqube.ui.websocket.json.result.ExceptionJsonResult;
@@ -85,7 +85,7 @@ public class JsonRequest {
 
   @Inject
   @JsonIgnore
-  private QueryRegistry queryResultRegistry;
+  private UiQueryRegistry queryResultRegistry;
 
   @Inject
   @JsonIgnore

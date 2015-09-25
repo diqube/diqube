@@ -38,7 +38,7 @@ import org.diqube.util.Triple;
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
-public class QueryRegistry {
+public class UiQueryRegistry {
   /**
    * queryUuid to triple of
    * <ul>

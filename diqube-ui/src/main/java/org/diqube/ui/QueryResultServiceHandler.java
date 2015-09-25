@@ -47,7 +47,7 @@ public class QueryResultServiceHandler implements Iface {
   private static final Logger logger = LoggerFactory.getLogger(QueryResultServiceHandler.class);
 
   @Inject
-  private QueryRegistry queryResultRegistry;
+  private UiQueryRegistry queryResultRegistry;
 
   @Override
   public void partialUpdate(RUUID queryRUuid, RResultTable partialResult, short percentComplete) throws TException {

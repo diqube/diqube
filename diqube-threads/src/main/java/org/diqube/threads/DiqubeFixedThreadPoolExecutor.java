@@ -86,7 +86,8 @@ import org.slf4j.LoggerFactory;
         e.printStackTrace(writer);
         writer.flush();
         String stackTrace = stackTraceStream.toString("UTF-8");
-        logger.trace("Interrupting query {}, execution {}, stacktrace: {}", queryUuid, executionUuid, stackTrace);
+        logger.trace("Interrupting one executor of query {}, execution {}, stacktrace: {}", queryUuid, executionUuid,
+            stackTrace);
       } catch (UnsupportedEncodingException e) {
         logger.trace("Unable to log stack trace of interruption", e);
       }

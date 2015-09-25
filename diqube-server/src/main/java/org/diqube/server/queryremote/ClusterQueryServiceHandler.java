@@ -315,7 +315,7 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
     // prepare to launch the execution in a different Thread
     Executor threadPool = executorManager.newQueryFixedThreadPoolWithTimeout(1,
         "query-remote-master-" + queryUuid + "-%d", queryUuid, executionUuid);
-    queryRegistry.registerQueryExecution(queryUuid, executionUuid, exceptionHandler);
+    queryRegistry.registerQueryExecution(queryUuid, executionUuid, exceptionHandler, false);
 
     // start execution of ExecutablePlan(s) asynchronously.
     queryRegistry.getOrCreateStatsManager(queryUuid, executionUuid).setStartedNanos(System.nanoTime());

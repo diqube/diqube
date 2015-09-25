@@ -41,7 +41,7 @@ import org.diqube.remote.query.thrift.QueryResultService.Iface;
 import org.diqube.remote.query.thrift.QueryService;
 import org.diqube.remote.query.thrift.RQueryException;
 import org.diqube.ui.DiqubeServletConfig;
-import org.diqube.ui.QueryRegistry;
+import org.diqube.ui.UiQueryRegistry;
 import org.diqube.ui.ThriftServlet;
 import org.diqube.util.Pair;
 import org.slf4j.Logger;
@@ -94,14 +94,12 @@ public abstract class AbstractCommandClusterInteraction implements CommandCluste
     try {
       transport.open();
 
-      // TODO cancel query execution
-      logger.warn("Cancel not implemented!");
-      // } catch (RQueryException e) {
-      // throw new RuntimeException(e.getMessage());
+      logger.info("Sending request to cancel query {} to the diqube server at {}.", queryUuid, serverAddr);
+      queryClient.cancelQueryExecution(RUuidUtil.toRUuid(queryUuid));
     } catch (TException e) {
       logger.warn("Could not cancel execution of query {} although requested by user.", queryUuidAndAddrPair);
     } finally {
-      unregisterLastQueryThriftResultCallback();
+      transport.close();
     }
   }
 
@@ -122,6 +120,7 @@ public abstract class AbstractCommandClusterInteraction implements CommandCluste
       queryClient.asyncExecuteQuery(RUuidUtil.toRUuid(queryUuid), //
           diql, //
           true, createOurAddress());
+      logger.info("Started executing new query {} on server {}", queryUuid, node);
       return queryUuid;
     } catch (RQueryException e) {
       unregisterLastQueryThriftResultCallback();
@@ -129,6 +128,8 @@ public abstract class AbstractCommandClusterInteraction implements CommandCluste
     } catch (TException e) {
       unregisterLastQueryThriftResultCallback();
       return null;
+    } finally {
+      transport.close();
     }
   }
 
@@ -140,7 +141,7 @@ public abstract class AbstractCommandClusterInteraction implements CommandCluste
   }
 
   /**
-   * Register a new query execution on the diqube cluster in {@link QueryRegistry}.
+   * Register a new query execution on the diqube cluster in {@link UiQueryRegistry}.
    * 
    * @param node
    *          Cluster node that the query is sent to - this is the query master!
@@ -153,7 +154,7 @@ public abstract class AbstractCommandClusterInteraction implements CommandCluste
       QueryResultService.Iface resultHandler);
 
   /**
-   * Unregister the queryUuid for {@link QueryRegistry} that was last registered using
+   * Unregister the queryUuid for {@link UiQueryRegistry} that was last registered using
    * {@link #registerQueryThriftResultCallback(Pair, UUID, Iface)}.
    */
   protected abstract void unregisterLastQueryThriftResultCallback();

@@ -226,7 +226,8 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
           remotesDone.incrementAndGet();
           // TODO #37: We should inform the user about this situation.
         } catch (InterruptedException e) {
-          // exit quietly
+          logger.trace("Interrupted while waiting for a new connection.");
+          doneProcessing();
           return;
         }
       }
@@ -237,7 +238,8 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
           try {
             wait.wait(1000);
           } catch (InterruptedException e) {
-            // we were interrupted, exit quietly.
+            logger.trace("Interrupted while waiting for remotes.");
+            doneProcessing();
             return;
           }
         }

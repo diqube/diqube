@@ -24,8 +24,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.Executor;
 
 import javax.inject.Inject;
@@ -91,6 +93,36 @@ public class QueryServiceHandler implements Iface {
   @Inject
   private QueryUuidProvider queryUuidProvider;
 
+  private Set<UUID> toCancelQueries = new ConcurrentSkipListSet<>();
+
+  /**
+   * Cancels the execution of a query that was started with
+   * {@link #asyncExecuteQuery(RUUID, String, boolean, RNodeAddress)}.
+   * 
+   * Note that this method must be called on the same node on which the
+   * {@link #asyncExecuteQuery(RUUID, String, boolean, RNodeAddress)} was called!
+   */
+  @Override
+  public void cancelQueryExecution(RUUID queryRUuid) throws TException {
+    UUID queryUuid = RUuidUtil.toUuid(queryRUuid);
+    logger.info("Received request to cancel query {}. Cancelling.", queryUuid);
+
+    toCancelQueries.add(queryUuid);
+
+    // We only need to cancel the query master locally - and we do this by pretending that there was an exception. The
+    // exception handler (defined inside the #asyncExecuteQuery method below) will then cancel execution on all remotes
+    // and will shutdown everything on this node as well.
+    UUID queryMasterExecutionUuid = queryRegistry.getMasterExecutionUuid(queryUuid);
+    if (queryMasterExecutionUuid == null)
+      // That query is still inside the #asyncExecuteQuery method and it did not start executing yet. We'll cancel that
+      // query right inside the #asyncExecuteQuery method.
+      return;
+
+    queryRegistry.handleException(queryUuid, queryMasterExecutionUuid, new RuntimeException("Cancelled by user"));
+
+    toCancelQueries.remove(queryUuid);
+  }
+
   /**
    * Executes the given diql query on the diqube cluster, where this node will be the query master.
    * 
@@ -124,7 +156,6 @@ public class QueryServiceHandler implements Iface {
         if (remoteExecutionStepHolder.getValue() != null)
           cancelExecutionOnTriggeredRemotes(queryRUuid, remoteExecutionStepHolder.getValue());
 
-        queryRegistry.unregisterQueryExecution(queryUuid, executionUuid);
         queryRegistry.cleanupQueryFully(queryUuid);
         // kill all executions, also remote ones.
         executorManager.shutdownEverythingOfQuery(queryUuid);
@@ -162,7 +193,6 @@ public class QueryServiceHandler implements Iface {
 
         // shutdown everything.
         connectionPool.releaseConnection(resultConnection);
-        queryRegistry.unregisterQueryExecution(queryUuid, executionUuid);
         queryRegistry.cleanupQueryFully(queryUuid);
         // kill all executions, also remote ones.
         executorManager.shutdownEverythingOfQuery(queryUuid);
@@ -217,7 +247,6 @@ public class QueryServiceHandler implements Iface {
 
             // be sure to clean up everything.
             connectionPool.releaseConnection(resultConnection);
-            queryRegistry.unregisterQueryExecution(queryUuid, executionUuid);
             queryRegistry.cleanupQueryFully(queryUuid);
             // kill all executions, also remote ones. THis will kill our thread, too.
             executorManager.shutdownEverythingOfQuery(queryUuid);
@@ -293,14 +322,22 @@ public class QueryServiceHandler implements Iface {
 
             // be sure to clean up everything.
             connectionPool.releaseConnection(resultConnection);
-            queryRegistry.unregisterQueryExecution(queryUuid, executionUuid);
             queryRegistry.cleanupQueryFully(queryUuid);
             // kill all executions, also remote ones. This will kill our thread, too.
             executorManager.shutdownEverythingOfQuery(queryUuid);
           }
         }, sendPartialUpdates);
 
-    queryRegistry.registerQueryExecution(queryUuid, executionUuid, exceptionHandler);
+    queryRegistry.registerQueryExecution(queryUuid, executionUuid, exceptionHandler, true);
+
+    if (toCancelQueries.contains(queryUuid)) {
+      // query was cancelled already - as we did not yet start executing it, we can simply return here.
+      resultService.queryException(queryRUuid, new RQueryException("Query cancelled"));
+      connectionPool.releaseConnection(resultConnection);
+      queryRegistry.cleanupQueryFully(queryUuid);
+      toCancelQueries.remove(queryUuid);
+      return;
+    }
 
     Runnable execute;
     try {
@@ -313,7 +350,6 @@ public class QueryServiceHandler implements Iface {
     } catch (ParseException | ValidationException e) {
       logger.warn("Exception while preparing the query execution of {}: {}", queryUuid, e.getMessage());
       connectionPool.releaseConnection(resultConnection);
-      queryRegistry.unregisterQueryExecution(queryUuid, executionUuid);
       queryRegistry.cleanupQueryFully(queryUuid);
       throw new RQueryException(e.getMessage());
     }

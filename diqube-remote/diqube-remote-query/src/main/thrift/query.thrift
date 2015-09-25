@@ -38,6 +38,7 @@ service QueryService {
                          2: string diql, 
                          3: bool sendPartialUpdates, 
                          4: base.RNodeAddress resultAddress) throws (1: RQueryException queryException)
+  void cancelQueryExecution(1: base.RUUID queryRUuid)
 }
 
 struct RQueryStatisticsDetails {
