@@ -90,6 +90,9 @@ public class WebServlet extends HttpServlet {
       is = new ByteArrayInputStream(cachedIndexHtmlBytes);
     }
 
+    if (path.endsWith(".css"))
+      resp.setContentType("text/css");
+
     ByteStreams.copy(is, resp.getOutputStream());
     is.close();
   }

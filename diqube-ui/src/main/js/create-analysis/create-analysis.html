@@ -1,0 +1,47 @@
+<!--
+
+    diqube: Distributed Query Base.
+
+    Copyright (C) 2015 Bastian Gloeckle
+
+    This file is part of diqube.
+
+    diqube is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as
+    published by the Free Software Foundation, either version 3 of the
+    License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+-->
+<h1 class="page-header">Create Analysis</h1>
+<p />
+<div style="{{ createAnalysis.error ? '' : 'display: none'}}" class="alert alert-danger">
+  <span class="glyphicon glyphicon-exclamation-sign"></span>
+  {{ createAnalysis.error }}
+</div> 
+<p />
+<form novalidate class="create-analysis">
+  <div class="form-group simple-form">
+    <label for="inputName">Name</label>
+    <input type="text" class="form-control" id="inputName"
+      placeholder="Name of new Analysis" ng-model="analysis.name" required>
+  </div>
+  <div class="form-group">
+    <label for="inputTable">Table
+      <i ng-show="loadingLocations" class="glyphicon glyphicon-refresh"></i>
+      <i ng-show="noResults" class="glyphicon glyphicon-remove"></i>
+    </label> <input type="text" class="form-control" id="inputTable" ng-model="analysis.table"
+      placeholder="Table you want to analyze"
+      typeahead="table.name for table in createAnalysis.getValidTables($viewValue)" typeahead-editable="false"
+      typeahead-loading="loadingLocations" typeahead-no-results="noResults" class="form-control" required>
+  </div>
+  <button type="submit" class="btn btn-default" ng-click="createAnalysis.createAnalysis(analysis)">Create</button>
+</form>
+

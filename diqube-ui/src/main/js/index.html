@@ -48,7 +48,24 @@
       </div>
       <div id="navbar" class="navbar-collapse collapse">
         <ul class="nav navbar-nav navbar-right">
-          <li><a href="#/query">Execute query</a></li>
+          <li ng-controller="OpenAnalysisCtrl as openAnalysis" dropdown is-open="openAnalysis.dropdownIsOpen" 
+            auto-close="outsideClick">
+            
+            <a href dropdown-toggle ng-cloak title="{{ openAnalysis.title }}">{{ openAnalysis.text }} <span class="caret"></span></a>
+            <ul class="dropdown-menu">
+              <li ng-repeat="choice in openAnalysis.items">
+                  <a href title="{{ choice.id }}" ng-click="openAnalysis.openAnalysis(choice)">{{ choice.name }}</a>
+              </li>
+              <li class="divider"></li>
+              <li role="menuitem">
+                <a href ng-click="openAnalysis.reloadAnalysis()">
+                  Refresh <i ng-show="openAnalysis.loading" class="glyphicon glyphicon-refresh"></i>
+                </a>
+              </li>
+            </ul>
+          </li>
+          <li><a href="#/create_analysis">Create Analysis</a></li>
+          <li><a href="#/query">Execute Query</a></li>
           <li><a href="#/about">About</a></li>
         </ul>
       </div>
@@ -63,10 +80,14 @@
   <script src="bower_components/angular-route/angular-route.js"></script>
   <script src="bower_components/ng-websocket/ng-websocket.js"></script>
   <script src="bower_components/angular-toArrayFilter/toArrayFilter.js"></script>
+  <script src="bower_components/angular-ui-bootstrap-bower/ui-bootstrap-tpls.js"></script>
   <script src="app.js"></script>
   <script src="route.js"></script>
   <script src="remote/remote.service.js"></script>
+  <script src="analysis/analysis.service.js"></script>
   <script src="query/query.controller.js"></script>
   <script src="about/about.controller.js"></script>
+  <script src="open-analysis/open-analysis.controller.js"></script>
+  <script src="create-analysis/create-analysis.controller.js"></script>
 </body>
 </html>

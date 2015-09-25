@@ -17,7 +17,8 @@
     "angularjs-nvd3-directives": "0.0.7",
     "node-uuid": "1.4.2",
     "bootstrap": "3.3.5",
-    "angular-toArrayFilter": "1.0.1"
+    "angular-toArrayFilter": "1.0.1",
+    "angular-ui-bootstrap-bower": "0.13.4"
   },
   "resolutions": {
     "angular": "1.4.0",

@@ -21,18 +21,23 @@
 'use strict';
 
 (function() {
-    angular.module("diqube.route", [ "ngRoute", "diqube.query" ]).config([ "$routeProvider", function($routeProvider) {
-	$routeProvider.when("/query", {
-	    templateUrl : "query/query.html",
-	    controller : "QueryCtrl",
-	    controllerAs: "query"
-	}).when("/about", {
-	    templateUrl : "about/about.html",
-	    controller : "AboutCtrl",
-	    controllerAs: "about"
-	}).otherwise({
-	    redirectTo : "/query"
-	});
-    } ]);
+  angular.module("diqube.route", [ "ngRoute", "diqube.query", "diqube.about", "diqube.create-analysis" ]).config(
+      [ "$routeProvider", function($routeProvider) {
+        $routeProvider.when("/query", {
+          templateUrl : "query/query.html",
+          controller : "QueryCtrl",
+          controllerAs : "query"
+        }).when("/about", {
+          templateUrl : "about/about.html",
+          controller : "AboutCtrl",
+          controllerAs : "about"
+        }).when("/create_analysis", {
+          templateUrl : "create-analysis/create-analysis.html",
+          controller : "CreateAnalysisCtrl",
+          controllerAs : "createAnalysis"
+        }).otherwise({
+          redirectTo : "/query"
+        });
+      } ]);
 
 })();

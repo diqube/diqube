@@ -82,6 +82,10 @@
       <source>bower_components/angular-toArrayFilter/toArrayFilter.js</source>
       <destName>bower_components/angular-toArrayFilter/toArrayFilter.js</destName>
     </file>
+    <file>
+      <source>bower_components/angular-ui-bootstrap-bower/ui-bootstrap-tpls.min.js</source>
+      <destName>bower_components/angular-ui-bootstrap-bower/ui-bootstrap-tpls.js</destName>
+    </file>
   </files>
 </assembly>
 

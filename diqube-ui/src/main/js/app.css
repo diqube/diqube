@@ -30,3 +30,7 @@ textarea.diql-full {
 .execute-buttons {
 	margin-bottom: 20px;
 }
+
+.create-analysis input.ng-invalid.ng-touched {
+	background-color: #FA787E;
+}

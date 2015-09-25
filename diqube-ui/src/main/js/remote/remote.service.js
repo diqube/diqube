@@ -24,7 +24,7 @@
   angular.module("diqube.remote", [ "ngWebsocket" ]).service("remoteService",
       [ "$websocket", "$log", function remoteServiceProvider($websocket, $log) {
         var me = this;
-
+        
         me.execute = execute;
         me.cancel = cancel;
 

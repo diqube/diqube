@@ -24,8 +24,13 @@
     angular.module("diqube", [ "ngRoute", 
                                "ngWebsocket", 
                                "angular-toArrayFilter",
+                               "ui.bootstrap",
                                "diqube.route", 
                                "diqube.about", 
                                "diqube.query", 
-                               "diqube.remote" ]);
+                               "diqube.remote",
+                               "diqube.analysis",
+                               "diqube.create-analysis",
+                               "diqube.open-analysis"
+                               ]);
 })();

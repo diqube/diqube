@@ -39,6 +39,10 @@
     
         * Bootstrap, http://getbootstrap.com
 
+    MIT License (AngularUI Bootstrap) [angularui-bootstrap-mit.txt]:
+    
+        * angular-ui-bootstrap-bower, https://github.com/angular-ui/bootstrap
+
     MIT License (toArrayFilter) [toarrayfilter-mit.txt]:
     
         * angular-toArrayFilter, https://github.com/petebacondarwin/angular-toArrayFilter
