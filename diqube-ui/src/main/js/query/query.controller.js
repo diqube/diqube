@@ -28,7 +28,7 @@
         me.result = null;
         me.exception = null;
         me.stats = null;
-        me.displayResultsOrStats = "";
+        me.displayResultsOrStats = undefined;
         me.displayResults = displayResults;
         me.displayStats = displayStats;
         me.isExecuting = false;
@@ -47,7 +47,7 @@
           me.data = null;
           me.exception = null;
           me.stats = null;
-          me.displayResultsOrStats = "";
+          me.displayResultsOrStats = undefined;
 
           var fn = this;
           fn.lastPercentComplete = 0;
@@ -87,6 +87,10 @@
             return;
           remoteService.cancel(me.currentRequestId);
           me.currentRequestId = null;
+          me.data = null;
+          me.exception = null;
+          me.stats = null;
+          me.displayResultsOrStats = undefined;
 
           me.isExecuting = false;
         }
