@@ -38,7 +38,7 @@
         }
         
         function loadAnalysis(id) {
-          remoteService.execute($scope, "analysis", {analysisId: id}, new (function() {
+          remoteService.execute($rootScope, "analysis", {analysisId: id}, new (function() {
             this.data = function data_(dataType, data) {
               if (dataType === "analysis") {
                 me.loadedAnalysis = data.analysis;
