@@ -31,6 +31,7 @@ import java.util.NavigableSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.stream.Collectors;
 
 import org.diqube.remote.base.thrift.RNodeAddress;
 import org.diqube.util.Pair;
@@ -109,6 +110,13 @@ public class ClusterLayout {
     }
 
     return res;
+  }
+
+  /**
+   * @return A set with all tablenames that are served from at least one cluster node.
+   */
+  public Set<String> getAllTablesServed() {
+    return tables.values().stream().flatMap(p -> p.getRight().stream()).collect(Collectors.toSet());
   }
 
   /* package */ synchronized Pair<Long, List<String>> getVersionedTableList(NodeAddress addr) {

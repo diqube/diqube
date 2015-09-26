@@ -18,33 +18,34 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.ui.websocket.request;
+package org.diqube.cluster;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.inject.Inject;
+
+import org.apache.thrift.TException;
+import org.diqube.context.AutoInstatiate;
 import org.diqube.remote.query.thrift.ClusterInformationService;
-import org.diqube.remote.query.thrift.QueryResultService;
 
 /**
- * Enables a command to interact with the diqube-server cluster.
- * 
- * An instance of this interface is specific to a session/requestId.
+ * Handler for the service that clients can use to get information about the cluster of diqube-servers.
  *
  * @author Bastian Gloeckle
  */
-public interface CommandClusterInteraction {
-  /**
-   * Execute a diql query and provide results to the given result handler.
-   */
-  public void executeDiqlQuery(String diql, QueryResultService.Iface resultHandler);
+@AutoInstatiate
+public class ClusterInformationServiceHandler implements ClusterInformationService.Iface {
+
+  @Inject
+  private ClusterManager clusterManager;
 
   /**
-   * Execute the query that was started with
-   * {@link #executeDiqlQuery(String, org.diqube.remote.query.thrift.QueryResultService.Iface)}.
+   * Lists the names of the tables that are currently available in the diqube-server cluster.
    */
-  public void cancelQuery();
-
-  /**
-   * @return An instance of {@link ClusterInformationService} that can be used to synchronously query information about
-   *         the cluster.
-   */
-  public ClusterInformationService.Iface getClusterInformationService();
+  @Override
+  public List<String> getAvailableTables() throws TException {
+    // TODO #48: We should not use the ClusterLayout for this, but the new to-be-created information on table data.
+    return new ArrayList<>(clusterManager.getClusterLayout().getAllTablesServed());
+  }
 }

@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.apache.thrift.TException;
+import org.apache.thrift.TServiceClient;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.protocol.TMultiplexedProtocol;
 import org.apache.thrift.protocol.TProtocol;
@@ -35,14 +36,16 @@ import org.apache.thrift.transport.TTransport;
 import org.diqube.remote.base.thrift.RNodeAddress;
 import org.diqube.remote.base.thrift.RNodeHttpAddress;
 import org.diqube.remote.base.util.RUuidUtil;
+import org.diqube.remote.query.ClusterInformationServiceConstants;
 import org.diqube.remote.query.QueryServiceConstants;
+import org.diqube.remote.query.thrift.ClusterInformationService;
 import org.diqube.remote.query.thrift.QueryResultService;
 import org.diqube.remote.query.thrift.QueryResultService.Iface;
 import org.diqube.remote.query.thrift.QueryService;
 import org.diqube.remote.query.thrift.RQueryException;
 import org.diqube.ui.DiqubeServletConfig;
-import org.diqube.ui.UiQueryRegistry;
 import org.diqube.ui.ThriftServlet;
+import org.diqube.ui.UiQueryRegistry;
 import org.diqube.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -103,18 +106,31 @@ public abstract class AbstractCommandClusterInteraction implements CommandCluste
     }
   }
 
-  private UUID sendDiqlQuery(Pair<String, Short> node, String diql, QueryResultService.Iface resultHandler) {
-    TTransport transport = new TSocket(node.getLeft(), node.getRight());
-    transport = new TFramedTransport(transport);
-    TProtocol queryProtocol =
-        new TMultiplexedProtocol(new TCompactProtocol(transport), QueryServiceConstants.SERVICE_NAME);
+  @Override
+  public ClusterInformationService.Iface getClusterInformationService() {
+    Set<Integer> idxToCheck = IntStream.range(0, config.getClusterServers().size()).boxed().collect(Collectors.toSet());
 
-    QueryService.Client queryClient = new QueryService.Client(queryProtocol);
+    ClusterInformationService.Client client = null;
+    while (client == null) {
+      if (idxToCheck.isEmpty())
+        throw new RuntimeException("No cluster servers were reachable");
+      int nextIdx = (int) Math.floor(Math.random() * config.getClusterServers().size());
+      if (!idxToCheck.remove(nextIdx))
+        continue;
+
+      client = openConnection(ClusterInformationService.Client.class, ClusterInformationServiceConstants.SERVICE_NAME,
+          config.getClusterServers().get(nextIdx));
+    }
+
+    return client;
+  }
+
+  private UUID sendDiqlQuery(Pair<String, Short> node, String diql, QueryResultService.Iface resultHandler) {
+    QueryService.Iface queryClient =
+        openConnection(QueryService.Client.class, QueryServiceConstants.SERVICE_NAME, node);
 
     UUID queryUuid = UUID.randomUUID();
     try {
-      transport.open();
-
       registerQueryThriftResultCallback(node, queryUuid, resultHandler);
 
       queryClient.asyncExecuteQuery(RUuidUtil.toRUuid(queryUuid), //
@@ -123,13 +139,9 @@ public abstract class AbstractCommandClusterInteraction implements CommandCluste
       logger.info("Started executing new query {} on server {}", queryUuid, node);
       return queryUuid;
     } catch (RQueryException e) {
-      unregisterLastQueryThriftResultCallback();
       throw new RuntimeException(e.getMessage());
     } catch (TException e) {
-      unregisterLastQueryThriftResultCallback();
       return null;
-    } finally {
-      transport.close();
     }
   }
 
@@ -143,6 +155,9 @@ public abstract class AbstractCommandClusterInteraction implements CommandCluste
   /**
    * Register a new query execution on the diqube cluster in {@link UiQueryRegistry}.
    * 
+   * <p>
+   * Note that the implementing class needs to take care of cleaning up the thrift result callback!
+   * 
    * @param node
    *          Cluster node that the query is sent to - this is the query master!
    * @param queryUuid
@@ -154,13 +169,25 @@ public abstract class AbstractCommandClusterInteraction implements CommandCluste
       QueryResultService.Iface resultHandler);
 
   /**
-   * Unregister the queryUuid for {@link UiQueryRegistry} that was last registered using
-   * {@link #registerQueryThriftResultCallback(Pair, UUID, Iface)}.
-   */
-  protected abstract void unregisterLastQueryThriftResultCallback();
-
-  /**
    * @return Pair of query UUID and Server addr that the currently running query was sent to.
    */
   protected abstract Pair<UUID, Pair<String, Short>> findQueryUuidAndServerAddr();
+
+  /**
+   * Open a thift connection to a diqube-server.
+   * 
+   * <p>
+   * Note that the implementing class needs to take care of closing the connection again!
+   * 
+   * @param thriftClientClass
+   *          The "Client" class of the thrift service that a connection should be opened to.
+   * @param serviceName
+   *          The multiplexing name of the service.
+   * @param node
+   *          The node to open a connection to.
+   * @return A service that can be called or <code>null</code> if connection could not be opened.
+   */
+  protected abstract <T extends TServiceClient> T openConnection(Class<? extends T> thriftClientClass,
+      String serviceName, Pair<String, Short> node);
+
 }

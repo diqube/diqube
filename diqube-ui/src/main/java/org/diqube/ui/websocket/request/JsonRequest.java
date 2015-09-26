@@ -21,6 +21,9 @@
 package org.diqube.ui.websocket.request;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -28,6 +31,14 @@ import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import javax.websocket.Session;
 
+import org.apache.thrift.TServiceClient;
+import org.apache.thrift.protocol.TCompactProtocol;
+import org.apache.thrift.protocol.TMultiplexedProtocol;
+import org.apache.thrift.protocol.TProtocol;
+import org.apache.thrift.transport.TFramedTransport;
+import org.apache.thrift.transport.TSocket;
+import org.apache.thrift.transport.TTransport;
+import org.apache.thrift.transport.TTransportException;
 import org.diqube.remote.query.thrift.QueryResultService.Iface;
 import org.diqube.ui.DiqubeServletConfig;
 import org.diqube.ui.UiQueryRegistry;
@@ -38,7 +49,6 @@ import org.diqube.ui.websocket.result.JsonResult;
 import org.diqube.ui.websocket.result.JsonResultEnvelope;
 import org.diqube.ui.websocket.result.JsonResultSerializer;
 import org.diqube.ui.websocket.result.JsonResultSerializer.JsonPayloadSerializerException;
-import org.diqube.util.Holder;
 import org.diqube.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -91,7 +101,9 @@ public class JsonRequest {
   @JsonIgnore
   private JsonResultSerializer serializer;
 
-  private Holder<UUID> queryUuidHolder;
+  /** {@link Runnable}s that need to be executed to clean up. */
+  @JsonIgnore
+  private List<Runnable> cleanupActions = new ArrayList<>();
 
   /**
    * {@link CommandClusterInteraction} that is passed to the command which can safely interact with the diqube cluster
@@ -112,14 +124,10 @@ public class JsonRequest {
   public void initialize() {
     commandClusterInteraction = new AbstractCommandClusterInteraction(config) {
       @Override
-      protected void unregisterLastQueryThriftResultCallback() {
-        cleanup();
-      }
-
-      @Override
       protected void registerQueryThriftResultCallback(Pair<String, Short> node, UUID queryUuid, Iface resultHandler) {
         queryResultRegistry.registerThriftResultCallback(session, requestId, node, queryUuid, resultHandler);
-        queryUuidHolder.setValue(queryUuid);
+
+        cleanupActions.add(() -> queryResultRegistry.unregisterQuery(requestId, queryUuid));
       }
 
       @Override
@@ -130,6 +138,31 @@ public class JsonRequest {
         if (queryUuid == null || node == null)
           return null;
         return new Pair<>(queryUuid, node);
+      }
+
+      @Override
+      protected <T extends TServiceClient> T openConnection(Class<? extends T> thriftClientClass, String serviceName,
+          Pair<String, Short> node) {
+        TTransport transport = new TFramedTransport(new TSocket(node.getLeft(), node.getRight()));
+        TProtocol protocol = new TMultiplexedProtocol(new TCompactProtocol(transport), serviceName);
+
+        T res;
+        try {
+          res = thriftClientClass.getConstructor(TProtocol.class).newInstance(protocol);
+        } catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException
+            | NoSuchMethodException | SecurityException e) {
+          throw new RuntimeException("Could not instantiate thrift client", e);
+        }
+
+        try {
+          transport.open();
+        } catch (TTransportException e) {
+          return null;
+        }
+
+        cleanupActions.add(() -> transport.close());
+
+        return res;
       }
     };
   }
@@ -142,18 +175,17 @@ public class JsonRequest {
    */
   public void executeCommand() {
     AtomicBoolean doneSent = new AtomicBoolean(false);
-    queryUuidHolder = new Holder<>();
 
     CommandResultHandler commandResultHandler = new CommandResultHandler() {
       @Override
       public void sendException(Throwable t) {
-        JsonRequest.this.sendException(queryUuidHolder, t);
+        JsonRequest.this.sendException(t);
       }
 
       @Override
       public void sendDone() {
         doneSent.set(true);
-        JsonRequest.this.sendDone(queryUuidHolder);
+        JsonRequest.this.sendDone();
       }
 
       @Override
@@ -176,12 +208,12 @@ public class JsonRequest {
     try {
       jsonCommand.execute(commandResultHandler, commandClusterInteraction);
     } catch (RuntimeException e) {
-      sendException(queryUuidHolder, e);
+      sendException(e);
       throw e;
     }
 
     if (!AsyncJsonCommand.class.isAssignableFrom(jsonCommand.getClass()) && !doneSent.get()) {
-      sendDone(queryUuidHolder);
+      sendDone();
     }
   }
 
@@ -191,23 +223,21 @@ public class JsonRequest {
    * The request will definitely be cleaned up in {@link JsonRequestRegistry}.
    */
   public void cancel() {
-    cleanup();
-
-    if (!AsyncJsonCommand.class.isAssignableFrom(jsonCommand.getClass()))
-      // is no async command
+    if (!AsyncJsonCommand.class.isAssignableFrom(jsonCommand.getClass())) {
+      cleanup();
       return;
+    }
 
     AsyncJsonCommand asyncCommand = (AsyncJsonCommand) jsonCommand;
     asyncCommand.cancel(commandClusterInteraction);
+
+    cleanup();
   }
 
   /**
    * Send a "done" to the client.
-   * 
-   * @param queryUuidHolder
-   *          Holder for the queryUuid, if the command created a remote query.
    */
-  private void sendDone(Holder<UUID> queryUuidHolder) {
+  private void sendDone() {
     cleanup();
 
     try {
@@ -227,12 +257,10 @@ public class JsonRequest {
   /**
    * Send an exception to the client.
    * 
-   * @param queryUuidHolder
-   *          Holder for the queryUuid if the command created a remote query.
    * @param t
    *          The exception.
    */
-  private void sendException(Holder<UUID> queryUuidHolder, Throwable t) {
+  private void sendException(Throwable t) {
     cleanup();
 
     ExceptionJsonResult ex = new ExceptionJsonResult();
@@ -253,8 +281,13 @@ public class JsonRequest {
   }
 
   private void cleanup() {
-    if (queryUuidHolder.getValue() != null)
-      queryResultRegistry.unregisterQuery(requestId, queryUuidHolder.getValue());
+    for (Runnable r : cleanupActions)
+      try {
+        r.run();
+      } catch (RuntimeException e) {
+        logger.warn("Could not clean up request correctly", e);
+        // continue with next cleanup action.
+      }
 
     requestRegistry.unregisterRequest(session, this);
   }

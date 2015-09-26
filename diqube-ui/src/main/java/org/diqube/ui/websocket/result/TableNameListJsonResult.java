@@ -1,4 +1,4 @@
-/*
+/**
  * diqube: Distributed Query Base.
  *
  * Copyright (C) 2015 Bastian Gloeckle
@@ -18,22 +18,25 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-"use strict";
+package org.diqube.ui.websocket.result;
 
-(function() {
-    angular.module("diqube", [ "ngRoute", 
-                               "ngWebsocket", 
-                               "angular-toArrayFilter",
-                               "ui.bootstrap",
-                               "diqube.route", 
-                               "diqube.about", 
-                               "diqube.query", 
-                               "diqube.remote",
-                               "diqube.analysis",
-                               "diqube.create-analysis",
-                               "diqube.open-analysis"
-                                ])
-      .config([ "$locationProvider", function($locationProvider) {
-        $locationProvider.html5Mode(true).hashPrefix("!");
-      } ]);
-})();
+import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+/**
+ * A list of table names.
+ *
+ * @author Bastian Gloeckle
+ */
+@JsonResultDataType(TableNameListJsonResult.DATA_TYPE)
+public class TableNameListJsonResult implements JsonResult {
+  public static final String DATA_TYPE = "tableNameList";
+
+  @JsonProperty
+  public List<String> tableNames;
+
+  public TableNameListJsonResult(List<String> tableNames) {
+    this.tableNames = tableNames;
+  }
+}

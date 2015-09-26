@@ -23,6 +23,7 @@
 <!DOCTYPE html>
 <html lang="en" ng-app="diqube">
 <head>
+<base href="{{globalContextPath}}/">
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -44,7 +45,7 @@
   <nav class="navbar navbar-inverse navbar-fixed-top">
     <div class="container-fluid">
       <div class="navbar-header">
-        <a class="navbar-brand" href="#/">diqube</a>
+        <a class="navbar-brand" href="{{globalContextPath}}">diqube</a>
       </div>
       <div id="navbar" class="navbar-collapse collapse">
         <ul class="nav navbar-nav navbar-right">
@@ -64,9 +65,9 @@
               </li>
             </ul>
           </li>
-          <li><a href="#/create_analysis">Create Analysis</a></li>
-          <li><a href="#/query">Execute Query</a></li>
-          <li><a href="#/about">About</a></li>
+          <li><a href="create-analysis">Create Analysis</a></li>
+          <li><a href="query">Execute Query</a></li>
+          <li><a href="about">About</a></li>
         </ul>
       </div>
     </div>
@@ -83,10 +84,14 @@
   <script src="bower_components/angular-ui-bootstrap-bower/ui-bootstrap-tpls.js"></script>
   <script src="app.js"></script>
   <script src="route.js"></script>
+  <script src="analysis/analysis.module.js"></script>
+  
   <script src="remote/remote.service.js"></script>
   <script src="analysis/analysis.service.js"></script>
+  
   <script src="query/query.controller.js"></script>
   <script src="about/about.controller.js"></script>
+  <script src="analysis/analysis.controller.js"></script>
   <script src="open-analysis/open-analysis.controller.js"></script>
   <script src="create-analysis/create-analysis.controller.js"></script>
 </body>

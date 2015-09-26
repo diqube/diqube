@@ -31,10 +31,14 @@
           templateUrl : "about/about.html",
           controller : "AboutCtrl",
           controllerAs : "about"
-        }).when("/create_analysis", {
+        }).when("/create-analysis", {
           templateUrl : "create-analysis/create-analysis.html",
           controller : "CreateAnalysisCtrl",
           controllerAs : "createAnalysis"
+        }).when("/analysis/:analysisId", {
+          templateUrl : "analysis/analysis.html",
+          controller : "AnalysisCtrl",
+          controllerAs : "analysis"
         }).otherwise({
           redirectTo : "/query"
         });

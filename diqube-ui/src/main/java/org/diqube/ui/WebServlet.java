@@ -72,7 +72,7 @@ public class WebServlet extends HttpServlet {
 
     InputStream is = getClass().getResourceAsStream(WAR_STATIC_ROOT + path);
 
-    if (path.equals("/index.html") || is == null) {
+    if (path.equals("/index.html") || is == null || !path.contains(".")) {
       if (cachedIndexHtmlBytes == null) {
         synchronized (cachedIndexHtmlSync) {
           if (cachedIndexHtmlBytes == null) {

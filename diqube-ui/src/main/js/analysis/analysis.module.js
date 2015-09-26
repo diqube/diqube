@@ -21,19 +21,5 @@
 "use strict";
 
 (function() {
-    angular.module("diqube", [ "ngRoute", 
-                               "ngWebsocket", 
-                               "angular-toArrayFilter",
-                               "ui.bootstrap",
-                               "diqube.route", 
-                               "diqube.about", 
-                               "diqube.query", 
-                               "diqube.remote",
-                               "diqube.analysis",
-                               "diqube.create-analysis",
-                               "diqube.open-analysis"
-                                ])
-      .config([ "$locationProvider", function($locationProvider) {
-        $locationProvider.html5Mode(true).hashPrefix("!");
-      } ]);
+  angular.module("diqube.analysis", [ "diqube.remote" ]);
 })();

@@ -23,8 +23,8 @@
   
 
   angular.module("diqube.open-analysis", [ "diqube.remote", "ui.bootstrap", "diqube.analysis" ]).controller(
-      "OpenAnalysisCtrl", [ "remoteService",  "analysisService", "$scope", "$log", 
-      function(remoteService, analysisService, $scope, $log) {
+      "OpenAnalysisCtrl", [ "remoteService",  "analysisService", "$location", "$scope", "$log", 
+      function(remoteService, analysisService, $location, $scope, $log) {
         var me = this;
         
         me.text = "Open Analysis";
@@ -49,6 +49,12 @@
                   id : data.id
                 });
               }
+              
+              me.items.sort(function(a, b) {
+                if (a.name == b.name) return 0;
+                if (a.name < b.name) return -1;
+                return 1;
+              });
             };
             this.done = function done_() {
               me.loading = false;
@@ -59,7 +65,7 @@
         function openAnalysis(item) {
           $log.info("Opening ", item);
           me.dropdownIsOpen = false; // close dropdown manually.
-          analysisService.loadAnalysis(item.id);
+          $location.path("analysis/" + item.id);
         }
         
         reloadAnalysis();

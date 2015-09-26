@@ -21,7 +21,7 @@
 
 (function() {
   "use strict";
-  angular.module("diqube.analysis", [ "diqube.remote" ]).service("analysisService",
+  angular.module("diqube.analysis").service("analysisService",
       [ "$log", "$rootScope", "remoteService", function analysisServiceProvider($log, $rootScope, remoteService) {
         var me = this;
 
@@ -38,17 +38,31 @@
         }
         
         function loadAnalysis(id) {
-          remoteService.execute($rootScope, "analysis", {analysisId: id}, new (function() {
-            this.data = function data_(dataType, data) {
-              if (dataType === "analysis") {
-                me.loadedAnalysis = data.analysis;
-                $rootScope.$broadcast('analysis:loaded');
-              }
-            }
-          })());
+          if (!me.loadedAnalysis || me.loadedAnalysis.id != id) {
+            return new Promise(function(resolve, reject) {
+              remoteService.execute($rootScope, "analysis", { analysisId : id }, new (function() {
+                this.data = function data_(dataType, data) {
+                  if (dataType === "analysis") {
+                    me.loadedAnalysis = data.analysis;
+                    $rootScope.$broadcast('analysis:loaded');
+                    resolve(me.loadedAnalysis);
+                  }
+                }
+                this.exception = function exception_(text) {
+                  reject(text);
+                }
+              })());
+            });
+          } else {
+            // loaded already, publish event anyway
+            $rootScope.$broadcast('analysis:loaded');
+            return new Promise(function(resolve, reject) {
+              resolve(me.loadedAnalysis);
+            });
+          }
         }
         
-        function unloadAnalysis(id) {
+        function unloadAnalysis() {
           me.loadedAnalysis = undefined;
           $rootScope.$broadcast('analysis:loaded');
         }
