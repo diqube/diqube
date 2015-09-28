@@ -30,11 +30,29 @@
         me.unloadAnalysis = unloadAnalysis;
         me.setLoadedAnalysis = setLoadedAnalysis;
         
+        me.addQube = addQube;
+        me.addQuery = addQuery;
+        me.addSlice = addSlice;
+        
         // =====
+        
+        me.initializeReceivedQube = initializeReceivedQube;
+        me.initializeReceivedSlice = initializeReceivedSlice;
         
         function setLoadedAnalysis(analysis) {
           me.loadedAnalysis = analysis;
-          $rootScope.$broadcast('analysis:loaded');
+          
+          if (!me.loadedAnalysis.qubes)
+            me.loadedAnalysis.qubes = [];
+          for (var idx in me.loadedAnalysis.qubes)
+            me.initializeReceivedQube(me.loadedAnalysis.qubes[idx]);
+          
+          if (!me.loadedAnalysis.slices)
+            me.loadedAnalysis.slices = [];
+          for (var idx in me.loadedAnalysis.slices)
+            me.initializeReceivedSlice(me.loadedAnalysis.slices[idx]);
+          
+          $rootScope.$broadcast("analysis:loaded");
         }
         
         function loadAnalysis(id) {
@@ -43,8 +61,7 @@
               remoteService.execute($rootScope, "analysis", { analysisId : id }, new (function() {
                 this.data = function data_(dataType, data) {
                   if (dataType === "analysis") {
-                    me.loadedAnalysis = data.analysis;
-                    $rootScope.$broadcast('analysis:loaded');
+                    me.setLoadedAnalysis(data.analysis);
                     resolve(me.loadedAnalysis);
                   }
                 }
@@ -55,7 +72,7 @@
             });
           } else {
             // loaded already, publish event anyway
-            $rootScope.$broadcast('analysis:loaded');
+            $rootScope.$broadcast("analysis:loaded");
             return new Promise(function(resolve, reject) {
               resolve(me.loadedAnalysis);
             });
@@ -65,6 +82,110 @@
         function unloadAnalysis() {
           me.loadedAnalysis = undefined;
           $rootScope.$broadcast('analysis:loaded');
+        }
+        
+        function addQube(name, sliceId) {
+          if (!me.loadedAnalysis) {
+            $log.warn("No loaded analysis.");
+            return;
+          }
+          return new Promise(function(resolve, reject) {
+            remoteService.execute($rootScope, "createQube", 
+                { analysisId: me.loadedAnalysis.id, 
+                  name: name, 
+                  sliceId: sliceId }, 
+                new (function() {
+                  var resQube = undefined;
+                  
+                  this.data = function data_(dataType, data) {
+                    if (dataType === "qube") {
+                      me.initializeReceivedQube(data.qube);
+                      me.loadedAnalysis.qubes.push(data.qube);
+                      $rootScope.$broadcast("analysis:qubeAdded", data.qube);
+                      resQube = data.qube;
+                    }
+                  }
+                  this.exception = function exception_(text) {
+                    reject(text);
+                  }
+                  this.done = function done_() {
+                    resolve(resQube);
+                  }
+                })());
+          });
+        }
+        
+        function addQuery(name, diql, qubeId) {
+          if (!me.loadedAnalysis) {
+            $log.warn("No loaded analysis.");
+            return;
+          }
+          return new Promise(function(resolve, reject) {
+            remoteService.execute($rootScope, "createQuery", 
+                { analysisId: me.loadedAnalysis.id, 
+                  name: name, 
+                  qubeId: qubeId,
+                  diql: diql }, 
+                new (function() {
+                  var resQuery = undefined;
+                  this.data = function data_(dataType, data) {
+                    if (dataType === "query") {
+                      var qube = me.loadedAnalysis.qubes.filter(function(q) {
+                        return q.id === qubeId;
+                      })[0];
+                      qube.queries.push(data.query);
+                      $rootScope.$broadcast("analysis:queryAdded", {
+                        qubeId: qubeId,
+                        query: data.query
+                      });
+                      resQuery = data.query;
+                    }
+                  }
+                  this.exception = function exception_(text) {
+                    reject(text);
+                  }
+                  this.done = function done_() {
+                    resolve(resQuery);
+                  }
+                })());
+          });
+        }
+        
+        function addSlice(name) {
+          if (!me.loadedAnalysis) {
+            $log.warn("No loaded analysis.");
+            return;
+          }
+          return new Promise(function(resolve, reject) {
+            remoteService.execute($rootScope, "createSlice", 
+                { analysisId: me.loadedAnalysis.id, 
+                  name: name }, 
+                new (function() {
+                  var resSlice = undefined;
+                  this.data = function data_(dataType, data) {
+                    if (dataType === "slice") {
+                      me.loadedAnalysis.slices.push(data.slice);
+                      $rootScope.$broadcast("analysis:sliceAdded", data.slice);
+                      resSlice = data.slice;
+                    }
+                  }
+                  this.exception = function exception_(text) {
+                    reject(text);
+                  }
+                  this.done = function done_() {
+                    resolve(resSlice);
+                  }
+                })());
+          });
+        }
+        
+        function initializeReceivedQube(qube) {
+          if (!qube.queries)
+            qube.queries = [];
+        }
+        function initializeReceivedSlice(slice) {
+          if (!slice.sliceDisjunctions)
+            slice.sliceDisjunctions = [];
         }
       } ]);
 })();

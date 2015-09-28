@@ -20,9 +20,29 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -->
-<h1 class="page-header">{{analysis.title}}</h1>
+<h1 class="page-header">{{analysis.title}} <small>{{analysis.table}}</small></h1>
 
 <div style="{{ analysis.error ? '' : 'display: none'}}" class="alert alert-danger">
   <span class="glyphicon glyphicon-exclamation-sign"></span>
   {{ analysis.error }}
+</div>
+
+<div style="{{ analysis.error ? 'display: none' : ''}}">
+  <button class="btn btn-default add-qube-btn" ng-click="analysis.addQube()"><i class="glyphicon glyphicon-plus"></i> Add qube</button>
+
+  <div class="container-fluid">
+    <div ng-repeat="qube in analysis.qubes" class="row qube-row">
+      <div class="col-md-12 qube">
+        <span class="lead">{{qube.name}}</span>
+        <div class="pull-right">
+          <button class="btn btn-default" ng-click="analysis.addQuery(qube)"><i class="glyphicon glyphicon-plus"></i> Add query</button>
+        </div>
+        <div class="container-fluid">
+          <div class="query" ng-repeat="query in qube.queries">
+            {{query.name}} :  {{query.diql}}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>

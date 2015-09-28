@@ -120,7 +120,7 @@ public class JsonRequestDeserializer {
 
       return request;
     } catch (IOException e) {
-      throw new JsonPayloadDeserializerException("Invalid JSON");
+      throw new JsonPayloadDeserializerException("Invalid JSON", e);
     }
   }
 

@@ -31,10 +31,26 @@ public class UiQuery {
   public String id;
 
   @JsonProperty
+  public String name;
+
+  @JsonProperty
   public String diql;
 
-  /* package */ UiQuery(String id, String diql) {
+  /* package */ UiQuery(String id, String name, String diql) {
     this.id = id;
+    this.name = name;
     this.diql = diql;
+  }
+
+  public String getId() {
+    return id;
+  }
+
+  public String getName() {
+    return name;
+  }
+
+  public String getDiql() {
+    return diql;
   }
 }

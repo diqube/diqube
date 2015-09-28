@@ -20,6 +20,7 @@
  */
 package org.diqube.ui.analysis;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -30,16 +31,36 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 public class UiQube {
   @JsonProperty
+  public String id;
+
+  @JsonProperty
   public String name;
 
   @JsonProperty
-  public String sliceName;
+  public String sliceId;
 
   @JsonProperty
-  public List<UiQuery> queries;
+  public List<UiQuery> queries = new ArrayList<>();
 
-  /* package */ UiQube(String name, String sliceName) {
+  /* package */ UiQube(String id, String name, String sliceId) {
+    this.id = id;
     this.name = name;
-    this.sliceName = sliceName;
+    this.sliceId = sliceId;
+  }
+
+  public String getName() {
+    return name;
+  }
+
+  public String getSliceId() {
+    return sliceId;
+  }
+
+  public List<UiQuery> getQueries() {
+    return queries;
+  }
+
+  public String getId() {
+    return id;
   }
 }

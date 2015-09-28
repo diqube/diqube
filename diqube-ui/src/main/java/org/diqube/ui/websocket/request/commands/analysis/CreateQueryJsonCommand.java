@@ -27,36 +27,44 @@ import javax.inject.Inject;
 import org.diqube.ui.AnalysisRegistry;
 import org.diqube.ui.analysis.AnalysisFactory;
 import org.diqube.ui.analysis.UiAnalysis;
+import org.diqube.ui.analysis.UiQube;
+import org.diqube.ui.analysis.UiQuery;
 import org.diqube.ui.websocket.request.CommandClusterInteraction;
 import org.diqube.ui.websocket.request.CommandResultHandler;
 import org.diqube.ui.websocket.request.commands.CommandInformation;
 import org.diqube.ui.websocket.request.commands.JsonCommand;
-import org.diqube.ui.websocket.result.analysis.AnalysisJsonResult;
+import org.diqube.ui.websocket.result.analysis.QueryJsonResult;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * Create a new {@link UiAnalysis}.
- * 
+ * Creates a {@link UiQuery} of a {@link UiQube}.
+ *
  * <p>
  * Sends following results:
  * <ul>
- * <li>{@link AnalysisJsonResult}
+ * <li>{@link QueryJsonResult}
  * </ul>
- *
+ * 
  * @author Bastian Gloeckle
  */
-@CommandInformation(name = CreateAnalysisJsonCommand.NAME)
-public class CreateAnalysisJsonCommand implements JsonCommand {
+@CommandInformation(name = CreateQueryJsonCommand.NAME)
+public class CreateQueryJsonCommand implements JsonCommand {
 
-  public static final String NAME = "createAnalysis";
+  public static final String NAME = "createQuery";
 
   @JsonProperty
-  public String table;
+  public String analysisId;
+
+  @JsonProperty
+  public String qubeId;
 
   @JsonProperty
   public String name;
+
+  @JsonProperty
+  public String diql;
 
   @JsonIgnore
   @Inject
@@ -69,11 +77,21 @@ public class CreateAnalysisJsonCommand implements JsonCommand {
   @Override
   public void execute(CommandResultHandler resultHandler, CommandClusterInteraction clusterInteraction)
       throws RuntimeException {
-    UiAnalysis res = factory.createAnalysis(UUID.randomUUID().toString(), name, table);
+    UiAnalysis analysis = registry.getAnalysis(analysisId);
 
-    registry.registerUiAnalysis(res);
+    if (analysis == null)
+      throw new RuntimeException("Analysis unknown: " + analysisId);
 
-    resultHandler.sendData(new AnalysisJsonResult(res));
+    UiQube qube = analysis.getQube(qubeId);
+
+    if (qube == null)
+      throw new RuntimeException("Qube not found: " + qubeId);
+
+    UiQuery query = factory.createQuery(UUID.randomUUID().toString(), name, diql);
+
+    qube.getQueries().add(query);
+
+    resultHandler.sendData(new QueryJsonResult(query));
   }
 
 }

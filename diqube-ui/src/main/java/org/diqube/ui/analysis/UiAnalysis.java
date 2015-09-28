@@ -64,12 +64,21 @@ public class UiAnalysis {
     return qubes;
   }
 
+  public UiQube getQube(String id) {
+    Optional<UiQube> resQube = qubes.stream().filter(qube -> qube.getId().equals(id)).findAny();
+
+    if (!resQube.isPresent())
+      return null;
+
+    return resQube.get();
+  }
+
   public List<UiSlice> getSlices() {
     return slices;
   }
 
-  public UiSlice getSlice(String name) {
-    Optional<UiSlice> resSlice = slices.stream().filter(slice -> slice.getName().equals(name)).findAny();
+  public UiSlice getSlice(String id) {
+    Optional<UiSlice> resSlice = slices.stream().filter(slice -> slice.getId().equals(id)).findAny();
 
     if (!resSlice.isPresent())
       return null;

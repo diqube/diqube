@@ -20,6 +20,7 @@
  */
 package org.diqube.ui.websocket.request.commands.analysis;
 
+import java.util.ArrayList;
 import java.util.UUID;
 
 import javax.inject.Inject;
@@ -27,33 +28,34 @@ import javax.inject.Inject;
 import org.diqube.ui.AnalysisRegistry;
 import org.diqube.ui.analysis.AnalysisFactory;
 import org.diqube.ui.analysis.UiAnalysis;
+import org.diqube.ui.analysis.UiSlice;
 import org.diqube.ui.websocket.request.CommandClusterInteraction;
 import org.diqube.ui.websocket.request.CommandResultHandler;
 import org.diqube.ui.websocket.request.commands.CommandInformation;
 import org.diqube.ui.websocket.request.commands.JsonCommand;
-import org.diqube.ui.websocket.result.analysis.AnalysisJsonResult;
+import org.diqube.ui.websocket.result.analysis.SliceJsonResult;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * Create a new {@link UiAnalysis}.
- * 
+ * Creates a {@link UiSlice}.
+ *
  * <p>
  * Sends following results:
  * <ul>
- * <li>{@link AnalysisJsonResult}
+ * <li>{@link SliceJsonResult}
  * </ul>
- *
+ * 
  * @author Bastian Gloeckle
  */
-@CommandInformation(name = CreateAnalysisJsonCommand.NAME)
-public class CreateAnalysisJsonCommand implements JsonCommand {
+@CommandInformation(name = CreateSliceJsonCommand.NAME)
+public class CreateSliceJsonCommand implements JsonCommand {
 
-  public static final String NAME = "createAnalysis";
+  public static final String NAME = "createSlice";
 
   @JsonProperty
-  public String table;
+  public String analysisId;
 
   @JsonProperty
   public String name;
@@ -69,11 +71,16 @@ public class CreateAnalysisJsonCommand implements JsonCommand {
   @Override
   public void execute(CommandResultHandler resultHandler, CommandClusterInteraction clusterInteraction)
       throws RuntimeException {
-    UiAnalysis res = factory.createAnalysis(UUID.randomUUID().toString(), name, table);
+    UiAnalysis analysis = registry.getAnalysis(analysisId);
 
-    registry.registerUiAnalysis(res);
+    if (analysis == null)
+      throw new RuntimeException("Analysis unknown: " + analysisId);
 
-    resultHandler.sendData(new AnalysisJsonResult(res));
+    UiSlice slice = factory.createSlice(UUID.randomUUID().toString(), name, new ArrayList<>());
+
+    analysis.getSlices().add(slice);
+
+    resultHandler.sendData(new SliceJsonResult(slice));
   }
 
 }

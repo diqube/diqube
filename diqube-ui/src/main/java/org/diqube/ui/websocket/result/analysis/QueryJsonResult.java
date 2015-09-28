@@ -18,32 +18,27 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.ui.analysis;
+package org.diqube.ui.websocket.result.analysis;
 
-import java.util.List;
+import org.diqube.ui.analysis.UiQuery;
+import org.diqube.ui.websocket.result.JsonResult;
+import org.diqube.ui.websocket.result.JsonResultDataType;
 
-import org.diqube.context.AutoInstatiate;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * Factory for classes that represent an "analysis" in the UI.
+ * Result of a single query.
  *
  * @author Bastian Gloeckle
  */
-@AutoInstatiate
-public class AnalysisFactory {
-  public UiAnalysis createAnalysis(String id, String name, String table) {
-    return new UiAnalysis(id, name, table);
-  }
+@JsonResultDataType(QueryJsonResult.DATA_TYPE)
+public class QueryJsonResult implements JsonResult {
+  public static final String DATA_TYPE = "query";
 
-  public UiSlice createSlice(String id, String name, List<UiSliceDisjunction> disjunctions) {
-    return new UiSlice(id, name, disjunctions);
-  }
+  @JsonProperty
+  public UiQuery query;
 
-  public UiQube createQube(String id, String name, String sliceId) {
-    return new UiQube(id, name, sliceId);
-  }
-
-  public UiQuery createQuery(String id, String name, String diql) {
-    return new UiQuery(id, name, diql);
+  public QueryJsonResult(UiQuery query) {
+    this.query = query;
   }
 }

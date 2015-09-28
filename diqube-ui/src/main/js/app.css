@@ -34,3 +34,19 @@ textarea.diql-full {
 .create-analysis input.ng-invalid.ng-touched {
 	background-color: #FA787E;
 }
+
+.qube {
+	background-color: #BBBBBB;
+}
+
+.qube-row {
+  margin-bottom: 15px;
+}
+
+.add-qube-btn {
+  margin-bottom: 30px;
+}
+
+.query {
+	background-color: #999999;
+}

@@ -29,18 +29,26 @@
         me.title = me.analysisId;
         me.error = undefined;
         me.analysis = undefined;
+        me.qubes = undefined;
+        me.slices = undefined;
+        me.table = undefined;
+        
+        me.addQube = addQube;
+        me.addQuery = addQuery;
         
         // ==
+        
+        me.loadAnalysis = loadAnalysis;
         
         
         function initialize() {
           analysisService.loadAnalysis(me.analysisId).then(function success_(analysis) {
             $scope.$apply(function() {
-              me.analysis = analysis;
-              me.title = analysis.name;
+              me.loadAnalysis(analysis);
             });
           }, function failure_(text) {
             $scope.$apply(function() {
+              me.loadAnalysis(undefined);
               me.error = text;
             });
           });
@@ -48,8 +56,51 @@
         
         initialize();
         
+        function loadAnalysis(analysis) {
+          if (!analysis) {
+            me.analysis = undefined;
+            me.title = me.analysisId;
+            me.qubes = undefined;
+            me.slices = undefined;
+            me.table = undefined;
+            me.error = undefined;
+            return;
+          }
+          me.analysis = analysis;
+          me.title = analysis.name;
+          me.qubes = analysis.qubes;
+          me.table = analysis.table;
+          me.slices = analysis.slices;
+          
+          me.error = undefined;
+        }
+        
+        function addQube() {
+          var slicePromise;
+          if (me.analysis.slices.length == 0)
+            slicePromise = analysisService.addSlice("slice1");
+          else {
+            slicePromise = new Promise(function(resolve, reject) {
+              resolve(me.analysis.slices[0]);
+            });
+          }
+          
+          slicePromise.then(function success_(slice) {
+            analysisService.addQube("qube1", slice.id);
+          });
+        }
+        
+        function addQuery(qube) {
+          analysisService.addQuery("query1", "select state, count() group by state", qube.id);
+        }
+        
         $scope.$on("$destroy", function() {
           analysisService.unloadAnalysis();
-      });
+        });
+        $scope.$on("analysis:sliceAdded", function() {
+        });
+        $scope.$on("analysis:qubeAdded", function() {
+          me.qubes = me.analysis.qubes;
+        });
       } ]);
 })();

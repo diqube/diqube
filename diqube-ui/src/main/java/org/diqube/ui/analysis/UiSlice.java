@@ -20,6 +20,7 @@
  */
 package org.diqube.ui.analysis;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -30,12 +31,16 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 public class UiSlice {
   @JsonProperty
+  public String id;
+
+  @JsonProperty
   public String name;
 
   @JsonProperty
-  public List<UiSliceDisjunction> sliceDisjunctions;
+  public List<UiSliceDisjunction> sliceDisjunctions = new ArrayList<>();
 
-  /* package */ UiSlice(String name, List<UiSliceDisjunction> sliceDisjunctions) {
+  /* package */ UiSlice(String id, String name, List<UiSliceDisjunction> sliceDisjunctions) {
+    this.id = id;
     this.name = name;
     this.sliceDisjunctions = sliceDisjunctions;
   }
@@ -46,5 +51,9 @@ public class UiSlice {
 
   public List<UiSliceDisjunction> getSliceDisjunctions() {
     return sliceDisjunctions;
+  }
+
+  public String getId() {
+    return id;
   }
 }
