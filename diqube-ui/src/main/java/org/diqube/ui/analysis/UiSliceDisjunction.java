@@ -39,4 +39,12 @@ public class UiSliceDisjunction {
     this.fieldName = fieldName;
     this.disjunctionValues = disjunctionValues;
   }
+
+  public String getFieldName() {
+    return fieldName;
+  }
+
+  public List<String> getDisjunctionValues() {
+    return disjunctionValues;
+  }
 }

@@ -22,6 +22,7 @@ package org.diqube.ui.analysis;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -58,6 +59,15 @@ public class UiQube {
 
   public List<UiQuery> getQueries() {
     return queries;
+  }
+
+  public UiQuery getQuery(String id) {
+    Optional<UiQuery> resQuery = queries.stream().filter(query -> query.getId().equals(id)).findAny();
+
+    if (!resQuery.isPresent())
+      return null;
+
+    return resQuery.get();
   }
 
   public String getId() {

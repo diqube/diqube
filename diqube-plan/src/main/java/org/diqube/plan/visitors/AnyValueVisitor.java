@@ -21,6 +21,7 @@
 package org.diqube.plan.visitors;
 
 import org.diqube.data.util.RepeatedColumnNameGenerator;
+import org.diqube.diql.ParseException;
 import org.diqube.diql.antlr.DiqlBaseVisitor;
 import org.diqube.diql.antlr.DiqlParser.AggregationFunctionNameContext;
 import org.diqube.diql.antlr.DiqlParser.AnyValueContext;
@@ -31,7 +32,6 @@ import org.diqube.diql.antlr.DiqlParser.FunctionContext;
 import org.diqube.diql.antlr.DiqlParser.LiteralValueContext;
 import org.diqube.diql.antlr.DiqlParser.ProjectionFunctionNameContext;
 import org.diqube.diql.antlr.DiqlParser.StringLiteralValueContext;
-import org.diqube.plan.exception.ParseException;
 import org.diqube.plan.request.ExecutionRequest;
 import org.diqube.plan.request.FunctionRequest;
 import org.diqube.plan.request.FunctionRequest.Type;

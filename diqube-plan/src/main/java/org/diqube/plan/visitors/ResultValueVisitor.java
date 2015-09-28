@@ -25,9 +25,9 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.diqube.data.util.RepeatedColumnNameGenerator;
+import org.diqube.diql.ParseException;
 import org.diqube.diql.antlr.DiqlBaseVisitor;
 import org.diqube.diql.antlr.DiqlParser.ResultValueContext;
-import org.diqube.plan.exception.ParseException;
 import org.diqube.plan.request.ResolveValueRequest;
 import org.diqube.plan.util.FunctionBasedColumnNameBuilderFactory;
 import org.diqube.util.ColumnOrValue;

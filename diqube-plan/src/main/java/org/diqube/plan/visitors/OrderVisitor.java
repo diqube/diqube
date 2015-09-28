@@ -22,13 +22,13 @@ package org.diqube.plan.visitors;
 
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.diqube.data.util.RepeatedColumnNameGenerator;
+import org.diqube.diql.ParseException;
 import org.diqube.diql.antlr.DiqlBaseVisitor;
 import org.diqube.diql.antlr.DiqlParser.AnyValueContext;
 import org.diqube.diql.antlr.DiqlParser.LimitClauseContext;
 import org.diqube.diql.antlr.DiqlParser.OrderClauseContext;
 import org.diqube.diql.antlr.DiqlParser.OrderTermContext;
 import org.diqube.diql.antlr.DiqlParser.PositiveDecimalLiteralValueContext;
-import org.diqube.plan.exception.ParseException;
 import org.diqube.plan.request.OrderRequest;
 import org.diqube.plan.util.FunctionBasedColumnNameBuilderFactory;
 import org.diqube.util.ColumnOrValue;

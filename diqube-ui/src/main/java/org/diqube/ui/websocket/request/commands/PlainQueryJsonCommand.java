@@ -54,13 +54,21 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  *
  * @author Bastian Gloeckle
  */
-@CommandInformation(name = QueryJsonCommand.NAME)
-public class QueryJsonCommand implements AsyncJsonCommand {
+@CommandInformation(name = PlainQueryJsonCommand.NAME)
+public class PlainQueryJsonCommand implements AsyncJsonCommand {
 
-  public static final String NAME = "query";
+  public static final String NAME = "plainQuery";
 
   @JsonProperty
   public String diql;
+
+  public PlainQueryJsonCommand() {
+    super();
+  }
+
+  public PlainQueryJsonCommand(String diql) {
+    this.diql = diql;
+  }
 
   @Override
   public void execute(CommandResultHandler resultHandler, CommandClusterInteraction clusterInteraction)

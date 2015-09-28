@@ -53,7 +53,7 @@
           fn.lastPercentComplete = 0;
 
           me.isExecuting = true;
-          me.currentRequestId = remoteService.execute($scope, "query", {
+          me.currentRequestId = remoteService.execute($scope, "plainQuery", {
             diql : me.diql
           }, new (function() {
             this.data = function data_(dataType, data) {

@@ -30,16 +30,17 @@
 <div style="{{ analysis.error ? 'display: none' : ''}}">
   <button class="btn btn-default add-qube-btn" ng-click="analysis.addQube()"><i class="glyphicon glyphicon-plus"></i> Add qube</button>
 
-  <div class="container-fluid">
-    <div ng-repeat="qube in analysis.qubes" class="row qube-row">
-      <div class="col-md-12 qube">
+  <div class="container-fluid text-justify">
+    <div ng-repeat="qube in analysis.qubes" class="qube-row">
+      <div class="qube">
         <span class="lead">{{qube.name}}</span>
         <div class="pull-right">
           <button class="btn btn-default" ng-click="analysis.addQuery(qube)"><i class="glyphicon glyphicon-plus"></i> Add query</button>
         </div>
-        <div class="container-fluid">
+        <div class="query-container">
           <div class="query" ng-repeat="query in qube.queries">
-            {{query.name}} :  {{query.diql}}
+            {{query.name}} :  {{query.diql}}<br/>
+            {{ query.results | json }}
           </div>
         </div>
       </div>

@@ -34,6 +34,8 @@
         me.addQuery = addQuery;
         me.addSlice = addSlice;
         
+        me.provideQueryResults = provideQueryResults;
+        
         // =====
         
         me.initializeReceivedQube = initializeReceivedQube;
@@ -134,10 +136,7 @@
                         return q.id === qubeId;
                       })[0];
                       qube.queries.push(data.query);
-                      $rootScope.$broadcast("analysis:queryAdded", {
-                        qubeId: qubeId,
-                        query: data.query
-                      });
+                      $rootScope.$broadcast("analysis:queryAdded", { qubeId: qubeId, query: data.query });
                       resQuery = data.query;
                     }
                   }
@@ -174,6 +173,49 @@
                   }
                   this.done = function done_() {
                     resolve(resSlice);
+                  }
+                })());
+          });
+        }
+        
+        function provideQueryResults(qube, query, intermediateResultsFn) {
+          if (query.results !== undefined) {
+            return new Promise(function(resolve, reject) {
+              resolve(query.results);
+            })
+          }
+
+          query.results = { percentComplete: 0, 
+                            rows: undefined, 
+                            columnNames: undefined, 
+                            exception: undefined };
+          if (intermediateResultsFn)
+            intermediateResultsFn(query.results);
+          
+          return new Promise(function(resolve, reject) {
+            remoteService.execute($rootScope, "analysisQuery", 
+                { analysisId: me.loadedAnalysis.id,
+                  qubeId: qube.id,
+                  queryId: query.id
+                }, new (function() {
+                  this.data = function data_(dataType, data) { 
+                    if (dataType === "table" && !query.results.exception) {
+                      if (data.percentComplete >= query.results.percentComplete) {
+                        query.results.rows = data.rows;
+                        query.results.columnNames = data.columnNames;
+                        query.results.percentComplete = data.percentComplete;
+                      }
+                      if (intermediateResultsFn)
+                        intermediateResultsFn(query.results);
+                    }
+                  };
+                  this.exception = function exception_(text) {
+                    query.results.exception = text;
+                    reject(query.results);
+                  }
+                  this.done = function done_() {
+                    query.results.percentComplete = 100;
+                    resolve(query.results);
                   }
                 })());
           });

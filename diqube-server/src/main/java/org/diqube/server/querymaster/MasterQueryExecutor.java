@@ -36,6 +36,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.diqube.diql.ParseException;
 import org.diqube.execution.ExecutablePlan;
 import org.diqube.execution.ExecutablePlanStep;
 import org.diqube.execution.ExecutionPercentage;
@@ -47,7 +48,6 @@ import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.steps.ExecuteRemotePlanOnShardsStep;
 import org.diqube.plan.ExecutionPlanBuilder;
 import org.diqube.plan.ExecutionPlanBuilderFactory;
-import org.diqube.plan.exception.ParseException;
 import org.diqube.plan.exception.ValidationException;
 import org.diqube.queries.QueryRegistry;
 import org.diqube.queries.QueryRegistry.QueryPercentHandler;

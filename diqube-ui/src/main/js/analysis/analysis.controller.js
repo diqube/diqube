@@ -39,6 +39,7 @@
         // ==
         
         me.loadAnalysis = loadAnalysis;
+        me.executeQuery = executeQuery;
         
         
         function initialize() {
@@ -73,6 +74,15 @@
           me.slices = analysis.slices;
           
           me.error = undefined;
+          
+          for (var qubeIdx in me.qubes) {
+            var qube = me.qubes[qubeIdx];
+            for (var queryIdx in qube.queries) {
+              var query = qube.queries[queryIdx];
+              me.executeQuery(qube, query);
+            }
+          }
+
         }
         
         function addQube() {
@@ -93,6 +103,20 @@
         function addQuery(qube) {
           analysisService.addQuery("query1", "select state, count() group by state", qube.id);
         }
+
+        function integrateQueryResults(qube, query, results) {
+          query.results = results;
+        }
+        
+        function executeQuery(qube, query) {
+          analysisService.provideQueryResults(qube, query, function (results) {
+            integrateQueryResults(qube, query, results);
+          }).then(function success_(results) {
+            integrateQueryResults(qube, query, results);
+          }, function failure_(results) {
+            integrateQueryResults(qube, query, results);
+          })
+        }
         
         $scope.$on("$destroy", function() {
           analysisService.unloadAnalysis();
@@ -101,6 +125,12 @@
         });
         $scope.$on("analysis:qubeAdded", function() {
           me.qubes = me.analysis.qubes;
+        });
+        $scope.$on("analysis:queryAdded", function(event, data) {
+          var qube = me.qubes.filter(function(qube) {
+            return qube.id == data.qubeId;
+          })[0];
+          me.executeQuery(qube, data.query);
         });
       } ]);
 })();

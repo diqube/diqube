@@ -41,7 +41,10 @@ public class ExecutionPlanValidator {
   public void validate(ExecutionRequest executionRequest, Map<String, PlannerColumnInfo> colInfos)
       throws ValidationException {
 
+    validateFrom(executionRequest);
+
     validateWhere(executionRequest, colInfos);
+
     validateHaving(executionRequest, colInfos);
 
     noAggregationOnAggregation(colInfos);
@@ -64,6 +67,15 @@ public class ExecutionPlanValidator {
 
     // TODO #23 validate if functions are used correctly (= correct number of params, correct types)
 
+  }
+
+  /**
+   * Calidates that there is a "from" clause. This is not ensured by the grammar itself, because the grammer is used for
+   * parsing partial diql statements which lack a FROM in diqube-ui.
+   */
+  private void validateFrom(ExecutionRequest executionRequest) throws ValidationException {
+    if (executionRequest.getTableName() == null || executionRequest.getTableName().equals(""))
+      throw new ValidationException("No FROM clause specified.");
   }
 
   /**

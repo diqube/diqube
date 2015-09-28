@@ -37,6 +37,7 @@ textarea.diql-full {
 
 .qube {
 	background-color: #BBBBBB;
+	padding: 5px;
 }
 
 .qube-row {
@@ -47,6 +48,14 @@ textarea.diql-full {
   margin-bottom: 30px;
 }
 
+.query-container {
+  display: flex;
+  flex-wrap: wrap;
+}
+
 .query {
 	background-color: #999999;
+	margin-left: 10px;
+	margin-top: 10px;
+	padding: 5px;
 }

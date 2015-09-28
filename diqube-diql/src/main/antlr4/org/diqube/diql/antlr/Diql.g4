@@ -27,7 +27,9 @@ diqlStmt
 
 selectStmt
  : K_SELECT resultValue ( ',' resultValue )*
-   K_FROM tableName
+   // the "from" clause is optional, as the UI uses this grammar too for parsing partial diql statements. 
+   // On diqube-server there has to be a "from" clause, of course.
+   ( K_FROM tableName )?
    ( K_WHERE comparison )?
    ( groupByClause )?
    ( orderClause )?

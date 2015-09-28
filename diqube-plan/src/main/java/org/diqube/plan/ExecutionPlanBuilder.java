@@ -22,14 +22,9 @@ package org.diqube.plan;
 
 import java.util.Map;
 
-import org.antlr.v4.runtime.ANTLRInputStream;
-import org.antlr.v4.runtime.BaseErrorListener;
-import org.antlr.v4.runtime.CommonTokenStream;
-import org.antlr.v4.runtime.RecognitionException;
-import org.antlr.v4.runtime.Recognizer;
 import org.diqube.data.util.RepeatedColumnNameGenerator;
-import org.diqube.diql.antlr.DiqlLexer;
-import org.diqube.diql.antlr.DiqlParser;
+import org.diqube.diql.DiqlParseUtil;
+import org.diqube.diql.ParseException;
 import org.diqube.diql.antlr.DiqlParser.DiqlStmtContext;
 import org.diqube.execution.ExecutablePlan;
 import org.diqube.execution.ExecutablePlanStep;
@@ -43,7 +38,6 @@ import org.diqube.execution.steps.ExecuteRemotePlanOnShardsStep;
 import org.diqube.execution.steps.FilterRequestedColumnsAndActiveRowIdsStep;
 import org.diqube.execution.steps.HavingResultStep;
 import org.diqube.execution.steps.OrderStep;
-import org.diqube.plan.exception.ParseException;
 import org.diqube.plan.exception.ValidationException;
 import org.diqube.plan.optimizer.ExecutionRequestOptimizer;
 import org.diqube.plan.request.ExecutionRequest;
@@ -112,7 +106,7 @@ public class ExecutionPlanBuilder {
    * @return An {@link ExecutablePlan} that is executable on the query master right away.
    */
   public ExecutablePlan build() throws ParseException, ValidationException {
-    DiqlStmtContext sqlStmt = parseWithAntlr();
+    DiqlStmtContext sqlStmt = DiqlParseUtil.parseWithAntlr(diql);
     ExecutionRequest executionRequest =
         sqlStmt.accept(new SelectStmtVisitor(repeatedColNames, functionBasedColumnNameBuilderFactory));
 
@@ -121,10 +115,10 @@ public class ExecutionPlanBuilder {
     Map<String, PlannerColumnInfo> colInfo =
         new PlannerColumnInfoBuilder().withExecutionRequest(executionRequest).build();
 
+    new ExecutionPlanValidator().validate(executionRequest, colInfo);
+
     ExecutionEnvironment queryMasterDefaultExecutionEnvironment =
         executionEnvironmentFactory.createQueryMasterExecutionEnvironment();
-
-    new ExecutionPlanValidator().validate(executionRequest, colInfo);
 
     ExecutablePlan plan = executionPlannerFactory.createExecutionPlanner().plan(executionRequest, colInfo,
         queryMasterDefaultExecutionEnvironment);
@@ -145,41 +139,6 @@ public class ExecutionPlanBuilder {
     }
 
     return plan;
-  }
-
-  private DiqlStmtContext parseWithAntlr() throws ParseException {
-    // TODO #20 make ANTLR provide better error messages, show error if not the while diql was parsed (e.g. WHERE after
-    // ORDER).
-    ANTLRInputStream input = new ANTLRInputStream(diql.toCharArray(), diql.length());
-    DiqlLexer lexer = new DiqlLexer(input);
-    lexer.addErrorListener(new BaseErrorListener() {
-
-      @Override
-      public void syntaxError(Recognizer<?, ?> recognizer, Object offendingSymbol, int line, int charPositionInLine,
-          String msg, RecognitionException e) {
-        throw new ParseException("Syntax error (" + line + ":" + charPositionInLine + "): " + msg);
-      }
-
-    });
-    CommonTokenStream tokens = new CommonTokenStream(lexer);
-    DiqlParser parser = new DiqlParser(tokens);
-    parser.setBuildParseTree(true);
-    parser.addErrorListener(new BaseErrorListener() {
-
-      @Override
-      public void syntaxError(Recognizer<?, ?> recognizer, Object offendingSymbol, int line, int charPositionInLine,
-          String msg, RecognitionException e) {
-        throw new ParseException("Syntax error while parsing (" + line + ":" + charPositionInLine + "): " + msg);
-      }
-
-    });
-
-    try {
-      DiqlStmtContext sqlStmt = parser.diqlStmt();
-      return sqlStmt;
-    } catch (RecognitionException e) {
-      throw new ParseException("Exception while parsing: " + e.getMessage(), e);
-    }
   }
 
   public ColumnValueConsumer getFinalColumnValueConsumer() {
