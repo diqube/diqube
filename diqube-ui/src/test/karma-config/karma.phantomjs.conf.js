@@ -18,35 +18,15 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-module.exports = function(config){
-  config.set({
+var baseConfig = require('./karma.default.conf.js');
 
-    basePath : './',
+module.exports = function(config) {
+	// Load base config
+	baseConfig(config);
+	
+	// Override base config
+	config.set({
+		browsers : [ 'PhantomJS' ]
+	});
 
-    files : [
-      'bower_components/angular/angular.min.js',
-      'bower_components/angular-route/angular-route.min.js',
-      'bower_components/angular-mocks/angular-mocks.js',
-      'src/main/js/components/**/*.js',
-      'src/main/js/view*/**/*.js'
-    ],
-
-    autoWatch : false,
-    singleRun : true,
-
-    frameworks: ['jasmine'],
-
-    plugins : [
-            'karma-chrome-launcher',   
-            'karma-phantomjs-launcher',
-            'karma-jasmine',
-            'karma-junit-reporter'
-            ],
-
-    junitReporter : {
-      outputFile: 'target/karma-results.xml',
-      suite: 'unit'
-    }
-
-  });
 };

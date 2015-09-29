@@ -33,6 +33,12 @@
   <packaging>war</packaging>
   <name>diqube - UI</name>
   <url>http://www.diqube.org</url>
+  
+  <properties>
+    <!-- This needs to be matching the values in karma.default.conf.js! -->
+    <war.webapp.directory>${project.build.directory}/war</war.webapp.directory>
+    <karma.final.config.dir>${project.build.directory}/karma-config</karma.final.config.dir>
+  </properties>
 
   <build>
     <plugins>
@@ -44,6 +50,68 @@
             <id>update-license-headers</id>
             <configuration>
               <skip>true</skip>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-war-plugin</artifactId>
+        <configuration>
+          <webappDirectory>${war.webapp.directory}</webappDirectory>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-antrun-plugin</artifactId>
+        <executions>
+          <execution>
+            <!-- Prepare karma config: We need to filter the karma config files from src/test/karma-config to contain 
+                 the correct information before we can execute karma: 
+                 
+                 Not only do we need to give the config the correct directory locations, but also 
+                 we need to give it a list of .js files that the tests need to load. These need to be in the right 
+                 ordering to actually work. In order to test the index.html at the same time, we read the list of js
+                 files to load from the index.html by extracting the name of the JS files from the <script src=..> tags!
+                 -->
+            <id>prepare-karma-config</id>
+            <phase>pre-integration-test</phase>
+            <goals>
+              <goal>run</goal>
+            </goals>
+            <configuration>
+              <target>
+                <!-- Load list of JS files loaded in index.html -->
+                <loadfile property="jsFiles" srcFile="src/main/js/index.html">
+                  <filterchain>
+                    <linecontains>
+                      <!-- select lines which contain script references -->
+                      <contains value="script src=" />
+                    </linecontains>
+                    <tokenfilter>
+                      <replaceregex pattern=".*script src=&quot;([^&quot;]+)&quot;.*" replace="webappBasePath + '\1'," />
+                    </tokenfilter>
+                  </filterchain>
+                </loadfile>
+                
+                <echo message="Found following .js files to be included in index.html, will load them in the karma tests, too." />
+                <echo message="${jsFiles}" />
+              
+                <!-- Copy the config files, replacing the placeholders. -->
+                <!-- be sure we re-create those files each time, as JS files might have changed. -->
+                <delete dir="${karma.final.config.dir}" /> 
+                <mkdir dir="${karma.final.config.dir}" />
+                <copy todir="${karma.final.config.dir}">
+                  <fileset dir="src/test/karma-config/">
+                    <include name="**/*" />
+                  </fileset>
+                  <filterset begintoken="{{" endtoken="}}">
+                    <filter token="warBasePath" value="'${war.webapp.directory}'" />
+                    <filter token="karmaBasePath" value="'${basedir}'"/>
+                    <filter token="originalJsFiles" value="${jsFiles}" />
+                  </filterset>
+                </copy>
+              </target>
             </configuration>
           </execution>
         </executions>
@@ -80,15 +148,18 @@
               <arguments>install</arguments>
             </configuration>
           </execution>
-          <!-- <execution>
+          <execution>
             <id>javascript-tests</id>
             <goals>
               <goal>karma</goal>
             </goals>
+            <!-- run karma in integration test phase, because we want to use the JS files that are actually packaged in 
+                 the .war -> Let the war be built in package phase first and then use that data to feed into karma! -->
+            <phase>integration-test</phase>
             <configuration>
-              <karmaConfPath>karma.phantomjs.conf.js</karmaConfPath>
+              <karmaConfPath>${karma.final.config.dir}/karma.phantomjs.conf.js</karmaConfPath>
             </configuration>
-          </execution>-->
+          </execution>
         </executions>
       </plugin>
       <plugin>
@@ -177,7 +248,7 @@
                     <goal>karma</goal>
                   </goals>
                   <configuration>
-                    <karmaConfPath>karma.chrome.conf.js</karmaConfPath>
+                    <karmaConfPath>${karma.final.config.dir}/karma.chrome.conf.js</karmaConfPath>
                   </configuration>
               </execution>
             </executions>
