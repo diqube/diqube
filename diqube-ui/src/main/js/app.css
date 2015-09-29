@@ -40,6 +40,11 @@ textarea.diql-full {
 	padding: 5px;
 }
 
+.qube .qube-header {
+	display: flex;
+	justify-content: space-between;
+}
+
 .qube-row {
   margin-bottom: 15px;
 }
@@ -58,4 +63,18 @@ textarea.diql-full {
 	margin-left: 10px;
 	margin-top: 10px;
 	padding: 5px;
+}
+
+.query .table {
+	margin-bottom: 0px;
+}
+
+.query .query-header {
+	display: flex;
+}
+
+.query .progress {
+	flex-grow: 1;
+  margin-bottom: 0px;
+  margin-left: 5px;
 }

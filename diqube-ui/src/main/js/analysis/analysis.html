@@ -33,14 +33,37 @@
   <div class="container-fluid text-justify">
     <div ng-repeat="qube in analysis.qubes" class="qube-row">
       <div class="qube">
-        <span class="lead">{{qube.name}}</span>
-        <div class="pull-right">
-          <button class="btn btn-default" ng-click="analysis.addQuery(qube)"><i class="glyphicon glyphicon-plus"></i> Add query</button>
+        <div class="qube-header">
+          <span class="lead">{{qube.name}}</span>
+          <div class="pull-right">
+            <button class="btn btn-default" ng-click="analysis.addQuery(qube)"><i class="glyphicon glyphicon-plus"></i> Add query</button>
+          </div>
         </div>
         <div class="query-container">
           <div class="query" ng-repeat="query in qube.queries">
-            {{query.name}} :  {{query.diql}}<br/>
-            {{ query.results | json }}
+            <div class="query-header">
+              <span>{{ query.name }}</span>
+              
+              <progressbar class="{{ query.results.percentComplete != 100 ? '' : 'hidden' }}" 
+                value="query.results.percentComplete">{{ query.results.percentComplete }}%</progressbar>
+            </div>
+            <div class="{{ (query.results && query.results.exception) ? '' : 'hidden'}}" class="alert alert-danger">
+              <span class="glyphicon glyphicon-exclamation-sign"></span>
+              {{ query.results.exception }}
+            </div>
+            
+            <table  class="table table-hover table-condensed {{ (query.results && !query.results.exception) ? '' : 'hidden'}}">
+              <thead>
+                <tr>
+                  <th ng-repeat="colName in query.results.columnNames">{{colName}}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr ng-repeat="row in query.results.rows track by $index">
+                  <td ng-repeat="col in row track by $index">{{col}}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
