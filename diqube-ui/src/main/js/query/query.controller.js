@@ -53,9 +53,7 @@
           fn.lastPercentComplete = 0;
 
           me.isExecuting = true;
-          me.currentRequestId = remoteService.execute($scope, "plainQuery", {
-            diql : me.diql
-          }, new (function() {
+          me.currentRequestId = remoteService.execute($scope, "plainQuery", { diql : me.diql }, new (function() {
             this.data = function data_(dataType, data) {
               if (dataType == "table" && me.exception === null) {
                 if (data.percentComplete >= fn.lastPercentComplete) {
@@ -67,7 +65,6 @@
               } else if (dataType == "stats" && me.exception === null) {
                 me.stats = data;
               }
-              return false; // not yet done.
             };
             this.exception = function exception_(text) {
               me.exception = text;

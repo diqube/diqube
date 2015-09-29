@@ -144,7 +144,11 @@
                 <name>listener</name>
                 <value>org.diqube.testutil.LoggingTestNgListener</value>
               </property>
-            </properties>  
+            </properties> 
+            <includes>
+              <include>**/*Test.java</include>
+              <include>**/*TestFactory.java</include>
+            </includes>
           </configuration>
         </plugin>
         <plugin>
