@@ -39,6 +39,11 @@ public class UiSlice {
   @JsonProperty
   public List<UiSliceDisjunction> sliceDisjunctions = new ArrayList<>();
 
+  // for tests only
+  public UiSlice() {
+
+  }
+
   /* package */ UiSlice(String id, String name, List<UiSliceDisjunction> sliceDisjunctions) {
     this.id = id;
     this.name = name;

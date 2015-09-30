@@ -36,6 +36,11 @@ public class TableNameListJsonResult implements JsonResult {
   @JsonProperty
   public List<String> tableNames;
 
+  // for test
+  public TableNameListJsonResult() {
+
+  }
+
   public TableNameListJsonResult(List<String> tableNames) {
     this.tableNames = tableNames;
   }

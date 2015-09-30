@@ -36,6 +36,11 @@ public class UiQuery {
   @JsonProperty
   public String diql;
 
+  /** for tests only */
+  public UiQuery() {
+
+  }
+
   /* package */ UiQuery(String id, String name, String diql) {
     this.id = id;
     this.name = name;

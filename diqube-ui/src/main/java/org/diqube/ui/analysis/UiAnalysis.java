@@ -46,6 +46,11 @@ public class UiAnalysis {
   @JsonProperty
   public List<UiSlice> slices = new ArrayList<>();
 
+  // for tests only
+  public UiAnalysis() {
+
+  }
+
   /* package */ UiAnalysis(String id, String name, String table) {
     this.id = id;
     this.name = name;

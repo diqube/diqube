@@ -37,6 +37,7 @@ module.exports = function(config) {
              {{originalJsFiles}}
              // in addition to the above, load angular mocks and our test files.
               "bower_components/angular-mocks/angular-mocks.js", 
+              "BROWSER_BASED_FILES", 
               "src/test/js/*.js",
               "src/test/js/*/**/*.js" ],
 

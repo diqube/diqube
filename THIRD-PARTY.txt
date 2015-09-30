@@ -110,6 +110,10 @@ diqube source code.
     
         * angular-toArrayFilter, https://github.com/petebacondarwin/angular-toArrayFilter
 
+    MIT License (es6-promise) [es6-promise-mit.txt]:
+    
+        * es6-promise, https://github.com/jakearchibald/es6-promise
+
     BSD License (D3) [d3-bsd.txt]:
 
         * D3.js, http://d3js.org/

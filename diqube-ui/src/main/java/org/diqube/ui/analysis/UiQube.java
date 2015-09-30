@@ -43,6 +43,11 @@ public class UiQube {
   @JsonProperty
   public List<UiQuery> queries = new ArrayList<>();
 
+  // for tests only
+  public UiQube() {
+
+  }
+
   /* package */ UiQube(String id, String name, String sliceId) {
     this.id = id;
     this.name = name;

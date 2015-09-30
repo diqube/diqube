@@ -37,3 +37,14 @@ It accesses `validatedData` which will be bound to different objects in the two 
 
 The data type check test will ignore everything else that is available in the .test.js file, but only inspect the calls
 to `validatedData`. 
+
+##Command check##
+Analogous to the data type check, the infrastructure provides a way to validate that the parameters the JS code wants
+to send to the server to form a `JsonCommand`:
+
+```
+ var commandDataObj = validatedData.commandData("createAnalysis", { 
+   name: "abcdef",
+   table: "age"
+ });
+```

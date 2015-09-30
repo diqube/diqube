@@ -83,7 +83,7 @@
                 };
                 this.done = function done_() {
                   $log.info("Created new analysis.");
-                  $rootScope.$broadcast("analysis:created");
+                  $rootScope.$broadcast("analysis:created", analysisService.loadedAnalysis);
                   me.isCreating = false;
                   $location.path("analysis/" + analysisService.loadedAnalysis.id);
                 }

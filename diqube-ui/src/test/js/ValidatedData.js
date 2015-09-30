@@ -25,4 +25,8 @@ var validatedData = new (function() {
   this.data = function data_(dataType, obj) {
     return obj;
   }
+  
+  this.commandData = function data_(commandName, obj) {
+    return obj;
+  }
 })();

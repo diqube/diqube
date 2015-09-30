@@ -20,10 +20,12 @@
  */
 package org.diqube.ui;
 
-import java.util.Map;
-
+import org.diqube.ui.websocket.request.commands.CommandInformation;
+import org.diqube.ui.websocket.request.commands.JsonCommand;
 import org.diqube.ui.websocket.result.JsonResult;
 import org.diqube.ui.websocket.result.JsonResultDataType;
+
+import jdk.nashorn.api.scripting.ScriptObjectMirror;
 
 /**
  * Implementing classes can be called from JavaScript tests in order to validate that a specific JavaScript object
@@ -36,6 +38,7 @@ import org.diqube.ui.websocket.result.JsonResultDataType;
  *
  * @author Bastian Gloeckle
  */
+@SuppressWarnings("restriction") // ScriptObjectMirror is public Nashorn API, but eclipse thinks it's restricted.
 public interface JavaScriptDataValidator {
 
   /**
@@ -50,6 +53,19 @@ public interface JavaScriptDataValidator {
    * @throws RuntimeException
    *           In case the object is invalid.
    */
-  public String data(String dataType, Map<String, Object> values);
+  public String data(String dataType, ScriptObjectMirror values);
+
+  /**
+   * Validates that data is valid input data for a specific {@link JsonCommand}.
+   * 
+   * @param commandName
+   *          The {@link CommandInformation#name()}.
+   * @param values
+   *          The values to be sent to the command.
+   * @return always <code>null</code>
+   * @throws RuntimeException
+   *           In case the object is invalid.
+   */
+  public String commandData(String commandName, ScriptObjectMirror values);
 
 }

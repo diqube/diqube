@@ -38,6 +38,10 @@ public class AnalysisJsonResult implements JsonResult {
   @JsonProperty
   public UiAnalysis analysis;
 
+  // for testing
+  public AnalysisJsonResult() {
+  }
+
   public AnalysisJsonResult(UiAnalysis analysis) {
     this.analysis = analysis;
   }

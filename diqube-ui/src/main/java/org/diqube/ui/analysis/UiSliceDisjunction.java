@@ -35,6 +35,11 @@ public class UiSliceDisjunction {
   @JsonProperty
   public List<String> disjunctionValues;
 
+  // for tests only
+  public UiSliceDisjunction() {
+
+  }
+
   /* package */ UiSliceDisjunction(String fieldName, List<String> disjunctionValues) {
     this.fieldName = fieldName;
     this.disjunctionValues = disjunctionValues;

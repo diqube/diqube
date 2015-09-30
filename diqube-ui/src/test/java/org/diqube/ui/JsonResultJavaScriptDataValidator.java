@@ -21,10 +21,15 @@
 package org.diqube.ui;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
+import org.diqube.ui.websocket.request.commands.CommandInformation;
+import org.diqube.ui.websocket.request.commands.JsonCommand;
 import org.diqube.ui.websocket.result.JsonResult;
 import org.diqube.ui.websocket.result.JsonResultDataType;
 
@@ -34,13 +39,18 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.reflect.ClassPath;
 import com.google.common.reflect.ClassPath.ClassInfo;
 
+import jdk.nashorn.api.scripting.ScriptObjectMirror;
+
 /**
- * Validates data objects that are present in JavaScript test-cases to be valid {@link JsonResult}s.
+ * Validates data objects that are present in JavaScript test-cases to be valid {@link JsonResult}s and
+ * {@link JsonCommand}s.
  *
  * @author Bastian Gloeckle
  */
+@SuppressWarnings("restriction") // ScriptObjectMirror is public Nashorn API, but eclipse thinks it's restricted.
 public class JsonResultJavaScriptDataValidator implements JavaScriptDataValidator {
   private static final Map<String, Class<? extends JsonResult>> dataTypeToClass = new HashMap<>();
+  private static final Map<String, Class<? extends JsonCommand>> commandNameToClass = new HashMap<>();
   private static final ObjectMapper mapper = new ObjectMapper();
 
   private String fileName;
@@ -54,18 +64,22 @@ public class JsonResultJavaScriptDataValidator implements JavaScriptDataValidato
   }
 
   @Override
-  public String data(String dataName, Map<String, Object> values) {
+  public String data(String dataName, ScriptObjectMirror origValue) {
     Class<? extends JsonResult> deserializationResultClass = dataTypeToClass.get(dataName);
 
     if (deserializationResultClass == null)
       throw new RuntimeException("dataName '" + dataName + "' unknown in file '" + fileName + "'");
 
+    Object value = clean(origValue);
+    if (!(value instanceof Map))
+      throw new RuntimeException("Data type " + value.getClass().getName() + " not supported.");
+
     // convert map to JsonNode
-    JsonNode node = mapper.convertValue(values, JsonNode.class);
+    JsonNode node = mapper.convertValue(value, JsonNode.class);
 
     try {
       // try to deserialize JsonNode to actual object, this will throw an exception if data is invalid.
-      mapper.treeToValue(node, dataTypeToClass.get(dataName));
+      mapper.treeToValue(node, deserializationResultClass);
     } catch (JsonProcessingException e) {
       throw new RuntimeException(
           "Invalid object for type '" + dataName + "' in file '" + fileName + "': " + e.getMessage(), e);
@@ -73,6 +87,66 @@ public class JsonResultJavaScriptDataValidator implements JavaScriptDataValidato
 
     // there was no exception, data object is valid! wohoo!
     return null;
+  }
+
+  @Override
+  public String commandData(String commandName, ScriptObjectMirror origValue) {
+    Class<? extends JsonCommand> deserializationCommandClass = commandNameToClass.get(commandName);
+
+    if (deserializationCommandClass == null)
+      throw new RuntimeException("Command '" + commandName + "' unknown in file '" + fileName + "'");
+
+    Object value = clean(origValue);
+    if (!(value instanceof Map))
+      throw new RuntimeException("Data type " + value.getClass().getName() + " not supported.");
+
+    // convert map to JsonNode
+    JsonNode node = mapper.convertValue(value, JsonNode.class);
+
+    try {
+      // try to deserialize JsonCommand to actual object, this will throw an exception if data is invalid.
+      mapper.treeToValue(node, deserializationCommandClass);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException(
+          "Invalid object for command '" + commandName + "' in file '" + fileName + "': " + e.getMessage(), e);
+    }
+
+    // there was no exception, data object is valid! wohoo!
+    return null;
+  }
+
+  /**
+   * Cleans the {@link ScriptObjectMirror} object and returns a clean {@link Map} or {@link List} of objects. Recursive.
+   * 
+   * <p>
+   * The JS objects are encapsulated and the Jackson deserialization might return for example a {"0": "abc", "1":"def"}
+   * {@link JsonNode} for a JS object which is actually an array: ["abc", "def"]. Therefore we "clean" that data here
+   * and identify arrays and return clean {@link List}s for them.
+   */
+  private Object clean(ScriptObjectMirror jsObject) {
+    if (jsObject.isArray()) {
+      List<Object> res = new ArrayList<>();
+      for (Object value : jsObject.values()) {
+        if (value instanceof ScriptObjectMirror)
+          res.add(clean((ScriptObjectMirror) value));
+        else
+          res.add(value);
+      }
+      return res;
+    } else {
+      Map<String, Object> res = new HashMap<>();
+      for (Entry<String, Object> jsEntry : jsObject.entrySet()) {
+        Object value;
+        if (jsEntry.getValue() instanceof ScriptObjectMirror)
+          value = clean((ScriptObjectMirror) jsEntry.getValue());
+        else
+          value = jsEntry.getValue();
+
+        res.put(jsEntry.getKey(), value);
+      }
+
+      return res;
+    }
   }
 
   /** initialization logic: load all JsonResults. */
@@ -92,7 +166,13 @@ public class JsonResultJavaScriptDataValidator implements JavaScriptDataValidato
         @SuppressWarnings("unchecked")
         Class<? extends JsonResult> jsonResultClazz = (Class<? extends JsonResult>) clazz;
         dataTypeToClass.put(dataType, jsonResultClazz);
+      } else if (clazz.getAnnotation(CommandInformation.class) != null && JsonCommand.class.isAssignableFrom(clazz)) {
+        String commandName = clazz.getAnnotation(CommandInformation.class).name();
+        @SuppressWarnings("unchecked")
+        Class<? extends JsonCommand> commandClazz = (Class<? extends JsonCommand>) clazz;
+        commandNameToClass.put(commandName, commandClazz);
       }
     }
   }
+
 }
