@@ -38,6 +38,11 @@ public class SliceJsonResult implements JsonResult {
   @JsonProperty
   private UiSlice slice;
 
+  // for tests only
+  public SliceJsonResult() {
+
+  }
+
   public SliceJsonResult(UiSlice slice) {
     this.slice = slice;
   }

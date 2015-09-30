@@ -38,6 +38,11 @@ public class QueryJsonResult implements JsonResult {
   @JsonProperty
   public UiQuery query;
 
+  // for tests only
+  public QueryJsonResult() {
+
+  }
+
   public QueryJsonResult(UiQuery query) {
     this.query = query;
   }

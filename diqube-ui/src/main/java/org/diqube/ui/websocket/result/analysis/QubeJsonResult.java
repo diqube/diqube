@@ -38,6 +38,11 @@ public class QubeJsonResult implements JsonResult {
   @JsonProperty
   public UiQube qube;
 
+  // for tests only
+  public QubeJsonResult() {
+
+  }
+
   public QubeJsonResult(UiQube qube) {
     this.qube = qube;
   }

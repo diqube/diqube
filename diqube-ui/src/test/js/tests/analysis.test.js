@@ -60,8 +60,60 @@
     }
   });
   
+  var testQubeResult = validatedData.data("qube", {
+    qube: {
+      id: "qubeId",
+      sliceId: "sliceId",
+      name: "qubeName",
+      queries: [
+        {
+          id: "queryId",
+          name: "queryName",
+          diql: "queryDiql"
+        }]
+    }
+  });
+  
+  var testSliceResult = validatedData.data("slice", {
+    slice: {
+      id: "sliceId",
+      name: "sliceName",
+      sliceDisjunctions: [
+        {
+          fieldName: "fieldA",
+          disjunctionValues: ["a", "b", "c"]
+        }]
+    }
+  });
+  
+  var testQueryResult = validatedData.data("query", {
+    query: {
+      id: "queryId",
+      name: "queryName",
+      diql: "queryDiql"
+    }
+  });
+  
   var analysisLoadCommand = validatedData.commandData("analysis", {
     analysisId: "analysisId"
+  });
+  
+  var createQubeCommand = validatedData.commandData("createQube", {
+    analysisId: "analysisId", 
+    name: "qubeName", 
+    sliceId: "sliceId"
+  });
+  
+  var createSliceCommand = validatedData.commandData("createSlice", {
+    analysisId: "analysisId", 
+    name: "sliceName", 
+  });
+  
+  var createQueryCommand = validatedData.commandData("createQuery", {
+    analysisId: "analysisId", 
+    qubeId: "qubeId1",
+    name: "queryName",
+    diql: "queryDiql"
   });
   
   describe("diqube.analysis module", function() {
@@ -196,6 +248,107 @@
           expect(eventAnalysis).toBe(undefined);
           testDone();
         }).catch(function (error) { fail(error); });
+      });
+     
+      it("addQube calls remote to add qube and fires analysis:qubeAdded event", function(testDone) {
+        remoteServiceHandlerFn = function(res, commandName, commandData) {
+          if (commandName === "createQube") {
+            expect(commandData).toEqual(createQubeCommand);
+            res.data("qube", testQubeResult);
+            res.done();
+          } else
+            fail("Unexpected command sent by analysisService: " + commandName + ", " + commandData);
+        }
+        
+        var eventQube = undefined;
+        rootScope.$on("analysis:qubeAdded", function(event, qube) {
+          eventQube = qube;
+        });
+        
+        analysisService.setLoadedAnalysis(testEmptyAnalysis.analysis);
+        var addPromise = analysisService.addQube("qubeName", "sliceId");
+        
+        addPromise.then(function(qube) {
+          expect(qube).toEqual(testQubeResult.qube);
+          
+          // loadedAnalysis should contain new qube
+          expect(analysisService.loadedAnalysis.qubes.filter(function(qube) {
+            return qube.id === testQubeResult.qube.id;
+          })[0]).toEqual(testQubeResult.qube);
+          
+          expect(eventQube).toEqual(testQubeResult.qube);
+          testDone();
+        }).catch(function (error) {
+          fail(error);
+        });
+      });
+      
+      it("addSlice calls remote to add slice and fires analysis:sliceAdded event", function(testDone) {
+        remoteServiceHandlerFn = function(res, commandName, commandData) {
+          if (commandName === "createSlice") {
+            expect(commandData).toEqual(createSliceCommand);
+            res.data("slice", testSliceResult);
+            res.done();
+          } else
+            fail("Unexpected command sent by analysisService: " + commandName + ", " + commandData);
+        }
+        
+        var eventSlice = undefined;
+        rootScope.$on("analysis:sliceAdded", function(event, slice) {
+          eventSlice = slice;
+        });
+        
+        analysisService.setLoadedAnalysis(testEmptyAnalysis.analysis);
+        var addPromise = analysisService.addSlice("sliceName");
+        
+        addPromise.then(function(slice) {
+          expect(slice).toEqual(testSliceResult.slice);
+          
+          // loadedAnalysis should contain new slice
+          expect(analysisService.loadedAnalysis.slices.filter(function(slice) {
+            return slice.id === testSliceResult.slice.id;
+          })[0]).toEqual(testSliceResult.slice);
+          
+          expect(eventSlice).toEqual(testSliceResult.slice);
+          testDone();
+        }).catch(function (error) {
+          fail(error);
+        });
+      });
+      
+      it("addQuery calls remote to add query and fires analysis:queryAdded event", function(testDone) {
+        remoteServiceHandlerFn = function(res, commandName, commandData) {
+          if (commandName === "createQuery") {
+            expect(commandData).toEqual(createQueryCommand);
+            res.data("query", testQueryResult);
+            res.done();
+          } else
+            fail("Unexpected command sent by analysisService: " + commandName + ", " + commandData);
+        }
+        
+        var eventQuery = undefined;
+        rootScope.$on("analysis:queryAdded", function(event, query) {
+          eventQuery = query;
+        });
+        
+        analysisService.setLoadedAnalysis(testTwoQubeAnalysis.analysis);
+        var targetQube = analysisService.loadedAnalysis.qubes.filter(function(qube) { return qube.id == "qubeId1"; })[0];
+        
+        var addPromise = analysisService.addQuery("queryName", "queryDiql", targetQube.id);
+        
+        addPromise.then(function(query) {
+          expect(query).toEqual(testQueryResult.query);
+
+          // target qube should contain new query
+          expect(targetQube.queries.filter(function(query) {
+            return query.id === testQueryResult.query.id;
+          })[0]).toEqual(testQueryResult.query);
+          
+          expect(eventQuery).toEqual({ qubeId: targetQube.id, query: testQueryResult.query } );
+          testDone();
+        }).catch(function (error) {
+          fail(error);
+        });
       });
     });
   });
