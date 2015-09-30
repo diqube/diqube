@@ -127,9 +127,7 @@
           expect(eventAnalysis).not.toBe(undefined);
           expect(eventAnalysis).toBe(analysis);
           testDone();
-        }).catch(function (error) {
-          fail(error);
-        });
+        }).catch(function (error) { fail(error); });
       });
       
       it("loadAnalysis does not re-load analysis from remote but fires analysis:loaded event", function(testDone) {
@@ -169,9 +167,7 @@
           }).catch(function (error) {
             fail(error);
           });
-        }).catch(function (error) {
-          fail(error);
-        });
+        }).catch(function (error) { fail(error); });
       });
       
       
@@ -199,9 +195,7 @@
           expect(analysisService.loadedAnalysis).toBe(undefined);
           expect(eventAnalysis).toBe(undefined);
           testDone();
-        }).catch(function (error) {
-          fail(error);
-        });
+        }).catch(function (error) { fail(error); });
       });
     });
   });

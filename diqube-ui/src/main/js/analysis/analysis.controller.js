@@ -97,11 +97,17 @@
           
           slicePromise.then(function success_(slice) {
             analysisService.addQube("qube1", slice.id);
+          }, function failure_(text) {
+            // TODO nicer error?
+            me.error = text;
           });
         }
         
         function addQuery(qube) {
-          analysisService.addQuery("query1", "select state, count() group by state", qube.id);
+          analysisService.addQuery("query1", "select state, count() group by state", qube.id).catch(function(text) {
+            // TODO nicer error?
+            me.error = text;
+          });
         }
 
         function integrateQueryResults(qube, query, results) {

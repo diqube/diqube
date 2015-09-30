@@ -37,18 +37,20 @@
         me.allTables = undefined;
         
         me.allTablePromise = new Promise(function(resolve, reject) {
-          if (me.allTables) {
+          if (me.allTables !== undefined) {
             resolve(me.allTables);
           } else {
             remoteService.execute($scope, "listAllTables", null, new (function() {
               this.data = function data_(dataType, data) {
-                me.allTables = [];
-                for (var idx in data.tableNames)
-                  me.allTables.push({ name : data.tableNames[idx] });
-                resolve(me.allTables);
+                if (dataType === "tableNameList") {
+                  me.allTables = [];
+                  for (var idx in data.tableNames)
+                    me.allTables.push({ name : data.tableNames[idx] });
+                  resolve(me.allTables);
+                }
               }
               this.exception = function exception_(text) {
-                reject(Error(text));
+                reject(text);
               }
             })());
           }
@@ -95,6 +97,8 @@
             return tables.filter(function(table) {
               return table.name.includes(userInput);
             });
+          }, function(text) {
+            me.error = text;
           });
         }
       } ]);

@@ -77,39 +77,45 @@
       $location = _$location_;
     }));
     
-    describe("CreateAnalysisCtrl", function(done) {
+    describe("CreateAnalysisCtrl", function() {
       var $scope, controller;
       beforeEach(function() {
         $scope = new MockedScope();
       });
 
-      it("tables are loaded", inject(function($controller) {
-        var controller = $controller("CreateAnalysisCtrl", { 
-          $scope: $scope,
-          // a remoteService which simply returns the test data.
-          remoteService: new MockedRemoteService(function(res) { res.data("tableNameList", testTableNameList); res.done(); })
+      it("tables are loaded", function(testDone) {
+        inject(function($controller) {
+          var controller = $controller("CreateAnalysisCtrl", { 
+            $scope: $scope,
+            // a remoteService which simply returns the test data.
+            remoteService: new MockedRemoteService(function(res) { res.data("tableNameList", testTableNameList); res.done(); })
+          });
+          
+          var doneCounterCount = 0;
+          var doneCounter = function() {
+            doneCounterCount++;
+            if (doneCounterCount == 3)
+              testDone();
+          }
+          
+          controller.getValidTables("table").then(function(tables) {
+            expect(tables).toEqual([ { name: "table1" }, { name: "table2" } ]);
+            doneCounter();
+          }).catch(function(text) { fail(text) } );
+          controller.getValidTables("").then(function(tables) {
+            expect(tables).toEqual([ { name: "table1" }, { name: "table2" } ]);
+            doneCounter();
+          }).catch(function(text) { fail(text) } );
+          controller.getValidTables("1").then(function(tables) {
+            expect(tables).toEqual([ { name: "table1" } ]);
+            doneCounter();
+          }).catch(function(text) { fail(text) } );
+          controller.getValidTables("x").then(function(tables) {
+            expect(tables).toEqual([ ]);
+            doneCounter();
+          }).catch(function(text) { fail(text) } );
         });
-        
-        var doneCounterCount = 0;
-        var doneCounter = function() {
-          doneCounterCount++;
-          if (doneCounterCount == 3)
-            done();
-        }
-        
-        controller.getValidTables("table").then(function(tables) {
-          expect(tables).toEqual([ "table1", "table2" ]);
-          doneCounter();
-        });
-        controller.getValidTables("").then(function(tables) {
-          expect(tables).toEqual([ ]);
-          doneCounter();
-        });
-        controller.getValidTables("x").then(function(tables) {
-          expect(tables).toEqual([ ]);
-          doneCounter();
-        });
-      }));
+      });
       
       it("createAnalysis needs name", inject(function($controller) {
         var controller = $controller("CreateAnalysisCtrl", { 
