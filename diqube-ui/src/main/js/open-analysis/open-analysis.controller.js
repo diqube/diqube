@@ -22,9 +22,9 @@
   "use strict";
   
 
-  angular.module("diqube.open-analysis", [ "diqube.remote", "ui.bootstrap", "diqube.analysis" ]).controller(
-      "OpenAnalysisCtrl", [ "remoteService",  "analysisService", "$location", "$scope", "$log", 
-      function(remoteService, analysisService, $location, $scope, $log) {
+  angular.module("diqube.open-analysis", [ "diqube.remote", "ui.bootstrap" ]).controller(
+      "OpenAnalysisCtrl", [ "remoteService",  "$location", "$scope", "$log", 
+      function(remoteService, $location, $scope, $log) {
         var me = this;
         
         me.text = "Open Analysis";

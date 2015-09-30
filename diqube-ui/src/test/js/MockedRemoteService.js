@@ -53,6 +53,10 @@ var MockedRemoteService = (function() {
       })(), commandName, commandData);
       resultHandler.data()
     }
+
+    this.initialize = function() {
+      // console.log("MockedRemoteService has been initialized");
+    }
   }
   
   return MockedRemoteService;

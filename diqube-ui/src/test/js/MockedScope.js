@@ -40,12 +40,16 @@ var MockedScope = (function() {
     me.$broadcast = function(eventName, eventData) {
       for (var i = 0; i < me.events.length; i = i + 2) {
         if (me.events[i] === eventName) {
-          me.events[i+1]({ /* this would be an Event object in real-life. Ignore in tests*/ }, eventData);
+          me.events[i+1]({ event_object: "ignored_in_tests!" }, eventData);
           return true;
         }
       }
       
       return false;
+    }
+    
+    me.$watch = function() {
+      // ignore watch calls
     }
   }
   
