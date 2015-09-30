@@ -94,6 +94,25 @@
     }
   });
   
+  
+  var testTableResult1 = validatedData.data("table", {
+    columnNames: [ "colA", "colB" ],
+    rows: [
+      [ 1, 1 ],
+      [ 101, 101 ]
+           ],
+    percentComplete: 50
+  });
+  
+  var testTableResult2 = validatedData.data("table", {
+    columnNames: [ "colA", "colB" ],
+    rows: [
+      [ 2, 2 ],
+      [ 102, 102 ]
+           ],
+    percentComplete: 99
+  });
+  
   var analysisLoadCommand = validatedData.commandData("analysis", {
     analysisId: "analysisId"
   });
@@ -114,6 +133,12 @@
     qubeId: "qubeId1",
     name: "queryName",
     diql: "queryDiql"
+  });
+  
+  var analysisQueryCommand = validatedData.commandData("analysisQuery", {
+    analysisId: "analysisId", 
+    qubeId: "qubeId2",
+    queryId: "queryId2"
   });
   
   describe("diqube.analysis module", function() {
@@ -348,6 +373,139 @@
           testDone();
         }).catch(function (error) {
           fail(error);
+        });
+      });
+      
+      
+      it("provideQueryResults calls remote and calls intermediate function correctly", function(testDone) {
+        var resultFn = undefined;
+        
+        remoteServiceHandlerFn = function(res, commandName, commandData) {
+          if (commandName === "analysisQuery") {
+            expect(commandData).toEqual(analysisQueryCommand);
+            resultFn = res;
+          } else
+            fail("Unexpected command sent by analysisService: " + commandName + ", " + commandData);
+        }
+        
+        analysisService.setLoadedAnalysis(testTwoQubeAnalysis.analysis);
+        var targetQube = analysisService.loadedAnalysis.qubes.filter(function(qube) { return qube.id === "qubeId2"; })[0];
+        var targetQuery = targetQube.queries.filter(function(query) { return query.id === "queryId2"; })[0];
+        var curIntermediateResult = undefined;
+        var intermediateResultFn = function (intermediateResult) {
+          curIntermediateResult = intermediateResult;
+        }
+        targetQuery.results = undefined; // ensure that not another test put results there already.
+
+        var queryPromise = analysisService.provideQueryResults(targetQube, targetQuery, intermediateResultFn);
+        
+        expect(resultFn).not.toBe(undefined);
+        
+        resultFn.data("table", testTableResult1);
+        expect(curIntermediateResult).toEqual({
+          exception: undefined,
+          columnNames: ["colA", "colB"],
+          rows: [
+            [ 1, 1 ],
+            [101, 101]
+                 ],
+          percentComplete: 50
+        });
+        expect(curIntermediateResult).toBe(targetQuery.results);
+        
+        resultFn.data("table", testTableResult2);
+        expect(curIntermediateResult).toEqual({
+          exception: undefined,
+          columnNames: ["colA", "colB"],
+          rows: [
+            [ 2, 2 ],
+            [102, 102]
+                 ],
+          percentComplete: 99
+        });
+        expect(curIntermediateResult).toBe(targetQuery.results);
+        
+        resultFn.done();
+        
+        queryPromise.then(function(result) {
+          expect(result).toEqual({
+            exception: undefined,
+            columnNames: ["colA", "colB"],
+            rows: [
+              [ 2, 2 ],
+              [102, 102]
+                   ],
+            percentComplete: 100
+          });
+          expect(result).toBe(targetQuery.results);
+          testDone();
+        }).catch(function (error) {
+          fail(error);
+        });
+      });
+      
+      it("provideQueryResults does not call remote for calcualted results", function(testDone) {
+        var remoteServiceWasCalled = false;
+        remoteServiceHandlerFn = function(res, commandName, commandData) {
+          if (commandName === "analysisQuery") {
+            remoteServiceWasCalled = true;
+            res.data("table", testTableResult2);
+            res.done();
+          } else
+            fail("Unexpected command sent by analysisService: " + commandName + ", " + commandData);
+        }
+        
+        analysisService.setLoadedAnalysis(testTwoQubeAnalysis.analysis);
+        var targetQube = analysisService.loadedAnalysis.qubes.filter(function(qube) { return qube.id === "qubeId2"; })[0];
+        var targetQuery = targetQube.queries.filter(function(query) { return query.id === "queryId2"; })[0];
+        targetQuery.results = undefined; // ensure that not another test put results there already.
+        
+        var queryPromise = analysisService.provideQueryResults(targetQube, targetQuery);
+        
+        queryPromise.then(function(result) {
+          expect(result).not.toBe(undefined);
+          
+          expect(remoteServiceWasCalled).toBe(true);
+          remoteServiceWasCalled = false;
+          
+          // re-run
+          queryPromise = analysisService.provideQueryResults(targetQube, targetQuery);
+          
+          queryPromise.then(function(result) {
+            expect(result).not.toBe(undefined);
+            
+            expect(remoteServiceWasCalled).toBe(false);
+            
+            testDone();
+          }).catch(function(error) {
+            fail(error);
+          })
+        }).catch(function (error) {
+          fail(error);
+        });
+      });
+      
+      it("provideQueryResults handles failures correclty", function(testDone) {
+        remoteServiceHandlerFn = function(res, commandName, commandData) {
+          if (commandName === "analysisQuery") {
+            res.exception("expectedException");
+            res.done();
+          } else
+            fail("Unexpected command sent by analysisService: " + commandName + ", " + commandData);
+        }
+        
+        analysisService.setLoadedAnalysis(testTwoQubeAnalysis.analysis);
+        var targetQube = analysisService.loadedAnalysis.qubes.filter(function(qube) { return qube.id === "qubeId2"; })[0];
+        var targetQuery = targetQube.queries.filter(function(query) { return query.id === "queryId2"; })[0];
+        targetQuery.results = undefined; // ensure that not another test put results there already.
+        
+        var queryPromise = analysisService.provideQueryResults(targetQube, targetQuery);
+        
+        queryPromise.then(function(result) {
+          fail("Did expect to get an exception, but succeeded?!");
+        }).catch(function (result) {
+          expect(result.exception).toEqual("expectedException");
+          testDone();
         });
       });
     });

@@ -178,6 +178,31 @@
           });
         }
         
+        /**
+         * Loads a field "results" into the query object which is updated continuously until it contains the full
+         * results of executing the query. With each new intermediate update available, the optional 
+         * intermediateResultsFn will be called.
+         * 
+         * If there are results available already (query.results !== undefined), the results will not be loaded again.
+         * 
+         * The results object which is published in the Promise #resolve and #intermediateResultsFn and is set to 
+         * query.results looks like this:
+         * 
+         * {
+         * percentComplete [number]: 0-100 percent complete of query.
+         * rows [array of array of cell values]: The cell values of the result table. Outer arrays are rows, inner are
+         *                                       indexed the same way as "columnNames".
+         * columnNames [array of string]: the column names. 
+         * exception [string]: If set, an exception occurred executing the query. Display the text and ignore other 
+         *                     values.
+         * }
+         * 
+         * Note that the returned Promise will return one of those "result objects" even on a call to "reject"!
+         * 
+         * @param qube The qube of the query to execute
+         * @param query The query to execute
+         * @param intermediateResultsFn function(resultsObj): called when intermediate results are available. Can be undefined.
+         */
         function provideQueryResults(qube, query, intermediateResultsFn) {
           if (query.results !== undefined) {
             return new Promise(function(resolve, reject) {
