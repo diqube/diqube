@@ -54,7 +54,7 @@
           for (var idx in me.loadedAnalysis.slices)
             me.initializeReceivedSlice(me.loadedAnalysis.slices[idx]);
           
-          $rootScope.$broadcast("analysis:loaded");
+          $rootScope.$broadcast("analysis:loaded", analysis);
         }
         
         function loadAnalysis(id) {
@@ -74,7 +74,7 @@
             });
           } else {
             // loaded already, publish event anyway
-            $rootScope.$broadcast("analysis:loaded");
+            $rootScope.$broadcast("analysis:loaded", me.loadedAnalysis);
             return new Promise(function(resolve, reject) {
               resolve(me.loadedAnalysis);
             });
@@ -83,7 +83,7 @@
         
         function unloadAnalysis() {
           me.loadedAnalysis = undefined;
-          $rootScope.$broadcast('analysis:loaded');
+          $rootScope.$broadcast("analysis:loaded", undefined);
         }
         
         function addQube(name, sliceId) {

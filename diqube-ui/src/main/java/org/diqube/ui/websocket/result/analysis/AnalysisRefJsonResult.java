@@ -40,6 +40,11 @@ public class AnalysisRefJsonResult implements JsonResult {
   @JsonProperty
   public String id;
 
+  // for tests only
+  public AnalysisRefJsonResult() {
+
+  }
+
   public AnalysisRefJsonResult(String name, String id) {
     this.name = name;
     this.id = id;

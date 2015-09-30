@@ -70,10 +70,10 @@
         
         reloadAnalysis();
         
-        $scope.$on('analysis:loaded', function(event, data) {
-          if (analysisService.loadedAnalysis !== undefined) { 
-            me.text = analysisService.loadedAnalysis.name;
-            me.title = analysisService.loadedAnalysis.id;
+        $scope.$on("analysis:loaded", function(event, data) {
+          if (data !== undefined) { 
+            me.text = data.name;
+            me.title = data.id;
           } else {
             me.text = "Open Analysis";
             me.title = "";

@@ -39,6 +39,7 @@ import org.slf4j.LoggerFactory;
 import org.testng.annotations.Factory;
 import org.testng.annotations.Test;
 
+import com.google.common.base.CaseFormat;
 import com.google.common.reflect.ClassPath;
 import com.google.common.reflect.ClassPath.ResourceInfo;
 
@@ -117,7 +118,8 @@ public class JavaScriptDataValidationTestFactory {
 
     String classNameSuffix = resourceName.replaceAll("\\..*", ""); // remove dot and everything after that
     classNameSuffix = classNameSuffix.replaceAll(".*/", ""); // remove everything until last /
-    classNameSuffix = classNameSuffix.substring(0, 1).toUpperCase() + classNameSuffix.substring(1);
+    // the name might still contain "-" as we use that in the names of our test files. Convert to CamelCase.
+    classNameSuffix = CaseFormat.LOWER_HYPHEN.to(CaseFormat.UPPER_CAMEL, classNameSuffix);
     String newClassName = JavaScriptDataValidationTestFactory.class.getPackage().getName()
         + ".JavaScriptDataValidationTest" + classNameSuffix;
 
