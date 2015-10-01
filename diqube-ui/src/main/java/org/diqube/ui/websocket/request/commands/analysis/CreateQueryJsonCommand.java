@@ -92,7 +92,7 @@ public class CreateQueryJsonCommand implements JsonCommand {
     if (qube == null)
       throw new RuntimeException("Qube not found: " + qubeId);
 
-    UiQuery query = factory.createQuery(UUID.randomUUID().toString(), name, diql, UiQuery.DISPLAY_TYPE_TABLE);
+    UiQuery query = factory.createQuery(UUID.randomUUID().toString(), name, diql, UiQuery.DISPLAY_TYPE_BARCHART);
 
     qube.getQueries().add(query);
 

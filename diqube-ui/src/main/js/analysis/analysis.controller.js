@@ -98,7 +98,8 @@
         
         function addQuery(qube) {
             //analysisService.addQuery("query1", "select state, count() group by state order by state asc", qube.id).catch(function(text) {
-            analysisService.addQuery("query1", "select state, avg(avg(persons[*].age)) group by state order by state asc", qube.id).catch(function(text) {
+            //analysisService.addQuery("query1", "select state, avg(avg(persons[*].age)) group by state order by state asc", qube.id).catch(function(text) {
+            analysisService.addQuery("query1", "select round(mul(log(family_income_12_months), 10.)), count() group by round(mul(log(family_income_12_months), 10.)) order by round(mul(log(family_income_12_months), 10.)) asc", qube.id).catch(function(text) {
             // TODO nicer error?
             me.error = text;
           });
