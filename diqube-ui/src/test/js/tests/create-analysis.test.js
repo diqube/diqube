@@ -36,34 +36,6 @@
     }
   });
   
-  var testTwoQubeAnalysis = validatedData.data("analysis", {
-    analysis: {
-      id: "analysisId",
-      table: "analysisTable",
-      name: "analysisName",
-      qubes: [ {
-        id: "qubeId1",
-        name: "qubeName1",
-        sliceId: "sliceId1",
-        queries: []
-      }, {
-        id: "qubeId2",
-        name: "qubeName2",
-        sliceId: "sliceId1",
-        queries: [ {
-          id: "queryId2",
-          name: "queryName2",
-          diql: "queryDiql2"
-        } ]
-      } ],
-      slices: [ {
-        id: "sliceId1",
-        name: "sliceName1",
-        sliceDisjunctions: []
-      } ]
-    }
-  });
-  
   var createAnalysisCommandData = validatedData.commandData("createAnalysis", {
     name: "abc", 
     table: "xyz"

@@ -20,7 +20,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -->
-<h1 class="page-header">{{analysis.title}} <small>{{analysis.table}}</small></h1>
+<h1 class="page-header">{{analysis.title}} <small>{{analysis.analysis.table}}</small></h1>
 
 <div class="alert alert-danger {{ analysis.error ? '' : 'hidden'}}">
   <span class="glyphicon glyphicon-exclamation-sign"></span>
@@ -31,7 +31,7 @@
   <button class="btn btn-default add-qube-btn" ng-click="analysis.addQube()"><i class="glyphicon glyphicon-plus"></i> Add qube</button>
 
   <div class="container-fluid text-justify">
-    <div ng-repeat="qube in analysis.qubes" class="qube-row">
+    <div ng-repeat="qube in analysis.analysis.qubes" class="qube-row">
       <div class="qube">
         <div class="qube-header">
           <span class="lead">{{qube.name}}</span>

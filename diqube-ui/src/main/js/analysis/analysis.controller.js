@@ -29,9 +29,6 @@
         me.title = me.analysisId;
         me.error = undefined;
         me.analysis = undefined;
-        me.qubes = undefined;
-        me.slices = undefined;
-        me.table = undefined;
         
         me.addQube = addQube;
         me.addQuery = addQuery;
@@ -82,7 +79,6 @@
               me.executeQuery(qube, query);
             }
           }
-
         }
         
         function addQube() {
