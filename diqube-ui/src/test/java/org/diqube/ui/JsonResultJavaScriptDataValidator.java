@@ -27,6 +27,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.stream.Collectors;
+
+import javax.validation.ConstraintViolation;
+import javax.validation.Validation;
+import javax.validation.ValidatorFactory;
 
 import org.diqube.ui.websocket.request.commands.CommandInformation;
 import org.diqube.ui.websocket.request.commands.JsonCommand;
@@ -53,6 +58,8 @@ public class JsonResultJavaScriptDataValidator implements JavaScriptDataValidato
   private static final Map<String, Class<? extends JsonCommand>> commandNameToClass = new HashMap<>();
   private static final ObjectMapper mapper = new ObjectMapper();
 
+  private static final ValidatorFactory validatorFactory = Validation.buildDefaultValidatorFactory();
+
   private String fileName;
 
   /**
@@ -70,20 +77,7 @@ public class JsonResultJavaScriptDataValidator implements JavaScriptDataValidato
     if (deserializationResultClass == null)
       throw new RuntimeException("dataName '" + dataName + "' unknown in file '" + fileName + "'");
 
-    Object value = clean(origValue);
-    if (!(value instanceof Map))
-      throw new RuntimeException("Data type " + value.getClass().getName() + " not supported.");
-
-    // convert map to JsonNode
-    JsonNode node = mapper.convertValue(value, JsonNode.class);
-
-    try {
-      // try to deserialize JsonNode to actual object, this will throw an exception if data is invalid.
-      mapper.treeToValue(node, deserializationResultClass);
-    } catch (JsonProcessingException e) {
-      throw new RuntimeException(
-          "Invalid object for type '" + dataName + "' in file '" + fileName + "': " + e.getMessage(), e);
-    }
+    validate(dataName, deserializationResultClass, origValue);
 
     // there was no exception, data object is valid! wohoo!
     return null;
@@ -96,6 +90,13 @@ public class JsonResultJavaScriptDataValidator implements JavaScriptDataValidato
     if (deserializationCommandClass == null)
       throw new RuntimeException("Command '" + commandName + "' unknown in file '" + fileName + "'");
 
+    validate(commandName, deserializationCommandClass, origValue);
+
+    // there was no exception, data object is valid! wohoo!
+    return null;
+  }
+
+  private void validate(String desc, Class<?> targetClass, ScriptObjectMirror origValue) throws RuntimeException {
     Object value = clean(origValue);
     if (!(value instanceof Map))
       throw new RuntimeException("Data type " + value.getClass().getName() + " not supported.");
@@ -105,14 +106,20 @@ public class JsonResultJavaScriptDataValidator implements JavaScriptDataValidato
 
     try {
       // try to deserialize JsonCommand to actual object, this will throw an exception if data is invalid.
-      mapper.treeToValue(node, deserializationCommandClass);
+      Object obj = mapper.treeToValue(node, targetClass);
+
+      // And to be absolutely sure, we validate the resulting object using a JSR-349 validator.
+      Set<ConstraintViolation<Object>> violations = validatorFactory.getValidator().validate(obj);
+
+      if (!violations.isEmpty())
+        throw new RuntimeException("Constraint violations for '" + desc + "' in file '" + fileName + "': "
+            + violations.stream().map(violation -> violation.getPropertyPath() + " " + violation.getMessage())
+                .collect(Collectors.toList()));
+
     } catch (JsonProcessingException e) {
-      throw new RuntimeException(
-          "Invalid object for command '" + commandName + "' in file '" + fileName + "': " + e.getMessage(), e);
+      throw new RuntimeException("Invalid object for '" + desc + "' in file '" + fileName + "': " + e.getMessage(), e);
     }
 
-    // there was no exception, data object is valid! wohoo!
-    return null;
   }
 
   /**

@@ -23,6 +23,9 @@ package org.diqube.ui.analysis;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
@@ -31,12 +34,16 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 public class UiSlice {
   @JsonProperty
+  @NotNull
   public String id;
 
   @JsonProperty
+  @NotNull
   public String name;
 
   @JsonProperty
+  @NotNull
+  @Valid
   public List<UiSliceDisjunction> sliceDisjunctions = new ArrayList<>();
 
   // for tests only

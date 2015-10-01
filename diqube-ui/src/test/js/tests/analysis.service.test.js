@@ -49,7 +49,8 @@
         queries: [ {
           id: "queryId2",
           name: "queryName2",
-          diql: "queryDiql2"
+          diql: "queryDiql2",
+          displayType: "table"
         } ]
       } ],
       slices: [ {
@@ -69,7 +70,8 @@
         {
           id: "queryId",
           name: "queryName",
-          diql: "queryDiql"
+          diql: "queryDiql",
+          displayType: "table"
         }]
     }
   });
@@ -90,7 +92,8 @@
     query: {
       id: "queryId",
       name: "queryName",
-      diql: "queryDiql"
+      diql: "queryDiql",
+      displayType: "table"
     }
   });
   

@@ -67,7 +67,7 @@ public class WebSocketEndpoint {
   @OnMessage
   public void onMessage(String msg, Session session) throws Exception {
     try {
-      logger.trace("Received message on session {}", session);
+      logger.trace("Received message on session {}: {}", session, msg);
       JsonRequestDeserializer deserializer = getBeanCtx(session).getBean(JsonRequestDeserializer.class);
       JsonRequestRegistry requestRegistry = getBeanCtx(session).getBean(JsonRequestRegistry.class);
       JsonRequest request = deserializer.deserialize(msg, session);

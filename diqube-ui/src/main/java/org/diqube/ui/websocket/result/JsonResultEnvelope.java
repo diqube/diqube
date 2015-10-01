@@ -20,6 +20,8 @@
  */
 package org.diqube.ui.websocket.result;
 
+import javax.validation.constraints.NotNull;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
@@ -42,12 +44,15 @@ public class JsonResultEnvelope {
   public static final String PROPERTY_DATA = "data";
 
   @JsonProperty
+  @NotNull
   public String requestId;
 
   @JsonProperty
+  @NotNull
   public String status;
 
   @JsonProperty
+  @NotNull
   public String dataType;
 
   /* package */ JsonResultEnvelope(String requestId, String status, String dataType) {

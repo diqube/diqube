@@ -24,6 +24,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
@@ -32,18 +35,25 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 public class UiAnalysis {
   @JsonProperty
+  @NotNull
   public String id;
 
   @JsonProperty
+  @NotNull
   public String table;
 
   @JsonProperty
+  @NotNull
   public String name;
 
   @JsonProperty
+  @NotNull
+  @Valid
   public List<UiQube> qubes = new ArrayList<>();
 
   @JsonProperty
+  @NotNull
+  @Valid
   public List<UiSlice> slices = new ArrayList<>();
 
   // for tests only

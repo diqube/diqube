@@ -380,12 +380,12 @@
       <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-core</artifactId>
-        <version>2.5.3</version>
+        <version>2.6.2</version>
       </dependency>
       <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-databind</artifactId>
-        <version>2.5.3</version>
+        <version>2.6.2</version>
       </dependency>
       <dependency>
         <groupId>commons-cli</groupId>
@@ -424,6 +424,28 @@
         <groupId>net.bytebuddy</groupId>
         <artifactId>byte-buddy-dep</artifactId>
         <version>0.6.15</version>
+      </dependency>
+      
+      <!-- JSR-349 Validator -->
+      <dependency>
+        <groupId>org.hibernate</groupId>
+        <artifactId>hibernate-validator</artifactId>
+        <version>5.2.2.Final</version>
+      </dependency>
+      <dependency>
+        <groupId>javax.el</groupId>
+        <artifactId>javax.el-api</artifactId>
+        <version>2.2.4</version>
+      </dependency>
+      <dependency>
+        <groupId>org.glassfish.web</groupId>
+        <artifactId>javax.el</artifactId>
+        <version>2.2.4</version>
+      </dependency>
+      <dependency>
+        <groupId>javax.validation</groupId>
+        <artifactId>validation-api</artifactId>
+        <version>1.1.0.Final</version>
       </dependency>
 
 
@@ -499,7 +521,7 @@
                   <licenseMerges>
                     <!-- @formatter:off -->
                     <!-- merge the various names of Apache 2 license -->
-                    <licenseMerge>Apache License 2.0 [apache-20.txt]|The Apache Software License, Version 2.0|Apache License|Apache License, Version 2.0|Apache 2</licenseMerge>
+                    <licenseMerge>Apache License 2.0 [apache-20.txt]|The Apache Software License, Version 2.0|Apache License|Apache License, Version 2.0|Apache 2|Apache License, version 2.0</licenseMerge>
                     <!-- "SLF4J" uses the following license name, use a different, more clear one. -->
                     <licenseMerge>MIT License (slf4j) [slf4j-mit.txt]|MIT License</licenseMerge>
                     <!-- "Mockito" uses the following license name, use a different, more clear one. -->
@@ -513,6 +535,8 @@
                     <!-- "BeanShell" uses the LGPL, make it clear. Additionally, "Logback" uses either LGPL or EPL, we choose 
                       LGPL, so merge EPL to LGPL, too. -->
                     <licenseMerge>LGPL [lgpl.txt]|GNU Lesser General Public License|GNU LESSER GENERAL PUBLIC LICENSE|Eclipse Public License - v 1.0</licenseMerge>
+                    <!-- "Expression Language" has CDDL or GPL2 with classpath exception -> choose GPL2 with classpath exception. -->
+                    <licenseMerge>GPLv2 with classpath exception [gpl-20-classpath.txt]|CDDL + GPLv2 with classpath exception</licenseMerge>
                     <!-- @formatter:on -->
                   </licenseMerges>
                 </configuration>

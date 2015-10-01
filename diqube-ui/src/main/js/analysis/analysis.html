@@ -46,24 +46,41 @@
               
               <progressbar class="{{ query.results.percentComplete != 100 ? '' : 'hidden' }}" 
                 value="query.results.percentComplete">{{ query.results.percentComplete }}%</progressbar>
+              <span  class="{{ query.results.percentComplete != 100 ? 'hidden' : '' }} query-header-right">
+                <div dropdown>
+                  <a href dropdown-toggle>{{ query.displayType }} <span class="caret"></span></a>
+                  <ul class="dropdown-menu">
+                    <li ng-repeat="choice in analysis.validQueryDisplayTypes">
+                        <a href ng-click="analysis.switchQueryDisplayType(query, choice)">{{ choice }}</a>
+                    </li>
+                  </ul>
+                </div>
+              </span>
             </div>
             <div class="{{ (query.results && query.results.exception) ? '' : 'hidden'}}" class="alert alert-danger">
               <span class="glyphicon glyphicon-exclamation-sign"></span>
               {{ query.results.exception }}
             </div>
             
-            <table  class="table table-hover table-condensed {{ (query.results && !query.results.exception) ? '' : 'hidden'}}">
-              <thead>
-                <tr>
-                  <th ng-repeat="colName in query.results.columnNames">{{colName}}</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr ng-repeat="row in query.results.rows track by $index">
-                  <td ng-repeat="col in row track by $index">{{col}}</td>
-                </tr>
-              </tbody>
-            </table>
+            <div class="{{ (query.results && !query.results.exception) ? '' : 'hidden'}}"
+                style="{{ query.results.displayWidth }}">
+              <table  class="table table-hover table-condensed {{ (query.displayType === 'table') ? '' : 'hidden'}}">
+                <thead>
+                  <tr>
+                    <th ng-repeat="colName in query.results.columnNames">{{colName}}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr ng-repeat="row in query.results.rows track by $index">
+                    <td ng-repeat="col in row track by $index">{{col}}</td>
+                  </tr>
+                </tbody>
+              </table>
+              
+              <nvd3 class="{{ (query.displayType === 'barchart') ? '' : 'hidden'}}" 
+                    options="query.results.nvd3.options"
+                    data="query.results.nvd3.data"></nvd3>
+            </div>
           </div>
         </div>
       </div>

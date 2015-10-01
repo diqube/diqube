@@ -172,7 +172,7 @@ public class JavaScriptDataValidationTestFactory {
         jsEngine.eval("function describe() { };"); // ignore calls to "describe"
         jsEngine.eval(
             "var ValidatedDataGenerator = Java.type('" + JsonResultJavaScriptDataValidator.class.getName() + "');");
-        jsEngine.eval("var " + JS_VALIDATED_DATA_OBJ + " = new ValidatedDataGenerator('" + "test.js" + "');");
+        jsEngine.eval("var " + JS_VALIDATED_DATA_OBJ + " = new ValidatedDataGenerator('" + jsResourceName + "');");
 
         // If the jsResource specified an access to validatedData, that call will be sent to
         // JsonResultJavaScriptDataValidator, which in turn will throw an exception if an object is invalid.

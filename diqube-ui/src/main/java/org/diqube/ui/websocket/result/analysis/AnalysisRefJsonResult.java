@@ -20,6 +20,8 @@
  */
 package org.diqube.ui.websocket.result.analysis;
 
+import javax.validation.constraints.NotNull;
+
 import org.diqube.ui.websocket.result.JsonResult;
 import org.diqube.ui.websocket.result.JsonResultDataType;
 
@@ -35,9 +37,11 @@ public class AnalysisRefJsonResult implements JsonResult {
   public static final String DATA_TYPE = "analysisRef";
 
   @JsonProperty
+  @NotNull
   public String name;
 
   @JsonProperty
+  @NotNull
   public String id;
 
   // for tests only

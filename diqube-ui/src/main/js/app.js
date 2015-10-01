@@ -25,6 +25,7 @@
                                "ngWebsocket", 
                                "angular-toArrayFilter",
                                "ui.bootstrap",
+                               "nvd3",
                                "diqube.route", 
                                "diqube.about", 
                                "diqube.query", 

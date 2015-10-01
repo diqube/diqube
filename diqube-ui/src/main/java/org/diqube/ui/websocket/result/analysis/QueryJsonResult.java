@@ -20,6 +20,9 @@
  */
 package org.diqube.ui.websocket.result.analysis;
 
+import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
+
 import org.diqube.ui.analysis.UiQuery;
 import org.diqube.ui.websocket.result.JsonResult;
 import org.diqube.ui.websocket.result.JsonResultDataType;
@@ -36,6 +39,8 @@ public class QueryJsonResult implements JsonResult {
   public static final String DATA_TYPE = "query";
 
   @JsonProperty
+  @NotNull
+  @Valid
   public UiQuery query;
 
   // for tests only

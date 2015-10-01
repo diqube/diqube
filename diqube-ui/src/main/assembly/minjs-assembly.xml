@@ -43,8 +43,8 @@
       <destName>bower_components/angular-route/angular-route.js</destName>
     </file>
     <file>
-      <source>bower_components/angularjs-nvd3-directives/dist/angularjs-nvd3-directives.min.js</source>
-      <destName>bower_components/angularjs-nvd3-directives/dist/angularjs-nvd3-directives.js</destName>
+      <source>bower_components/angular-nvd3/dist/angular-nvd3.min.js</source>
+      <destName>bower_components/angular-nvd3/dist/angular-nvd3.js</destName>
     </file>
     <file>
       <source>bower_components/d3/d3.min.js</source>
@@ -69,6 +69,10 @@
     <file>
       <source>bower_components/nvd3/build/nv.d3.min.js</source>
       <destName>bower_components/nvd3/build/nv.d3.js</destName>
+    </file>
+    <file>
+      <source>bower_components/nvd3/build/nv.d3.min.css</source>
+      <destName>bower_components/nvd3/build/nv.d3.css</destName>
     </file>
     <file>
       <source>bower_components/node-uuid/uuid.js</source>

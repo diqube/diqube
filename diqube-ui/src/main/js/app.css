@@ -59,7 +59,7 @@ textarea.diql-full {
 }
 
 .query {
-	background-color: #999999;
+	background-color: white;
 	margin-left: 10px;
 	margin-top: 10px;
 	padding: 5px;
@@ -77,4 +77,14 @@ textarea.diql-full {
 	flex-grow: 1;
   margin-bottom: 0px;
   margin-left: 5px;
+}
+
+.query .query-header-right {
+  flex-grow: 1;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.diqube-bar-chart {
+	margin-left: 20px;
 }

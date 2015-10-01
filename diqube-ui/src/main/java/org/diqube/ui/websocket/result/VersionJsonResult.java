@@ -20,6 +20,8 @@
  */
 package org.diqube.ui.websocket.result;
 
+import javax.validation.constraints.NotNull;
+
 import org.diqube.ui.websocket.request.commands.VersionJsonCommand;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -35,12 +37,15 @@ public class VersionJsonResult implements JsonResult {
   public static final String TYPE = "version";
 
   @JsonProperty
+  @NotNull
   public String gitCommitLong;
 
   @JsonProperty
+  @NotNull
   public String gitCommitShort;
 
   @JsonProperty
+  @NotNull
   public String buildTimestamp;
 
   public void setGitCommitLong(String gitCommitLong) {

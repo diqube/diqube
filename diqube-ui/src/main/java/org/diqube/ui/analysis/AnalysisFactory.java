@@ -43,7 +43,7 @@ public class AnalysisFactory {
     return new UiQube(id, name, sliceId);
   }
 
-  public UiQuery createQuery(String id, String name, String diql) {
-    return new UiQuery(id, name, diql);
+  public UiQuery createQuery(String id, String name, String diql, String displayType) {
+    return new UiQuery(id, name, diql, displayType);
   }
 }

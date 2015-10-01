@@ -21,6 +21,7 @@
 package org.diqube.ui.websocket.request.commands.analysis;
 
 import javax.inject.Inject;
+import javax.validation.constraints.NotNull;
 
 import org.diqube.ui.AnalysisRegistry;
 import org.diqube.ui.analysis.UiAnalysis;
@@ -50,6 +51,7 @@ public class AnalysisJsonCommand implements JsonCommand {
   public static final String NAME = "analysis";
 
   @JsonProperty
+  @NotNull
   public String analysisId;
 
   @JsonIgnore

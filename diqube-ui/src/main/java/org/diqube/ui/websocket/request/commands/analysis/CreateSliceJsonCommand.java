@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.UUID;
 
 import javax.inject.Inject;
+import javax.validation.constraints.NotNull;
 
 import org.diqube.ui.AnalysisRegistry;
 import org.diqube.ui.analysis.AnalysisFactory;
@@ -55,9 +56,11 @@ public class CreateSliceJsonCommand implements JsonCommand {
   public static final String NAME = "createSlice";
 
   @JsonProperty
+  @NotNull
   public String analysisId;
 
   @JsonProperty
+  @NotNull
   public String name;
 
   @JsonIgnore

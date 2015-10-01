@@ -22,6 +22,8 @@ package org.diqube.ui.websocket.result;
 
 import java.util.List;
 
+import javax.validation.constraints.NotNull;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
@@ -34,6 +36,7 @@ public class TableNameListJsonResult implements JsonResult {
   public static final String DATA_TYPE = "tableNameList";
 
   @JsonProperty
+  @NotNull
   public List<String> tableNames;
 
   // for test

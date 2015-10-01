@@ -20,6 +20,9 @@
  */
 package org.diqube.ui.websocket.result.analysis;
 
+import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
+
 import org.diqube.ui.analysis.UiQube;
 import org.diqube.ui.websocket.result.JsonResult;
 import org.diqube.ui.websocket.result.JsonResultDataType;
@@ -36,6 +39,8 @@ public class QubeJsonResult implements JsonResult {
   public static final String DATA_TYPE = "qube";
 
   @JsonProperty
+  @NotNull
+  @Valid
   public UiQube qube;
 
   // for tests only

@@ -9,15 +9,19 @@ diqube source code.
         * Apache Commons Lang (org.apache.commons:commons-lang3:3.3.2 - http://commons.apache.org/proper/commons-lang/)
         * Apache Commons Math (org.apache.commons:commons-math3:3.5 - http://commons.apache.org/proper/commons-math/)
         * Apache Thrift (org.apache.thrift:libthrift:0.9.2 - http://thrift.apache.org)
+        * Bean Validation API (javax.validation:validation-api:1.1.0.Final - http://beanvalidation.org)
         * Byte Buddy (with dependencies) (net.bytebuddy:byte-buddy-dep:0.6.15 - http://bytebuddy.net/byte-buddy-dep)
+        * ClassMate (com.fasterxml:classmate:1.1.0 - http://github.com/cowtowncoder/java-classmate)
         * Commons Codec (commons-codec:commons-codec:1.6 - http://commons.apache.org/codec/)
         * FindBugs-jsr305 (com.google.code.findbugs:jsr305:3.0.0 - http://findbugs.sourceforge.net/)
         * Guava: Google Core Libraries for Java (com.google.guava:guava:18.0 - http://code.google.com/p/guava-libraries/guava)
+        * Hibernate Validator Engine (org.hibernate:hibernate-validator:5.2.2.Final - http://hibernate.org/validator/hibernate-validator)
         * HttpClient (org.apache.httpcomponents:httpclient:4.2.5 - http://hc.apache.org/httpcomponents-client)
         * HttpCore (org.apache.httpcomponents:httpcore:4.2.4 - http://hc.apache.org/httpcomponents-core-ga)
+        * JBoss Logging 3 (org.jboss.logging:jboss-logging:3.2.1.Final - http://www.jboss.org)
         * JCommander (com.beust:jcommander:1.48 - http://beust.com/jcommander)
-        * Jackson-annotations (com.fasterxml.jackson.core:jackson-annotations:2.5.0 - http://github.com/FasterXML/jackson)
-        * Jackson-core (com.fasterxml.jackson.core:jackson-core:2.5.3 - https://github.com/FasterXML/jackson)
+        * Jackson-annotations (com.fasterxml.jackson.core:jackson-annotations:2.6.0 - http://github.com/FasterXML/jackson)
+        * Jackson-core (com.fasterxml.jackson.core:jackson-core:2.6.2 - https://github.com/FasterXML/jackson-core)
         * Spring AOP (org.springframework:spring-aop:4.1.6.RELEASE - https://github.com/spring-projects/spring-framework)
         * Spring Beans (org.springframework:spring-beans:4.1.6.RELEASE - https://github.com/spring-projects/spring-framework)
         * Spring Context (org.springframework:spring-context:4.1.6.RELEASE - https://github.com/spring-projects/spring-framework)
@@ -25,7 +29,7 @@ diqube source code.
         * Spring Expression Language (SpEL) (org.springframework:spring-expression:4.1.6.RELEASE - https://github.com/spring-projects/spring-framework)
         * Spring Web (org.springframework:spring-web:4.1.6.RELEASE - https://github.com/spring-projects/spring-framework)
         * TestNG (org.testng:testng:6.9.4 - http://testng.org)
-        * jackson-databind (com.fasterxml.jackson.core:jackson-databind:2.5.3 - http://github.com/FasterXML/jackson)
+        * jackson-databind (com.fasterxml.jackson.core:jackson-databind:2.6.2 - http://github.com/FasterXML/jackson)
         * javax.inject (javax.inject:javax.inject:1 - http://code.google.com/p/atinject/)
         * opencsv (com.opencsv:opencsv:3.3 - http://opencsv.sf.net)
 
@@ -41,6 +45,11 @@ diqube source code.
     BSD (abego) [abego-bsd.txt]:
 
         * abego TreeLayout Core (org.abego.treelayout:org.abego.treelayout.core:1.0.1 - http://code.google.com/p/treelayout/)
+
+    GPLv2 with classpath exception [gpl-20-classpath.txt]:
+
+        * Expression Language 2.2 Implementation (org.glassfish.web:javax.el:2.2.4 - http://uel.java.net)
+        * Expression Language API 2.2 (javax.el:javax.el-api:2.2.4 - http://uel.java.net)
 
     LGPL [lgpl.txt]:
 
@@ -70,7 +79,6 @@ diqube source code.
     Apache License 2.0 [apache-20.txt]:
 
         * NVD3, http://nvd3.org/
-        * angularjs-nvd3-directives, http://angularjs-nvd3-directives.github.io/angularjs-nvd3-directives/
         * Apache Hadoop, http://hadoop.apache.org
         * Apache Tomcat, http://tomcat.apache.org
 
@@ -114,6 +122,11 @@ diqube source code.
     
         * es6-promise, https://github.com/jakearchibald/es6-promise
 
+    MIT License (angular-nvd3) [angular-nvd3-mit.txt]:
+    
+        * angular-nvd3, https://github.com/krispo/angular-nvd3
+        
     BSD License (D3) [d3-bsd.txt]:
 
         * D3.js, http://d3js.org/
+

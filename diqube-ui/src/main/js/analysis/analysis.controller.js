@@ -30,8 +30,12 @@
         me.error = undefined;
         me.analysis = undefined;
         
+        me.validQueryDisplayTypes = [ "table", "barchart" ];
+        me.switchQueryDisplayType = switchQueryDisplayType;
+        
         me.addQube = addQube;
         me.addQuery = addQuery;
+        
         
         // ==
         
@@ -58,22 +62,15 @@
           if (!analysis) {
             me.analysis = undefined;
             me.title = me.analysisId;
-            me.qubes = undefined;
-            me.slices = undefined;
-            me.table = undefined;
             me.error = undefined;
             return;
           }
           me.analysis = analysis;
           me.title = analysis.name;
-          me.qubes = analysis.qubes;
-          me.table = analysis.table;
-          me.slices = analysis.slices;
-          
           me.error = undefined;
           
-          for (var qubeIdx in me.qubes) {
-            var qube = me.qubes[qubeIdx];
+          for (var qubeIdx in me.analysis.qubes) {
+            var qube = me.analysis.qubes[qubeIdx];
             for (var queryIdx in qube.queries) {
               var query = qube.queries[queryIdx];
               me.executeQuery(qube, query);
@@ -100,14 +97,41 @@
         }
         
         function addQuery(qube) {
-          analysisService.addQuery("query1", "select state, count() group by state", qube.id).catch(function(text) {
+            //analysisService.addQuery("query1", "select state, count() group by state order by state asc", qube.id).catch(function(text) {
+            analysisService.addQuery("query1", "select state, avg(avg(persons[*].age)) group by state order by state asc", qube.id).catch(function(text) {
             // TODO nicer error?
             me.error = text;
           });
         }
+        
+        function createDisplayProperties(query) {
+          query.results.displayWidth = "";
+          
+          if (query.displayType === "barchart") {
+            var nvd3Values = [];
+            for (var idx in query.results.rows) {
+              nvd3Values.push({
+                idx: idx,
+                label: query.results.rows[idx][0],
+                value: query.results.rows[idx][1]
+              });
+            }
+            query.results.displayWidth = "width: 450px";
+            query.results.nvd3 = {
+                options: me.nvd3BarChartOptions(450, 300, 
+                    query.results.columnNames ? query.results.columnNames[0] : "", 
+                    query.results.columnNames ? query.results.columnNames[1] : ""),
+                data: [ {
+                  key: "Values",
+                  values: nvd3Values
+                } ]
+            };
+          }
+        }
 
         function integrateQueryResults(qube, query, results) {
           query.results = results;
+          createDisplayProperties(query);
         }
         
         function executeQuery(qube, query) {
@@ -120,19 +144,58 @@
           })
         }
         
+        function switchQueryDisplayType(query, newDisplayType) {
+          query.displayType = newDisplayType;
+          createDisplayProperties(query);
+        }
+        
         $scope.$on("$destroy", function() {
           analysisService.unloadAnalysis();
         });
         $scope.$on("analysis:sliceAdded", function() {
         });
         $scope.$on("analysis:qubeAdded", function() {
-          me.qubes = me.analysis.qubes;
         });
         $scope.$on("analysis:queryAdded", function(event, data) {
-          var qube = me.qubes.filter(function(qube) {
+          var qube = me.analysis.qubes.filter(function(qube) {
             return qube.id == data.qubeId;
           })[0];
           me.executeQuery(qube, data.query);
         });
+        
+        me.nvd3BarChartOptions = function(width, height, xAxisLabel, yAxisLabel) { 
+          return {
+            chart: {
+              type: "discreteBarChart",
+              height: height,
+              width: width,
+              margin : {
+                  top: 5,
+                  right: 5,
+                  bottom: 60,
+                  left: 70
+              },
+              x: function(d) { return d.label; },
+              y: function(d) { return d.value; },
+              showValues: false,
+              valueFormat: function(d){
+                return d3.format("d")(d);
+              },
+              transitionDuration: 100,
+              color: function(data) { return "#1f77b4"; },
+              xAxis: {
+                  axisLabel: xAxisLabel ? xAxisLabel : "" 
+              },
+              yAxis: {
+                  axisLabel: yAxisLabel ? yAxisLabel : "" ,
+                  axisLabelDistance: 10,
+                  tickFormat: function(d){
+                    return d3.format("d")(d);
+                  }
+              },
+              duration: 0
+            }
+          }
+        };
       } ]);
 })();

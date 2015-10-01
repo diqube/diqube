@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import javax.validation.constraints.NotNull;
+
 import org.apache.thrift.TException;
 import org.diqube.remote.base.thrift.RUUID;
 import org.diqube.remote.base.thrift.RValue;
@@ -60,6 +62,7 @@ public class PlainQueryJsonCommand implements AsyncJsonCommand {
   public static final String NAME = "plainQuery";
 
   @JsonProperty
+  @NotNull
   public String diql;
 
   public PlainQueryJsonCommand() {

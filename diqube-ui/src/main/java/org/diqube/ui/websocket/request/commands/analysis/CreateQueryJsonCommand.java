@@ -23,6 +23,7 @@ package org.diqube.ui.websocket.request.commands.analysis;
 import java.util.UUID;
 
 import javax.inject.Inject;
+import javax.validation.constraints.NotNull;
 
 import org.diqube.ui.AnalysisRegistry;
 import org.diqube.ui.analysis.AnalysisFactory;
@@ -55,15 +56,19 @@ public class CreateQueryJsonCommand implements JsonCommand {
   public static final String NAME = "createQuery";
 
   @JsonProperty
+  @NotNull
   public String analysisId;
 
   @JsonProperty
+  @NotNull
   public String qubeId;
 
   @JsonProperty
+  @NotNull
   public String name;
 
   @JsonProperty
+  @NotNull
   public String diql;
 
   @JsonIgnore
@@ -87,7 +92,7 @@ public class CreateQueryJsonCommand implements JsonCommand {
     if (qube == null)
       throw new RuntimeException("Qube not found: " + qubeId);
 
-    UiQuery query = factory.createQuery(UUID.randomUUID().toString(), name, diql);
+    UiQuery query = factory.createQuery(UUID.randomUUID().toString(), name, diql, UiQuery.DISPLAY_TYPE_TABLE);
 
     qube.getQueries().add(query);
 

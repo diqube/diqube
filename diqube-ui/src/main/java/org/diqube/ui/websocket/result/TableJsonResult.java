@@ -22,6 +22,8 @@ package org.diqube.ui.websocket.result;
 
 import java.util.List;
 
+import javax.validation.constraints.NotNull;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
@@ -34,12 +36,15 @@ public class TableJsonResult implements JsonResult {
   public static final String TYPE = "table";
 
   @JsonProperty
+  @NotNull
   public List<String> columnNames;
 
   @JsonProperty
+  @NotNull
   public List<List<Object>> rows;
 
   @JsonProperty
+  @NotNull
   public short percentComplete;
 
   public void setColumnNames(List<String> columnNames) {

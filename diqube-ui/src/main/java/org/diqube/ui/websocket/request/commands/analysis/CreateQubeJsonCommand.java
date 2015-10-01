@@ -23,6 +23,7 @@ package org.diqube.ui.websocket.request.commands.analysis;
 import java.util.UUID;
 
 import javax.inject.Inject;
+import javax.validation.constraints.NotNull;
 
 import org.diqube.ui.AnalysisRegistry;
 import org.diqube.ui.analysis.AnalysisFactory;
@@ -55,12 +56,15 @@ public class CreateQubeJsonCommand implements JsonCommand {
   public static final String NAME = "createQube";
 
   @JsonProperty
+  @NotNull
   private String analysisId;
 
   @JsonProperty
+  @NotNull
   private String sliceId;
 
-  @JsonProperty()
+  @JsonProperty
+  @NotNull
   private String name;
 
   @Inject

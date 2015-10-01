@@ -7,7 +7,6 @@
     Apache License 2.0 [apache-20.txt]:
 
         * NVD3, http://nvd3.org/
-        * angularjs-nvd3-directives, http://angularjs-nvd3-directives.github.io/angularjs-nvd3-directives/
         * Apache Hadoop, http://hadoop.apache.org
         * Apache Tomcat, http://tomcat.apache.org
 
@@ -51,6 +50,11 @@
     
         * es6-promise, https://github.com/jakearchibald/es6-promise
 
+    MIT License (angular-nvd3) [angular-nvd3-mit.txt]:
+    
+        * angular-nvd3, https://github.com/krispo/angular-nvd3
+        
     BSD License (D3) [d3-bsd.txt]:
 
         * D3.js, http://d3js.org/
+

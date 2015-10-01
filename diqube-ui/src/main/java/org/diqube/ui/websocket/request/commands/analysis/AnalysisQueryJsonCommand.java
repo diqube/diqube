@@ -21,6 +21,7 @@
 package org.diqube.ui.websocket.request.commands.analysis;
 
 import javax.inject.Inject;
+import javax.validation.constraints.NotNull;
 
 import org.diqube.ui.AnalysisRegistry;
 import org.diqube.ui.analysis.QueryBuilder;
@@ -58,12 +59,15 @@ public class AnalysisQueryJsonCommand implements AsyncJsonCommand {
   public static final String NAME = "analysisQuery";
 
   @JsonProperty
+  @NotNull
   public String analysisId;
 
   @JsonProperty
+  @NotNull
   public String qubeId;
 
   @JsonProperty
+  @NotNull
   public String queryId;
 
   @JsonIgnore

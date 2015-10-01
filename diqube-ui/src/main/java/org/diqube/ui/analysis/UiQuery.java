@@ -20,6 +20,8 @@
  */
 package org.diqube.ui.analysis;
 
+import javax.validation.constraints.NotNull;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
@@ -27,24 +29,35 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * @author Bastian Gloeckle
  */
 public class UiQuery {
+  public static final String DISPLAY_TYPE_TABLE = "table";
+  public static final String DISPLAY_TYPE_BARCHART = "barchart";
+
   @JsonProperty
+  @NotNull
   public String id;
 
   @JsonProperty
+  @NotNull
   public String name;
 
   @JsonProperty
+  @NotNull
   public String diql;
+
+  @JsonProperty
+  @NotNull
+  public String displayType;
 
   /** for tests only */
   public UiQuery() {
 
   }
 
-  /* package */ UiQuery(String id, String name, String diql) {
+  /* package */ UiQuery(String id, String name, String diql, String displayType) {
     this.id = id;
     this.name = name;
     this.diql = diql;
+    this.displayType = displayType;
   }
 
   public String getId() {
@@ -57,5 +70,9 @@ public class UiQuery {
 
   public String getDiql() {
     return diql;
+  }
+
+  public String getDisplayType() {
+    return displayType;
   }
 }

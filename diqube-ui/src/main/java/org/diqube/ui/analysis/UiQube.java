@@ -24,6 +24,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
@@ -32,15 +35,20 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 public class UiQube {
   @JsonProperty
+  @NotNull
   public String id;
 
   @JsonProperty
+  @NotNull
   public String name;
 
   @JsonProperty
+  @NotNull
   public String sliceId;
 
   @JsonProperty
+  @NotNull
+  @Valid
   public List<UiQuery> queries = new ArrayList<>();
 
   // for tests only
