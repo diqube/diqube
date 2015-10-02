@@ -144,6 +144,17 @@
     queryId: "queryId2"
   });
   
+  var updateQueryCommand = validatedData.commandData("updateQuery", {
+    analysisId: "analysisId", 
+    qubeId: "qubeId2",
+    newQuery: {
+      id: "queryId2",
+      name: "queryNameNew",
+      diql: "queryDiqlNew",
+      displayType: "tableNew"
+    }
+  });
+  
   describe("diqube.analysis module", function() {
     var remoteServiceHandlerFn = undefined;
     var rootScope = undefined;
@@ -509,6 +520,30 @@
         }).catch(function (result) {
           expect(result.exception).toEqual("expectedException");
           testDone();
+        });
+      });
+      
+      it("updateQuery sends updates to server", function(testDone) {
+        remoteServiceHandlerFn = function(res, commandName, commandData) {
+          if (commandName === "updateQuery") {
+            expect(commandData).toEqual(updateQueryCommand);
+            res.data("query", updateQueryCommand.newQuery);
+            res.done();
+          } else
+            fail("Unexpected command sent by analysisService: " + commandName + ", " + commandData);
+        }
+        
+        analysisService.setLoadedAnalysis(testTwoQubeAnalysis.analysis);
+        var targetQube = analysisService.loadedAnalysis.qubes.filter(function(qube) { return qube.id === "qubeId2"; })[0];
+        var targetQuery = targetQube.queries.filter(function(query) { return query.id === "queryId2"; })[0];
+        
+        var updatePromise = analysisService.updateQuery(targetQube.id, updateQueryCommand.newQuery);
+        
+        updatePromise.then(function(result) {
+          expect(result).toEqual(updateQueryCommand.newQuery);
+          testDone();
+        }).catch(function (text) {
+          fail(text);
         });
       });
     });

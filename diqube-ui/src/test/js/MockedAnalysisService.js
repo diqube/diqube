@@ -33,6 +33,8 @@ var MockedAnalysisService = (function() {
     me.addQuery = addQuery;
     me.addSlice = addSlice;
     
+    me.updateQuery = updateQuery;
+    
     me.provideQueryResults = provideQueryResults;
     
     // ====
@@ -86,6 +88,13 @@ var MockedAnalysisService = (function() {
       $rootScope.$broadcast("analysis:sliceAdded", slice);
       return new Promise(function(resolve, reject) {
         resolve(slice);
+      });
+    }
+    
+    function updateQuery(qubeId, query) {
+      return new Promise(function(resolve, reject) {
+        var query = queryFn(undefined, undefined, qubeId);
+        resolve(query);
       });
     }
   }

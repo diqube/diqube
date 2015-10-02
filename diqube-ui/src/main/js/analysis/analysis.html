@@ -51,7 +51,7 @@
                   <a href dropdown-toggle>{{ query.displayType }} <span class="caret"></span></a>
                   <ul class="dropdown-menu">
                     <li ng-repeat="choice in analysis.validQueryDisplayTypes">
-                        <a href ng-click="analysis.switchQueryDisplayType(query, choice)">{{ choice }}</a>
+                        <a href ng-click="analysis.switchQueryDisplayType(qube, query, choice)">{{ choice }}</a>
                     </li>
                   </ul>
                 </div>

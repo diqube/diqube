@@ -77,7 +77,7 @@ public class WebSocketEndpoint {
       request.executeCommand();
     } catch (Exception e) {
       logger.error("Exception on session {}", session, e);
-      throw e;
+      throw new RuntimeException(e);
     }
   }
 

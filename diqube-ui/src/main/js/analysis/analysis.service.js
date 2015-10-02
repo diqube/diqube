@@ -34,6 +34,8 @@
         me.addQuery = addQuery;
         me.addSlice = addSlice;
         
+        me.updateQuery = updateQuery;
+        
         me.provideQueryResults = provideQueryResults;
         
         // =====
@@ -241,6 +243,31 @@
                   this.done = function done_() {
                     query.results.percentComplete = 100;
                     resolve(query.results);
+                  }
+                })());
+          });
+        }
+        
+        function updateQuery(qubeId, query) {
+          return new Promise(function(resolve, reject) {
+            remoteService.execute($rootScope, "updateQuery",
+                { analysisId: me.loadedAnalysis.id,
+                  qubeId: qubeId,
+                  newQuery: {
+                    id: query.id,
+                    name: query.name,
+                    diql: query.diql,
+                    displayType: query.displayType
+                  }
+                }, new (function() {
+                  this.data = function data_(dataType, data) {
+                    // noop.
+                  }
+                  this.exception = function exception_(text) {
+                    reject(text);
+                  }
+                  this.done = function done_() {
+                    resolve(query);
                   }
                 })());
           });

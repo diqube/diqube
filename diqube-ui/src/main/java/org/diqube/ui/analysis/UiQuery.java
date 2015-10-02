@@ -75,4 +75,20 @@ public class UiQuery {
   public String getDisplayType() {
     return displayType;
   }
+
+  public void setId(String id) {
+    this.id = id;
+  }
+
+  public void setName(String name) {
+    this.name = name;
+  }
+
+  public void setDiql(String diql) {
+    this.diql = diql;
+  }
+
+  public void setDisplayType(String displayType) {
+    this.displayType = displayType;
+  }
 }

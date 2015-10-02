@@ -97,6 +97,15 @@
     }
   });
   
+  var testUpdatedQueryResult = validatedData.data("query", {
+    query: {
+      id: "queryId2",
+      name: "queryName2",
+      diql: "queryDiql2",
+      displayType: "barchart"
+    }
+  });
+  
   /**
    * Helper function to wait for a specific situation to appear.
    * 
@@ -286,6 +295,42 @@
         });
       });
       
+      
+      it("switchQueryDisplayType sends updates to server", function(testDone) {
+        inject(function($controller) {
+          var mockedAnalysisService =  new MockedAnalysisService(
+                $scope,
+                function() { return testTwoQubeAnalysisResult.analysis; },
+                function() { return { percentComplete:100, rows: [[1,2]], columnNames:["colA", "colB"] }; },
+                function() { /* qube */ },
+                function() { return testUpdatedQueryResult.query; },
+                function() { /* slice */ });
+          
+          spyOn(mockedAnalysisService, "updateQuery").and.callThrough();
+          
+          var controller = $controller("AnalysisCtrl", { 
+            $scope: $scope,
+            $routeParams: { analysisId: "analysisId" },
+            analysisService: mockedAnalysisService });
+
+          waitUntil("Default analysis to be loaded", 
+              function() { return controller.analysis == testTwoQubeAnalysisResult.analysis }).then(function() {
+                var qube = controller.analysis.qubes.filter(function(qube) { return qube.id === "qubeId2" })[0];
+                var query = qube.queries.filter(function(query) { return query.id === "queryId2" })[0];
+                controller.switchQueryDisplayType(qube, query, "barchart");
+                
+                waitUntil("updateQuery has been called on the analysisService", 
+                    function() { return mockedAnalysisService.updateQuery.calls.count() == 1 }).then(function() {
+                      expect(controller.error).toBe(undefined);
+
+                      var sentQuery = mockedAnalysisService.updateQuery.calls.argsFor(0)[1];
+                      expect(sentQuery.displayType).toEqual("barchart");
+                      
+                      testDone();
+                    });
+              });
+        });
+      });
     });
   });
 })();

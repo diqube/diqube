@@ -118,15 +118,19 @@
               });
             }
             query.results.displayWidth = "width: 450px";
-            query.results.nvd3 = {
-                options: me.nvd3BarChartOptions(450, 300, 
-                    query.results.columnNames ? query.results.columnNames[0] : "", 
-                    query.results.columnNames ? query.results.columnNames[1] : ""),
-                data: [ {
+            
+            if (query.results.nvd3 === undefined)
+              query.results.nvd3 = {};
+            
+            if (!query.results.nvd3.options)
+              query.results.nvd3.options = me.nvd3BarChartOptions(450, 300, 
+                  query.results.columnNames ? query.results.columnNames[0] : "", 
+                  query.results.columnNames ? query.results.columnNames[1] : "");
+            
+            query.results.nvd3.data = [ {
                   key: "Values",
                   values: nvd3Values
-                } ]
-            };
+                } ];
           }
         }
 
@@ -145,9 +149,14 @@
           })
         }
         
-        function switchQueryDisplayType(query, newDisplayType) {
+        function switchQueryDisplayType(qube, query, newDisplayType) {
           query.displayType = newDisplayType;
           createDisplayProperties(query);
+          return analysisService.updateQuery(qube.id, query).catch(function(text) {
+            $scope.$apply(function() {
+              me.error = text;
+            });
+          });
         }
         
         $scope.$on("$destroy", function() {
