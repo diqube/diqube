@@ -62,7 +62,7 @@
         function loadAnalysis(id) {
           if (!me.loadedAnalysis || me.loadedAnalysis.id != id) {
             return new Promise(function(resolve, reject) {
-              remoteService.execute($rootScope, "analysis", { analysisId : id }, new (function() {
+              remoteService.execute("analysis", { analysisId : id }, new (function() {
                 this.data = function data_(dataType, data) {
                   if (dataType === "analysis") {
                     me.setLoadedAnalysis(data.analysis);
@@ -94,7 +94,7 @@
             return;
           }
           return new Promise(function(resolve, reject) {
-            remoteService.execute($rootScope, "createQube", 
+            remoteService.execute("createQube", 
                 { analysisId: me.loadedAnalysis.id, 
                   name: name, 
                   sliceId: sliceId }, 
@@ -125,7 +125,7 @@
             return;
           }
           return new Promise(function(resolve, reject) {
-            remoteService.execute($rootScope, "createQuery", 
+            remoteService.execute("createQuery", 
                 { analysisId: me.loadedAnalysis.id, 
                   name: name, 
                   qubeId: qubeId,
@@ -158,7 +158,7 @@
             return;
           }
           return new Promise(function(resolve, reject) {
-            remoteService.execute($rootScope, "createSlice", 
+            remoteService.execute("createSlice", 
                 { analysisId: me.loadedAnalysis.id, 
                   name: name }, 
                 new (function() {
@@ -220,7 +220,7 @@
             intermediateResultsFn(query.results);
           
           return new Promise(function(resolve, reject) {
-            remoteService.execute($rootScope, "analysisQuery", 
+            remoteService.execute("analysisQuery", 
                 { analysisId: me.loadedAnalysis.id,
                   qubeId: qube.id,
                   queryId: query.id
@@ -250,7 +250,7 @@
         
         function updateQuery(qubeId, query) {
           return new Promise(function(resolve, reject) {
-            remoteService.execute($rootScope, "updateQuery",
+            remoteService.execute("updateQuery",
                 { analysisId: me.loadedAnalysis.id,
                   qubeId: qubeId,
                   newQuery: {

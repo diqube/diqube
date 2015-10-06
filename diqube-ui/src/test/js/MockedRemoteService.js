@@ -29,25 +29,19 @@ var MockedRemoteService = (function() {
    *        functions, which are defined just like the resultHandler methods in RemoteService.
    */
   function MockedRemoteService(handlerFn) {
-    this.execute = function execute_(scope, commandName, commandData, resultHandler) {
+    this.execute = function execute_(commandName, commandData, resultHandler) {
       handlerFn(new (function() {
         this.data = function data_(dataType, data) {
-          scope.$apply(function() {
-            resultHandler.data(dataType, data);
-          });
+          resultHandler.data(dataType, data);
         }
         this.exception = function exception_(text) {
           if (resultHandler.hasOwnProperty('exception')) {
-            scope.$apply(function() {
-              resultHandler.exception(text);
-            });
+            resultHandler.exception(text);
           }
         }
         this.done = function done_() {
           if (resultHandler.hasOwnProperty('done')) {
-            scope.$apply(function() {
-              resultHandler.done();
-            });
+            resultHandler.done();
           }
         }
       })(), commandName, commandData);

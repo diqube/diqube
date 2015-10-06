@@ -1,0 +1,65 @@
+<!--
+
+    diqube: Distributed Query Base.
+
+    Copyright (C) 2015 Bastian Gloeckle
+
+    This file is part of diqube.
+
+    diqube is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as
+    published by the Free Software Foundation, either version 3 of the
+    License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+-->
+
+<div class="query">
+  <div class="query-header">
+    <span>{{ query.name }}</span>
+    
+    <progressbar class="{{ query.results.percentComplete != 100 ? '' : 'hidden' }}" 
+      value="query.results.percentComplete">{{ query.results.percentComplete }}%</progressbar>
+    <span  class="{{ query.results.percentComplete != 100 ? 'hidden' : '' }} query-header-right">
+      <div dropdown>
+        <a href dropdown-toggle>{{ query.displayType }} <span class="caret"></span></a>
+        <ul class="dropdown-menu">
+          <li ng-repeat="choice in validQueryDisplayTypes">
+              <a href ng-click="switchQueryDisplayType(choice)">{{ choice }}</a>
+          </li>
+        </ul>
+      </div>
+    </span>
+  </div>
+  <div class="{{ query.exception ? '' : 'hidden'}}" class="alert alert-danger">
+    <span class="glyphicon glyphicon-exclamation-sign"></span>
+    {{ query.exception }}
+  </div>
+  
+  <div class="{{ (query.results && !query.exception) ? '' : 'hidden'}}"
+      style="{{ displayWidth }}">
+    <table  class="table table-hover table-condensed {{ (query.displayType === 'table') ? '' : 'hidden'}}">
+      <thead>
+        <tr>
+          <th ng-repeat="colName in query.results.columnNames">{{colName}}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr ng-repeat="row in query.results.rows track by $index">
+          <td ng-repeat="col in row track by $index">{{col}}</td>
+        </tr>
+      </tbody>
+    </table>
+    
+    <nvd3 class="{{ (query.displayType === 'barchart') ? '' : 'hidden'}}" 
+          options="nvd3.options"
+          data="nvd3.data"></nvd3>
+  </div>
+</div>

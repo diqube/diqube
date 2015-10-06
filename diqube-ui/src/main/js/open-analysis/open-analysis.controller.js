@@ -41,23 +41,27 @@
           $log.info("Reloading analysis list from server");
           me.items = [ ];
           me.loading = true;
-          remoteService.execute($scope, "listAllAnalysis", null, new (function() {
+          remoteService.execute("listAllAnalysis", null, new (function() {
             this.data = function data_(dataType, data) {
-              if (dataType === "analysisRef") {
-                me.items.push({
-                  name : data.name,
-                  id : data.id
+              $scope.$apply(function() {
+                if (dataType === "analysisRef") {
+                  me.items.push({
+                    name : data.name,
+                    id : data.id
+                  });
+                }
+                
+                me.items.sort(function(a, b) {
+                  if (a.name == b.name) return 0;
+                  if (a.name < b.name) return -1;
+                  return 1;
                 });
-              }
-              
-              me.items.sort(function(a, b) {
-                if (a.name == b.name) return 0;
-                if (a.name < b.name) return -1;
-                return 1;
               });
             };
             this.done = function done_() {
-              me.loading = false;
+              $scope.$apply(function() {
+                me.loading = false;
+              });
             };
           })());
         }

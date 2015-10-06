@@ -28,7 +28,7 @@ module.exports = function(config) {
 	var files = config.files.filter(function(e) {
 	  return e !== "BROWSER_BASED_FILES";
 	});
-
+	
 	// Override base config
 	config.set({
 	  files: files,

@@ -21,6 +21,10 @@
 "use strict";
 
 var MockedAnalysisService = (function() {
+  /**
+   * 
+   * @param $rootScope can be a function returning the actual rootScope (used for late binding).
+   */
   function MockedAnalysisService($rootScope, analysisLoadFn, queryResultsFn, qubeFn, queryFn, sliceFn) {
     var me = this;
     
@@ -41,12 +45,18 @@ var MockedAnalysisService = (function() {
     
     function setLoadedAnalysis(analysis) {
       me.loadedAnalysis = analysis;
-      $rootScope.$broadcast("analysis:loaded", analysis);
+      if (typeof $rootScope === "function")
+        $rootScope().$broadcast("analysis:loaded", analysis);
+      else
+        $rootScope.$broadcast("analysis:loaded", analysis);
     }
     
     function unloadAnalysis() {
       me.loadedAnalysis = undefined;
-      $rootScope.$broadcast("analysis:loaded", undefined);
+      if (typeof $rootScope === "function")
+        $rootScope().$broadcast("analysis:loaded", undefined);
+      else
+        $rootScope.$broadcast("analysis:loaded", undefined);
     }
     
     function loadAnalysis(id) {
@@ -66,7 +76,10 @@ var MockedAnalysisService = (function() {
     function addQube(name, sliceId) {
       var qube = qubeFn(name, sliceId);
       me.loadedAnalysis.qubes.push();
-      $rootScope.$broadcast("analysis:qubeAdded", qube);
+      if (typeof $rootScope === "function")
+        $rootScope().$broadcast("analysis:qubeAdded", qube);
+      else
+        $rootScope.$broadcast("analysis:qubeAdded", qube);
       return new Promise(function(resolve, reject) {
         resolve(qube);
       });
@@ -76,7 +89,10 @@ var MockedAnalysisService = (function() {
       var query = queryFn(name, diql, qubeId);
       var qube = me.loadedAnalysis.qubes.filter(function(qube) { return qube.id === qubeId; })[0];
       qube.queries.push(query);
-      $rootScope.$broadcast("analysis:queryAdded", { qubeId: qubeId, query: query });
+      if (typeof $rootScope === "function")
+        $rootScope().$broadcast("analysis:queryAdded", { qubeId: qubeId, query: query });
+      else
+        $rootScope.$broadcast("analysis:queryAdded", { qubeId: qubeId, query: query });
       return new Promise(function(resolve, reject) {
         resolve({ qubeId: qubeId, query: query });
       });
@@ -85,7 +101,10 @@ var MockedAnalysisService = (function() {
     function addSlice(name) {
       var slice = sliceFn(name);
       me.loadedAnalysis.slices.push(slice);
-      $rootScope.$broadcast("analysis:sliceAdded", slice);
+      if (typeof $rootScope === "function")
+        $rootScope().$broadcast("analysis:sliceAdded", slice);
+      else
+        $rootScope.$broadcast("analysis:sliceAdded", slice);
       return new Promise(function(resolve, reject) {
         resolve(slice);
       });

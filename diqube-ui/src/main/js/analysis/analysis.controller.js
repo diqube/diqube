@@ -30,18 +30,12 @@
         me.error = undefined;
         me.analysis = undefined;
         
-        me.validQueryDisplayTypes = [ "table", "barchart" ];
-        me.switchQueryDisplayType = switchQueryDisplayType;
-        
         me.addQube = addQube;
         me.addQuery = addQuery;
-        
-        
+
         // ==
         
         me.loadAnalysis = loadAnalysis;
-        me.executeQuery = executeQuery;
-        
         
         function initialize() {
           analysisService.loadAnalysis(me.analysisId).then(function success_(analysis) {
@@ -68,14 +62,6 @@
           me.analysis = analysis;
           me.title = analysis.name;
           me.error = undefined;
-          
-          for (var qubeIdx in me.analysis.qubes) {
-            var qube = me.analysis.qubes[qubeIdx];
-            for (var queryIdx in qube.queries) {
-              var query = qube.queries[queryIdx];
-              me.executeQuery(qube, query);
-            }
-          }
         }
         
         function addQube() {
@@ -105,107 +91,24 @@
           });
         }
         
-        function createDisplayProperties(query) {
-          query.results.displayWidth = "";
-          
-          if (query.displayType === "barchart") {
-            var nvd3Values = [];
-            for (var idx in query.results.rows) {
-              nvd3Values.push({
-                idx: idx,
-                label: query.results.rows[idx][0],
-                value: query.results.rows[idx][1]
-              });
-            }
-            query.results.displayWidth = "width: 450px";
-            
-            if (query.results.nvd3 === undefined)
-              query.results.nvd3 = {};
-            
-            if (!query.results.nvd3.options)
-              query.results.nvd3.options = me.nvd3BarChartOptions(450, 300, 
-                  query.results.columnNames ? query.results.columnNames[0] : "", 
-                  query.results.columnNames ? query.results.columnNames[1] : "");
-            
-            query.results.nvd3.data = [ {
-                  key: "Values",
-                  values: nvd3Values
-                } ];
-          }
-        }
-
-        function integrateQueryResults(qube, query, results) {
-          query.results = results;
-          createDisplayProperties(query);
-        }
-        
-        function executeQuery(qube, query) {
-          analysisService.provideQueryResults(qube, query, function (results) {
-            integrateQueryResults(qube, query, results);
-          }).then(function success_(results) {
-            integrateQueryResults(qube, query, results);
-          }, function failure_(results) {
-            integrateQueryResults(qube, query, results);
-          })
-        }
-        
-        function switchQueryDisplayType(qube, query, newDisplayType) {
-          query.displayType = newDisplayType;
-          createDisplayProperties(query);
-          return analysisService.updateQuery(qube.id, query).catch(function(text) {
-            $scope.$apply(function() {
-              me.error = text;
-            });
-          });
-        }
-        
         $scope.$on("$destroy", function() {
           analysisService.unloadAnalysis();
         });
         $scope.$on("analysis:sliceAdded", function() {
+          // Noop.
+          // We do not need to do anything as we reference the same analysis object as analysisService 
+          // -> our object is updated already, but execute a digest to adjust any watchers on the object.
         });
         $scope.$on("analysis:qubeAdded", function() {
+          // Noop.
+          // We do not need to do anything as we reference the same analysis object as analysisService 
+          // -> our object is updated already, but execute a digest to adjust any watchers on the object.
         });
-        $scope.$on("analysis:queryAdded", function(event, data) {
-          var qube = me.analysis.qubes.filter(function(qube) {
-            return qube.id == data.qubeId;
-          })[0];
-          me.executeQuery(qube, data.query);
+        $scope.$on("analysis:queryAdded", function() {
+          // Noop.
+          // We do not need to do anything as we reference the same analysis object as analysisService 
+          // -> our object is updated already, but execute a digest to adjust any watchers on the object.
         });
         
-        me.nvd3BarChartOptions = function(width, height, xAxisLabel, yAxisLabel) { 
-          return {
-            chart: {
-              type: "discreteBarChart",
-              height: height,
-              width: width,
-              margin : {
-                  top: 5,
-                  right: 5,
-                  bottom: 60,
-                  left: 70
-              },
-              x: function(d) { return d.label; },
-              y: function(d) { return d.value; },
-              showValues: false,
-              valueFormat: function(d){
-                return d3.format("d")(d);
-              },
-              transitionDuration: 100,
-              color: function(data) { return "#1f77b4"; },
-              xAxis: {
-                  axisLabel: xAxisLabel ? xAxisLabel : "" 
-              },
-              yAxis: {
-                  axisLabel: yAxisLabel ? yAxisLabel : "" ,
-                  axisLabelDistance: 10,
-                  tickFormat: function(d){
-                    return d3.format("d")(d);
-                  }
-              },
-              duration: 0
-            }
-          }
-        };
       } ]);
 })();

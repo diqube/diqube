@@ -32,6 +32,10 @@ module.exports = function(config) {
     // will be replaced with the directory that contains the pom.xml
     basePath : {{karmaBasePath}},
 
+    preprocessors: {
+      "src/main/js/**/*.html": "ng-html2js"
+    },
+    
     files : [ 
              // the following will be replaced by a list of dependencies that are referenced from index.html (see pom.xml)
              {{originalJsFiles}}
@@ -39,14 +43,19 @@ module.exports = function(config) {
               "bower_components/angular-mocks/angular-mocks.js", 
               "BROWSER_BASED_FILES", 
               "src/test/js/*.js",
-              "src/test/js/*/**/*.js" ],
+              "src/test/js/*/**/*.js",
+              "src/main/js/**/*.html" ],
 
     autoWatch : false,
     singleRun : true,
 
     frameworks : [ "jasmine" ],
 
-    plugins : [ "karma-chrome-launcher", "karma-phantomjs-launcher", "karma-jasmine", "karma-junit-reporter" ],
+    plugins : [ "karma-chrome-launcher", 
+                "karma-phantomjs-launcher", 
+                "karma-jasmine", 
+                "karma-junit-reporter",
+                "karma-ng-html2js-preprocessor" ],
 
     reporters : [ "dots", "junit" ],
 
@@ -54,6 +63,11 @@ module.exports = function(config) {
       outputDir : "target/karma-results",
       // outputFile: browser name,
       suite : "karma"
+    },
+    
+    ngHtml2JsPreprocessor: {
+      stripPrefix: "src/main/js/",
+      moduleName: "testHtmlTemplates"
     }
 
   });

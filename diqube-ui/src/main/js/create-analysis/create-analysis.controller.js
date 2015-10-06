@@ -40,12 +40,14 @@
           if (me.allTables !== undefined) {
             resolve(me.allTables);
           } else {
-            remoteService.execute($scope, "listAllTables", null, new (function() {
+            remoteService.execute("listAllTables", null, new (function() {
               this.data = function data_(dataType, data) {
                 if (dataType === "tableNameList") {
-                  me.allTables = [];
-                  for (var idx in data.tableNames)
-                    me.allTables.push({ name : data.tableNames[idx] });
+                  $scope.$apply(function() {
+                    me.allTables = [];
+                    for (var idx in data.tableNames)
+                      me.allTables.push({ name : data.tableNames[idx] });
+                  });
                   resolve(me.allTables);
                 }
               }
@@ -72,21 +74,27 @@
           me.isCreating = true;
           me.error = undefined;
           $log.info("Creating analysis ", analysis.name, " on table ", analysis.table);
-          remoteService.execute($scope, "createAnalysis", { table: analysis.table, name: analysis.name }, 
+          remoteService.execute("createAnalysis", { table: analysis.table, name: analysis.name }, 
               new (function() {
                 this.data = function data_(dataType, data) {
                   if (dataType === "analysis") {
-                    analysisService.setLoadedAnalysis(data.analysis);
+                    $scope.$apply(function() {
+                      analysisService.setLoadedAnalysis(data.analysis);
+                    });
                   }
                 };
                 this.exception = function exception_(text) {
-                  me.error = text;
-                  me.isCreating = false;
+                  $scope.$apply(function() {
+                    me.error = text;
+                    me.isCreating = false;
+                  });
                 };
                 this.done = function done_() {
                   $log.info("Created new analysis.");
                   $rootScope.$broadcast("analysis:created", analysisService.loadedAnalysis);
-                  me.isCreating = false;
+                  $scope.$apply(function() {
+                    me.isCreating = false;
+                  });
                   $location.path("analysis/" + analysisService.loadedAnalysis.id);
                 }
           })());

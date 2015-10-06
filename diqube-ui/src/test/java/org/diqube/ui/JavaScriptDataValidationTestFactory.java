@@ -116,8 +116,10 @@ public class JavaScriptDataValidationTestFactory {
         Modifier.PUBLIC, //
         new ArrayList<>());
 
-    String classNameSuffix = resourceName.replaceAll("\\..*", ""); // remove dot and everything after that
+    String classNameSuffix = resourceName.replaceAll("(.*)\\..*", "$1"); // remove last dot and everything after that
     classNameSuffix = classNameSuffix.replaceAll(".*/", ""); // remove everything until last /
+    classNameSuffix = classNameSuffix.replace('.', '-'); // might contain dots in the filename -> transfrom to - so it
+                                                         // gets transformed to camelcase later.
     // the name might still contain "-" as we use that in the names of our test files. Convert to CamelCase.
     classNameSuffix = CaseFormat.LOWER_HYPHEN.to(CaseFormat.UPPER_CAMEL, classNameSuffix);
     String newClassName = JavaScriptDataValidationTestFactory.class.getPackage().getName()

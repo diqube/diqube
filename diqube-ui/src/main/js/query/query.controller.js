@@ -53,28 +53,34 @@
           fn.lastPercentComplete = 0;
 
           me.isExecuting = true;
-          me.currentRequestId = remoteService.execute($scope, "plainQuery", { diql : me.diql }, new (function() {
+          me.currentRequestId = remoteService.execute("plainQuery", { diql : me.diql }, new (function() {
             this.data = function data_(dataType, data) {
-              if (dataType == "table" && me.exception === null) {
-                if (data.percentComplete >= fn.lastPercentComplete) {
-                  me.result = data;
-                  me.displayResultsOrStats = "results";
-
-                  fn.lastPercentComplete = me.result.percentComplete;
+              $scope.$apply(function() {
+                if (dataType == "table" && me.exception === null) {
+                  if (data.percentComplete >= fn.lastPercentComplete) {
+                    me.result = data;
+                    me.displayResultsOrStats = "results";
+  
+                    fn.lastPercentComplete = me.result.percentComplete;
+                  }
+                } else if (dataType == "stats" && me.exception === null) {
+                  me.stats = data;
                 }
-              } else if (dataType == "stats" && me.exception === null) {
-                me.stats = data;
-              }
+              });
             };
             this.exception = function exception_(text) {
-              me.exception = text;
-              me.result = null;
-              me.stats = null;
-
-              me.isExecuting = false;
+              $scope.$apply(function() {
+                me.exception = text;
+                me.result = null;
+                me.stats = null;
+  
+                me.isExecuting = false;
+              });
             }
             this.done = function done_() {
-              me.isExecuting = false;
+              $scope.$apply(function() {
+                me.isExecuting = false;
+              });
             }
           })());
         }

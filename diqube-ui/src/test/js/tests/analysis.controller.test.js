@@ -160,8 +160,6 @@
                 function() { /* query */ },
                 function() { /* slice */ });
           
-          spyOn(mockedAnalysisService, "provideQueryResults").and.callThrough();
-          
           var controller = $controller("AnalysisCtrl", { 
             $scope: $scope,
             $routeParams: { analysisId: "analysisId" },
@@ -173,7 +171,6 @@
                 expect(controller.error).toBe(undefined);
                 expect(controller.title).toEqual(testTwoQubeAnalysisResult.analysis.name);
                 expect(controller.analysisId).toEqual("analysisId");
-                expect(mockedAnalysisService.provideQueryResults.calls.count()).toEqual(1); // there is 1 query in the analysis.
                 testDone();
               });
         });
@@ -277,18 +274,6 @@
                     function() { return mockedAnalysisService.addQuery.calls.count() == 1 }).then(function() {
                       expect(controller.error).toBe(undefined);
                       
-                      // check if the newly added query was sent to the analysisService to be executed.
-                      var found = false;
-                      var allStartedQueryParams = mockedAnalysisService.provideQueryResults.calls.allArgs();
-                      for (var idx in allStartedQueryParams) {
-                        if (allStartedQueryParams[idx][0] == qube && allStartedQueryParams[idx][1] == testQueryResult.query)
-                          found = true;
-                        if (found)
-                          break;
-                      }
-                      
-                      expect(found).toBe(true);
-                      
                       testDone();
                     });
                   });
@@ -296,41 +281,6 @@
       });
       
       
-      it("switchQueryDisplayType sends updates to server", function(testDone) {
-        inject(function($controller) {
-          var mockedAnalysisService =  new MockedAnalysisService(
-                $scope,
-                function() { return testTwoQubeAnalysisResult.analysis; },
-                function() { return { percentComplete:100, rows: [[1,2]], columnNames:["colA", "colB"] }; },
-                function() { /* qube */ },
-                function() { return testUpdatedQueryResult.query; },
-                function() { /* slice */ });
-          
-          spyOn(mockedAnalysisService, "updateQuery").and.callThrough();
-          
-          var controller = $controller("AnalysisCtrl", { 
-            $scope: $scope,
-            $routeParams: { analysisId: "analysisId" },
-            analysisService: mockedAnalysisService });
-
-          waitUntil("Default analysis to be loaded", 
-              function() { return controller.analysis == testTwoQubeAnalysisResult.analysis }).then(function() {
-                var qube = controller.analysis.qubes.filter(function(qube) { return qube.id === "qubeId2" })[0];
-                var query = qube.queries.filter(function(query) { return query.id === "queryId2" })[0];
-                controller.switchQueryDisplayType(qube, query, "barchart");
-                
-                waitUntil("updateQuery has been called on the analysisService", 
-                    function() { return mockedAnalysisService.updateQuery.calls.count() == 1 }).then(function() {
-                      expect(controller.error).toBe(undefined);
-
-                      var sentQuery = mockedAnalysisService.updateQuery.calls.argsFor(0)[1];
-                      expect(sentQuery.displayType).toEqual("barchart");
-                      
-                      testDone();
-                    });
-              });
-        });
-      });
     });
   });
 })();

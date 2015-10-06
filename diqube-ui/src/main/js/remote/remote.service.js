@@ -47,7 +47,6 @@
         /**
          * Call this method to send a command to the server.
          * 
-         * @param scope The $scope of the caller.
          * @param commandName The name of the command to execute.
          * @param commandData Additional data that the command might need to execute.
          * @param resultHandler All methods of this object will be called inside the given scope. 
@@ -57,14 +56,13 @@
          *      done(): The server reported to be done with working on this command.
          * @returns requestId that can be used for a call to cancel(requestId).
          */
-        function execute(scope, commandName, commandData, resultHandler) {
+        function execute(commandName, commandData, resultHandler) {
           var requestId = "id" + me.nextRequestIdNumber;
           me.nextRequestIdNumber += 1;
           
           var sock = me.getSocket();
           me.requestRegistry[requestId] = {
-              resultHandler : resultHandler,
-              scope : scope
+              resultHandler : resultHandler
           };
           
           sock.$$send({
@@ -113,24 +111,18 @@
           } 
           
           if (status === "data") {
-            res.scope.$apply(function() {
-              var messageRes = res.resultHandler.data(dataType, data);
-              if (messageRes === true)
-                me.cleanupRequest(requestId);
-            });
+            var messageRes = res.resultHandler.data(dataType, data);
+            if (messageRes === true)
+              me.cleanupRequest(requestId);
           } else if (status === "done") {
             if (res.resultHandler.hasOwnProperty('done')) {
-              res.scope.$apply(function() {
-                res.resultHandler.done();
-              });
+              res.resultHandler.done();
             }
             me.cleanupCommand(requestId);
           } else if (status === "exception") {
             $log.warn("Exception on request ", requestId, ": ", data);
             if (res.resultHandler.hasOwnProperty('exception')) {
-              res.scope.$apply(function() {
-                res.resultHandler.exception(data.text);
-              });
+              res.resultHandler.exception(data.text);
             }
             me.cleanupRequest(requestId);
           }

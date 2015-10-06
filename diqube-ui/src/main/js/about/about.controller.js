@@ -31,12 +31,14 @@
         // ====
 
         function initialize() {
-          remoteService.execute($scope, "version", null, new (function() {
+          remoteService.execute("version", null, new (function() {
             this.data = function data_(dataType, data) {
               if (dataType == "version") {
-                me.gitcommit = data.gitCommitShort;
-                me.gitcommitlong = data.gitCommitLong;
-                me.buildtimestamp = data.buildTimestamp;
+                $scope.$apply(function() {
+                  me.gitcommit = data.gitCommitShort;
+                  me.gitcommitlong = data.gitCommitLong;
+                  me.buildtimestamp = data.buildTimestamp;
+                });
               }
             }
           })());
