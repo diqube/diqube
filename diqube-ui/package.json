@@ -7,7 +7,6 @@
   "license": "AGPL3",
   "devDependencies": {
     "bower": "1.4.1",
-    "http-server": "0.8.0",
     "jasmine-core": "2.3.4",
     "karma": "0.13.8",
     "karma-chrome-launcher": "0.2.0",
@@ -18,10 +17,5 @@
     "karma-ng-html2js-preprocessor": "0.1.2"
   },
   "scripts": {
-    "prestart": "npm install",
-    "start": "http-server -a localhost -p 8000 -c-1",
-
-    "preupdate-webdriver": "npm install",
-    "update-webdriver": "webdriver-manager update"
   }
 }

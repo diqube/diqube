@@ -40,7 +40,7 @@
     </#if>
 </#function>
 
-Diqube uses the following third-party libraries. These are available under the terms of their respective licenses. The 
+diqube uses the following third-party libraries. These are available under the terms of their respective licenses. The 
 texts of these licenses are available in the corresponding files in the sub-directory "third-party-licenses" of the 
 diqube source code.
     <#list licenseMap as e>
@@ -49,7 +49,6 @@ diqube source code.
         <#if projects?size &gt; 0>
 
     ${license}:
-
         <#list projects as project>
         * ${artifactFormat(project)}
         </#list>

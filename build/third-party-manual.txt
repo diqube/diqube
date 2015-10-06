@@ -1,60 +1,59 @@
 
     GPLv2 with classpath exception [gpl-20-classpath.txt]:
-
         * Java Servlet API (javax.servlet:javax.servlet-api:3.1.0 - http://servlet-spec.java.net)
         * WebSocket server API (javax.websocket:javax.websocket-api:1.1 - http://websocket-spec.java.net)
 
     Apache License 2.0 [apache-20.txt]:
-
         * NVD3, http://nvd3.org/
         * Apache Hadoop, http://hadoop.apache.org
         * Apache Tomcat, http://tomcat.apache.org
 
     MIT License (AngularJS) [angular-mit.txt]:
-
         * AngularJS, http://angularjs.org
 
     MIT License (ng-websocket) [ng-websocket-mit.txt]:
-
         * ng-websocket, https://github.com/wilk/ng-websocket
 
     MIT License (html5boilerplate) [html5boilerplate-mit.txt]:
-
         * html5boilerplate, https://html5boilerplate.com
 
     MIT License (modernizr) [modernizr-mit.txt]:
-
         * Modernizr, http://modernizr.com/
 
     MIT License (node-uuid) [node-uuid-mit.txt]:
-
         * node-uuid, https://github.com/broofa/node-uuid
 
     MIT License (normalize.css) [normalize-mit.txt]:
-
         * normalize.css, https://github.com/necolas/normalize.css
     
     MIT License (bootstrap) [bootstrap-mit.txt]:
-    
         * Bootstrap, http://getbootstrap.com
 
     MIT License (AngularUI Bootstrap) [angularui-bootstrap-mit.txt]:
-    
         * angular-ui-bootstrap-bower, https://github.com/angular-ui/bootstrap
 
     MIT License (toArrayFilter) [toarrayfilter-mit.txt]:
-    
         * angular-toArrayFilter, https://github.com/petebacondarwin/angular-toArrayFilter
 
     MIT License (es6-promise) [es6-promise-mit.txt]:
-    
         * es6-promise, https://github.com/jakearchibald/es6-promise
 
     MIT License (angular-nvd3) [angular-nvd3-mit.txt]:
-    
         * angular-nvd3, https://github.com/krispo/angular-nvd3
         
     BSD License (D3) [d3-bsd.txt]:
-
         * D3.js, http://d3js.org/
 
+    MIT License (jasmine) [jasmine-mit.txt]:
+        * jasmine-core, http://jasmine.github.io/
+      
+    MIT License (karma) [karma-mit.txt]:
+      * karma, http://karma-runner.github.io/
+      * karma-chrome-launcher, https://github.com/karma-runner/karma-chrome-launcher
+      * karma-phantomjs-launcher, https://github.com/karma-runner/karma-phantomjs-launcher
+      * karma-jasmine, https://github.com/karma-runner/karma-jasmine
+      * karma-junit-reporter, https://github.com/karma-runner/karma-junit-reporter
+      * karma-ng-html2js-preprocessor, https://github.com/karma-runner/karma-ng-html2js-preprocessor
+      
+    BSD License (PhantomJS) [phantomjs-bsd.txt]:
+      * PhantomJS, http://phantomjs.org/

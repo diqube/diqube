@@ -1,10 +1,9 @@
 
-Diqube uses the following third-party libraries. These are available under the terms of their respective licenses. The 
+diqube uses the following third-party libraries. These are available under the terms of their respective licenses. The 
 texts of these licenses are available in the corresponding files in the sub-directory "third-party-licenses" of the 
 diqube source code.
 
     Apache License 2.0 [apache-20.txt]:
-
         * Apache Commons CLI (commons-cli:commons-cli:1.3 - http://commons.apache.org/proper/commons-cli/)
         * Apache Commons Lang (org.apache.commons:commons-lang3:3.3.2 - http://commons.apache.org/proper/commons-lang/)
         * Apache Commons Math (org.apache.commons:commons-math3:3.5 - http://commons.apache.org/proper/commons-math/)
@@ -34,99 +33,90 @@ diqube source code.
         * opencsv (com.opencsv:opencsv:3.3 - http://opencsv.sf.net)
 
     BSD (ANTLR) [antlr-bsd.txt]:
-
         * ANTLR 4 Runtime (org.antlr:antlr4-runtime:4.5 - http://www.antlr.org)
 
     BSD (ASM) [asm-bsd.txt]:
-
         * ASM Commons (org.ow2.asm:asm-commons:5.0.4 - http://asm.objectweb.org/asm-commons/)
         * ASM Core (org.ow2.asm:asm:5.0.4 - http://asm.objectweb.org/asm/)
 
     BSD (abego) [abego-bsd.txt]:
-
         * abego TreeLayout Core (org.abego.treelayout:org.abego.treelayout.core:1.0.1 - http://code.google.com/p/treelayout/)
 
     GPLv2 with classpath exception [gpl-20-classpath.txt]:
-
         * Expression Language 2.2 Implementation (org.glassfish.web:javax.el:2.2.4 - http://uel.java.net)
         * Expression Language API 2.2 (javax.el:javax.el-api:2.2.4 - http://uel.java.net)
 
     LGPL [lgpl.txt]:
-
         * BeanShell (org.beanshell:bsh:2.0b4 - no url defined)
         * Logback Classic Module (ch.qos.logback:logback-classic:1.1.2 - http://logback.qos.ch)
         * Logback Core Module (ch.qos.logback:logback-core:1.1.2 - http://logback.qos.ch)
 
     MIT License (mockito) [mockito-mit.txt]:
-
         * Mockito (org.mockito:mockito-all:1.9.5 - http://www.mockito.org)
 
     MIT License (slf4j) [slf4j-mit.txt]:
-
         * JCL 1.1.1 implemented over SLF4J (org.slf4j:jcl-over-slf4j:1.7.12 - http://www.slf4j.org)
         * SLF4J API Module (org.slf4j:slf4j-api:1.7.12 - http://www.slf4j.org)
         * SLF4J LOG4J-12 Binding (org.slf4j:slf4j-log4j12:1.7.12 - http://www.slf4j.org)
 
     Public Domain:
-
         * AOP alliance (aopalliance:aopalliance:1.0 - http://aopalliance.sourceforge.net)
 
     GPLv2 with classpath exception [gpl-20-classpath.txt]:
-
         * Java Servlet API (javax.servlet:javax.servlet-api:3.1.0 - http://servlet-spec.java.net)
         * WebSocket server API (javax.websocket:javax.websocket-api:1.1 - http://websocket-spec.java.net)
 
     Apache License 2.0 [apache-20.txt]:
-
         * NVD3, http://nvd3.org/
         * Apache Hadoop, http://hadoop.apache.org
         * Apache Tomcat, http://tomcat.apache.org
 
     MIT License (AngularJS) [angular-mit.txt]:
-
         * AngularJS, http://angularjs.org
 
     MIT License (ng-websocket) [ng-websocket-mit.txt]:
-
         * ng-websocket, https://github.com/wilk/ng-websocket
 
     MIT License (html5boilerplate) [html5boilerplate-mit.txt]:
-
         * html5boilerplate, https://html5boilerplate.com
 
     MIT License (modernizr) [modernizr-mit.txt]:
-
         * Modernizr, http://modernizr.com/
 
     MIT License (node-uuid) [node-uuid-mit.txt]:
-
         * node-uuid, https://github.com/broofa/node-uuid
 
     MIT License (normalize.css) [normalize-mit.txt]:
-
         * normalize.css, https://github.com/necolas/normalize.css
     
     MIT License (bootstrap) [bootstrap-mit.txt]:
-    
         * Bootstrap, http://getbootstrap.com
 
     MIT License (AngularUI Bootstrap) [angularui-bootstrap-mit.txt]:
-    
         * angular-ui-bootstrap-bower, https://github.com/angular-ui/bootstrap
 
     MIT License (toArrayFilter) [toarrayfilter-mit.txt]:
-    
         * angular-toArrayFilter, https://github.com/petebacondarwin/angular-toArrayFilter
 
     MIT License (es6-promise) [es6-promise-mit.txt]:
-    
         * es6-promise, https://github.com/jakearchibald/es6-promise
 
     MIT License (angular-nvd3) [angular-nvd3-mit.txt]:
-    
         * angular-nvd3, https://github.com/krispo/angular-nvd3
         
     BSD License (D3) [d3-bsd.txt]:
-
         * D3.js, http://d3js.org/
 
+    MIT License (jasmine) [jasmine-mit.txt]:
+        * jasmine-core, http://jasmine.github.io/
+      
+    MIT License (karma) [karma-mit.txt]:
+      * karma, http://karma-runner.github.io/
+      * karma-chrome-launcher, https://github.com/karma-runner/karma-chrome-launcher
+      * karma-phantomjs-launcher, https://github.com/karma-runner/karma-phantomjs-launcher
+      * karma-jasmine, https://github.com/karma-runner/karma-jasmine
+      * karma-junit-reporter, https://github.com/karma-runner/karma-junit-reporter
+      * karma-ng-html2js-preprocessor, https://github.com/karma-runner/karma-ng-html2js-preprocessor
+      
+    BSD License (PhantomJS) [phantomjs-bsd.txt]:
+      * PhantomJS, http://phantomjs.org/
