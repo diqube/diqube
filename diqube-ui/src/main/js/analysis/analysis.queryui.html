@@ -32,14 +32,14 @@
         <a href dropdown-toggle>{{ query.displayType }} <span class="caret"></span></a>
         <ul class="dropdown-menu">
           <li ng-repeat="choice in validQueryDisplayTypes">
-              <a href ng-click="switchQueryDisplayType(choice)">{{ choice }}</a>
+              <a href ng-click="switchQueryDisplayType(choice)"><i class="fa fa-table"></i> {{ choice }}</a>
           </li>
         </ul>
       </div>
     </span>
   </div>
   <div class="{{ query.exception ? '' : 'hidden'}}" class="alert alert-danger">
-    <span class="glyphicon glyphicon-exclamation-sign"></span>
+    <i class="fa fa-exclamation-circle"></i>
     {{ query.exception }}
   </div>
   

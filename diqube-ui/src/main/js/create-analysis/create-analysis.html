@@ -23,29 +23,35 @@
 <h1 class="page-header">Create Analysis</h1>
 <p />
 <div style="{{ createAnalysis.error ? '' : 'display: none'}}" class="alert alert-danger">
-  <span class="glyphicon glyphicon-exclamation-sign"></span>
+  <i class="fa fa-exclamation-circle"></i>
   {{ createAnalysis.error }}
 </div> 
 <p />
-<form novalidate class="create-analysis">
-  <div class="form-group simple-form">
-    <label for="inputName">Name</label>
+<form novalidate class="create-analysis" ng-submit="createAnalysis.createAnalysis(analysis)">
+  <div class="form-group simple-form has-feedback {{ createAnalysis.nameValid === true ? 'has-success' : '' }} {{ createAnalysis.nameValid === false ? 'has-error' : '' }}">
+    <label for="inputName" class="control-label">Name</label>
     <input type="text" class="form-control" id="inputName"
-      placeholder="Name of new Analysis" ng-model="analysis.name" required>
+      placeholder="Name of new Analysis" ng-model="analysis.name" 
+      ng-change="createAnalysis.validateName(analysis.name)">
+    <span class="{{ createAnalysis.nameValid === true ? '' : 'hidden' }} fa fa-check form-control-feedback"></span>
+    <span class="{{ createAnalysis.nameValid === false ? '' : 'hidden' }} fa fa-exclamation-triangle form-control-feedback"></span>
   </div>
-  <div class="form-group">
-    <label for="inputTable">Table
-      <i ng-show="loadingLocations" class="glyphicon glyphicon-refresh"></i>
-      <i ng-show="noResults" class="glyphicon glyphicon-remove"></i>
-    </label> <input type="text" class="form-control" id="inputTable" ng-model="analysis.table"
+  <div class="form-group has-feedback {{ createAnalysis.tableValid === true ? 'has-success' : '' }} {{ createAnalysis.tableValid === false ? 'has-error' : '' }} {{ noResults ? 'has-warning' : '' }}">
+    <label for="inputTable" class="control-label">Table
+      <i ng-show="loadingTables" class="fa fa-refresh fa-spin" title="Loading tables..."></i>
+    </label> 
+    <input type="text" class="form-control" id="inputTable" ng-model="analysis.table"
       placeholder="Table you want to analyze"
       typeahead="table.name for table in createAnalysis.getValidTables($viewValue)" 
-      typeahead-editable="false"
-      typeahead-loading="loadingLocations" 
+      typeahead-editable="true"
+      typeahead-loading="loadingTables" 
       typeahead-no-results="noResults"
-      typeahead-select-on-exact="true" 
-      class="form-control" required>
+      typeahead-select-on-exact="true"
+      ng-focus="createAnalysis.tableValid = undefined"
+      ng-blur="createAnalysis.validateTable(analysis.table)">
+    <span class="{{ (createAnalysis.tableValid === true && !noResults) ? '' : 'hidden' }} fa fa-check form-control-feedback"></span>
+    <span class="{{ createAnalysis.tableValid === false ? '' : 'hidden' }} fa fa-exclamation-triangle form-control-feedback"></span>
+    <span class="{{ noResults ? '' : 'hidden' }} fa fa-question-circle form-control-feedback"></span>
   </div>
-  <button type="submit" class="btn btn-primary" ng-click="createAnalysis.createAnalysis(analysis)" 
-          ng-disabled="createAnalysis.isCreating">Create</button>
+  <button type="submit" class="btn btn-primary" ng-disabled="createAnalysis.isCreating">Create</button>
 </form>

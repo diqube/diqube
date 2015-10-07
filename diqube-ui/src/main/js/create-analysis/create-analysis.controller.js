@@ -32,6 +32,12 @@
         me.error = undefined;
         me.isCreating = false;
         
+        me.nameValid = undefined;
+        me.tableValid = undefined;
+        
+        me.validateName = validateName;
+        me.validateTable = validateTable;
+        
         // ====
         
         me.allTables = undefined;
@@ -61,16 +67,18 @@
         function createAnalysis(analysis) {
           if (analysis === undefined) {
             me.error = "Name and Table are required.";
+            me.nameValid = false;
+            me.tableValid = false;
             return;
           }
-          if (!analysis.hasOwnProperty("name") || !analysis.name) {
-            me.error = "Name is required.";
+          me.error = validateName(analysis.name);
+          if (!me.nameValid)
             return;
-          }
-          if (!analysis.hasOwnProperty("table") || !analysis.table) {
-            me.error = "Table is required.";
+          
+          me.error = validateTable(analysis.table);
+          if (!me.tableValid)
             return;
-          }
+          
           me.isCreating = true;
           me.error = undefined;
           $log.info("Creating analysis ", analysis.name, " on table ", analysis.table);
@@ -108,6 +116,26 @@
           }, function(text) {
             me.error = text;
           });
+        }
+        
+        function validateName(name) {
+          if (!name) { 
+            me.nameValid = false;
+            return "Name is required";
+          }
+          
+          me.nameValid = true;
+          return undefined;
+        }
+        
+        function validateTable(table) {
+          if (!table) { 
+            me.tableValid = false;
+            return "Table is required";
+          }
+          
+          me.tableValid = true;
+          return undefined;
         }
       } ]);
 })();

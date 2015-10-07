@@ -31,10 +31,6 @@ textarea.diql-full {
 	margin-bottom: 20px;
 }
 
-.create-analysis input.ng-invalid.ng-touched {
-	background-color: #FA787E;
-}
-
 .qube {
 	background-color: #BBBBBB;
 	padding: 5px;
@@ -87,4 +83,8 @@ textarea.diql-full {
 
 .diqube-bar-chart {
 	margin-left: 20px;
+}
+
+.create-analysis .has-feedback label~.form-control-feedback {
+	top: 35px !important;
 }

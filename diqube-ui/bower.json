@@ -19,7 +19,8 @@
     "bootstrap": "3.3.5",
     "angular-toArrayFilter": "1.0.1",
     "angular-ui-bootstrap-bower": "0.13.4",
-    "es6-promise": "3.0.2"
+    "es6-promise": "3.0.2",
+    "font-awesome": "4.4.0"
   },
   "resolutions": {
     "angular": "1.4.0",

@@ -23,13 +23,13 @@
 <h1 class="page-header">{{analysis.title}} <small>{{analysis.analysis.table}}</small></h1>
 
 <div class="alert alert-danger {{ analysis.error ? '' : 'hidden'}}">
-  <span class="glyphicon glyphicon-exclamation-sign"></span>
+  <i class="fa fa-exclamation-circle"></i>
   {{ analysis.error }}
 </div>
 
 <div class="{{ analysis.error ? 'hidden' : ''}}">
   <button class="btn btn-default add-qube-btn" ng-click="analysis.addQube()">
-    <i class="glyphicon glyphicon-plus"></i> Add qube
+    <i class="fa fa-plus"></i> Add qube
   </button>
 
   <div class="container-fluid text-justify">
@@ -39,7 +39,7 @@
           <span class="lead">{{qube.name}}</span>
           <div class="pull-right">
             <button class="btn btn-default" ng-click="analysis.addQuery(qube)">
-              <i class="glyphicon glyphicon-plus"></i> Add query</button>
+              <i class="fa fa-plus"></i> Add query</button>
           </div>
         </div>
         <div class="query-container">

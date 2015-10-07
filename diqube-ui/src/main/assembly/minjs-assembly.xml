@@ -90,6 +90,36 @@
       <source>bower_components/angular-ui-bootstrap-bower/ui-bootstrap-tpls.min.js</source>
       <destName>bower_components/angular-ui-bootstrap-bower/ui-bootstrap-tpls.js</destName>
     </file>
+    
+    <!-- Font awesome -->
+    <file>
+      <source>bower_components/font-awesome/css/font-awesome.min.css</source>
+      <destName>bower_components/font-awesome/css/font-awesome.css</destName>
+    </file>
+    <file>
+      <source>bower_components/font-awesome/fonts/fontawesome-webfont.eot</source>
+      <destName>bower_components/font-awesome/fonts/fontawesome-webfont.eot</destName>
+    </file>
+    <file>
+      <source>bower_components/font-awesome/fonts/fontawesome-webfont.svg</source>
+      <destName>bower_components/font-awesome/fonts/fontawesome-webfont.svg</destName>
+    </file>
+    <file>
+      <source>bower_components/font-awesome/fonts/fontawesome-webfont.ttf</source>
+      <destName>bower_components/font-awesome/fonts/fontawesome-webfont.ttf</destName>
+    </file>
+    <file>
+      <source>bower_components/font-awesome/fonts/fontawesome-webfont.woff</source>
+      <destName>bower_components/font-awesome/fonts/fontawesome-webfont.woff</destName>
+    </file>
+    <file>
+      <source>bower_components/font-awesome/fonts/fontawesome-webfont.woff2</source>
+      <destName>bower_components/font-awesome/fonts/fontawesome-webfont.woff2</destName>
+    </file>
+    <file>
+      <source>bower_components/font-awesome/fonts/FontAwesome.otf</source>
+      <destName>bower_components/font-awesome/fonts/FontAwesome.otf</destName>
+    </file>
   </files>
 </assembly>
 
