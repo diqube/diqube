@@ -48,7 +48,7 @@
     <table  class="table table-hover table-condensed {{ (query.displayType === 'table') ? '' : 'hidden'}}">
       <thead>
         <tr>
-          <th ng-repeat="colName in query.results.columnNames">{{colName}}</th>
+          <th ng-repeat="colName in query.results.columnNames">{{ colName }}</th>
         </tr>
       </thead>
       <tbody>
@@ -58,8 +58,9 @@
       </tbody>
     </table>
     
-    <nvd3 class="{{ (query.displayType === 'barchart') ? '' : 'hidden'}}" ng-attr-id="{{ nvd3HtmlId }}"
-          options="nvd3.options"
-          data="nvd3.data"></nvd3>
+    <diqube-query-ui-bar-chart 
+      class="{{ (query.displayType === 'barchart') ? '' : 'hidden'}}"
+      query="query">
+    </diqube-query-ui-bar-chart>
   </div>
 </div>
