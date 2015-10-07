@@ -92,3 +92,8 @@ textarea.diql-full {
 .create-analysis .has-feedback label~.form-control-feedback {
 	top: 35px !important;
 }
+
+
+svg .nvd3 .nv-x g.tick text {
+	text-anchor: end !important;
+}

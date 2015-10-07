@@ -90,7 +90,15 @@
       <source>bower_components/angular-ui-bootstrap-bower/ui-bootstrap-tpls.min.js</source>
       <destName>bower_components/angular-ui-bootstrap-bower/ui-bootstrap-tpls.js</destName>
     </file>
-    
+    <file>
+      <source>bower_components/node-uuid/uuid.js</source>
+      <destName>bower_components/node-uuid/uuid.js</destName>
+    </file>
+    <file>
+      <source>bower_components/jquery/dist/jquery.min.js</source>
+      <destName>bower_components/jquery/dist/jquery.js</destName>
+    </file>
+       
     <!-- Font awesome -->
     <file>
       <source>bower_components/font-awesome/css/font-awesome.min.css</source>

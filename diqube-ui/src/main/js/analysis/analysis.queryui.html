@@ -58,7 +58,7 @@
       </tbody>
     </table>
     
-    <nvd3 class="{{ (query.displayType === 'barchart') ? '' : 'hidden'}}"
+    <nvd3 class="{{ (query.displayType === 'barchart') ? '' : 'hidden'}}" ng-attr-id="{{ nvd3HtmlId }}"
           options="nvd3.options"
           data="nvd3.data"></nvd3>
   </div>

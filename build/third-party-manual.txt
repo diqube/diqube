@@ -63,4 +63,6 @@
     
     SIL OFL 1.1 (font-awesome) [fontawesome-sil-ofl.txt]:
       * FontAwesome, font files, http://fontawesome.io/ and https://github.com/FortAwesome/Font-Awesome
-      
+
+    MIT License (jQuery) [jquery-mit.txt]:
+      * jQuery, https://jquery.com/
