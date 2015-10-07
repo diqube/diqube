@@ -250,10 +250,12 @@ public class ExecutorManager {
         shutdownExecutors.add(executor);
     }
     synchronized (queryExecutors) {
-      queryExecutors.get(queryUuid).remove(executionUuid);
+      if (queryExecutors.get(queryUuid) != null) {
+        queryExecutors.get(queryUuid).remove(executionUuid);
 
-      if (queryExecutors.get(queryUuid).isEmpty())
-        queryExecutors.remove(queryUuid);
+        if (queryExecutors.get(queryUuid).isEmpty())
+          queryExecutors.remove(queryUuid);
+      }
     }
 
     synchronized (shutdownThread.shutdownExecutors) {
