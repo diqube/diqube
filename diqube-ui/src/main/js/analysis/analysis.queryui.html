@@ -25,25 +25,25 @@
   <div class="query-header">
     <span>{{ query.name }}</span>
     
-    <progressbar class="{{ query.results.percentComplete != 100 ? '' : 'hidden' }}" 
+    <progressbar class="{{ (!exception && query.results.percentComplete != 100) ? '' : 'hidden' }}" 
       value="query.results.percentComplete">{{ query.results.percentComplete }}%</progressbar>
     <span  class="{{ query.results.percentComplete != 100 ? 'hidden' : '' }} query-header-right">
-      <div dropdown>
-        <a href dropdown-toggle>{{ query.displayType }} <span class="caret"></span></a>
+      <div dropdown class="btn-group">
+        <a href dropdown-toggle><i class="fa {{ getDisplayTypeOptions(query.displayType).icon }}"></i> <i class="caret"></i></a>
         <ul class="dropdown-menu">
           <li ng-repeat="choice in validQueryDisplayTypes">
-              <a href ng-click="switchQueryDisplayType(choice)"><i class="fa fa-table"></i> {{ choice }}</a>
+              <a href ng-click="switchQueryDisplayType(choice.id)"><i class="fa {{ choice.icon }}"></i> {{ choice.title }}</a>
           </li>
         </ul>
       </div>
     </span>
   </div>
-  <div class="{{ query.exception ? '' : 'hidden'}}" class="alert alert-danger">
+  <div class="{{ exception ? '' : 'hidden'}} alert alert-warning">
     <i class="fa fa-exclamation-circle"></i>
-    {{ query.exception }}
+    {{ exception }}
   </div>
   
-  <div class="{{ (query.results && !query.exception) ? '' : 'hidden'}}"
+  <div class="{{ (query.results && !exception) ? '' : 'hidden'}}"
       style="{{ displayWidth }}">
     <table  class="table table-hover table-condensed {{ (query.displayType === 'table') ? '' : 'hidden'}}">
       <thead>
@@ -53,12 +53,12 @@
       </thead>
       <tbody>
         <tr ng-repeat="row in query.results.rows track by $index">
-          <td ng-repeat="col in row track by $index">{{col}}</td>
+          <td ng-repeat="col in row track by $index">{{ col }}</td>
         </tr>
       </tbody>
     </table>
     
-    <nvd3 class="{{ (query.displayType === 'barchart') ? '' : 'hidden'}}" 
+    <nvd3 class="{{ (query.displayType === 'barchart') ? '' : 'hidden'}}"
           options="nvd3.options"
           data="nvd3.data"></nvd3>
   </div>

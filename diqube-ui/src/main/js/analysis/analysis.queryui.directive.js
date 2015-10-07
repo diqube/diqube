@@ -32,8 +32,18 @@
           },
           templateUrl: "analysis/analysis.queryui.html",
           link: function link($scope, element, attrs) {
-            $scope.validQueryDisplayTypes = [ "table", "barchart" ];
+            $scope.validQueryDisplayTypes = [ 
+              { 
+                id: "table",
+                icon: "fa-table",
+                title: "Table"
+              }, { 
+                id: "barchart",
+                icon: "fa-bar-chart",
+                title: "Bar Chart"
+              } ];
             $scope.switchQueryDisplayType = switchQueryDisplayType;
+            $scope.getDisplayTypeOptions = getDisplayTypeOptions; 
             
             $scope.exception = undefined;
             
@@ -55,13 +65,12 @@
                 }
                 $scope.displayWidth = "width: 450px";
                 
-                if ($scope.nvd3 === undefined)
+                if (!$scope.nvd3)
                   $scope.nvd3 = {};
                 
-                if (!$scope.nvd3.options)
-                  $scope.nvd3.options = nvd3BarChartOptions(450, 300, 
-                      $scope.query.results.columnNames ? $scope.query.results.columnNames[0] : "", 
-                      $scope.query.results.columnNames ? $scope.query.results.columnNames[1] : "");
+                $scope.nvd3.options = nvd3BarChartOptions(450, 300, 
+                    $scope.query.results.columnNames ? $scope.query.results.columnNames[0] : "", 
+                    $scope.query.results.columnNames ? $scope.query.results.columnNames[1] : "");
                 
                 $scope.nvd3.data = [ {
                       key: "Values",
@@ -75,7 +84,7 @@
                 $scope.query.results = results;
                 $scope.exception = results.exception;
                 createDisplayProperties();
-              })
+              });
             }
             
             function executeQuery() {
@@ -83,14 +92,20 @@
                 then(integrateQueryResults, integrateQueryResults);
             }
             
-            function switchQueryDisplayType(newDisplayType) {
-              $scope.query.displayType = newDisplayType;
+            function switchQueryDisplayType(newDisplayTypeId) {
+              $scope.query.displayType = newDisplayTypeId;
               createDisplayProperties();
               return analysisService.updateQuery($scope.qube.id, $scope.query).catch(function(text) {
                 $scope.$apply(function() {
                   $scope.exception = text;
                 });
               });
+            }
+            
+            function getDisplayTypeOptions(displayTypeId) {
+              return $scope.validQueryDisplayTypes.filter(function(details) {
+                return details.id == displayTypeId;
+              })[0];
             }
             
             function nvd3BarChartOptions(width, height, xAxisLabel, yAxisLabel) { 

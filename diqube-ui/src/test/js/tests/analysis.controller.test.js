@@ -247,7 +247,7 @@
       });
       
       
-      it("addQuery adds query and starts execution", function(testDone) {
+      it("addQuery adds query", function(testDone) {
         inject(function($controller) {
           var mockedAnalysisService =  new MockedAnalysisService(
                 $scope,

@@ -51,6 +51,10 @@ var MockedScope = (function() {
     me.$watch = function() {
       // ignore watch calls
     }
+    
+    me.$digest = function() {
+      // noop.
+    }
   }
   
   return MockedScope;

@@ -22,7 +22,8 @@
 (function() {
   "use strict";
   angular.module("diqube.analysis").service("analysisService",
-      [ "$log", "$rootScope", "remoteService", function analysisServiceProvider($log, $rootScope, remoteService) {
+      [ "$log", "$rootScope", "remoteService", "$timeout", 
+      function analysisServiceProvider($log, $rootScope, remoteService, $timeout) {
         var me = this;
 
         me.loadedAnalysis = undefined;
@@ -203,7 +204,7 @@
          * 
          * @param qube The qube of the query to execute
          * @param query The query to execute
-         * @param intermediateResultsFn function(resultsObj): called when intermediate results are available. Can be undefined.
+         * @param intermediateResultsFn function(resultsObj): called when intermediate results are available. Can be undefined. This will only be called asynchronously.
          */
         function provideQueryResults(qube, query, intermediateResultsFn) {
           if (query.results !== undefined) {
@@ -216,8 +217,12 @@
                             rows: undefined, 
                             columnNames: undefined, 
                             exception: undefined };
-          if (intermediateResultsFn)
-            intermediateResultsFn(query.results);
+          if (intermediateResultsFn) {
+            // use timeout to call intermediateResultsFn asynchronously. This is needed to not mess up with $scope.$apply calls...
+            $timeout(function() {
+              intermediateResultsFn(query.results);              
+            }, 0, false);
+          }
           
           return new Promise(function(resolve, reject) {
             remoteService.execute("analysisQuery", 

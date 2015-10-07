@@ -95,19 +95,19 @@
           analysisService.unloadAnalysis();
         });
         $scope.$on("analysis:sliceAdded", function() {
-          // Noop.
-          // We do not need to do anything as we reference the same analysis object as analysisService 
-          // -> our object is updated already, but execute a digest to adjust any watchers on the object.
+          // make sure this scope digests the new object. As this controller references the same analysis object as the
+          // analysisService, the new object is already integrated into the analysis of this controller.
+          $scope.$digest();
         });
         $scope.$on("analysis:qubeAdded", function() {
-          // Noop.
-          // We do not need to do anything as we reference the same analysis object as analysisService 
-          // -> our object is updated already, but execute a digest to adjust any watchers on the object.
+          // make sure this scope digests the new object. As this controller references the same analysis object as the
+          // analysisService, the new object is already integrated into the analysis of this controller.
+          $scope.$digest();
         });
         $scope.$on("analysis:queryAdded", function() {
-          // Noop.
-          // We do not need to do anything as we reference the same analysis object as analysisService 
-          // -> our object is updated already, but execute a digest to adjust any watchers on the object.
+          // make sure this scope digests the new object. As this controller references the same analysis object as the
+          // analysisService, the new object is already integrated into the analysis of this controller.
+          $scope.$digest();
         });
         
       } ]);

@@ -65,6 +65,10 @@ textarea.diql-full {
 	margin-bottom: 0px;
 }
 
+.query .alert {
+  margin-bottom: 0px;
+}
+
 .query .query-header {
 	display: flex;
 }
