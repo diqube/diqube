@@ -32,6 +32,8 @@
         
         me.addQube = addQube;
         me.addQuery = addQuery;
+        
+        me.findSlice = findSlice;
 
         // ==
         
@@ -89,6 +91,12 @@
             // TODO nicer error?
             me.error = text;
           });
+        }
+        
+        function findSlice(sliceId) {
+          return me.analysis.slices.filter(function(slice) {
+            return slice.id === sliceId;
+          })[0];
         }
         
         $scope.$on("$destroy", function() {

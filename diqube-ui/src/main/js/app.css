@@ -56,6 +56,10 @@ textarea.diql-full {
 
 /* ============= Qube ============= */
 
+.add-qube-btn {
+  margin-bottom: 30px;
+}
+
 .qube {
 	background-color: #BBBBBB;
 	padding: 5px;
@@ -71,8 +75,12 @@ textarea.diql-full {
   margin-bottom: 15px;
 }
 
-.add-qube-btn {
-  margin-bottom: 30px;
+.qube .qube-action-list {
+	padding-right: 5px;
+}
+
+.qube .qube-action-list .qube-action {
+	margin-right: 5px;
 }
 
 /* ============= Query ============= */

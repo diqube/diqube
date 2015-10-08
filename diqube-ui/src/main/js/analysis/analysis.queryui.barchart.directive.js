@@ -100,6 +100,13 @@
                     key: "Values",
                     values: nvd3Values
                   } ];
+              
+              // force nvd3 to take the new values. If we don't do this, changes sometimes seem to get lost.
+              var nvd3Scope = $scope.api.getScope(); 
+              nvd3Scope.$apply(function() {
+                nvd3Scope.options = $scope.options;
+                nvd3Scope.data = $scope.data;
+              });
             }
             
             /**

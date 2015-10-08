@@ -37,9 +37,12 @@
       <div class="qube">
         <div class="qube-header">
           <span class="lead">{{qube.name}}</span>
-          <div class="pull-right">
-            <button class="btn btn-default" ng-click="analysis.addQuery(qube)">
-              <i class="fa fa-plus"></i> Add query</button>
+          <div class="pull-right qube-action-list">
+            <span class="qube-slice qube-action">
+              <i class="fa fa-pie-chart"></i> {{ analysis.findSlice(qube.sliceId).name }}
+            </span>
+            <button class="btn btn-default qube-action" ng-click="analysis.addQuery(qube)" title="Add query">
+              <i class="fa fa-plus"></i></button>
           </div>
         </div>
         <div class="query-container">
