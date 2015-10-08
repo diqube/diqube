@@ -109,17 +109,18 @@ public class QueryBuilder {
       firstIndexOfRemainingInputString = whereCtx.getStop().getStopIndex() + 1;
     }
 
-    if (!slice.getSliceDisjunctions().isEmpty()) {
+    if (!slice.getSliceDisjunctions().isEmpty()
+        || (slice.getManualConjunction() != null && !"".equals(slice.getManualConjunction()))) {
       if (whereKeyWordAppended)
         sb.append(" and (");
       else
         sb.append(" where (");
 
-      boolean firstDisjunction = true;
+      boolean andNeeded = false;
       for (UiSliceDisjunction disjunction : slice.getSliceDisjunctions()) {
-        if (!firstDisjunction)
+        if (andNeeded)
           sb.append(" and ");
-        firstDisjunction = false;
+        andNeeded = true;
 
         sb.append("(");
         boolean firstValue = true;
@@ -131,6 +132,14 @@ public class QueryBuilder {
           sb.append(" = ");
           sb.append(disjunctionValue);
         }
+        sb.append(")");
+      }
+
+      if (slice.getManualConjunction() != null && !"".equals(slice.getManualConjunction())) {
+        if (andNeeded)
+          sb.append(" and ");
+        sb.append("(");
+        sb.append(slice.getManualConjunction());
         sb.append(")");
       }
 

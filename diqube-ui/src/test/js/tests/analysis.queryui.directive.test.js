@@ -46,7 +46,8 @@
       slices: [ {
         id: "sliceId1",
         name: "sliceName1",
-        sliceDisjunctions: []
+        sliceDisjunctions: [],
+        manualConjunction: ""
       } ]
     }
   });

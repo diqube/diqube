@@ -56,7 +56,8 @@
       slices: [ {
         id: "sliceId1",
         name: "sliceName1",
-        sliceDisjunctions: []
+        sliceDisjunctions: [],
+        manualConjunction: ""
       } ]
     }
   });
@@ -84,7 +85,8 @@
         {
           fieldName: "fieldA",
           disjunctionValues: ["a", "b", "c"]
-        }]
+        }],
+      manualConjunction: ""
     }
   });
   

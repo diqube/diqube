@@ -46,6 +46,10 @@ public class UiSlice {
   @Valid
   public List<UiSliceDisjunction> sliceDisjunctions = new ArrayList<>();
 
+  @JsonProperty
+  @NotNull
+  public String manualConjunction;
+
   // for tests only
   public UiSlice() {
 
@@ -67,5 +71,9 @@ public class UiSlice {
 
   public String getId() {
     return id;
+  }
+
+  public String getManualConjunction() {
+    return manualConjunction;
   }
 }
