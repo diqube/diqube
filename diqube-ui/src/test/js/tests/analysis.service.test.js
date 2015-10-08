@@ -130,7 +130,9 @@
   
   var createSliceCommand = validatedData.commandData("createSlice", {
     analysisId: "analysisId", 
-    name: "sliceName", 
+    name: "sliceName",
+    manualConjunction: "",
+    sliceDisjunctions: []
   });
   
   var createQueryCommand = validatedData.commandData("createQuery", {
@@ -340,7 +342,7 @@
         });
         
         analysisService.setLoadedAnalysis(testEmptyAnalysis.analysis);
-        var addPromise = analysisService.addSlice("sliceName");
+        var addPromise = analysisService.addSlice("sliceName", "", []);
         
         addPromise.then(function(slice) {
           expect(slice).toEqual(testSliceResult.slice);

@@ -21,15 +21,18 @@
 package org.diqube.ui.websocket.request.commands.analysis;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import javax.inject.Inject;
+import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
 import org.diqube.ui.AnalysisRegistry;
 import org.diqube.ui.analysis.AnalysisFactory;
 import org.diqube.ui.analysis.UiAnalysis;
 import org.diqube.ui.analysis.UiSlice;
+import org.diqube.ui.analysis.UiSliceDisjunction;
 import org.diqube.ui.websocket.request.CommandClusterInteraction;
 import org.diqube.ui.websocket.request.CommandResultHandler;
 import org.diqube.ui.websocket.request.commands.CommandInformation;
@@ -63,6 +66,15 @@ public class CreateSliceJsonCommand implements JsonCommand {
   @NotNull
   public String name;
 
+  @JsonProperty
+  @NotNull
+  public String manualConjunction;
+
+  @JsonProperty
+  @NotNull
+  @Valid
+  public List<UiSliceDisjunction> sliceDisjunctions;
+
   @JsonIgnore
   @Inject
   private AnalysisFactory factory;
@@ -80,6 +92,8 @@ public class CreateSliceJsonCommand implements JsonCommand {
       throw new RuntimeException("Analysis unknown: " + analysisId);
 
     UiSlice slice = factory.createSlice(UUID.randomUUID().toString(), name, new ArrayList<>());
+    slice.setManualConjunction(manualConjunction);
+    slice.getSliceDisjunctions().addAll(sliceDisjunctions);
 
     analysis.getSlices().add(slice);
 

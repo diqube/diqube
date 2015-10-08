@@ -27,12 +27,12 @@
   {{ analysis.error }}
 </div>
 
-<div class="{{ analysis.error ? 'hidden' : ''}}">
-  <button class="btn btn-default add-qube-btn" ng-click="analysis.addQube()">
-    <i class="fa fa-plus"></i> Add qube
-  </button>
+<div class="{{ analysis.error ? 'hidden' : ''}} analysis-container">
+  <div class="container-fluid text-justify qube-container">
+    <button class="btn btn-default add-qube-btn" ng-click="analysis.addQube()">
+      <i class="fa fa-plus"></i> Add qube
+    </button>
 
-  <div class="container-fluid text-justify">
     <div ng-repeat="qube in analysis.analysis.qubes" class="qube-row">
       <div class="qube">
         <div class="qube-header">
@@ -47,6 +47,15 @@
             <diqube-query-ui qube="qube" query="query" analysis="analysis.analysis"></diqube-query-ui>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="slice-container">
+    <div class="panel panel-default">
+      <div class="panel-heading"><i class="fa fa-pie-chart"></i> Slices</div>
+      <div class="panel-body">
+        <diqube-slices analysis="analysis.analysis"></diqube-slices>
       </div>
     </div>
   </div>

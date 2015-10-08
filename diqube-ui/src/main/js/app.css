@@ -23,6 +23,8 @@ body {
 	padding-top: 50px;
 }
 
+/* ============= Single query ============= */
+
 textarea.diql-full {
 	width: 100%;
 }
@@ -31,9 +33,33 @@ textarea.diql-full {
 	margin-bottom: 20px;
 }
 
+/* ============= Create analysis ============= */
+
+.create-analysis .has-feedback label~.form-control-feedback {
+  top: 35px !important;
+}
+
+/* ============= UI analysis containers ============= */
+
+.analysis-container {
+  display: flex;
+}
+
+.qube-container {
+  flex-grow: 1;
+}
+
+.query-container {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+/* ============= Qube ============= */
+
 .qube {
 	background-color: #BBBBBB;
 	padding: 5px;
+	border-radius: 4px;
 }
 
 .qube .qube-header {
@@ -49,20 +75,14 @@ textarea.diql-full {
   margin-bottom: 30px;
 }
 
-.query-container {
-  display: flex;
-  flex-wrap: wrap;
-}
+/* ============= Query ============= */
 
 .query {
 	background-color: white;
 	margin-left: 10px;
 	margin-top: 10px;
 	padding: 5px;
-}
-
-.query .table {
-	margin-bottom: 0px;
+	border-radius: 4px;
 }
 
 .query .alert {
@@ -85,15 +105,40 @@ textarea.diql-full {
   justify-content: flex-end;
 }
 
-.diqube-bar-chart {
-	margin-left: 20px;
+/* query table */
+.query .table {
+  margin-bottom: 0px;
 }
 
-.create-analysis .has-feedback label~.form-control-feedback {
-	top: 35px !important;
-}
-
-
-svg .nvd3 .nv-x g.tick text {
+/* query bar-chart */
+.query .bar-chart svg .nvd3 .nv-x g.tick text {
 	text-anchor: end !important;
+}
+
+/* ============= Slice display ============= */
+
+/* heading color of slice panel different than of surrounding panel */
+div.slice div.panel-heading {
+	background-color: #cfcfcf;
+}
+
+/* heading in accordion */
+div.slice div.panel-heading h4 {
+	 font-size: 14px;
+}
+
+/* Single slice panel: Try to emulate "list-group outside panel-body", see http://getbootstrap.com/components/#panels-list-group */
+div.slice div.panel-body {
+   padding: 0px;
+}
+
+div.slice div.panel-body ul {
+   margin-bottom: 0px;
+}
+
+div.slice div.panel-body ul li {
+   border: none;
+   border-bottom: 1px solid #ddd;
+   border-bottom-right-radius: 0px;
+   border-bottom-left-radius: 0px;
 }

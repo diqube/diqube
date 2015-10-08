@@ -67,7 +67,7 @@
         function addQube() {
           var slicePromise;
           if (me.analysis.slices.length == 0)
-            slicePromise = analysisService.addSlice("slice1");
+            slicePromise = analysisService.addSlice("slice1", "round(mul(log(family_income_12_months), 10.)) > 0", []);
           else {
             slicePromise = new Promise(function(resolve, reject) {
               resolve(me.analysis.slices[0]);

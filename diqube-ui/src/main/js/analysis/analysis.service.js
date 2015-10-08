@@ -153,7 +153,7 @@
           });
         }
         
-        function addSlice(name) {
+        function addSlice(name, manualConjunction, sliceDisjunctions) {
           if (!me.loadedAnalysis) {
             $log.warn("No loaded analysis.");
             return;
@@ -161,7 +161,10 @@
           return new Promise(function(resolve, reject) {
             remoteService.execute("createSlice", 
                 { analysisId: me.loadedAnalysis.id, 
-                  name: name }, 
+                  name: name,
+                  manualConjunction: manualConjunction,
+                  sliceDisjunctions: sliceDisjunctions
+                }, 
                 new (function() {
                   var resSlice = undefined;
                   this.data = function data_(dataType, data) {

@@ -76,4 +76,12 @@ public class UiSlice {
   public String getManualConjunction() {
     return manualConjunction;
   }
+
+  public void setName(String name) {
+    this.name = name;
+  }
+
+  public void setManualConjunction(String manualConjunction) {
+    this.manualConjunction = manualConjunction;
+  }
 }
