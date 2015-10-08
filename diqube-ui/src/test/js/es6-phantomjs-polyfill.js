@@ -24,7 +24,7 @@
  * Installs simply polyfills for ES6 features to be used in PhantomJS.
  */
 
-(function() {
+(function(global) {
   if (!String.prototype.includes) {
     String.prototype.includes = function(searchString, position) {
       if (position === undefined)
@@ -32,4 +32,12 @@
       return this.indexOf(searchString, position) != -1;
     }
   }
-})();
+  
+  if (!global.MutationObserver) {
+    // noop MutationObserver
+    global.MutationObserver = function() {
+      this.observe = function() {}
+      this.disconnect = function() {};
+    }
+  }
+})(this);

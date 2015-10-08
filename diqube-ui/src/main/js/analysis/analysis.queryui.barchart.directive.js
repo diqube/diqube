@@ -73,9 +73,8 @@
                       }
                     }
                   }
-                }
-              });    
-            });
+                });
+              });
              
             nvd3Observer.observe($("nvd3", element)[0], { childList: true });
             $scope.$on("$destroy", function() {
