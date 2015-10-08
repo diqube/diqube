@@ -112,10 +112,6 @@
         expect(mockedAnalysisService.updateQuery).toHaveBeenCalled();
         var sentQuery = mockedAnalysisService.updateQuery.calls.argsFor(0)[1];
         expect(sentQuery.displayType).toEqual("barchart");
-        
-        // outer scope should have correct displayType in query, too (isolated and outer scope shoul reference same
-        // query object, which should have been updated!)
-        expect($scope.query.displayType).toEqual("barchart");
       });
       
     });

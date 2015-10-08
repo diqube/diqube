@@ -28,7 +28,7 @@
     <progressbar ng-if="!exception && query.results.percentComplete != 100" 
       value="query.results.percentComplete">{{ query.results.percentComplete }}%</progressbar>
       
-    <span ng-if="query.results.percentComplete === 100" class="query-header-actions">
+    <span ng-if="query.results.percentComplete === 100 || exception" class="query-header-actions">
       <a href class="query-header-action" title="Edit mode" ng-click="toggleEditMode()"><i class="fa fa-gears"></i></a>
       <div dropdown class="btn-group query-header-action">
         <a href dropdown-toggle><i class="fa {{ getDisplayTypeOptions(query.displayType).icon }}"></i> <i class="caret"></i></a>

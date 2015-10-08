@@ -22,7 +22,7 @@
   "use strict";
 
   angular.module("diqube.analysis").directive("diqubeQueryUi",
-      [ "analysisService", "$timeout", "$log",  function(analysisService, $timeout, $log) {
+      [ "analysisService", "$timeout", "$log", "analysisStateService", function(analysisService, $timeout, $log, analysisStateService) {
         return {
           restrict: "E",
           scope: {
@@ -58,6 +58,14 @@
             $scope.working = false;
             
             // ===
+
+            var forceReloadOnSwitchToNormalMode = false;
+            
+            if (analysisStateService.pollOpenQueryInEditModeNextTime($scope.query.id)) {
+              // query was just created: open in edit mode right away.
+              $scope.toggleEditMode();
+              forceReloadOnSwitchToNormalMode = true;
+            }
             
             $scope.$watch("query", executeQuery);
             
@@ -71,7 +79,8 @@
             function integrateQueryResults(results) {
               $scope.$apply(function() {
                 $scope.query.results = results;
-                $scope.exception = results.exception;
+                if (!$scope.editMode)
+                  $scope.exception = results.exception;
                 createDisplayProperties();
               });
             }
@@ -110,8 +119,14 @@
                 $scope.nameValid = true;
                 $scope.diqlValid = true;
                 $scope.working = false;
-              } else
-                $scope.exception = undefined;
+              } else {
+                if (forceReloadOnSwitchToNormalMode) {
+                  forceReloadOnSwitchToNormalMode = false;
+                  executeQuery();
+                }
+              }
+              
+              $scope.exception = undefined;
             }
            
             function validateName(name) {

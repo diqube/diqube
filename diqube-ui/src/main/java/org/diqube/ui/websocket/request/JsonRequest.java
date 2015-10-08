@@ -172,6 +172,9 @@ public class JsonRequest {
    * 
    * It is expected that the request was registered at {@link JsonRequestRegistry}. It will unregister itself as soon as
    * it has completed.
+   * 
+   * If the command throws an exception, {@link #sendException(Throwable)} will be run and the exception will not be
+   * re-thrown!
    */
   public void executeCommand() {
     AtomicBoolean doneSent = new AtomicBoolean(false);
@@ -209,7 +212,7 @@ public class JsonRequest {
       jsonCommand.execute(commandResultHandler, commandClusterInteraction);
     } catch (RuntimeException e) {
       sendException(e);
-      throw e;
+      return;
     }
 
     if (!AsyncJsonCommand.class.isAssignableFrom(jsonCommand.getClass()) && !doneSent.get()) {

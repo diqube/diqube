@@ -50,9 +50,11 @@ public class JsonRequestRegistry {
 
   public void unregisterRequest(Session websocketSession, JsonRequest request) {
     synchronized (websocketSession) {
-      liveRequests.get(websocketSession).remove(request);
-      if (liveRequests.get(websocketSession).isEmpty())
-        liveRequests.remove(websocketSession);
+      if (liveRequests.containsKey(websocketSession)) {
+        liveRequests.get(websocketSession).remove(request);
+        if (liveRequests.get(websocketSession).isEmpty())
+          liveRequests.remove(websocketSession);
+      }
     }
   }
 

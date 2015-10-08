@@ -76,8 +76,9 @@ public class WebSocketEndpoint {
 
       request.executeCommand();
     } catch (Exception e) {
-      logger.error("Exception on session {}", session, e);
-      throw new RuntimeException(e);
+      logger.error("Exception on session {}. Swallowing.", session, e);
+      // we must not re-throw the exception, otherwise the Websocket will be closed - we though do not want to do this
+      // if just any command threw an exception.
     }
   }
 

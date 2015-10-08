@@ -22,8 +22,8 @@
 (function() {
   "use strict";
   angular.module("diqube.analysis").service("analysisService",
-      [ "$log", "$rootScope", "remoteService", "$timeout", 
-      function analysisServiceProvider($log, $rootScope, remoteService, $timeout) {
+      [ "$log", "$rootScope", "remoteService", "$timeout", "analysisStateService",
+      function analysisServiceProvider($log, $rootScope, remoteService, $timeout, analysisStateService) {
         var me = this;
 
         me.loadedAnalysis = undefined;
@@ -139,6 +139,9 @@
                         return q.id === qubeId;
                       })[0];
                       qube.queries.push(data.query);
+                      
+                      analysisStateService.markToOpenQueryInEditModeNextTime(data.query.id);
+                      
                       $rootScope.$broadcast("analysis:queryAdded", { qubeId: qubeId, query: data.query });
                       resQuery = data.query;
                     }
@@ -298,7 +301,6 @@
                               // preserve the results we loaded already, if possible!
                               receivedQuery.results = oldQuery.results;
                             
-                            $rootScope.$broadcast("analysis:queryUpdated", { qubeId: qubeId, query: receivedQuery });
                             replacedQuery = true;
                             break;
                           }
@@ -315,6 +317,7 @@
                       return;
                     }
                     
+                    $rootScope.$broadcast("analysis:queryUpdated", { qubeId: qubeId, query: receivedQuery });
                     resolve(receivedQuery);
                   }
                 })());
