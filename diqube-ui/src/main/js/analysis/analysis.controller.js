@@ -31,9 +31,6 @@
         me.analysis = undefined;
         
         me.addQube = addQube;
-        me.addQuery = addQuery;
-        
-        me.findSlice = findSlice;
 
         // ==
         
@@ -84,19 +81,6 @@
           });
         }
         
-        function addQuery(qube) {
-          analysisService.addQuery("New query", "", qube.id).catch(function(text) {
-            // TODO nicer error?
-            me.error = text;
-          });
-        }
-        
-        function findSlice(sliceId) {
-          return me.analysis.slices.filter(function(slice) {
-            return slice.id === sliceId;
-          })[0];
-        }
-        
         $scope.$on("$destroy", function() {
           analysisService.unloadAnalysis();
         });
@@ -111,6 +95,11 @@
           $scope.$digest();
         });
         $scope.$on("analysis:queryAdded", function() {
+          // make sure this scope digests the new object. As this controller references the same analysis object as the
+          // analysisService, the new object is already integrated into the analysis of this controller.
+          $scope.$digest();
+        });
+        $scope.$on("analysis:queryUpdated", function() {
           // make sure this scope digests the new object. As this controller references the same analysis object as the
           // analysisService, the new object is already integrated into the analysis of this controller.
           $scope.$digest();

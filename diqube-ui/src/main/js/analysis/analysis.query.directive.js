@@ -21,7 +21,7 @@
 (function() {
   "use strict";
 
-  angular.module("diqube.analysis").directive("diqubeQueryUi",
+  angular.module("diqube.analysis").directive("diqubeQuery",
       [ "analysisService", "$timeout", "$log", "analysisStateService", function(analysisService, $timeout, $log, analysisStateService) {
         return {
           restrict: "E",
@@ -30,7 +30,7 @@
             qube: "=",
             analysis: "="
           },
-          templateUrl: "analysis/analysis.queryui.html",
+          templateUrl: "analysis/analysis.query.html",
           link: function link($scope, element, attrs) {
             $scope.validQueryDisplayTypes = [ 
               { 
@@ -93,7 +93,9 @@
             function switchQueryDisplayType(newDisplayTypeId) {
               var newQuery = angular.copy($scope.query);
               newQuery.displayType = newDisplayTypeId;
-              return analysisService.updateQuery($scope.qube.id, newQuery).catch(function(text) {
+              return analysisService.updateQuery($scope.qube.id, newQuery).then(function() {
+                $scope.$digest();
+              }).catch(function(text) {
                 $scope.$apply(function() {
                   $scope.exception = text;
                 });

@@ -248,41 +248,6 @@
         });
       });
       
-      
-      it("addQuery adds query", function(testDone) {
-        inject(function($controller) {
-          var mockedAnalysisService =  new MockedAnalysisService(
-                $scope,
-                function() { return testTwoQubeAnalysisResult.analysis; },
-                function() { return { percentComplete:100, rows: [[1,2]], columnNames:["colA", "colB"] }; },
-                function() { /* qube */ },
-                function() { return testQueryResult.query; },
-                function() { /* slice */ });
-          
-          spyOn(mockedAnalysisService, "addQuery").and.callThrough();
-          spyOn(mockedAnalysisService, "provideQueryResults").and.callThrough();
-          
-          var controller = $controller("AnalysisCtrl", { 
-            $scope: $scope,
-            $routeParams: { analysisId: "analysisId" },
-            analysisService: mockedAnalysisService });
-
-          waitUntil("Default analysis to be loaded", 
-              function() { return controller.analysis == testTwoQubeAnalysisResult.analysis }).then(function() {
-                var qube = controller.analysis.qubes.filter(function(qube) { return qube.id === "qubeId1" })[0];
-                controller.addQuery(qube);
-                
-                waitUntil("addQuery has been called on the analysisService", 
-                    function() { return mockedAnalysisService.addQuery.calls.count() == 1 }).then(function() {
-                      expect(controller.error).toBe(undefined);
-                      
-                      testDone();
-                    });
-                  });
-        });
-      });
-      
-      
     });
   });
 })();

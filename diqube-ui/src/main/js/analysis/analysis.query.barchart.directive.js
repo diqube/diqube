@@ -21,14 +21,14 @@
 (function() {
   "use strict";
 
-  angular.module("diqube.analysis").directive("diqubeQueryUiBarChart",
+  angular.module("diqube.analysis").directive("diqubeQueryBarChart",
       [ "$timeout", "$log", function($timeout, $log) {
         return {
           restrict: "E",
           scope: {
             query: "=",
           },
-          templateUrl: "analysis/analysis.queryui.barchart.html",
+          templateUrl: "analysis/analysis.query.barchart.html",
           link: function link($scope, element, attrs) {
             $scope.nvd3HtmlId = uuid.v4(); // "ID" the nvd3 HTMLElement has.
             $scope.options = undefined;

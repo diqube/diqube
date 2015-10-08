@@ -34,23 +34,7 @@
     </button>
 
     <div ng-repeat="qube in analysis.analysis.qubes" class="qube-row">
-      <div class="qube">
-        <div class="qube-header">
-          <span class="lead">{{qube.name}}</span>
-          <div class="pull-right qube-action-list">
-            <span class="qube-slice qube-action">
-              <i class="fa fa-pie-chart"></i> {{ analysis.findSlice(qube.sliceId).name }}
-            </span>
-            <button class="btn btn-default qube-action" ng-click="analysis.addQuery(qube)" title="Add query">
-              <i class="fa fa-plus"></i></button>
-          </div>
-        </div>
-        <div class="query-container">
-          <div ng-repeat="query in qube.queries">
-            <diqube-query-ui qube="qube" query="query" analysis="analysis.analysis"></diqube-query-ui>
-          </div>
-        </div>
-      </div>
+      <diqube-qube analysis="analysis.analysis" qube="qube"></diqube-qube>
     </div>
   </div>
   

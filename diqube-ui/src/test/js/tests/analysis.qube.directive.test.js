@@ -53,7 +53,7 @@
   });
   
   describe("diqube.analysis module", function() {
-    describe("diqubeQueryUi directive", function() {
+    describe("diqubeQube directive", function() {
       var $compile, $scope, mockedAnalysisService, pureElement;
       
       beforeEach(function() {
@@ -79,12 +79,11 @@
       beforeEach(inject(function(_$compile_, _$rootScope_){
         $compile = _$compile_;
         $scope = _$rootScope_.$new();
-        $scope.query = testAnalysisResult.analysis.qubes[1].queries[0];
         $scope.qube = testAnalysisResult.analysis.qubes[1];
         $scope.analysis = testAnalysisResult.analysis;
         
         // the values of the attributes in the following reference the fields in $scope.
-        pureElement = angular.element("<diqube-query-ui query=\"query\" qube=\"qube\" analysis=\"analysis\"></diqube-query-ui>");
+        pureElement = angular.element("<diqube-qube qube=\"qube\" analysis=\"analysis\"></diqube-query>");
       }));
 
       it("does initially trigger loading data from analysisService.", function() {
@@ -97,23 +96,19 @@
         expect(mockedAnalysisService.provideQueryResults).toHaveBeenCalled();        
       });
       
-      it("switchQueryDisplayType sends updates to server", function() {
-        
-        spyOn(mockedAnalysisService, "updateQuery").and.callThrough();
-        
+      it("addQuery adds query", function() {
+        spyOn(mockedAnalysisService, "addQuery").and.returnValue(new Promise(function() {}));
+
         var compiledElement = $compile(pureElement)($scope);
         $scope.$digest();
-
-        expect(mockedAnalysisService.updateQuery).not.toHaveBeenCalled();
+         
+        expect(mockedAnalysisService.addQuery).not.toHaveBeenCalled();
         
         var isolatedScope = compiledElement.isolateScope();
-        isolatedScope.switchQueryDisplayType("barchart");
+        isolatedScope.addQuery();
         
-        expect(mockedAnalysisService.updateQuery).toHaveBeenCalled();
-        var sentQuery = mockedAnalysisService.updateQuery.calls.argsFor(0)[1];
-        expect(sentQuery.displayType).toEqual("barchart");
+        expect(mockedAnalysisService.addQuery).toHaveBeenCalled();
       });
-      
     });
   });
 })();

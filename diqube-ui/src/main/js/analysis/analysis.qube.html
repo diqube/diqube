@@ -1,0 +1,39 @@
+<!--
+
+    diqube: Distributed Query Base.
+
+    Copyright (C) 2015 Bastian Gloeckle
+
+    This file is part of diqube.
+
+    diqube is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as
+    published by the Free Software Foundation, either version 3 of the
+    License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+-->
+<div class="qube">
+  <div class="qube-header">
+    <span class="qube-header-left">{{ qube.name }}</span>
+    <div class="qube-action-list">
+      <span class="qube-slice qube-action">
+        <i class="fa fa-pie-chart"></i> {{ slice.name }}
+      </span>
+      <button class="btn btn-default qube-action" ng-click="addQuery()" title="Add query">
+        <i class="fa fa-plus"></i></button>
+    </div>
+  </div>
+  <div class="query-container">
+    <div ng-repeat="query in qube.queries">
+      <diqube-query qube="qube" query="query" analysis="analysis"></diqube-query>
+    </div>
+  </div>
+</div>

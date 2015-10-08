@@ -71,17 +71,30 @@ textarea.diql-full {
 	justify-content: space-between;
 }
 
+.qube .qube-header span {
+	display: flex;
+	align-items: center;
+}
+
+.qube .qube-header-left {
+	font-size: 18px;
+}
+
+.qube .qube-action-list {
+	flex-grow: 1;
+	display: flex;
+	justify-content: flex-end;
+  padding-right: 5px;
+}
+
+.qube .qube-action-list .qube-action {
+  margin-right: 5px;
+}
+
 .qube-row {
   margin-bottom: 15px;
 }
 
-.qube .qube-action-list {
-	padding-right: 5px;
-}
-
-.qube .qube-action-list .qube-action {
-	margin-right: 5px;
-}
 
 /* ============= Query ============= */
 
