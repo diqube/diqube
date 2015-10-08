@@ -99,6 +99,14 @@
     }
   });
   
+  var testQueryResultAfterUpdate = validatedData.data("query", {
+    query: {
+      id: "queryId2",
+      name: "queryNameNew",
+      diql: "queryDiqlNew",
+      displayType: "tableNew"
+    }
+  });
   
   var testTableResult1 = validatedData.data("table", {
     columnNames: [ "colA", "colB" ],
@@ -531,7 +539,7 @@
         remoteServiceHandlerFn = function(res, commandName, commandData) {
           if (commandName === "updateQuery") {
             expect(commandData).toEqual(updateQueryCommand);
-            res.data("query", updateQueryCommand.newQuery);
+            res.data("query", testQueryResultAfterUpdate);
             res.done();
           } else
             fail("Unexpected command sent by analysisService: " + commandName + ", " + commandData);
