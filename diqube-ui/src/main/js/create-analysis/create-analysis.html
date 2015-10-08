@@ -22,7 +22,7 @@
 -->
 <h1 class="page-header">Create Analysis</h1>
 <p />
-<div style="{{ createAnalysis.error ? '' : 'display: none'}}" class="alert alert-danger">
+<div ng-if="createAnalysis.error" class="alert alert-danger">
   <i class="fa fa-exclamation-circle"></i>
   {{ createAnalysis.error }}
 </div> 
@@ -33,8 +33,8 @@
     <input type="text" class="form-control" id="inputName"
       placeholder="Name of new Analysis" ng-model="analysis.name" 
       ng-change="createAnalysis.validateName(analysis.name)">
-    <span class="{{ createAnalysis.nameValid === true ? '' : 'hidden' }} fa fa-check form-control-feedback"></span>
-    <span class="{{ createAnalysis.nameValid === false ? '' : 'hidden' }} fa fa-exclamation-triangle form-control-feedback"></span>
+    <span ng-if="createAnalysis.nameValid === true" class="fa fa-check form-control-feedback"></span>
+    <span ng-if="createAnalysis.nameValid === false" class="fa fa-exclamation-triangle form-control-feedback"></span>
   </div>
   <div class="form-group has-feedback {{ createAnalysis.tableValid === true ? 'has-success' : '' }} {{ createAnalysis.tableValid === false ? 'has-error' : '' }} {{ noResults ? 'has-warning' : '' }}">
     <label for="inputTable" class="control-label">Table
@@ -49,9 +49,9 @@
       typeahead-select-on-exact="true"
       ng-focus="createAnalysis.tableValid = undefined"
       ng-blur="createAnalysis.validateTable(analysis.table)">
-    <span class="{{ (createAnalysis.tableValid === true && !noResults) ? '' : 'hidden' }} fa fa-check form-control-feedback"></span>
-    <span class="{{ createAnalysis.tableValid === false ? '' : 'hidden' }} fa fa-exclamation-triangle form-control-feedback"></span>
-    <span class="{{ noResults ? '' : 'hidden' }} fa fa-question-circle form-control-feedback"></span>
+    <span ng-if="createAnalysis.tableValid === true && !noResults" class="fa fa-check form-control-feedback"></span>
+    <span ng-if="createAnalysis.tableValid === false" class="fa fa-exclamation-triangle form-control-feedback"></span>
+    <span ng-if="noResults" class="fa fa-question-circle form-control-feedback"></span>
   </div>
   <button type="submit" class="btn btn-primary" ng-disabled="createAnalysis.isCreating">Create</button>
 </form>

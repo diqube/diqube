@@ -22,12 +22,12 @@
 -->
 <h1 class="page-header">{{analysis.title}} <small>{{analysis.analysis.table}}</small></h1>
 
-<div class="alert alert-danger {{ analysis.error ? '' : 'hidden'}}">
+<div ng-if="analysis.error" class="alert alert-danger">
   <i class="fa fa-exclamation-circle"></i>
   {{ analysis.error }}
 </div>
 
-<div class="{{ analysis.error ? 'hidden' : ''}} analysis-container">
+<div ng-if="!analysis.error" class="analysis-container">
   <div class="container-fluid text-justify qube-container">
     <button class="btn btn-default add-qube-btn" ng-click="analysis.addQube()">
       <i class="fa fa-plus"></i> Add qube
