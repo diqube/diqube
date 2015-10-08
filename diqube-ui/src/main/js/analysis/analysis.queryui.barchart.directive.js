@@ -56,8 +56,8 @@
                       var yAxisLabelsRendered = findRenderedAxisLabels("y");
 
                       if ($scope.query.results && $scope.query.results.percentComplete === 100) {
-                        if (lastXAxisLabelsUsedForCalculation !== xAxisLabelsRendered || 
-                            lastYAxisLabelsUsedForCalculation !== yAxisLabelsRendered) {
+                        if (!angular.equals(lastXAxisLabelsUsedForCalculation, xAxisLabelsRendered) || 
+                            !angular.equals(lastYAxisLabelsUsedForCalculation, yAxisLabelsRendered)) {
                           // the axis labels that were used for the last pixel calculations in nvd3BarChartOptions were
                           // different than they are now, with 100 percentComplete. We schedule another calculation.
                           $log.debug("Scheduling another chart-calculation for query ", $scope.query.id, 
@@ -101,12 +101,20 @@
                     values: nvd3Values
                   } ];
               
-              // force nvd3 to take the new values. If we don't do this, changes sometimes seem to get lost.
-              var nvd3Scope = $scope.api.getScope(); 
-              nvd3Scope.$apply(function() {
-                nvd3Scope.options = $scope.options;
-                nvd3Scope.data = $scope.data;
-              });
+              // Sometimes nvd3/angular seems to loose the updates. Make sure that after some time there is actually a
+              // chart calculated and force the calculation if not.
+              var nvd3Scope = $scope.api.getScope();
+              var options = $scope.options;
+              var data = $scope.data;
+              $timeout(function () {
+                if (!nvd3Scope.chart) {
+                  nvd3Scope.$apply(function() {
+                    nvd3Scope.options = options;
+                    nvd3Scope.data = data;
+                    $scope.api.refresh();
+                  });
+                }
+              }, 100, false);
             }
             
             /**

@@ -268,14 +268,16 @@
                     displayType: query.displayType
                   }
                 }, new (function() {
+                  var receivedQuery;
                   this.data = function data_(dataType, data) {
-                    // noop.
+                    if (dataType === "query")
+                      receivedQuery = data.query;
                   }
                   this.exception = function exception_(text) {
                     reject(text);
                   }
                   this.done = function done_() {
-                    resolve(query);
+                    resolve(receivedQuery);
                   }
                 })());
           });

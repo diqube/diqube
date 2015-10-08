@@ -20,6 +20,8 @@
  */
 package org.diqube.ui.analysis;
 
+import java.io.Serializable;
+
 import javax.validation.constraints.NotNull;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -28,7 +30,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  *
  * @author Bastian Gloeckle
  */
-public class UiQuery {
+public class UiQuery implements Serializable {
+  private static final long serialVersionUID = 1L;
+
   public static final String DISPLAY_TYPE_TABLE = "table";
   public static final String DISPLAY_TYPE_BARCHART = "barchart";
 

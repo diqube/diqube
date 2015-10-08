@@ -21,15 +21,16 @@
 
 -->
 
-<div class="query">
+<div class="query" ng-if="!editMode">
   <div class="query-header">
     <span>{{ query.name }}</span>
     
     <progressbar ng-if="!exception && query.results.percentComplete != 100" 
       value="query.results.percentComplete">{{ query.results.percentComplete }}%</progressbar>
       
-    <span ng-if="query.results.percentComplete === 100" class="query-header-right">
-      <div dropdown class="btn-group">
+    <span ng-if="query.results.percentComplete === 100" class="query-header-actions">
+      <a href class="query-header-action" title="Edit mode" ng-click="toggleEditMode()"><i class="fa fa-gears"></i></a>
+      <div dropdown class="btn-group query-header-action">
         <a href dropdown-toggle><i class="fa {{ getDisplayTypeOptions(query.displayType).icon }}"></i> <i class="caret"></i></a>
         <ul class="dropdown-menu">
           <li ng-repeat="choice in validQueryDisplayTypes">
@@ -60,5 +61,42 @@
     
     <diqube-query-ui-bar-chart class="bar-chart" ng-if="query.displayType === 'barchart'" query="query">
     </diqube-query-ui-bar-chart>
+  </div>
+</div>
+
+<!-- EDIT MODE -->
+
+<div class="query" ng-if="editMode">
+  <div class="edit-query">
+    <form novalidate class="simple-form" ng-submit="updateQuery(queryCopy)">
+      <div class="query-header">
+        <div class="has-feedback form-group {{ nameValid === true ? 'has-success' : '' }} {{ nameValid === false ? 'has-error' : '' }}">
+          <input type="text" class="form-control" id="inputName"
+            placeholder="Name of query" ng-model="queryCopy.name" 
+            ng-change="validateName(queryCopy.name)">
+          <span ng-if="nameValid === true" class="fa fa-check form-control-feedback"></span>
+          <span ng-if="!nameValid" class="fa fa-exclamation-triangle form-control-feedback"></span>
+        </div>
+        <span class="query-header-actions">
+          <a ng-if="!working" href class="query-header-action" title="Cancel edit" ng-click="toggleEditMode()"><i class="fa fa-close"></i></a>
+          <a ng-if="!working" href class="query-header-action" title="Save" ng-click="updateQuery(queryCopy)"><i class="fa fa-floppy-o"></i></a>
+          <i ng-if="working" class="query-header-action fa fa-spinner fa-spin"></i>
+        </span>
+      </div>
+      <div class="has-feedback form-group {{ diqlValid === false ? 'has-error' : '' }}">
+        <textarea class="form-control query-diql" rows="5" id="inputDiql"
+          ng-model="queryCopy.diql" 
+          ng-change="validateDiql(queryCopy.diql)"></textarea>
+        <span ng-if="!diqlValid" class="fa fa-exclamation-triangle form-control-feedback"></span>
+      </div>
+    </form>
+    <div class="alert alert-danger error-diql-query {{ exception ? '' : 'hidden' }}">
+      <i class="fa fa-exclamation-circle"></i>
+      {{ exception }}
+    </div>
+    <div class="alert alert-info info-diql-query">
+      <i class='fa fa-info-circle'></i> Remember: This is a partial diql query. There must be no "from" clause (taken
+      from the whole analysis), and there usually should not be a "where" clause (taken from the slice).
+    </div>
   </div>
 </div>

@@ -20,6 +20,7 @@
  */
 package org.diqube.ui.analysis;
 
+import java.io.Serializable;
 import java.util.List;
 
 import javax.validation.constraints.NotNull;
@@ -30,7 +31,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  *
  * @author Bastian Gloeckle
  */
-public class UiSliceDisjunction {
+public class UiSliceDisjunction implements Serializable {
+  private static final long serialVersionUID = 1L;
+
   @JsonProperty
   @NotNull
   public String fieldName;

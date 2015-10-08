@@ -47,6 +47,16 @@
             
             $scope.exception = undefined;
             
+            $scope.editMode = false;
+            $scope.toggleEditMode = toggleEditMode;
+            $scope.nameValid = true;
+            $scope.diqlValid = true;
+            $scope.validateName = validateName;
+            $scope.validateDiql = validateDiql;
+            $scope.queryCopy = undefined;
+            $scope.updateQuery = updateQuery;
+            $scope.working = false;
+            
             // ===
             
             executeQuery();
@@ -87,6 +97,50 @@
               })[0];
             }
             
+            function toggleEditMode() {
+              $scope.editMode = !$scope.editMode;
+              if ($scope.editMode) {
+                $scope.queryCopy = angular.copy($scope.query);
+                $timeout(function() {
+                  var textarea = $("textarea", element);
+                  // resize text area so it does not need to be scrolled from the beginning...
+                  textarea.height(textarea[0].scrollHeight + 10);
+                  textarea.width(textarea[0].scrollWidth + 10);
+                }, 0, false);
+                $scope.nameValid = true;
+                $scope.diqlValid = true;
+                $scope.working = false;
+              } else
+                $scope.exception = undefined;
+            }
+           
+            function validateName(name) {
+              $scope.nameValid = !!name;
+            }
+            
+            function validateDiql(diql) {
+              $scope.diqlValid = !!diql;
+            }
+            
+            function updateQuery(newQuery) {
+              $scope.working = true;
+              analysisService.updateQuery($scope.qube.id, newQuery).then(function success_(receivedQuery) {
+                $scope.$apply(function() {
+                  $scope.query = receivedQuery;
+                  $scope.working = false;
+                  $scope.editMode = false;
+                });
+                executeQuery();
+              }, function failure_(text) {
+                $scope.$apply(function() {
+                  $scope.working = false;
+                  $scope.exception = text;
+                  
+                  // assume that it's the diql that was invalid.
+                  $scope.diqlValid = false;
+                });
+              });
+            }
           }
         };
                 

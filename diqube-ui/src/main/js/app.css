@@ -97,20 +97,51 @@ textarea.diql-full {
   margin-bottom: 0px;
 }
 
-.query .query-header {
-	display: flex;
-}
-
 .query .progress {
 	flex-grow: 1;
   margin-bottom: 0px;
   margin-left: 5px;
 }
 
-.query .query-header-right {
+.query .query-header {
+  display: flex;
+  margin-bottom: 5px;
+}
+.query .query-header-actions {
   flex-grow: 1;
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  margin-left: 15px;
+}
+
+.query .query-header-action {
+	margin-right: 10px;
+}
+
+.query .edit-query {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.query .edit-query .alert {
+	width: 0;
+	min-width: 100%;
+}
+
+.query .edit-query .form-group {
+  margin-bottom: 0px;
+}
+
+.query .edit-query textarea.query-diql {
+  resize: both;
+  white-space: nowrap;
+  flex-grow: 1;
+}
+
+.query .alert {
+	margin-top: 5px;
 }
 
 /* query table */
@@ -121,6 +152,10 @@ textarea.diql-full {
 /* query bar-chart */
 .query .bar-chart svg .nvd3 .nv-x g.tick text {
 	text-anchor: end !important;
+}
+
+.query .edit-query .has-feedback span.form-control-feedback {
+  top: 10px !important;
 }
 
 /* ============= Slice display ============= */
