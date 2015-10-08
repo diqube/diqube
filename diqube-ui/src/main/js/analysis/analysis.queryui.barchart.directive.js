@@ -158,10 +158,10 @@
               
               var xTickValues = [];
               var indexOffset = 0;
-              var idxDelta = $scope.query.results.rows.length / numberOfXAxisLabelsToShow;
+              var idxDelta = Math.ceil($scope.query.results.rows.length / numberOfXAxisLabelsToShow);
               var lastLabelAdded = false;
-              for (var i = 0; i < numberOfXAxisLabelsToShow; i += 1) {
-                var rowIdx = Math.round(indexOffset);
+              while (!lastLabelAdded) {
+                var rowIdx = indexOffset;
                 if (rowIdx >= $scope.query.results.rows.length - 1) {
                   lastLabelAdded = true;
                   rowIdx = $scope.query.results.rows.length - 1;
@@ -171,9 +171,6 @@
                 
                 indexOffset += idxDelta;
               }
-              
-              if (!lastLabelAdded)
-                xTickValues.push($scope.query.results.rows[$scope.query.results.rows.length - 1][0]);
               
               var xAxisLabelsHeight = Math.cos(Math.PI / 4) * xAxisTextMaxWidth; // 45° angle.
               
