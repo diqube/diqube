@@ -256,6 +256,14 @@
           });
         }
         
+        /**
+         * Sends an updated version of a query to the server. Note that the passed query object should not yet be the 
+         * one that is reachable from me.loadedAnalysis, as the changes will be incorporated into that object when the
+         * resulting query is received from the server after updating.
+         * 
+         * If possible, the query.results will be preserved in the new query object, but it could be that they are
+         * removed and need to be re-queried using #provideQueryResults.
+         */
         function updateQuery(qubeId, query) {
           return new Promise(function(resolve, reject) {
             remoteService.execute("updateQuery",
@@ -277,6 +285,36 @@
                     reject(text);
                   }
                   this.done = function done_() {
+                    var replacedQuery = false;
+                    for (var qubeIdx in me.loadedAnalysis.qubes) {
+                      if (me.loadedAnalysis.qubes[qubeIdx].id === qubeId) {
+                        var qube = me.loadedAnalysis.qubes[qubeIdx];
+                        for (var queryIdx in qube.queries) {
+                          if (qube.queries[queryIdx].id === receivedQuery.id) {
+                            var oldQuery = qube.queries[queryIdx]; 
+                            qube.queries[queryIdx] = receivedQuery;
+                            
+                            if (oldQuery.diql == receivedQuery.diql)
+                              // preserve the results we loaded already, if possible!
+                              receivedQuery.results = oldQuery.results;
+                            
+                            $rootScope.$broadcast("analysis:queryUpdated", { qubeId: qubeId, query: receivedQuery });
+                            replacedQuery = true;
+                            break;
+                          }
+                        }
+                      }
+                      if (replacedQuery)
+                        break;
+                    }
+                    
+                    if (!replacedQuery) {
+                      $log.warn("Could not find the query that should be replaced by the updated query. " + 
+                          "Did the server change the query ID?");
+                      reject("Internal error. Please refresh the page.");
+                      return;
+                    }
+                    
                     resolve(receivedQuery);
                   }
                 })());

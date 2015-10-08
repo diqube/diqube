@@ -35,7 +35,10 @@
             // ===
             
             $scope.$watchCollection("analysis.slices", function() {
-              $scope.slices = $scope.analysis.slices;
+              if (!$scope.analysis)
+                $scope.slices = undefined;
+              else
+                $scope.slices = $scope.analysis.slices;
             });
             
           }

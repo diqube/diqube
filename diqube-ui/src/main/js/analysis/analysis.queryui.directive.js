@@ -59,8 +59,8 @@
             
             // ===
             
-            executeQuery();
-
+            $scope.$watch("query", executeQuery);
+            
             function createDisplayProperties() {
               $scope.displayWidth = "";
               
@@ -82,9 +82,9 @@
             }
             
             function switchQueryDisplayType(newDisplayTypeId) {
-              $scope.query.displayType = newDisplayTypeId;
-              createDisplayProperties();
-              return analysisService.updateQuery($scope.qube.id, $scope.query).catch(function(text) {
+              var newQuery = angular.copy($scope.query);
+              newQuery.displayType = newDisplayTypeId;
+              return analysisService.updateQuery($scope.qube.id, newQuery).catch(function(text) {
                 $scope.$apply(function() {
                   $scope.exception = text;
                 });
@@ -126,11 +126,9 @@
               $scope.working = true;
               analysisService.updateQuery($scope.qube.id, newQuery).then(function success_(receivedQuery) {
                 $scope.$apply(function() {
-                  $scope.query = receivedQuery;
                   $scope.working = false;
                   $scope.editMode = false;
                 });
-                executeQuery();
               }, function failure_(text) {
                 $scope.$apply(function() {
                   $scope.working = false;
