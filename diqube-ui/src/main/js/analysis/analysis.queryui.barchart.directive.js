@@ -22,7 +22,7 @@
   "use strict";
 
   angular.module("diqube.analysis").directive("diqubeQueryUiBarChart",
-      [ "$timeout", function($timeout) {
+      [ "$timeout", "$log", function($timeout, $log) {
         return {
           restrict: "E",
           scope: {
@@ -30,17 +30,61 @@
           },
           templateUrl: "analysis/analysis.queryui.barchart.html",
           link: function link($scope, element, attrs) {
-            $scope.nvd3HtmlId = uuid.v4();
+            $scope.nvd3HtmlId = uuid.v4(); // "ID" the nvd3 HTMLElement has.
             $scope.options = undefined;
             $scope.data = undefined;
             
             // ===
             
-            var watchFn = function() { createDisplayProperties(); };
+            var lastXAxisLabelsUsedForCalculation = undefined;
+            var lastYAxisLabelsUsedForCalculation = undefined;
+
+            $scope.$watch("query.results.columnNames", createDisplayProperties);
+            $scope.$watch("query.results.rows", createDisplayProperties);
             
-            $scope.$watch("query.results.columnNames", watchFn);
-            $scope.$watch("query.results.rows", watchFn);
+            // Observes DOM mutations in this directives DOM. If the "svg" element changes, we calculate the 
+            // axis-labels that are displayed. If they differ from those that were used to calculate the pixel distances
+            // we schedule another calculation. This is only needed as soon as all results are available 
+            // (percentComplete == 100). See comment in nvd3BarChartOptions for details.
+            var nvd3Observer = new MutationObserver(function(mutations) {
+              mutations.forEach(function(mutation) {
+                if (mutation.addedNodes && mutation.addedNodes.length && mutation.addedNodes.length > 0) {
+                  for (var addedNodeIdx in mutation.addedNodes) {
+                    var addedNode = mutation.addedNodes[addedNodeIdx];
+                    if (addedNode.localName === "svg") {
+                      var xAxisLabelsRendered = findRenderedAxisLabels("x");
+                      var yAxisLabelsRendered = findRenderedAxisLabels("y");
+
+                      if ($scope.query.results && $scope.query.results.percentComplete === 100) {
+                        if (lastXAxisLabelsUsedForCalculation !== xAxisLabelsRendered || 
+                            lastYAxisLabelsUsedForCalculation !== yAxisLabelsRendered) {
+                          // the axis labels that were used for the last pixel calculations in nvd3BarChartOptions were
+                          // different than they are now, with 100 percentComplete. We schedule another calculation.
+                          $log.debug("Scheduling another chart-calculation for query ", $scope.query.id, 
+                              " because the labels changed since the last calculation!");
+                          $timeout(
+                              function() {
+                                $scope.$apply(function() {
+                                  createDisplayProperties();
+                                });
+                              }, 0, false);
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              });    
+            });
+             
+            nvd3Observer.observe($("nvd3", element)[0], { childList: true });
+            $scope.$on("$destroy", function() {
+              nvd3Observer.disconnect();
+            });
             
+            /**
+             * Re-initialize the properties used by nvd3 with the current data available in $scope.query.
+             */
             function createDisplayProperties() {
               var nvd3Values = [];
               for (var idx in $scope.query.results.rows) {
@@ -51,10 +95,7 @@
                 });
               }
               
-              $scope.options = nvd3BarChartOptions(600, 300, 
-                  $scope.query.results.columnNames ? $scope.query.results.columnNames[0] : "", 
-                  $scope.query.results.columnNames ? $scope.query.results.columnNames[1] : "",
-                  $scope.query.results);
+              $scope.options = nvd3BarChartOptions(600, 300);
               
               $scope.data = [ {
                     key: "Values",
@@ -62,8 +103,15 @@
                   } ];
             }
             
-            function nvd3BarChartOptions(userWidth, userHeight, xAxisLabel, yAxisLabel, queryResults) {
-              if (!queryResults || !queryResults.rows)
+            /**
+             * Calculate the "options" for the nvd3 chart. This includes finding which "labels" (or "ticks" in 
+             * nvd3-speak) to be shown on the x axis and identify correct pixel-margins etc. for the labels.
+             * 
+             * @param userWidth: User preference width of the chart in px.
+             * @param userHeight: User preference height of the chart in px.
+             */
+            function nvd3BarChartOptions(userWidth, userHeight) {
+              if (!$scope.query.results || !$scope.query.results.rows)
                 return;
               
               var width = userWidth || 450;
@@ -71,53 +119,47 @@
               
               // find dimensions of text on x axis and the margin we need on the left side (left of y axis). This is
               // calculated by sizes of the currently displayed chart values. This is fine, although we're about to
-              // actually change the values displayed in the chart! This is true, because (1) the height of the font does
+              // actually show new values in the chart! It is fine, because (1) the height of the font does
               // not change by changing the displayed data and (2) for the calculated width and margin: We will
               // typically calculate the chart options multiple times, as we receive multiple data updates per chart ->
               // there will be a run of this method when all data is loaded already and we can therefore simply use the
               // values of the "previous run" to correctly display this runs' data.
+              // For safety, the observer defined above might schedule another calculation at 100%, if the labels we
+              // base the calculation on now are different from those displayed at the end.
               var xAxisTextHeight = findXAxisTextHeight();
               var xAxisTextMaxWidth = findAxisTextMaxWidth("x");
               var leftMargin = findLeftMargin(xAxisTextHeight);
               if (!xAxisTextHeight || !xAxisTextMaxWidth || !leftMargin) {
-                // we did not find one, perhaps there is no chart yet. Proceed now with a default value and remember to
-                // retry soon -> at some point the real chart will be available!
-                $timeout(function() {
-                  $scope.$apply(function() {
-                    createDisplayProperties();
-                  });
-                }, 10, false);
-                xAxisTextHeight = 14; // use some default value.
+                // use some default values.
+                xAxisTextHeight = 14; 
                 xAxisTextMaxWidth = 14;
                 leftMargin = 14;
               }
               
-              var xAxisLabelsRendered = findRenderedAxisLabels("x");
-              var yAxisLabelsRendered = findRenderedAxisLabels("y");
+              lastXAxisLabelsUsedForCalculation = findRenderedAxisLabels("x");
+              lastYAxisLabelsUsedForCalculation = findRenderedAxisLabels("y");
 
-              // TODO validate that we did use the same labels to render or retry. 
-              
               // We distribute the rows along the X axis.
               var numberOfXAxisLabelsToShow = Math.ceil(width / (xAxisTextHeight + 10)); // 10 -> leave some space between labels
               
               var xTickValues = [];
               var indexOffset = 0;
-              var idxDelta = queryResults.rows.length / numberOfXAxisLabelsToShow;
+              var idxDelta = $scope.query.results.rows.length / numberOfXAxisLabelsToShow;
               var lastLabelAdded = false;
               for (var i = 0; i < numberOfXAxisLabelsToShow; i += 1) {
                 var rowIdx = Math.round(indexOffset);
-                if (rowIdx >= queryResults.rows.length - 1) {
+                if (rowIdx >= $scope.query.results.rows.length - 1) {
                   lastLabelAdded = true;
-                  rowIdx = queryResults.rows.length - 1;
+                  rowIdx = $scope.query.results.rows.length - 1;
                 }
-                if (queryResults.rows[rowIdx])
-                  xTickValues.push(queryResults.rows[rowIdx][0]);
+                if ($scope.query.results.rows[rowIdx])
+                  xTickValues.push($scope.query.results.rows[rowIdx][0]);
                 
                 indexOffset += idxDelta;
               }
               
               if (!lastLabelAdded)
-                xTickValues.push(queryResults.rows[queryResults.rows.length - 1][0]);
+                xTickValues.push($scope.query.results.rows[$scope.query.results.rows.length - 1][0]);
               
               var xAxisLabelsHeight = Math.cos(Math.PI / 4) * xAxisTextMaxWidth; // 45° angle.
               
@@ -141,13 +183,13 @@
                   transitionDuration: 100,
                   color: function(data) { return "#1f77b4"; },
                   xAxis: {
-                      axisLabel: xAxisLabel ? xAxisLabel : "",
+                      axisLabel: $scope.query.results.columnNames ? $scope.query.results.columnNames[0] : "",
                       axisLabelDistance: 10,
                       rotateLabels: 315,
                       tickValues: xTickValues
                   },
                   yAxis: {
-                      axisLabel: yAxisLabel ? yAxisLabel : "" ,
+                      axisLabel: $scope.query.results.columnNames ? $scope.query.results.columnNames[1] : "",
                       axisLabelDistance: 10,
                       tickFormat: function(d){
                         return d3.format("d")(d);
@@ -158,6 +200,10 @@
               }
             };
             
+            /**
+             * Text height of text on the x axis (this means not the height of the box the rotated text spans, but only
+             * the height the text had if it weren't rotated).
+             */
             function findXAxisTextHeight() {
               if ($("#" + $scope.nvd3HtmlId).length) {
                 var nvd3Element = $("#" + $scope.nvd3HtmlId)[0];
@@ -172,6 +218,9 @@
             }
             
             /**
+             * Max text width of text on an axis (this means not the height of the box the rotated text spans, but only
+             * the height the text had if it weren't rotated).
+             * 
              * @param axis either "x" or "y".
              */
             function findAxisTextMaxWidth(axis) {
@@ -195,7 +244,7 @@
             }
 
             /**
-             * Calculates the "margin" we should use on the left side.
+             * Calculates the "margin" we should use on the left side of the chart.
              * 
              * This is slightly complex, as we need to take care of two sizes: 
              * (1) The length of the labels on the y axis
@@ -242,6 +291,9 @@
               return undefined;
             }
             
+            /**
+             * Returns a representation of all the labels that are displayed on a specific axis.
+             */
             function findRenderedAxisLabels(axis) {
               if (!$("#" + $scope.nvd3HtmlId).length) 
                 return undefined;
