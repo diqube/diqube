@@ -271,9 +271,11 @@
         function updateQuery(qubeId, query) {
           return new Promise(function(resolve, reject) {
             var cleanDiql = query.diql;
-            if (cleanDiql)
+            if (cleanDiql) {
               // Chrome seems to sometimes send "c2 a0" which our backends do not like. Replace with normal space char.
-              cleanDiql = cleanDiql.replace(/\xc2\xa0/, " ");
+              cleanDiql = cleanDiql.replace(/\xc2\xa0/g, " ");
+              cleanDiql = cleanDiql.replace(/\uc2a0/g, " ");
+            }
             remoteService.execute("updateQuery",
                 { analysisId: me.loadedAnalysis.id,
                   qubeId: qubeId,

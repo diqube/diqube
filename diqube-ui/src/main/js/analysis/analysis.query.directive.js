@@ -59,12 +59,9 @@
             
             // ===
 
-            var forceReloadOnSwitchToNormalMode = false;
-            
             if (analysisStateService.pollOpenQueryInEditModeNextTime($scope.query.id)) {
               // query was just created: open in edit mode right away.
               $scope.toggleEditMode();
-              forceReloadOnSwitchToNormalMode = true;
             }
             
             $scope.$watch("query", executeQuery);
@@ -122,10 +119,7 @@
                 $scope.diqlValid = true;
                 $scope.working = false;
               } else {
-                if (forceReloadOnSwitchToNormalMode) {
-                  forceReloadOnSwitchToNormalMode = false;
-                  executeQuery();
-                }
+                executeQuery();
               }
               
               $scope.exception = undefined;
