@@ -212,6 +212,7 @@ public class JsonRequest {
       jsonCommand.execute(commandResultHandler, commandClusterInteraction);
     } catch (RuntimeException e) {
       sendException(e);
+      logger.warn("Exception while executing command", e);
       return;
     }
 

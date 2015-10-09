@@ -167,6 +167,12 @@
     }
   });
   
+  var updateQubeNameCommand = validatedData.commandData("updateQubeName", {
+    analysisId: "analysisId", 
+    qubeId: "qubeId1",
+    qubeName: "newName"
+  });
+  
   describe("diqube.analysis module", function() {
     var remoteServiceHandlerFn = undefined;
     var rootScope = undefined;
@@ -553,6 +559,28 @@
         
         updatePromise.then(function(result) {
           expect(result).toEqual(updateQueryCommand.newQuery);
+          testDone();
+        }).catch(function (text) {
+          fail(text);
+        });
+      });
+      
+      it("updateQubeName sends updates to server", function(testDone) {
+        remoteServiceHandlerFn = function(res, commandName, commandData) {
+          if (commandName === "updateQubeName") {
+            expect(commandData).toEqual(updateQubeNameCommand);
+            res.done();
+          } else
+            fail("Unexpected command sent by analysisService: " + commandName + ", " + commandData);
+        }
+        
+        analysisService.setLoadedAnalysis(testTwoQubeAnalysis.analysis);
+        var targetQube = analysisService.loadedAnalysis.qubes.filter(function(qube) { return qube.id === "qubeId1"; })[0];
+        
+        var updatePromise = analysisService.updateQubeName(targetQube.id, "newName");
+        
+        updatePromise.then(function() {
+          expect(targetQube.name).toEqual("newName");
           testDone();
         }).catch(function (text) {
           fail(text);

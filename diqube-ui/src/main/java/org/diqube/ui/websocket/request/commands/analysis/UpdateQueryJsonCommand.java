@@ -88,6 +88,9 @@ public class UpdateQueryJsonCommand implements JsonCommand {
     if (query == null)
       throw new RuntimeException("Unknwon query: " + newQuery.getId());
 
+    if (newQuery.getName() == null || "".equals(newQuery.getName()))
+      throw new RuntimeException("Name empty.");
+
     // validate query!
     try {
       UiQuery queryClone = (UiQuery) SerializationUtils.deserialize(SerializationUtils.serialize(query));

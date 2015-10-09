@@ -20,80 +20,67 @@
  */
 package org.diqube.ui.websocket.request.commands.analysis;
 
-import java.util.UUID;
-
 import javax.inject.Inject;
 import javax.validation.constraints.NotNull;
 
 import org.diqube.ui.AnalysisRegistry;
-import org.diqube.ui.analysis.AnalysisFactory;
 import org.diqube.ui.analysis.UiAnalysis;
 import org.diqube.ui.analysis.UiQube;
-import org.diqube.ui.analysis.UiSlice;
 import org.diqube.ui.websocket.request.CommandClusterInteraction;
 import org.diqube.ui.websocket.request.CommandResultHandler;
 import org.diqube.ui.websocket.request.commands.CommandInformation;
 import org.diqube.ui.websocket.request.commands.JsonCommand;
-import org.diqube.ui.websocket.result.analysis.QubeJsonResult;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * Creates a new qube inside an analysis.
- * 
+ * Updates the name of a qube.
+ *
  * <p>
  * Sends following results:
  * <ul>
- * <li>{@link QubeJsonResult}
+ * <li>none
  * </ul>
  * 
  * @author Bastian Gloeckle
  */
-@CommandInformation(name = CreateQubeJsonCommand.NAME)
-public class CreateQubeJsonCommand implements JsonCommand {
+@CommandInformation(name = UpdateQubeNameJsonCommand.NAME)
+public class UpdateQubeNameJsonCommand implements JsonCommand {
 
-  public static final String NAME = "createQube";
-
-  @JsonProperty
-  @NotNull
-  private String analysisId;
+  public static final String NAME = "updateQubeName";
 
   @JsonProperty
   @NotNull
-  private String sliceId;
+  public String analysisId;
 
   @JsonProperty
   @NotNull
-  private String name;
+  public String qubeId;
 
-  @Inject
+  @JsonProperty
+  @NotNull
+  public String qubeName;
+
   @JsonIgnore
-  private AnalysisRegistry registry;
-
   @Inject
-  @JsonIgnore
-  private AnalysisFactory factory;
+  private AnalysisRegistry analysisRegistry;
 
   @Override
   public void execute(CommandResultHandler resultHandler, CommandClusterInteraction clusterInteraction)
       throws RuntimeException {
-    UiAnalysis analysis = registry.getAnalysis(analysisId);
-
+    UiAnalysis analysis = analysisRegistry.getAnalysis(analysisId);
     if (analysis == null)
-      throw new RuntimeException("Unknown analysis: " + analysisId);
+      throw new RuntimeException("Analysis unknwon: " + analysisId);
 
-    UiSlice slice = analysis.getSlice(sliceId);
+    UiQube qube = analysis.getQube(qubeId);
+    if (qube == null)
+      throw new RuntimeException("Qube unknwon: " + qubeId);
 
-    if (slice == null)
-      throw new RuntimeException("Unknown slice: " + sliceId);
-
-    if (name == null || "".equals(name))
+    if (qubeName == null || "".equals(qubeName))
       throw new RuntimeException("Qube name empty.");
 
-    UiQube qube = factory.createQube(UUID.randomUUID().toString(), name, sliceId);
-    analysis.getQubes().add(qube);
-    resultHandler.sendData(new QubeJsonResult(qube));
+    qube.setName(qubeName);
   }
 
 }

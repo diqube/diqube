@@ -109,6 +109,22 @@
         
         expect(mockedAnalysisService.addQuery).toHaveBeenCalled();
       });
+      
+      it("updateQubeName sends update", function() {
+        spyOn(mockedAnalysisService, "updateQubeName").and.callThrough();
+
+        var compiledElement = $compile(pureElement)($scope);
+        $scope.$digest();
+         
+        expect(mockedAnalysisService.updateQubeName).not.toHaveBeenCalled();
+        
+        var isolatedScope = compiledElement.isolateScope();
+        isolatedScope.updateQubeName( { name:"newName" } );
+        
+        expect(mockedAnalysisService.updateQubeName).toHaveBeenCalled();
+        var newNameUsed = mockedAnalysisService.updateQubeName.calls.argsFor(0)[1];
+        expect(newNameUsed).toEqual("newName");
+      });
     });
   });
 })();

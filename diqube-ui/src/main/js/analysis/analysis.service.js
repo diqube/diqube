@@ -36,6 +36,7 @@
         me.addSlice = addSlice;
         
         me.updateQuery = updateQuery;
+        me.updateQubeName = updateQubeName;
         
         me.provideQueryResults = provideQueryResults;
         
@@ -323,6 +324,36 @@
                     
                     $rootScope.$broadcast("analysis:queryUpdated", { qubeId: qubeId, query: receivedQuery });
                     resolve(receivedQuery);
+                  }
+                })());
+          });
+        }
+        
+        /**
+         * Stores an updated name of a qube on the server. Note that the new qube name should not be set into the qube 
+         * object in this services' loadedAnalysis, but this method will do this if the server replies with a success.
+         * 
+         * The returned Promise will not pass any data in the "resolve" call.
+         */
+        function updateQubeName(qubeId, newQubeName) {
+          return new Promise(function(resolve, reject) {
+            remoteService.execute("updateQubeName",
+                { analysisId: me.loadedAnalysis.id,
+                  qubeId: qubeId,
+                  qubeName: newQubeName
+                }, new (function() {
+                  this.data = function data_(dataType, data) {
+                    // noop.
+                  }
+                  this.exception = function exception_(text) {
+                    reject(text);
+                  }
+                  this.done = function done_() {
+                    var qube = me.loadedAnalysis.qubes.filter(function(q) { return q.id === qubeId; })[0];
+                    qube.name = newQubeName;
+                    
+                    $rootScope.$broadcast("analysis:qubeUpdated", { qube: qube });
+                    resolve();
                   }
                 })());
           });

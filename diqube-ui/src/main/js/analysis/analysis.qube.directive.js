@@ -35,6 +35,14 @@
 
             $scope.addQuery = addQuery;
             
+            $scope.editMode = false;
+            $scope.toggleEditMode = toggleEditMode;
+            $scope.nameValid = true;
+            $scope.validateName = validateName;
+            $scope.qubeCopy = undefined;
+            $scope.updateQubeName = updateQubeName;
+            $scope.working = false;
+            
             // ====
             
             $scope.$watch("qube", findSlice);
@@ -50,6 +58,39 @@
               $scope.slice = $scope.analysis.slices.filter(function(slice) {
                 return slice.id === $scope.qube.sliceId;
               })[0];
+            }
+            
+            function toggleEditMode() {
+              $scope.editMode = !$scope.editMode;
+              if ($scope.editMode) {
+                $scope.qubeCopy = {
+                    name: $scope.qube.name
+                }
+                $scope.nameValid = true;
+              }
+            }
+            
+            function validateName(name) {
+              $scope.nameValid = !!name;
+            }
+            
+            function updateQubeName(newQube) {
+              $scope.working = true;
+              var newName = newQube.name;
+              analysisService.updateQubeName($scope.qube.id, newName).then(function() {
+                // new value will be incorporated automatically, since we watch "qube" and will therefore execute a 
+                // $digest.
+                $scope.$apply(function() {
+                  $scope.working = false;
+                  toggleEditMode();                
+                });
+              }).catch(function(text) {
+                $scope.$apply(function() {
+                  $scope.working = false;
+                  $scope.nameValid = false;
+                  $log.warn("Exception when trying to update a qubes' name:", text);
+                });
+              })
             }
           }
         };

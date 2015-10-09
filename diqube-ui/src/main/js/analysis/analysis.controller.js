@@ -74,7 +74,7 @@
           }
           
           slicePromise.then(function success_(slice) {
-            analysisService.addQube("qube1", slice.id);
+            analysisService.addQube("New qube", slice.id);
           }, function failure_(text) {
             // TODO nicer error?
             me.error = text;
@@ -104,6 +104,10 @@
           // analysisService, the new object is already integrated into the analysis of this controller.
           $scope.$digest();
         });
-        
+        $scope.$on("analysis:qubeUpdated", function() {
+          // make sure this scope digests the new object. As this controller references the same analysis object as the
+          // analysisService, the new object is already integrated into the analysis of this controller.
+          $scope.$digest();
+        });
       } ]);
 })();

@@ -71,9 +71,10 @@ textarea.diql-full {
 	justify-content: space-between;
 }
 
-.qube .qube-header span {
+.qube .qube-header .qube-action {
 	display: flex;
 	align-items: center;
+	margin-left: 10px;
 }
 
 .qube .qube-header-left {
@@ -87,8 +88,25 @@ textarea.diql-full {
   padding-right: 5px;
 }
 
+.qube .qube-header .edit-qube {
+	display: flex;
+	align-items: center;
+}
+
+.qube .qube-header .edit-qube > * {
+	margin-right: 10px;
+}
+
 .qube .qube-action-list .qube-action {
   margin-right: 5px;
+}
+
+.qube .qube-header .edit-qube .form-group {
+  margin-bottom: 0px;
+}
+
+.qube .qube-header .edit-qube .has-feedback span.form-control-feedback {
+  top: 10px !important;
 }
 
 .qube-row {
