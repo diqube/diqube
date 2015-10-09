@@ -29,6 +29,9 @@
         me.markToOpenQueryInEditModeNextTime = markToOpenQueryInEditModeNextTime;
         me.pollOpenQueryInEditModeNextTime = pollOpenQueryInEditModeNextTime;
         
+        me.markToOpenSliceInEditModeNextTime = markToOpenSliceInEditModeNextTime;
+        me.pollOpenSliceInEditModeNextTime = pollOpenSliceInEditModeNextTime;
+
         // ====
         
         me.$queriesToOpenInEditMode = [];
@@ -43,6 +46,21 @@
             return false;
           
           me.$queriesToOpenInEditMode.splice(idx, 1);
+          return true;
+        }
+        
+        me.$slicesToOpenInEditMode = [];
+        
+        function markToOpenSliceInEditModeNextTime(sliceId) {
+          me.$slicesToOpenInEditMode.push(sliceId);
+        }
+        
+        function pollOpenSliceInEditModeNextTime(sliceId) {
+          var idx = me.$slicesToOpenInEditMode.indexOf(sliceId);
+          if (idx === -1)
+            return false;
+          
+          me.$slicesToOpenInEditMode.splice(idx, 1);
           return true;
         }
       }]);

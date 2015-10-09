@@ -1,0 +1,70 @@
+<!--
+
+    diqube: Distributed Query Base.
+
+    Copyright (C) 2015 Bastian Gloeckle
+
+    This file is part of diqube.
+
+    diqube is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as
+    published by the Free Software Foundation, either version 3 of the
+    License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+-->
+<div ng-if="!editMode" class="panel panel-default slice {{ additionalClass }}">
+  <div class="panel-heading">
+    <span>{{ slice.name }}</span>
+    <span class="slice-header-actions">
+      <a href class="slice-header-action" title="Edit mode" ng-click="toggleEditMode()"><i class="fa fa-gears"></i></a>
+    </span>
+  </div>
+  
+  <ul class="list-group">
+    <li ng-if="slice.manualConjunction" class="list-group-item">{{ slice.manualConjunction }}</li>
+    <li ng-repeat="dis in slice.sliceDisjunctions" class="list-group-item">{{ dis.field }}</li>
+  </ul>
+</div>
+
+
+<!-- EDIT MODE -->
+
+<form ng-if="editMode" novalidate class="simple-form edit-slice" ng-submit="updateSlice(sliceCopy)">
+  <div class="panel panel-default slice {{ additionalClass }}">
+    <div class="panel-heading">
+      <div class="has-feedback form-group {{ nameValid === true ? 'has-success' : '' }} {{ nameValid === false ? 'has-error' : '' }}">
+        <input type="text" class="form-control" id="inputName"
+          placeholder="Name of query" ng-model="sliceCopy.name" 
+          ng-change="validateName(sliceCopy.name)">
+        <span ng-if="nameValid === true" class="fa fa-check form-control-feedback"></span>
+        <span ng-if="nameValid === false" class="fa fa-exclamation-triangle form-control-feedback"></span>
+      </div>
+      
+      <span class="slice-header-actions">
+          <a ng-if="!working" href class="slice-header-action" title="Cancel edit" ng-click="toggleEditMode()"><i class="fa fa-close"></i></a>
+          <a ng-if="!working" href class="slice-header-action" title="Save" ng-click="updateSlice(sliceCopy)"><i class="fa fa-floppy-o"></i></a>
+          <i ng-if="working" class="slice-header-action fa fa-spinner fa-spin"></i>
+      </span>
+    </div>
+    
+    <div ng-if="editException" class="panel-body">
+      <div class="alert alert-danger">
+        <i class="fa fa-exclamation-circle"></i>
+        {{ editException }}
+      </div>
+    </div>
+    
+    <ul class="list-group">
+      <li ng-if="slice.manualConjunction" class="list-group-item">{{ slice.manualConjunction }}</li>
+      <li ng-repeat="dis in slice.sliceDisjunctions" class="list-group-item">{{ dis.field }}</li>
+    </ul>
+  </div>
+</form>

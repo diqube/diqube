@@ -40,7 +40,11 @@
   
   <div class="slice-container">
     <div class="panel panel-default">
-      <div class="panel-heading"><i class="fa fa-pie-chart"></i> Slices</div>
+      <div class="panel-heading">
+        <span class="slice-container-heading-item"><i class="fa fa-pie-chart"></i> Slices</span>
+        <button class="btn btn-default slice-container-heading-item" ng-click="analysis.addSlice()" title="Add slice">
+          <i class="fa fa-plus"></i></button>
+      </div>
       <div class="panel-body">
         <diqube-slices analysis="analysis.analysis"></diqube-slices>
       </div>

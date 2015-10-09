@@ -87,4 +87,8 @@ public class UiSlice implements Serializable {
   public void setManualConjunction(String manualConjunction) {
     this.manualConjunction = manualConjunction;
   }
+
+  public void setSliceDisjunctions(List<UiSliceDisjunction> sliceDisjunctions) {
+    this.sliceDisjunctions = sliceDisjunctions;
+  }
 }

@@ -37,6 +37,7 @@
         
         me.updateQuery = updateQuery;
         me.updateQubeName = updateQubeName;
+        me.updateSlice = updateSlice;
         
         me.provideQueryResults = provideQueryResults;
         
@@ -174,6 +175,9 @@
                   this.data = function data_(dataType, data) {
                     if (dataType === "slice") {
                       me.loadedAnalysis.slices.push(data.slice);
+                      
+                      analysisStateService.markToOpenSliceInEditModeNextTime(data.slice.id);
+                      
                       $rootScope.$broadcast("analysis:sliceAdded", data.slice);
                       resSlice = data.slice;
                     }
@@ -357,6 +361,65 @@
                     
                     $rootScope.$broadcast("analysis:qubeUpdated", { qube: qube });
                     resolve();
+                  }
+                })());
+          });
+        }
+        
+        /**
+         * Sends an updated version of a slice to the server. Note that the passed slice object should not yet be the 
+         * one that is reachable from me.loadedAnalysis, as the changes will be incorporated into that object when the
+         * resulting slice is received from the server after updating.
+         * 
+         * Note that this method will remove the query.results objects of all queries that are connected to the slice
+         * by their qube (only if slices selection properties changed). The results might therefore need to be
+         * re-calculated!
+         */
+        function updateSlice(slice) {
+          return new Promise(function(resolve, reject) {
+            remoteService.execute("updateSlice",
+                { analysisId: me.loadedAnalysis.id,
+                  slice: slice
+                }, new (function() {
+                  var receivedSlice;
+                  this.data = function data_(dataType, data) {
+                    if (dataType === "slice") 
+                      receivedSlice = data.slice;
+                  }
+                  this.exception = function exception_(text) {
+                    reject(text);
+                  }
+                  this.done = function done_() {
+                    var origSlice = undefined;
+                    for (var sliceIdx in me.loadedAnalysis.slices) {
+                      if (me.loadedAnalysis.slices[sliceIdx].id === receivedSlice.id) {
+                        origSlice = me.loadedAnalysis.slices[sliceIdx];
+                        me.loadedAnalysis.slices[sliceIdx] = receivedSlice;
+                        break;
+                      }
+                    }
+                    
+                    if (!origSlice) {
+                      $log.warn("Could not find the slice that should be replaced by the updated slice. " + 
+                          "Did the server change the slice ID?");
+                      reject("Internal error. Please refresh the page.");
+                      return;
+                    }
+                    
+//                    if (!angular.equals(origSlice.manualConjunction, receivedSlice.manualConjunction) || 
+//                        !angular.equals(origSlice.sliceDisjunctions, receivedSlice.sliceDisjunctions)) {
+                      for (var qubeIdx in me.loadedAnalysis.qubes) {
+                        var qube = me.loadedAnalysis.qubes[qubeIdx];
+                        if (qube.sliceId === receivedSlice.id) {
+                          // clean results
+                          for (var queryIdx in qube.queries) 
+                            qube.queries[queryIdx].results = undefined;
+                        }
+                      }
+                    //}
+                    
+                    $rootScope.$broadcast("analysis:sliceUpdated", receivedSlice);
+                    resolve(receivedSlice);
                   }
                 })());
           });

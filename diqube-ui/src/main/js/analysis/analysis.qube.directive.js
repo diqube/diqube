@@ -46,6 +46,13 @@
             // ====
             
             $scope.$watch("qube", findSlice);
+            $scope.$on("analysis:sliceUpdated", function(event, slice) {
+              // If the slice changed that we rely on, be sure to digest those changes!
+              if (slice.id == $scope.qube.sliceId) {
+                findSlice();
+                $scope.$digest();
+              }
+            });
             
             function addQuery() {
               analysisService.addQuery("New query", "", $scope.qube.id).catch(function(text) {

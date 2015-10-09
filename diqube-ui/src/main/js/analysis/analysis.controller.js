@@ -31,6 +31,7 @@
         me.analysis = undefined;
         
         me.addQube = addQube;
+        me.addSlice = addSlice;
 
         // ==
         
@@ -81,6 +82,10 @@
           });
         }
         
+        function addSlice() {
+          analysisService.addSlice("New slice", "", []);
+        }
+        
         $scope.$on("$destroy", function() {
           analysisService.unloadAnalysis();
         });
@@ -105,6 +110,11 @@
           $scope.$digest();
         });
         $scope.$on("analysis:qubeUpdated", function() {
+          // make sure this scope digests the new object. As this controller references the same analysis object as the
+          // analysisService, the new object is already integrated into the analysis of this controller.
+          $scope.$digest();
+        });
+        $scope.$on("analysis:sliceUpdated", function() {
           // make sure this scope digests the new object. As this controller references the same analysis object as the
           // analysisService, the new object is already integrated into the analysis of this controller.
           $scope.$digest();

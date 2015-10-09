@@ -65,6 +65,14 @@
             }
             
             $scope.$watch("query", executeQuery);
+            $scope.$watch("query.results", function(newResults) {
+              if (newResults === undefined) {
+                // our results are not yet available/were deleted. The latter could be the case if the slice changed on
+                // which the qube is based this query belongs to.
+                // No matter what, we want to compute the results.
+                executeQuery();
+              }
+            });
             
             function createDisplayProperties() {
               $scope.displayWidth = "";
