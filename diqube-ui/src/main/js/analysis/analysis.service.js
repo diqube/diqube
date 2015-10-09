@@ -272,9 +272,10 @@
           return new Promise(function(resolve, reject) {
             var cleanDiql = query.diql;
             if (cleanDiql) {
-              // Chrome seems to sometimes send "c2 a0" which our backends do not like. Replace with normal space char.
+              // Chrome seems to sometimes send bytes "c2 a0" (which is encoded unicode &nbsp;, in unicode \u00a0). 
+              // Our parser does not like this, so replace it with a regular space.
               cleanDiql = cleanDiql.replace(/\xc2\xa0/g, " ");
-              cleanDiql = cleanDiql.replace(/\uc2a0/g, " ");
+              cleanDiql = cleanDiql.replace(/\u00a0/g, " ");
             }
             remoteService.execute("updateQuery",
                 { analysisId: me.loadedAnalysis.id,
