@@ -185,6 +185,14 @@ textarea.diql-full {
 	text-anchor: end !important;
 }
 
+.query .bar-chart svg .nvd3 .nv-x g.tick {
+	opacity: 1 !important;
+}
+
+.query .bar-chart svg .nvd3 .nv-y g.tick {
+  opacity: 1 !important;
+}
+
 .query .edit-query .has-feedback span.form-control-feedback {
   top: 10px !important;
 }

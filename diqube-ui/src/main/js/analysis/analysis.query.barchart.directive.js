@@ -140,7 +140,7 @@
               // values of the "previous run" to correctly display this runs' data.
               // For safety, the observer defined above might schedule another calculation at 100%, if the labels we
               // base the calculation on now are different from those displayed at the end.
-              var xAxisTextHeight = findXAxisTextHeight();
+              var xAxisTextHeight = findXAxisMaxTextHeight();
               var xAxisTextMaxWidth = findAxisTextMaxWidth("x");
               var leftMargin = findLeftMargin(xAxisTextHeight);
               if (!xAxisTextHeight || !xAxisTextMaxWidth || !leftMargin) {
@@ -215,14 +215,21 @@
              * Text height of text on the x axis (this means not the height of the box the rotated text spans, but only
              * the height the text had if it weren't rotated).
              */
-            function findXAxisTextHeight() {
+            function findXAxisMaxTextHeight() {
               if ($("#" + $scope.nvd3HtmlId).length) {
                 var nvd3Element = $("#" + $scope.nvd3HtmlId)[0];
                 var xAxisTextElements = $("svg .nvd3 .nv-x g.tick text", nvd3Element);
                 if (!xAxisTextElements.length)
                   return undefined;
-                else
-                  return xAxisTextElements.get(0).getBBox().height;
+                else {
+                  var max = 0;
+                  for (var i = 0; i < xAxisTextElements.length; i += 1) {
+                    var h = xAxisTextElements.get(i).getBBox().height;
+                    if (h > max)
+                      max = h;
+                  }
+                  return max;
+                }
               }
               
               return undefined;
@@ -273,23 +280,27 @@
               // now check the labels on the x-axis and calculate the number of pixels these labels need "left of the y axis".
               if ($("#" + $scope.nvd3HtmlId).length) {
                 var nvd3Element = $("#" + $scope.nvd3HtmlId)[0];
+                
+                var svgElement = $("svg", nvd3Element);
+                
+                // the reference svg "g" element we use to calculate the space needed left of the y axis. Inside this
+                // groups coordinate system, the y axis is drawn at "x = 0".
+                var referenceGroup = $("g.nvd3 > g", nvd3Element);
+                
                 var xAxisTextElements = $("svg .nvd3 .nv-x g.tick text", nvd3Element);
-                if (!xAxisTextElements.length)
+                if (!xAxisTextElements.length || !referenceGroup.length || !svgElement.length)
                   return undefined;
                 else {
-                  var firstX = undefined; // "x" value of leftmost xAxis label.
                   var max = 0; // maximum number of pixels needed left of the y axis.
                   for (var i = 0; i < xAxisTextElements.length; i += 1) {
-                    var el = xAxisTextElements.get(i);
-                    var w = el.getBBox().width;
-                    if (!firstX)
-                      firstX = el.getBBox().x;
+                    var normalizedX = getNormalizedX(svgElement, referenceGroup, xAxisTextElements);
                     
-                    // Number of px that this text reaches to the left in scope of the left-most "x" of any label on the X axis.
-                    var spaceNeededLeftOfYAxis = (firstX - el.getBBox().x) + Math.round(Math.cos(Math.PI / 4) * w); 
-                    
-                    if (spaceNeededLeftOfYAxis > max)
-                      max = spaceNeededLeftOfYAxis;
+                    // now normalizedX is normalized to the coordinate system where the y axis is drawn at x=0. 
+                    // If normalizedX < 0, then we need space left of the y axis to draw this text.
+                    if (normalizedX < 0)  {
+                      if (-normalizedX > max)
+                        max = -normalizedX;
+                    }
                   }
                   
                   if (max > defaultLeftMargin)
@@ -313,6 +324,21 @@
               if (!axisTextElements.length)
                 return undefined;
               return axisTextElements.text();
+            }
+            
+            /**
+             * Uses SVG functions to bring an elements "getBBox().x" value into the coordinate system of a referenceElement.
+             */
+            function getNormalizedX(svgElement, referenceElement, element) {
+              var elementTransfromMatrix = element.get(0).getTransformToElement(referenceElement.get(0));
+
+              var svgPoint = svgElement.get(0).createSVGPoint();
+              svgPoint.x = element.get(0).getBBox().x;
+              svgPoint.y = element.get(0).getBBox().y;
+              
+              svgPoint = svgPoint.matrixTransform(elementTransfromMatrix);
+              
+              return svgPoint.x;
             }
           }
         };
