@@ -21,6 +21,7 @@
 package org.diqube.util;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Deque;
@@ -60,6 +61,9 @@ public class NullUtil {
         continue;
 
       for (Field declaredField : curClass.getDeclaredFields()) {
+        if (Modifier.isFinal(declaredField.getModifiers()) || Modifier.isStatic(declaredField.getModifiers()))
+          continue;
+
         if (!PRIMITIVE_TYPES.contains(declaredField.getType()))
           allFields.add(declaredField);
       }

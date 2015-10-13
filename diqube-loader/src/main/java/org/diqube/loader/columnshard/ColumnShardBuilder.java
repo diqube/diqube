@@ -227,11 +227,12 @@ public class ColumnShardBuilder<T> {
     T sampleColumnDictKey = columnDict.keySet().iterator().next();
     Class<?> columnValueClass = sampleColumnDictKey.getClass();
 
-    // Build ColumnShard including the column dict
     StandardColumnShard res = null;
     NavigableMap<Long, ColumnPage> pages = new TreeMap<>();
     Map<Long, Long> idChangeMap = null; // != null if the IDs in the final column dict were changed compared to
                                         // columnDict.
+
+    logger.debug("Building dictionary of ColumnShard...");
 
     if (columnValueClass.equals(String.class)) {
       CompressedStringDictionaryBuilder builder = new CompressedStringDictionaryBuilder();
@@ -264,8 +265,10 @@ public class ColumnShardBuilder<T> {
       throw new UnsupportedOperationException("Only building of string, long and double dicts is implemented!");
     }
 
-    // Prepare column builders
+    // Prepare page builders
     List<ColumnPageBuilder> columnPageBuilders = new ArrayList<ColumnPageBuilder>(pageProposals.size());
+
+    logger.debug("Dictionary built, preparing to build column pages from {} page proposals", pageProposals.size());
 
     for (ColumnPageProposal proposal : pageProposals) {
       NavigableMap<Long, Long> valueToId = new TreeMap<>();
@@ -297,7 +300,9 @@ public class ColumnShardBuilder<T> {
       columnPageBuilders.add(pageBuilder);
     }
 
-    // build columns in parallel
+    logger.debug("Building pages...");
+
+    // build pages in parallel
     columnPageBuilders.stream().parallel().map(pageBuilder -> pageBuilder.build()).forEach(new Consumer<ColumnPage>() {
       @Override
       public void accept(ColumnPage page) {

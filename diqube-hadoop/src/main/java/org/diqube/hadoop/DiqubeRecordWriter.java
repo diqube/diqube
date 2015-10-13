@@ -32,6 +32,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
 import org.apache.hadoop.io.NullWritable;
@@ -122,8 +123,14 @@ public class DiqubeRecordWriter extends RecordWriter<NullWritable, DiqubeRow> {
     if (numberOfRowsInCurShard % memoryCheckRowCount == 0) {
       long memoryConsumptionBytes = columnShardBuilderManager.calculateApproximateSizeInBytes();
       logger.info("Current approximate memory consumption: {} MB", memoryConsumptionBytes / (1024 * 1024));
-      if (memoryConsumptionBytes / (1024 * 1024) >= memoryFlushMb)
-        flushNewTableShard();
+      if (memoryConsumptionBytes / (1024 * 1024) >= memoryFlushMb) {
+        try {
+          flushNewTableShard();
+        } catch (Throwable t) {
+          logger.error("Could not flush new table shard", t);
+          throw new IOException("Could not flush new table shard", t);
+        }
+      }
     }
   }
 
@@ -212,6 +219,8 @@ public class DiqubeRecordWriter extends RecordWriter<NullWritable, DiqubeRow> {
     }
 
     logger.info("Creating new TableShard and flushing data to output stream (up to rowId {})...", nextRowId.get() - 1);
+    logger.info("The new TableShard will contain data of {} columns.",
+        columnShardBuilderManager.getAllColumnsWithValues().size());
 
     // use columnShardBuilderManager to build all columnShards
     // this will start compressing etc. and will take some time.
@@ -225,11 +234,17 @@ public class DiqubeRecordWriter extends RecordWriter<NullWritable, DiqubeRow> {
           columnShardBuilderManager.fillEmptyRowsWithValue(colName, 0L);
 
         logger.info("Building column {}", colName);
-        colShards.add(columnShardBuilderManager.buildAndFree(colName));
+        StandardColumnShard newShard = columnShardBuilderManager.buildAndFree(colName);
+        if (newShard == null)
+          throw new IOException("Could not build column '" + colName + "', the result was null.");
+
+        colShards.add(newShard);
       } catch (Exception e) {
         throw new IOException("Could not build column '" + colName + "'", e);
       }
     }
+
+    logger.info("Columns created, preparing to write new TableShard to output..");
 
     TableFactory tableFactory = ctx.getBean(TableFactory.class);
     TableShard tableShard = tableFactory.createTableShard(
@@ -237,14 +252,23 @@ public class DiqubeRecordWriter extends RecordWriter<NullWritable, DiqubeRow> {
         "hadoop_created", colShards);
 
     try {
+      Exception[] serializeException = new Exception[1];
+      serializeException[0] = null;
       diqubeFileWriter.writeTableShard(tableShard, new ObjectDoneConsumer() {
         @Override
         public void accept(DataSerialization<?> t) {
           // set all properties to null after an object has been fully serialized. This will enabled the GC to clean
           // up some stuff.
-          NullUtil.setAllPropertiesToNull(t, null /* swallow all exceptions */);
+          NullUtil.setAllPropertiesToNull(t, new BiConsumer<String, Exception>() {
+            @Override
+            public void accept(String t, Exception u) {
+              serializeException[0] = new RuntimeException("Error while nulling field '" + t + "'", u);
+            }
+          });
         }
       });
+      if (serializeException[0] != null)
+        throw new IOException(serializeException[0]);
     } catch (SerializationException e) {
       throw new IOException("Could not serialize/write to output stream.", e);
     }
@@ -272,9 +296,18 @@ public class DiqubeRecordWriter extends RecordWriter<NullWritable, DiqubeRow> {
     try {
       flushNewTableShard();
       outStream.flush();
+    } catch (Throwable t) {
+      logger.error("Could not flush last TableShard of writer that was closed.", t);
+      throw new IOException("Could not flush last TableShard of writer that was closed.", t);
     } finally {
-      if (diqubeFileWriter != null)
-        diqubeFileWriter.close();
+      if (diqubeFileWriter != null) {
+        try {
+          diqubeFileWriter.close();
+        } catch (Throwable t) {
+          logger.error("Could not close diqubeFileWriter", t);
+          throw new IOException("Could not close diqubeFileWriter", t);
+        }
+      }
       logger.info("All data has been written to the output stream successfully.");
       ctx.close();
       outStream.close();
