@@ -33,7 +33,12 @@
           link: function link($scope, element, attrs) {
             
             $scope.editMode = false;
+            // remove mode can only be accessed in edit mode. Therefore, call toggleEditMode to exit remove mode.
+            $scope.removeMode = false;
+            
             $scope.toggleEditMode = toggleEditMode;
+            $scope.enterRemoveMode = enterRemoveMode;
+            
             $scope.updateSlice = updateSlice;
             
             $scope.collapsed = true;
@@ -51,6 +56,10 @@
             $scope.addDisjunctionField = addDisjunctionField;
             $scope.removeDisjunctionField = removeDisjunctionField;
             
+            $scope.removeSlice = removeSlice;
+            
+            $scope.exception = undefined;
+            
             // ===
 
             if (analysisStateService.pollOpenSliceInEditModeNextTime($scope.slice.id)) {
@@ -65,7 +74,11 @@
                 $scope.editException = undefined;
                 $scope.nameValid = true;
                 $scope.sliceCopy = angular.copy($scope.slice);
+              } else {
+                $scope.removeMode = false;
               }
+              
+              $scope.exception = undefined;
             }
             
             function validateName(newName) {
@@ -121,6 +134,20 @@
             
             function toggleCollapsed() {
               $scope.collapsed = !$scope.collapsed; 
+            }
+            
+            function enterRemoveMode() {
+              $scope.removeMode = true;
+            }
+            
+            function removeSlice() {
+              analysisService.removeSlice($scope.slice.id).then(function() {
+                // noop as the other controllers/directives will update automatically and remove this directive.
+              }).catch(function(text) {
+                $scope.$apply(function() {
+                  $scope.exception = text;
+                })
+              })
             }
           }
         };

@@ -58,7 +58,13 @@
         name: "sliceName1",
         sliceDisjunctions: [],
         manualConjunction: ""
-      } ]
+      },
+      {
+        id: "sliceId2",
+        name: "sliceName2",
+        sliceDisjunctions: [],
+        manualConjunction: ""
+      }]
     }
   });
   
@@ -217,6 +223,11 @@
   var removeQubeCommand = validatedData.commandData("removeQube", {
     analysisId: "analysisId", 
     qubeId: "qubeId2"
+  });
+  
+  var removeSliceCommand = validatedData.commandData("removeSlice", {
+    analysisId: "analysisId", 
+    sliceId: "sliceId2"
   });
   
   describe("diqube.analysis module", function() {
@@ -709,6 +720,29 @@
         
         removePromise.then(function() {
           expect(analysis.qubes.filter(function(q) { return q.id === "qubeId2"; }).length).toEqual(0);
+          
+          testDone();
+        }).catch(function (text) {
+          fail(text);
+        });
+      });
+      
+      it("removeSlice sends remove to server and clears local objects", function(testDone) {
+        remoteServiceHandlerFn = function(res, commandName, commandData) {
+          if (commandName === "removeSlice") {
+            expect(commandData).toEqual(removeSliceCommand);
+            res.done();
+          } else
+            fail("Unexpected command sent by analysisService: " + commandName + ", " + commandData);
+        }
+        
+        var analysis = angular.copy(testTwoQubeAnalysis.analysis);
+        analysisService.setLoadedAnalysis(analysis);
+
+        var removePromise = analysisService.removeSlice("sliceId2");
+        
+        removePromise.then(function() {
+          expect(analysis.slices.filter(function(s) { return s.id === "sliceId2"; }).length).toEqual(0);
           
           testDone();
         }).catch(function (text) {

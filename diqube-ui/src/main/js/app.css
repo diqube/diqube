@@ -429,6 +429,31 @@ textarea.diql-full {
   width: 50%;
 }
 
+/* in edit moe the list-group is not direct parent of the panel, therefore we need to manually adjust the layout to not have additional borders etc. */
+.slices .edit-slice form>.list-group {
+  margin-bottom: 0px;
+}
+
+.slices .edit-slice form>.list-group .list-group-item {
+  border-top-width: 0px;
+  border-width: 0px 0;
+  border-radius: 0;
+}
+
+.slice.remove-slice .panel-body {
+  display:flex;
+  flex-direction: column;
+}
+
+.slice.remove-slice .panel-body > *:not(.alert) {
+  display:flex;
+  justify-content: center;
+  font-weight: bold;
+}
+
+.slice.remove-slice .panel-body button {
+  margin-left: 10px;
+}
 
 
 /* ============= General ============= */

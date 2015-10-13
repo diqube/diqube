@@ -99,6 +99,20 @@
         
         expect(mockedAnalysisService.updateSlice).toHaveBeenCalled();
       });
+      
+      it("removeSlice sends remove", function() {
+        spyOn(mockedAnalysisService, "removeSlice").and.callThrough();
+
+        var compiledElement = $compile(pureElement)($scope);
+        $scope.$digest();
+         
+        expect(mockedAnalysisService.removeSlice).not.toHaveBeenCalled();
+        
+        var isolatedScope = compiledElement.isolateScope();
+        isolatedScope.removeSlice();
+        
+        expect(mockedAnalysisService.removeSlice).toHaveBeenCalled();
+      });
     });
   });
 })();

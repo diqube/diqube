@@ -41,6 +41,9 @@
                 $scope.slices = $scope.analysis.slices;
             });
             
+            $scope.$on("analysis:sliceRemoved", function() {
+              $scope.$digest();
+            });
           }
         };
                 

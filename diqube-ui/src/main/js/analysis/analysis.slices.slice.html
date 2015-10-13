@@ -20,7 +20,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -->
-<div ng-if="!editMode" class="panel panel-default slice {{ additionalClass }}">
+<div ng-if="!editMode && !removeMode" class="panel panel-default slice {{ additionalClass }}">
   <div class="panel-heading" ng-click="toggleCollapsed()">
     <span>{{ slice.name }}</span>
     <span class="slice-header-actions">
@@ -49,7 +49,7 @@
 
 <!-- EDIT MODE -->
 
-<div ng-if="editMode" class="edit-slice panel panel-default slice {{ additionalClass }}">
+<div ng-if="editMode && !removeMode" class="edit-slice panel panel-default slice {{ additionalClass }}">
   <form novalidate class="simple-form" ng-submit="updateSlice(sliceCopy)">
     <input type="submit" class="hidden">
     <div class="panel-heading">
@@ -62,6 +62,7 @@
       </div>
       
       <span class="slice-header-actions">
+          <a ng-if="!working" href class="slice-header-action" title="Remove slice" ng-click="enterRemoveMode()"><i class="fa fa-minus remove-action"></i></a>
           <a ng-if="!working" href class="slice-header-action" title="Cancel edit" ng-click="toggleEditMode()"><i class="fa fa-close"></i></a>
           <a ng-if="!working" href class="slice-header-action" title="Save" ng-click="updateSlice(sliceCopy)"><i class="fa fa-floppy-o"></i></a>
           <i ng-if="working" class="slice-header-action fa fa-spinner fa-spin"></i>
@@ -138,4 +139,25 @@
     </tbody>
     </table>
   </form>
+</div>
+
+<!-- REMOVE MODE -->
+<div ng-if="editMode && removeMode" class="panel panel-default slice remove-slice {{ additionalClass }}">
+  <div class="panel-heading">
+    <span>{{ slice.name }}</span>
+  </div>
+  
+  <div class="panel-body">
+    <div ng-if="exception" class="alert alert-danger">
+      <i class="fa fa-exclamation-circle"></i>
+      {{ exception }}
+    </div>
+  
+    <p>Are you sure you want to remove this slice?</p>
+    <p>
+      <button class="btn btn-default" ng-click="toggleEditMode()">Cancel</button>
+      <button class="btn btn-danger" ng-click="removeSlice()">Yes, remove.</button>
+    </p>
+  </div>
+
 </div>

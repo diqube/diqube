@@ -131,5 +131,10 @@
           // analysisService, the new object is already integrated into the analysis of this controller.
           $scope.$digest();
         });
+        $scope.$on("analysis:sliceRemoved", function() {
+          // make sure this scope digests the new object. As this controller references the same analysis object as the
+          // analysisService, the new object is already integrated into the analysis of this controller.
+          $scope.$digest();
+        });
       } ]);
 })();
