@@ -69,9 +69,9 @@ var MockedAnalysisService = (function() {
     }
     
     function provideQueryResults(qube, query, intermediaryResultsFn) {
-      query.results = queryResultsFn(query);
+      query.$results = queryResultsFn(query);
       return new Promise(function(resolve, reject) {
-        resolve(query.results);
+        resolve(query.$results);
       });
     }
     

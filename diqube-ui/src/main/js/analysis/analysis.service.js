@@ -213,6 +213,8 @@
          * 
          * Note that the returned Promise will return one of those "result objects" even on a call to "reject"!
          * 
+         * TODO cancel previous query results executions if the same query is executed again (e.g. because of a changed query or slice etc).
+         * 
          * @param qube The qube of the query to execute
          * @param query The query to execute
          * @param intermediateResultsFn function(resultsObj): called when intermediate results are available. Can be undefined. This will only be called asynchronously.

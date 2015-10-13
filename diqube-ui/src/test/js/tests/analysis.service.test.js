@@ -446,7 +446,7 @@
         var intermediateResultFn = function (intermediateResult) {
           curIntermediateResult = intermediateResult;
         }
-        targetQuery.results = undefined; // ensure that not another test put results there already.
+        targetQuery.$results = undefined; // ensure that not another test put results there already.
 
         var queryPromise = analysisService.provideQueryResults(targetQube, targetQuery, intermediateResultFn);
         
@@ -462,7 +462,7 @@
                  ],
           percentComplete: 50
         });
-        expect(curIntermediateResult).toBe(targetQuery.results);
+        expect(curIntermediateResult).toBe(targetQuery.$results);
         
         resultFn.data("table", testTableResult2);
         expect(curIntermediateResult).toEqual({
@@ -474,7 +474,7 @@
                  ],
           percentComplete: 99
         });
-        expect(curIntermediateResult).toBe(targetQuery.results);
+        expect(curIntermediateResult).toBe(targetQuery.$results);
         
         resultFn.done();
         
@@ -488,7 +488,7 @@
                    ],
             percentComplete: 100
           });
-          expect(result).toBe(targetQuery.results);
+          expect(result).toBe(targetQuery.$results);
           testDone();
         }).catch(function (error) {
           fail(error);
@@ -509,7 +509,7 @@
         analysisService.setLoadedAnalysis(testTwoQubeAnalysis.analysis);
         var targetQube = analysisService.loadedAnalysis.qubes.filter(function(qube) { return qube.id === "qubeId2"; })[0];
         var targetQuery = targetQube.queries.filter(function(query) { return query.id === "queryId2"; })[0];
-        targetQuery.results = undefined; // ensure that not another test put results there already.
+        targetQuery.$results = undefined; // ensure that not another test put results there already.
         
         var queryPromise = analysisService.provideQueryResults(targetQube, targetQuery);
         
@@ -548,7 +548,7 @@
         analysisService.setLoadedAnalysis(testTwoQubeAnalysis.analysis);
         var targetQube = analysisService.loadedAnalysis.qubes.filter(function(qube) { return qube.id === "qubeId2"; })[0];
         var targetQuery = targetQube.queries.filter(function(query) { return query.id === "queryId2"; })[0];
-        targetQuery.results = undefined; // ensure that not another test put results there already.
+        targetQuery.$results = undefined; // ensure that not another test put results there already.
         
         var queryPromise = analysisService.provideQueryResults(targetQube, targetQuery);
         
@@ -623,7 +623,7 @@
         
         // add "results" to a query that will be affected by the slice update!
         var query = analysis.qubes.filter(function(q) {  return q.sliceId === "sliceId1"; })[0].queries[0];
-        query.results = { };
+        query.$results = { };
         
         var updatePromise = analysisService.updateSlice(testSliceResultUpdated.slice);
         
@@ -631,7 +631,7 @@
           var slice = analysis.slices.filter(function(slice) { return slice.id === updateSliceCommand.slice.id; })[0];
           expect(slice).toEqual(updateSliceCommand.slice);
           
-          expect(query.results).toBe(undefined);
+          expect(query.$results).toBe(undefined);
           
           testDone();
         }).catch(function (text) {
