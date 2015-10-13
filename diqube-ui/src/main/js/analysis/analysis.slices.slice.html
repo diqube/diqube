@@ -44,6 +44,9 @@
       </tr>
     </tbody>
   </table>
+  <ul class="list-group" ng-if="!slice.manualConjunction && !slice.sliceDisjunctions.length" collapse="collapsed">
+    <li class="list-group-item">This slice selects <i>everything</i>.</li>
+  </ul>
 </div>
 
 
