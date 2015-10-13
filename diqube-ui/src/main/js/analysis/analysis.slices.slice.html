@@ -21,17 +21,17 @@
 
 -->
 <div ng-if="!editMode" class="panel panel-default slice {{ additionalClass }}">
-  <div class="panel-heading">
+  <div class="panel-heading" ng-click="toggleCollapsed()">
     <span>{{ slice.name }}</span>
     <span class="slice-header-actions">
       <a href class="slice-header-action" title="Edit mode" ng-click="toggleEditMode()"><i class="fa fa-gears"></i></a>
     </span>
   </div>
   
-  <ul class="list-group" ng-if="slice.manualConjunction">
+  <ul class="list-group" ng-if="slice.manualConjunction" collapse="collapsed">
     <li class="list-group-item">{{ slice.manualConjunction }}</li>
   </ul>
-  <table class="table table-condensed">
+  <table class="table table-condensed" collapse="collapsed">
     <tbody>
       <tr ng-repeat="dis in slice.sliceDisjunctions" class="{{ (!$first || slice.manualConjunction) ? 'slice-tr-show-and' : '' }}">
         <td class="slice-disjunction-field" colspan="dis.disjunctionValues.length">{{ dis.fieldName }}</td>
@@ -100,7 +100,7 @@
               <li class="list-group-item slice-disjunction-value {{ $first ? 'slice-disjunction-value-first' : 'slice-disjunction-value-show-or' }}" 
                   ng-repeat="val in dis.disjunctionValues track by $index">
                 <span class="has-feedback form-group slice-value-group {{ isDisjunctionValueValid(val) === true ? 'has-success' : '' }} {{ isDisjunctionValueValid(val) === false ? 'has-error' : '' }}">
-                  <input type="text" class="form-control" ng-attr-id="slice.id + '-' + $parent.$index + '-' + $index"
+                  <input type="text" class="form-control"
                     placeholder="Value" ng-model="dis.disjunctionValues[$index]">
                   <span ng-if="isDisjunctionValueValid(val) === true" class="fa fa-check form-control-feedback"></span>
                   <span ng-if="isDisjunctionValueValid(val) === false" class="fa fa-exclamation-triangle form-control-feedback"></span>

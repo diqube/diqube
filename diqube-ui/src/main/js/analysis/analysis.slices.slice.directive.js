@@ -36,6 +36,9 @@
             $scope.toggleEditMode = toggleEditMode;
             $scope.updateSlice = updateSlice;
             
+            $scope.collapsed = true;
+            $scope.toggleCollapsed = toggleCollapsed; 
+            
             $scope.sliceCopy = undefined;
             $scope.nameValid = true;
             $scope.validateName = validateName;
@@ -114,6 +117,10 @@
             
             function removeDisjunctionField(slice, disjunctionIndex) {
               slice.sliceDisjunctions.splice(disjunctionIndex, 1);
+            }
+            
+            function toggleCollapsed() {
+              $scope.collapsed = !$scope.collapsed; 
             }
           }
         };
