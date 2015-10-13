@@ -48,6 +48,9 @@
             $scope.exception = undefined;
             
             $scope.editMode = false;
+            // remove mode can only be achieved if in toggleMode. To exit remove Mode, call toggleEditMode therefore.
+            $scope.removeMode = false;
+            
             $scope.toggleEditMode = toggleEditMode;
             $scope.nameValid = true;
             $scope.diqlValid = true;
@@ -56,6 +59,9 @@
             $scope.queryCopy = undefined;
             $scope.updateQuery = updateQuery;
             $scope.working = false;
+            
+            $scope.enterRemoveMode = enterRemoveMode;
+            $scope.removeQuery = removeQuery;
             
             // ===
 
@@ -126,6 +132,7 @@
                 $scope.diqlValid = true;
                 $scope.working = false;
               } else {
+                $scope.removeMode = false;
                 executeQuery();
               }
               
@@ -154,7 +161,21 @@
                   
                   // assume that it's the diql that was invalid.
                   $scope.diqlValid = false;
-                });
+                }); 
+              });
+            }
+            
+            function enterRemoveMode() {
+              $scope.removeMode = true;
+            }
+            
+            function removeQuery() {
+              analysisService.removeQuery($scope.qube.id, $scope.query.id).then(function() {
+                // this directive will be removed automatically, since the parent qube and the parent analysis controller
+                // will update automatically.
+              }).catch(function(text) {
+                $log.error("Error removing query:", text);
+                toggleEditMode();
               });
             }
           }

@@ -39,6 +39,8 @@
         me.updateQube = updateQube;
         me.updateSlice = updateSlice;
         
+        me.removeQuery = removeQuery;
+        
         me.provideQueryResults = provideQueryResults;
         
         // =====
@@ -336,6 +338,55 @@
                   }
                 })());
           });
+        }
+        
+        /**
+         * Deletes a query.
+         */
+        function removeQuery(qubeId, queryId) {
+          return new Promise(function(resolve, reject) {
+            remoteService.execute("removeQuery", {
+              analysisId: me.loadedAnalysis.id,
+              qubeId: qubeId,
+              queryId: queryId
+            }, new (function() {
+              this.done = function done_(dataType, data) {
+                // noop.
+              }
+              this.exception = function exception_(text) {
+                reject(text);
+              }
+              this.done = function done_() {
+                var removedQuery = false;
+                for (var qubeIdx in me.loadedAnalysis.qubes) {
+                  var qube = me.loadedAnalysis.qubes[qubeIdx];
+                  
+                  if (qube.id !== qubeId)
+                    continue;
+                  
+                  for (var queryIdx in qube.queries) {
+                    if (qube.queries[queryIdx].id === queryId) {
+                      qube.queries.splice(queryIdx, 1);
+                      removedQuery = true;
+                      break;
+                    }
+                  }
+                  
+                  if (removedQuery) 
+                    break;
+                }
+                
+                if (!removedQuery) { 
+                  $log.warn("Could not find the query that should have been removed.");
+                  reject("Internal error. Please refresh the page.");
+                  return;
+                }
+                
+                $rootScope.$broadcast("analysis:queryRemoved", { qubeId: qubeId, queryId: queryId });
+                resolve();
+              }
+            }));
+          })
         }
         
         /**

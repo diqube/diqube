@@ -41,6 +41,8 @@ var MockedAnalysisService = (function() {
     me.updateQube = updateQube;
     me.updateSlice = updateSlice;
     
+    me.removeQuery = removeQuery;
+    
     me.provideQueryResults = provideQueryResults;
     
     // ====
@@ -129,6 +131,12 @@ var MockedAnalysisService = (function() {
       var newSlice = sliceFn(slice.name);
       return new Promise(function(resolve, reject) {
         resolve(newSlice);
+      });
+    }
+    
+    function removeQuery(qubeId, queryId) {
+      return new Promise(function(resolve, reject) {
+        resolve();
       });
     }
   }

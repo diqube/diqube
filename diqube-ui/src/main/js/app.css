@@ -209,6 +209,22 @@ textarea.diql-full {
 	text-align: center;
 }
 
+.query.remove-query {
+	display:flex;
+	flex-direction: column;
+}
+
+.query.remove-query > *:not(.query-header) {
+  display:flex;
+  justify-content: center;
+  font-weight: bold;
+}
+
+.query.remove-query button {
+  margin-left: 10px;
+}
+
+
 /* ============= Slice display ============= */
 
 .slice-container > div > div.panel-heading {

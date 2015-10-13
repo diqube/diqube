@@ -21,7 +21,7 @@
 
 -->
 
-<div class="query" ng-if="!editMode">
+<div class="query" ng-if="!editMode && !removeMode">
   <div class="query-header">
     <span>{{ query.name }}</span>
     
@@ -70,7 +70,7 @@
 
 <!-- EDIT MODE -->
 
-<div class="query" ng-if="editMode">
+<div class="query" ng-if="editMode && !removeMode">
   <div class="edit-query">
     <form novalidate class="simple-form" ng-submit="updateQuery(queryCopy)">
       <div class="query-header">
@@ -82,6 +82,7 @@
           <span ng-if="!nameValid" class="fa fa-exclamation-triangle form-control-feedback"></span>
         </div>
         <span class="query-header-actions">
+          <a ng-if="!working" href class="query-header-action" title="Remove query" ng-click="enterRemoveMode()"><i class="fa fa-minus remove-action"></i></a>
           <a ng-if="!working" href class="query-header-action" title="Cancel edit" ng-click="toggleEditMode()"><i class="fa fa-close"></i></a>
           <a ng-if="!working" href class="query-header-action" title="Save" ng-click="updateQuery(queryCopy)"><i class="fa fa-floppy-o"></i></a>
           <i ng-if="working" class="query-header-action fa fa-spinner fa-spin"></i>
@@ -103,4 +104,14 @@
       from the whole analysis), and there usually should not be a "where" clause (taken from the slice).
     </div>
   </div>
+</div>
+
+<!-- REMOVE MODE -->
+
+<div class="query remove-query" ng-if="editMode && removeMode">
+ <div class="query-header">
+    <span>{{ query.name }}</span>
+ </div>
+<p>Are you sure you want to remove this query?</p>
+<p><button class="btn btn-default" ng-click="toggleEditMode()">Cancel</button> <button class="btn btn-danger" ng-click="removeQuery()">Yes, remove.</button></p>
 </div>

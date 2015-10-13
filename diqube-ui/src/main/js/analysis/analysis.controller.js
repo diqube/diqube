@@ -111,6 +111,11 @@
           // analysisService, the new object is already integrated into the analysis of this controller.
           $scope.$digest();
         });
+        $scope.$on("analysis:queryRemoved", function() {
+          // make sure this scope digests the new object. As this controller references the same analysis object as the
+          // analysisService, the new object is already integrated into the analysis of this controller.
+          $scope.$digest();
+        });
         $scope.$on("analysis:qubeUpdated", function() {
           // make sure this scope digests the new object. As this controller references the same analysis object as the
           // analysisService, the new object is already integrated into the analysis of this controller.

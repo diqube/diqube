@@ -114,6 +114,22 @@
         expect(sentQuery.displayType).toEqual("barchart");
       });
       
+      it("removeQuery removes query from server", function() {
+        
+        spyOn(mockedAnalysisService, "removeQuery").and.callThrough();
+        
+        var compiledElement = $compile(pureElement)($scope);
+        $scope.$digest();
+
+        expect(mockedAnalysisService.removeQuery).not.toHaveBeenCalled();
+        
+        var isolatedScope = compiledElement.isolateScope();
+        isolatedScope.removeQuery();
+        
+        expect(mockedAnalysisService.removeQuery).toHaveBeenCalled();
+        var sentQueryId = mockedAnalysisService.removeQuery.calls.argsFor(0)[1];
+        expect(sentQueryId).toEqual("queryId2");
+      });
     });
   });
 })();

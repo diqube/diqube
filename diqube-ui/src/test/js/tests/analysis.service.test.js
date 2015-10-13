@@ -208,6 +208,12 @@
     sliceId: "newSliceId"
   });
   
+  var removeQueryCommand = validatedData.commandData("removeQuery", {
+    analysisId: "analysisId", 
+    qubeId: "qubeId2",
+    queryId: "queryId2"
+  });
+  
   describe("diqube.analysis module", function() {
     var remoteServiceHandlerFn = undefined;
     var rootScope = undefined;
@@ -650,6 +656,31 @@
           expect(slice).toEqual(updateSliceCommand.slice);
           
           expect(query.$results).toBe(undefined);
+          
+          testDone();
+        }).catch(function (text) {
+          fail(text);
+        });
+      });
+      
+      it("removeQuery sends remove to server and clears local objects", function(testDone) {
+        remoteServiceHandlerFn = function(res, commandName, commandData) {
+          if (commandName === "removeQuery") {
+            expect(commandData).toEqual(removeQueryCommand);
+            res.done();
+          } else
+            fail("Unexpected command sent by analysisService: " + commandName + ", " + commandData);
+        }
+        
+        var analysis = angular.copy(testTwoQubeAnalysis.analysis);
+        analysisService.setLoadedAnalysis(analysis);
+
+        var testQube = analysis.qubes.filter(function(q) { return q.id === "qubeId2"; })[0];
+        
+        var removePromise = analysisService.removeQuery(testQube.id, "queryId2");
+        
+        removePromise.then(function() {
+          expect(testQube.queries.length).toEqual(0);
           
           testDone();
         }).catch(function (text) {

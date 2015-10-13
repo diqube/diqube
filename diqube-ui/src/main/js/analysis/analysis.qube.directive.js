@@ -54,6 +54,14 @@
               }
             });
             
+            $scope.$on("analysis:queryRemoved", function(event, data) {
+              // If the slice changed that we rely on, be sure to digest those changes!
+              if (data.qubeId == $scope.qube.id) {
+                $scope.$digest();
+              }
+            });
+            
+            
             function addQuery() {
               analysisService.addQuery("New query", "", $scope.qube.id).catch(function(text) {
                 // TODO nicer error?
