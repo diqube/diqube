@@ -40,7 +40,7 @@
             $scope.nameValid = true;
             $scope.validateName = validateName;
             $scope.qubeCopy = undefined;
-            $scope.updateQubeName = updateQubeName;
+            $scope.updateQube = updateQube;
             $scope.working = false;
             
             // ====
@@ -70,9 +70,7 @@
             function toggleEditMode() {
               $scope.editMode = !$scope.editMode;
               if ($scope.editMode) {
-                $scope.qubeCopy = {
-                    name: $scope.qube.name
-                }
+                $scope.qubeCopy = angular.copy($scope.qube);
                 $scope.nameValid = true;
               }
             }
@@ -81,10 +79,9 @@
               $scope.nameValid = !!name;
             }
             
-            function updateQubeName(newQube) {
+            function updateQube(newQube) {
               $scope.working = true;
-              var newName = newQube.name;
-              analysisService.updateQubeName($scope.qube.id, newName).then(function() {
+              analysisService.updateQube(newQube).then(function() {
                 // new value will be incorporated automatically, since we watch "qube" and will therefore execute a 
                 // $digest.
                 $scope.$apply(function() {
@@ -95,7 +92,7 @@
                 $scope.$apply(function() {
                   $scope.working = false;
                   $scope.nameValid = false;
-                  $log.warn("Exception when trying to update a qubes' name:", text);
+                  $log.warn("Exception when trying to update a qube:", text);
                 });
               })
             }

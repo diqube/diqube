@@ -93,4 +93,8 @@ public class UiQube implements Serializable {
   public void setName(String name) {
     this.name = name;
   }
+
+  public void setSliceId(String sliceId) {
+    this.sliceId = sliceId;
+  }
 }

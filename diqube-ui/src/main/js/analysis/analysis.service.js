@@ -36,7 +36,7 @@
         me.addSlice = addSlice;
         
         me.updateQuery = updateQuery;
-        me.updateQubeName = updateQubeName;
+        me.updateQube = updateQube;
         me.updateSlice = updateSlice;
         
         me.provideQueryResults = provideQueryResults;
@@ -339,30 +339,65 @@
         }
         
         /**
-         * Stores an updated name of a qube on the server. Note that the new qube name should not be set into the qube 
-         * object in this services' loadedAnalysis, but this method will do this if the server replies with a success.
+         * Stores an updated qube on the server. Note that the new qube should not be reachable from loadedAnalysis, but
+         * this method will do integrate the new qube after the server responded with success.
          * 
-         * The returned Promise will not pass any data in the "resolve" call.
+         * After the command completed, the queries of the qube might need to be re-executed (if the slice of the qube
+         * changed). This method will automatically remove the $results objects in the queries in that case.
+         * 
+         * Note that this method will update only a few properties of a qube on the server - changes on queries are
+         * handled by separate methods!
          */
-        function updateQubeName(qubeId, newQubeName) {
+        function updateQube(newQube) {
           return new Promise(function(resolve, reject) {
-            remoteService.execute("updateQubeName",
+            remoteService.execute("updateQube",
                 { analysisId: me.loadedAnalysis.id,
-                  qubeId: qubeId,
-                  qubeName: newQubeName
+                  qubeId: newQube.id,
+                  qubeName: newQube.name,
+                  sliceId: newQube.sliceId
                 }, new (function() {
+                  var receivedQube = undefined;
                   this.data = function data_(dataType, data) {
-                    // noop.
+                    if (dataType === "qube") {
+                      receivedQube = data.qube;
+                    }
                   }
                   this.exception = function exception_(text) {
                     reject(text);
                   }
                   this.done = function done_() {
-                    var qube = me.loadedAnalysis.qubes.filter(function(q) { return q.id === qubeId; })[0];
-                    qube.name = newQubeName;
+                    var foundQubeIdx = undefined;
+                    for (var idx in me.loadedAnalysis.qubes) {
+                      if (me.loadedAnalysis.qubes[idx].id === receivedQube.id) {
+                        foundQubeIdx = idx;
+                        break;
+                      }
+                    }
                     
-                    $rootScope.$broadcast("analysis:qubeUpdated", { qube: qube });
-                    resolve();
+                    if (foundQubeIdx === undefined) {
+                      $log.warn("Could not find the qube that should be replaced by the updated qube. Did the server " +
+                          "change the query ID?");
+                      reject("Internal error. Please refresh the page.");
+                      return;
+                    }
+                    
+                    var oldQube = me.loadedAnalysis.qubes[foundQubeIdx];
+                    me.loadedAnalysis.qubes[foundQubeIdx] = receivedQube;
+                    
+                    if (oldQube.sliceId === receivedQube.sliceId) {
+                      // we replaces the whole qube including the $results of all queries (which are empty now again).
+                      // If the slice did not change, we can preserve the results! Otherwise we have to re-run the queries.
+                      for (var newQueryIdx in receivedQube.queries) {
+                        var newQuery = receivedQube.queries[newQueryIdx];
+                        var oldQueryArray = oldQube.queries.filter(function (q) { return q.id === newQuery.id; });
+                        if (oldQueryArray && oldQueryArray.length) {
+                          newQuery.$results = oldQueryArray[0].$results;
+                        }
+                      }
+                    }
+                    
+                    $rootScope.$broadcast("analysis:qubeUpdated", { qube: receivedQube });
+                    resolve(receivedQube);
                   }
                 })());
           });

@@ -77,6 +77,21 @@
     }
   });
   
+  var testQubeResultUpdated = validatedData.data("qube", {
+    qube: {
+      id: "qubeId1",
+      sliceId: "newSliceId",
+      name: "newQubeName",
+      queries: [
+        {
+          id: "queryId",
+          name: "queryName",
+          diql: "queryDiql",
+          displayType: "table"
+        }]
+    }
+  });
+  
   var testSliceResult = validatedData.data("slice", {
     slice: {
       id: "sliceId",
@@ -186,10 +201,11 @@
     }
   });
   
-  var updateQubeNameCommand = validatedData.commandData("updateQubeName", {
+  var updateQubeCommand = validatedData.commandData("updateQube", {
     analysisId: "analysisId", 
     qubeId: "qubeId1",
-    qubeName: "newName"
+    qubeName: "newQubeName",
+    sliceId: "newSliceId"
   });
   
   describe("diqube.analysis module", function() {
@@ -585,10 +601,11 @@
         });
       });
       
-      it("updateQubeName sends updates to server", function(testDone) {
+      it("updateQube sends updates to server", function(testDone) {
         remoteServiceHandlerFn = function(res, commandName, commandData) {
-          if (commandName === "updateQubeName") {
-            expect(commandData).toEqual(updateQubeNameCommand);
+          if (commandName === "updateQube") {
+            expect(commandData).toEqual(updateQubeCommand);
+            res.data("qube", testQubeResultUpdated);
             res.done();
           } else
             fail("Unexpected command sent by analysisService: " + commandName + ", " + commandData);
@@ -596,12 +613,13 @@
         
         var analysis = angular.copy(testTwoQubeAnalysis.analysis);
         analysisService.setLoadedAnalysis(analysis);
-        var targetQube = analysis.qubes.filter(function(qube) { return qube.id === "qubeId1"; })[0];
         
-        var updatePromise = analysisService.updateQubeName(targetQube.id, "newName");
+        var updatePromise = analysisService.updateQube(testQubeResultUpdated.qube);
         
         updatePromise.then(function() {
-          expect(targetQube.name).toEqual("newName");
+          var targetQube = analysis.qubes.filter(function(qube) { return qube.id === "qubeId1"; })[0];
+          expect(targetQube.name).toEqual("newQubeName");
+          expect(targetQube.sliceId).toEqual("newSliceId");
           testDone();
         }).catch(function (text) {
           fail(text);

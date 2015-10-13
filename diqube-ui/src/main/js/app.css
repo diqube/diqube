@@ -71,12 +71,6 @@ textarea.diql-full {
 	justify-content: space-between;
 }
 
-.qube .qube-header .qube-action {
-	display: flex;
-	align-items: center;
-	margin-left: 10px;
-}
-
 .qube .qube-header-left {
 	font-size: 18px;
 }
@@ -88,17 +82,30 @@ textarea.diql-full {
   padding-right: 5px;
 }
 
-.qube .qube-header .edit-qube {
-	display: flex;
-	align-items: center;
+.qube .qube-header .qube-action {
+  display: flex;
+  align-items: center;
+  margin-left: 10px;
 }
 
-.qube .qube-header .edit-qube > * {
-	margin-right: 10px;
+.qube .qube-header .edit-qube {
+	flex-grow: 1;
+	align-items: center;
+	display: flex;
+}
+
+.qube .qube-header .edit-qube .simple-form {
+	flex-grow: 1;
+	display: flex;
+	justify-content: space-between;
 }
 
 .qube .qube-action-list .qube-action {
   margin-right: 5px;
+}
+
+.qube .edit-qube .qube-action-list select {
+  width: auto;
 }
 
 .qube .qube-header .edit-qube .form-group {

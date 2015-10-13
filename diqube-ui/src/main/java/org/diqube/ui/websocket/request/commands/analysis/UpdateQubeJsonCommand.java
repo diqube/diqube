@@ -30,25 +30,29 @@ import org.diqube.ui.websocket.request.CommandClusterInteraction;
 import org.diqube.ui.websocket.request.CommandResultHandler;
 import org.diqube.ui.websocket.request.commands.CommandInformation;
 import org.diqube.ui.websocket.request.commands.JsonCommand;
+import org.diqube.ui.websocket.result.analysis.QubeJsonResult;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * Updates the name of a qube.
+ * 
+ * This command will only update specific fields of the qube itself. To adjust the queries of the qube, see separate
+ * commands.
  *
  * <p>
  * Sends following results:
  * <ul>
- * <li>none
+ * <li>{@link QubeJsonResult}
  * </ul>
  * 
  * @author Bastian Gloeckle
  */
-@CommandInformation(name = UpdateQubeNameJsonCommand.NAME)
-public class UpdateQubeNameJsonCommand implements JsonCommand {
+@CommandInformation(name = UpdateQubeJsonCommand.NAME)
+public class UpdateQubeJsonCommand implements JsonCommand {
 
-  public static final String NAME = "updateQubeName";
+  public static final String NAME = "updateQube";
 
   @JsonProperty
   @NotNull
@@ -61,6 +65,10 @@ public class UpdateQubeNameJsonCommand implements JsonCommand {
   @JsonProperty
   @NotNull
   public String qubeName;
+
+  @JsonProperty
+  @NotNull
+  public String sliceId;
 
   @JsonIgnore
   @Inject
@@ -80,7 +88,13 @@ public class UpdateQubeNameJsonCommand implements JsonCommand {
     if (qubeName == null || "".equals(qubeName))
       throw new RuntimeException("Qube name empty.");
 
+    if (sliceId == null || "".equals(sliceId))
+      throw new RuntimeException("SliceId empty.");
+
     qube.setName(qubeName);
+    qube.setSliceId(sliceId);
+
+    resultHandler.sendData(new QubeJsonResult(qube));
   }
 
 }

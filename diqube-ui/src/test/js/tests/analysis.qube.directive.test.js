@@ -110,20 +110,21 @@
         expect(mockedAnalysisService.addQuery).toHaveBeenCalled();
       });
       
-      it("updateQubeName sends update", function() {
-        spyOn(mockedAnalysisService, "updateQubeName").and.callThrough();
+      it("updateQube sends update", function() {
+        spyOn(mockedAnalysisService, "updateQube").and.callThrough();
 
         var compiledElement = $compile(pureElement)($scope);
         $scope.$digest();
          
-        expect(mockedAnalysisService.updateQubeName).not.toHaveBeenCalled();
+        expect(mockedAnalysisService.updateQube).not.toHaveBeenCalled();
         
         var isolatedScope = compiledElement.isolateScope();
-        isolatedScope.updateQubeName( { name:"newName" } );
+        isolatedScope.updateQube( { name:"newName", sliceId: "newSliceId" } );
         
-        expect(mockedAnalysisService.updateQubeName).toHaveBeenCalled();
-        var newNameUsed = mockedAnalysisService.updateQubeName.calls.argsFor(0)[1];
-        expect(newNameUsed).toEqual("newName");
+        expect(mockedAnalysisService.updateQube).toHaveBeenCalled();
+        var newQubeSent = mockedAnalysisService.updateQube.calls.argsFor(0)[0];
+        expect(newQubeSent.name).toEqual("newName");
+        expect(newQubeSent.sliceId).toEqual("newSliceId");
       });
     });
   });

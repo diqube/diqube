@@ -22,30 +22,41 @@
 -->
 <div class="qube">
   <div class="qube-header">
+  
     <span ng-if="!editMode" class="qube-header-left">{{ qube.name }}</span>
+    <div class="qube-action-list" ng-if="!editMode">
+      <span class="qube-slice qube-action">
+        <i class="fa fa-pie-chart"></i>&nbsp;{{ slice.name }}
+      </span>
+      <a href class="qube-action" title="Edit mode" ng-click="toggleEditMode()"><i class="fa fa-gears"></i></a>
+      <button class="btn btn-default qube-action" ng-click="addQuery()" title="Add query">
+        <i class="fa fa-plus add-action"></i></button>
+    </div>
     
+    <!-- EDIT MODE -->
+        
     <div ng-if="editMode" class="edit-qube">
-      <form novalidate class="qube-header-left simple-form" ng-submit="updateQubeName(qubeCopy)">
-        <div class="has-feedback form-group {{ nameValid === true ? 'has-success' : '' }} {{ nameValid === false ? 'has-error' : '' }}">
+      <form novalidate class="simple-form" ng-submit="updateQube(qubeCopy)">
+        <div class="qube-header-left has-feedback form-group {{ nameValid === true ? 'has-success' : '' }} {{ nameValid === false ? 'has-error' : '' }}">
           <input type="text" class="form-control" id="inputName"
             placeholder="Name of qube" ng-model="qubeCopy.name" 
             ng-change="validateName(qubeCopy.name)">
           <span ng-if="nameValid === true" class="fa fa-check form-control-feedback"></span>
           <span ng-if="!nameValid" class="fa fa-exclamation-triangle form-control-feedback"></span>
         </div>
+        <div class="qube-action-list">
+          <span class="qube-action">
+            <i class="fa fa-pie-chart"></i>
+            <select ng-model="qubeCopy.sliceId" class="qube-action form-control" 
+                    ng-options="slice.id as slice.name for slice in analysis.slices">
+            </select>
+          </span>
+          
+          <a ng-if="!working" class="qube-action" href title="Cancel edit" ng-click="toggleEditMode()"><i class="fa fa-close"></i></a>
+          <a ng-if="!working" class="qube-action" href title="Save" ng-click="updateQube(qubeCopy)"><i class="fa fa-floppy-o"></i></a>
+          <i ng-if="working" class="qube-action fa fa-spinner fa-spin"></i>
+        </div>
       </form>
-      <a ng-if="!working" href title="Cancel edit" ng-click="toggleEditMode()"><i class="fa fa-close"></i></a>
-      <a ng-if="!working" href title="Save" ng-click="updateQubeName(qubeCopy)"><i class="fa fa-floppy-o"></i></a>
-      <i ng-if="working" class="query-header-action fa fa-spinner fa-spin"></i>
-    </div>
-      
-    <div class="qube-action-list">
-      <a href class="qube-action" title="Edit mode" ng-click="toggleEditMode()"><i class="fa fa-gears"></i></a>
-      <span class="qube-slice qube-action">
-        <i class="fa fa-pie-chart"></i> {{ slice.name }}
-      </span>
-      <button class="btn btn-default qube-action" ng-click="addQuery()" title="Add query">
-        <i class="fa fa-plus add-action"></i></button>
     </div>
   </div>
   <div class="query-container">
