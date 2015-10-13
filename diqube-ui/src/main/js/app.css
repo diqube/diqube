@@ -197,6 +197,11 @@ textarea.diql-full {
   top: 10px !important;
 }
 
+.query .no-rows-returned {
+	font-weight: bold;
+	text-align: center;
+}
+
 /* ============= Slice display ============= */
 
 .slice-container > div > div.panel-heading {

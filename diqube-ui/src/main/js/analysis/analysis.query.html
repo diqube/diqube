@@ -45,9 +45,7 @@
     {{ exception }}
   </div>
   
-  <!-- TODO display text if no rows are returned (=slice too narrow). -->
-  
-  <div ng-if="query.results && !exception" style="{{ displayWidth }}">
+  <div ng-if="query.results && !exception && query.results.rows" style="{{ displayWidth }}">
     <table ng-if="query.displayType === 'table'" class="table table-hover table-condensed">
       <thead>
         <tr>
@@ -63,6 +61,10 @@
     
     <diqube-query-bar-chart class="bar-chart" ng-if="query.displayType === 'barchart'" query="query">
     </diqube-query-bar-chart>
+  </div>
+  
+  <div ng-if="query.results && !exception && !query.results.rows" class="no-rows-returned">
+    No rows returned
   </div>
 </div>
 
