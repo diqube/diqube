@@ -193,14 +193,14 @@
         }
         
         /**
-         * Loads a field "results" into the query object which is updated continuously until it contains the full
+         * Loads a field "$results" into the query object which is updated continuously until it contains the full
          * results of executing the query. With each new intermediate update available, the optional 
          * intermediateResultsFn will be called.
          * 
-         * If there are results available already (query.results !== undefined), the results will not be loaded again.
+         * If there are results available already (query.$results !== undefined), the results will not be loaded again.
          * 
          * The results object which is published in the Promise #resolve and #intermediateResultsFn and is set to 
-         * query.results looks like this:
+         * query.$results looks like this:
          * 
          * {
          * percentComplete [number]: 0-100 percent complete of query.
@@ -211,8 +211,6 @@
          *                     values.
          * }
          * 
-         * TODO rename "results" to "$results".
-         * 
          * Note that the returned Promise will return one of those "result objects" even on a call to "reject"!
          * 
          * @param qube The qube of the query to execute
@@ -220,20 +218,20 @@
          * @param intermediateResultsFn function(resultsObj): called when intermediate results are available. Can be undefined. This will only be called asynchronously.
          */
         function provideQueryResults(qube, query, intermediateResultsFn) {
-          if (query.results !== undefined) {
+          if (query.$results !== undefined) {
             return new Promise(function(resolve, reject) {
-              resolve(query.results);
+              resolve(query.$results);
             })
           }
 
-          query.results = { percentComplete: 0, 
+          query.$results = { percentComplete: 0, 
                             rows: undefined, 
                             columnNames: undefined, 
                             exception: undefined };
           if (intermediateResultsFn) {
             // use timeout to call intermediateResultsFn asynchronously. This is needed to not mess up with $scope.$apply calls...
             $timeout(function() {
-              intermediateResultsFn(query.results);              
+              intermediateResultsFn(query.$results);              
             }, 0, false);
           }
           
@@ -244,23 +242,23 @@
                   queryId: query.id
                 }, new (function() {
                   this.data = function data_(dataType, data) { 
-                    if (dataType === "table" && !query.results.exception) {
-                      if (data.percentComplete >= query.results.percentComplete) {
-                        query.results.rows = data.rows;
-                        query.results.columnNames = data.columnNames;
-                        query.results.percentComplete = data.percentComplete;
+                    if (dataType === "table" && !query.$results.exception) {
+                      if (data.percentComplete >= query.$results.percentComplete) {
+                        query.$results.rows = data.rows;
+                        query.$results.columnNames = data.columnNames;
+                        query.$results.percentComplete = data.percentComplete;
                       }
                       if (intermediateResultsFn)
-                        intermediateResultsFn(query.results);
+                        intermediateResultsFn(query.$results);
                     }
                   };
                   this.exception = function exception_(text) {
-                    query.results.exception = text;
-                    reject(query.results);
+                    query.$results.exception = text;
+                    reject(query.$results);
                   }
                   this.done = function done_() {
-                    query.results.percentComplete = 100;
-                    resolve(query.results);
+                    query.$results.percentComplete = 100;
+                    resolve(query.$results);
                   }
                 })());
           });
@@ -271,7 +269,7 @@
          * one that is reachable from me.loadedAnalysis, as the changes will be incorporated into that object when the
          * resulting query is received from the server after updating.
          * 
-         * If possible, the query.results will be preserved in the new query object, but it could be that they are
+         * If possible, the query.$results will be preserved in the new query object, but it could be that they are
          * removed and need to be re-queried using #provideQueryResults.
          */
         function updateQuery(qubeId, query) {
@@ -312,8 +310,8 @@
                             qube.queries[queryIdx] = receivedQuery;
                             
                             if (oldQuery.diql == receivedQuery.diql)
-                              // preserve the results we loaded already, if possible!
-                              receivedQuery.results = oldQuery.results;
+                              // preserve the $results we loaded already, if possible!
+                              receivedQuery.$results = oldQuery.$results;
                             
                             replacedQuery = true;
                             break;
@@ -373,7 +371,7 @@
          * one that is reachable from me.loadedAnalysis, as the changes will be incorporated into that object when the
          * resulting slice is received from the server after updating.
          * 
-         * Note that this method will remove the query.results objects of all queries that are connected to the slice
+         * Note that this method will remove the query.$results objects of all queries that are connected to the slice
          * by their qube (only if slices selection properties changed). The results might therefore need to be
          * re-calculated!
          */
@@ -413,9 +411,9 @@
                       for (var qubeIdx in me.loadedAnalysis.qubes) {
                         var qube = me.loadedAnalysis.qubes[qubeIdx];
                         if (qube.sliceId === receivedSlice.id) {
-                          // clean results
+                          // clean $results
                           for (var queryIdx in qube.queries) 
-                            qube.queries[queryIdx].results = undefined;
+                            qube.queries[queryIdx].$results = undefined;
                         }
                       }
                     }

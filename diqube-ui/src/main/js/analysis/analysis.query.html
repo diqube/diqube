@@ -25,10 +25,10 @@
   <div class="query-header">
     <span>{{ query.name }}</span>
     
-    <progressbar ng-if="!exception && query.results.percentComplete != 100" 
-      value="query.results.percentComplete">{{ query.results.percentComplete }}%</progressbar>
+    <progressbar ng-if="!exception && query.$results.percentComplete != 100" 
+      value="query.$results.percentComplete">{{ query.$results.percentComplete }}%</progressbar>
       
-    <span ng-if="query.results.percentComplete === 100 || exception" class="query-header-actions">
+    <span ng-if="query.$results.percentComplete === 100 || exception" class="query-header-actions">
       <a href class="query-header-action" title="Edit mode" ng-click="toggleEditMode()"><i class="fa fa-gears"></i></a>
       <div dropdown class="btn-group query-header-action">
         <a href dropdown-toggle><i class="fa {{ getDisplayTypeOptions(query.displayType).icon }}"></i> <i class="caret"></i></a>
@@ -45,15 +45,15 @@
     {{ exception }}
   </div>
   
-  <div ng-if="query.results && !exception && query.results.rows" style="{{ displayWidth }}">
+  <div ng-if="query.$results && !exception && query.$results.rows" style="{{ displayWidth }}">
     <table ng-if="query.displayType === 'table'" class="table table-hover table-condensed">
       <thead>
         <tr>
-          <th ng-repeat="colName in query.results.columnNames">{{ colName }}</th>
+          <th ng-repeat="colName in query.$results.columnNames">{{ colName }}</th>
         </tr>
       </thead>
       <tbody>
-        <tr ng-repeat="row in query.results.rows track by $index">
+        <tr ng-repeat="row in query.$results.rows track by $index">
           <td ng-repeat="col in row track by $index">{{ col }}</td>
         </tr>
       </tbody>
@@ -63,7 +63,7 @@
     </diqube-query-bar-chart>
   </div>
   
-  <div ng-if="query.results && !exception && !query.results.rows" class="no-rows-returned">
+  <div ng-if="query.$results && !exception && !query.$results.rows" class="no-rows-returned">
     No rows returned
   </div>
 </div>

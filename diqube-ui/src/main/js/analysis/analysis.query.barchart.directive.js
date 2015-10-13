@@ -39,8 +39,8 @@
             var lastXAxisLabelsUsedForCalculation = undefined;
             var lastYAxisLabelsUsedForCalculation = undefined;
 
-            $scope.$watch("query.results.columnNames", createDisplayProperties);
-            $scope.$watch("query.results.rows", createDisplayProperties);
+            $scope.$watch("query.$results.columnNames", createDisplayProperties);
+            $scope.$watch("query.$results.rows", createDisplayProperties);
             
             // Observes DOM mutations in this directives DOM. If the "svg" element changes, we calculate the 
             // axis-labels that are displayed. If they differ from those that were used to calculate the pixel distances
@@ -55,7 +55,7 @@
                       var xAxisLabelsRendered = findRenderedAxisLabels("x");
                       var yAxisLabelsRendered = findRenderedAxisLabels("y");
 
-                      if ($scope.query.results && $scope.query.results.percentComplete === 100) {
+                      if ($scope.query.$results && $scope.query.$results.percentComplete === 100) {
                         if (!angular.equals(lastXAxisLabelsUsedForCalculation, xAxisLabelsRendered) || 
                             !angular.equals(lastYAxisLabelsUsedForCalculation, yAxisLabelsRendered)) {
                           // the axis labels that were used for the last pixel calculations in nvd3BarChartOptions were
@@ -86,11 +86,11 @@
              */
             function createDisplayProperties() {
               var nvd3Values = [];
-              for (var idx in $scope.query.results.rows) {
+              for (var idx in $scope.query.$results.rows) {
                 nvd3Values.push({
                   idx: idx,
-                  label: $scope.query.results.rows[idx][0],
-                  value: $scope.query.results.rows[idx][1]
+                  label: $scope.query.$results.rows[idx][0],
+                  value: $scope.query.$results.rows[idx][1]
                 });
               }
               
@@ -125,7 +125,7 @@
              * @param userHeight: User preference height of the chart in px.
              */
             function nvd3BarChartOptions(userWidth, userHeight) {
-              if (!$scope.query.results || !$scope.query.results.rows)
+              if (!$scope.query.$results || !$scope.query.$results.rows)
                 return;
               
               var width = userWidth || 450;
@@ -158,16 +158,16 @@
               
               var xTickValues = [];
               var indexOffset = 0;
-              var idxDelta = Math.ceil($scope.query.results.rows.length / numberOfXAxisLabelsToShow);
+              var idxDelta = Math.ceil($scope.query.$results.rows.length / numberOfXAxisLabelsToShow);
               var lastLabelAdded = false;
               while (!lastLabelAdded) {
                 var rowIdx = indexOffset;
-                if (rowIdx >= $scope.query.results.rows.length - 1) {
+                if (rowIdx >= $scope.query.$results.rows.length - 1) {
                   lastLabelAdded = true;
-                  rowIdx = $scope.query.results.rows.length - 1;
+                  rowIdx = $scope.query.$results.rows.length - 1;
                 }
-                if ($scope.query.results.rows[rowIdx])
-                  xTickValues.push($scope.query.results.rows[rowIdx][0]);
+                if ($scope.query.$results.rows[rowIdx])
+                  xTickValues.push($scope.query.$results.rows[rowIdx][0]);
                 
                 indexOffset += idxDelta;
               }
@@ -194,13 +194,13 @@
                   transitionDuration: 100,
                   color: function(data) { return "#1f77b4"; },
                   xAxis: {
-                      axisLabel: $scope.query.results.columnNames ? $scope.query.results.columnNames[0] : "",
+                      axisLabel: $scope.query.$results.columnNames ? $scope.query.$results.columnNames[0] : "",
                       axisLabelDistance: 10,
                       rotateLabels: 315,
                       tickValues: xTickValues
                   },
                   yAxis: {
-                      axisLabel: $scope.query.results.columnNames ? $scope.query.results.columnNames[1] : "",
+                      axisLabel: $scope.query.$results.columnNames ? $scope.query.$results.columnNames[1] : "",
                       axisLabelDistance: 10,
                       tickFormat: function(d){
                         return d3.format("d")(d);

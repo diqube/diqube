@@ -48,7 +48,9 @@
          * Call this method to send a command to the server.
          * 
          * @param commandName The name of the command to execute.
-         * @param commandData Additional data that the command might need to execute.
+         * @param commandData Additional data that the command might need to execute. This object will be inspected
+         *      recursively and all fields starting with "$" will NOT be sent to the server (these fields can be used
+         *      to store any JS-only data in the objects).
          * @param resultHandler All methods of this object will be called inside the given scope. 
          *  Methods:
          *      data(dataType, data): Some data was received. Return true in case the command should be cleaned up (= the command is done).

@@ -65,7 +65,7 @@
             }
             
             $scope.$watch("query", executeQuery);
-            $scope.$watch("query.results", function(newResults) {
+            $scope.$watch("query.$results", function(newResults) {
               if (newResults === undefined) {
                 // our results are not yet available/were deleted. The latter could be the case if the slice changed on
                 // which the qube is based this query belongs to.
@@ -83,7 +83,6 @@
 
             function integrateQueryResults(results) {
               $scope.$apply(function() {
-                $scope.query.results = results;
                 if (!$scope.editMode)
                   $scope.exception = results.exception;
                 createDisplayProperties();
