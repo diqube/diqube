@@ -211,6 +211,8 @@
          *                     values.
          * }
          * 
+         * TODO rename "results" to "$results".
+         * 
          * Note that the returned Promise will return one of those "result objects" even on a call to "reject"!
          * 
          * @param qube The qube of the query to execute
@@ -406,8 +408,8 @@
                       return;
                     }
                     
-//                    if (!angular.equals(origSlice.manualConjunction, receivedSlice.manualConjunction) || 
-//                        !angular.equals(origSlice.sliceDisjunctions, receivedSlice.sliceDisjunctions)) {
+                    if (!angular.equals(origSlice.manualConjunction, receivedSlice.manualConjunction) || 
+                        !angular.equals(origSlice.sliceDisjunctions, receivedSlice.sliceDisjunctions)) {
                       for (var qubeIdx in me.loadedAnalysis.qubes) {
                         var qube = me.loadedAnalysis.qubes[qubeIdx];
                         if (qube.sliceId === receivedSlice.id) {
@@ -416,7 +418,7 @@
                             qube.queries[queryIdx].results = undefined;
                         }
                       }
-                    //}
+                    }
                     
                     $rootScope.$broadcast("analysis:sliceUpdated", receivedSlice);
                     resolve(receivedSlice);

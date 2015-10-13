@@ -263,15 +263,15 @@ textarea.diql-full {
   flex-grow: 1;
 }
 
+.slices .edit-slice .slice-header-actions {
+  margin-left: 5px;
+}
+
 .slices .slice-header-actions {
   display: flex;
   justify-content: flex-end;
   align-items: center;
   margin-left: 15px;
-}
-
-.slices .edit-slice .slice-header-actions {
-  margin-left: 5px;
 }
 
 .slices .slice-header-action {
@@ -285,4 +285,115 @@ textarea.diql-full {
 .slices .slice .panel-body {
 	/* body is only used when an alert is displayed */
   padding: 2px;
+}
+
+.slices .slice .table {
+  margin-bottom: 0px;
+}
+
+.slices .slice .table .slice-disjunction-value-td {
+	padding: 0px;
+}
+
+.slices .slice .table .slice-disjunction-value-list {
+  margin-bottom: 0px;
+}
+
+.slices .slice .table .slice-disjunction-value-first {
+  border: 0px;
+}
+
+.slices .slice .table .slice-disjunction-value:not(.slice-disjunction-value-first) {
+  border-left: 0px;
+  border-right: 0px;
+  border-bottom: 0px;
+}
+
+.slices .slice .table .slice-disjunction-value {
+	/* adjust padding of list-group as the surroundinbg table is condensed */
+	padding-top: 5px;
+	padding-bottom: 5px;
+}
+
+.slices .slice .table tr.slice-tr-show-and::before {
+	content: "and";
+	position: absolute;
+	margin-top: -7px;
+	margin-left: 3px;
+	background-color: white;
+	font-size: x-small;
+  font-style: italic;
+  color: #999;
+}
+
+/* we need to add a "before" for the tr's that should not have a "and", too, otherwise the layout gets messed up */
+.slices .slice .table tr:not(.slice-tr-show-and)::before {
+  content: "";
+  position: absolute;
+  margin-top: -7px;
+  margin-left: 3px;
+  background-color: white;
+  font-size: x-small;
+  font-style: italic;
+  color: #999;
+}
+
+
+.slices .slice .table .slice-disjunction-value.slice-disjunction-value-show-or::before {
+	content: "or";
+  position: absolute;
+  margin-top: -13px;
+  margin-left: -11px;
+  background-color: white;
+  font-size: x-small;
+  font-style: italic;
+  color: #999;
+}
+
+.slices .edit-slice .slice-value-group {
+	display: flex;
+}
+
+.slices .edit-slice .slice-value-group .form-control-feedback {
+  right: 20px;
+}
+
+.slices .edit-slice .slice-value-group .slice-value-group-actions {
+  margin-left: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.slices .edit-slice .slice-disjunction-actions {
+  margin-left: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.slices .edit-slice .slice-disjunction-field {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.slices .edit-slice .slice-add-field-td {
+	display: flex;
+	align-items: center;
+}
+
+.slices .edit-slice .slice-add-field-td input {
+  width: 50%;
+}
+
+
+
+/* ============= General ============= */
+
+.remove-action {
+	color: #ff3333;
+}
+
+.add-action {
+	
 }

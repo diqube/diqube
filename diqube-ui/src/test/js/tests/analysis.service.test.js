@@ -95,7 +95,7 @@
       id: "sliceId1",
       name: "sliceNewName",
       sliceDisjunctions: [ ],
-      manualConjunction: ""
+      manualConjunction: "newmanualconjunction"
     }
   });
   
@@ -182,7 +182,7 @@
       id: "sliceId1",
       name: "sliceNewName",
       sliceDisjunctions: [ ],
-      manualConjunction: ""
+      manualConjunction: "newmanualconjunction"
     }
   });
   

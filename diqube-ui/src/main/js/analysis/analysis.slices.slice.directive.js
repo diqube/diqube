@@ -39,8 +39,14 @@
             $scope.sliceCopy = undefined;
             $scope.nameValid = true;
             $scope.validateName = validateName;
+            $scope.isDisjunctionValueValid = isDisjunctionValueValid; 
             $scope.working = false;
             $scope.editException = undefined;
+            
+            $scope.removeDisjunctionValue = removeDisjunctionValue;
+            $scope.addDisjunctionValue = addDisjunctionValue;
+            $scope.addDisjunctionField = addDisjunctionField;
+            $scope.removeDisjunctionField = removeDisjunctionField;
             
             // ===
 
@@ -63,7 +69,19 @@
               $scope.nameValid = !!newName;
             }
             
+            function isDisjunctionValueValid(disjValue) {
+              return !!disjValue;
+            }
+            
             function updateSlice(newSlice) {
+              // do not continue if any disjunction value is invalid, as server might not be able to handle empty values
+              // nicely.
+              for (var disjIdx in newSlice.sliceDisjunctions) {
+                var disj = newSlice.sliceDisjunctions[disjIdx];
+                if (disj.disjunctionValues.filter(function(val) { return !isDisjunctionValueValid(val); }).length > 0)
+                  return;
+              }
+              
               $scope.working = true;
               analysisService.updateSlice(newSlice).then(function() {
                 $scope.working = false;
@@ -74,6 +92,28 @@
                 $scope.editException = text;
                 $scope.nameValid = undefined;
               });
+            }
+            
+            function removeDisjunctionValue(slice, disjunctionIndex, valueIndex) {
+              slice.sliceDisjunctions[disjunctionIndex].disjunctionValues.splice(valueIndex, 1);
+            }
+            
+            function addDisjunctionValue(slice, disjunctionIndex) {
+              slice.sliceDisjunctions[disjunctionIndex].disjunctionValues.push("");
+            }
+            
+            function addDisjunctionField(slice, fieldName) {
+              if (!fieldName)
+                return;
+              
+              slice.sliceDisjunctions.push({
+                fieldName: fieldName,
+                disjunctionValues: []
+              });
+            }
+            
+            function removeDisjunctionField(slice, disjunctionIndex) {
+              slice.sliceDisjunctions.splice(disjunctionIndex, 1);
             }
           }
         };

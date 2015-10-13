@@ -118,21 +118,23 @@ public class QueryBuilder {
 
       boolean andNeeded = false;
       for (UiSliceDisjunction disjunction : slice.getSliceDisjunctions()) {
-        if (andNeeded)
-          sb.append(" and ");
-        andNeeded = true;
+        if (!disjunction.getDisjunctionValues().isEmpty()) {
+          if (andNeeded)
+            sb.append(" and ");
+          andNeeded = true;
 
-        sb.append("(");
-        boolean firstValue = true;
-        for (String disjunctionValue : disjunction.getDisjunctionValues()) {
-          if (!firstValue)
-            sb.append(" or ");
-          firstValue = false;
-          sb.append(disjunction.getFieldName());
-          sb.append(" = ");
-          sb.append(disjunctionValue);
+          sb.append("(");
+          boolean firstValue = true;
+          for (String disjunctionValue : disjunction.getDisjunctionValues()) {
+            if (!firstValue)
+              sb.append(" or ");
+            firstValue = false;
+            sb.append(disjunction.getFieldName());
+            sb.append(" = ");
+            sb.append(disjunctionValue);
+          }
+          sb.append(")");
         }
-        sb.append(")");
       }
 
       if (slice.getManualConjunction() != null && !"".equals(slice.getManualConjunction())) {

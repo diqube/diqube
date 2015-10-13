@@ -65,13 +65,37 @@
               resultHandler : resultHandler
           };
           
+          var cleanCmdData = cleanCommandData(angular.copy(commandData));
+          
           sock.$$send({
             requestId: requestId, 
             command: commandName,
-            commandData: commandData
+            commandData: cleanCmdData
           });
           
           return requestId;
+        }
+        
+        /**
+         * Removes all properties starting with "$" recursively.
+         */
+        function cleanCommandData(data) {
+          for (var prop in data) {
+            if (data.hasOwnProperty(prop)) {
+              if (typeof data[prop] === "object") {
+                if (Array.isArray(data[prop])) {
+                  for (var idx in data[prop])
+                    cleanCommandData(data[prop][idx]);
+                } else {
+                  if (prop.startsWith("$"))
+                    delete data[prop];
+                  else
+                    cleanCommandData(data[prop]);
+                }
+              }
+            }
+          }
+          return data;
         }
         
         /**

@@ -28,17 +28,30 @@
     </span>
   </div>
   
-  <ul class="list-group">
-    <li ng-if="slice.manualConjunction" class="list-group-item">{{ slice.manualConjunction }}</li>
-    <li ng-repeat="dis in slice.sliceDisjunctions" class="list-group-item">{{ dis.field }}</li>
+  <ul class="list-group" ng-if="slice.manualConjunction">
+    <li class="list-group-item">{{ slice.manualConjunction }}</li>
   </ul>
+  <table class="table table-condensed">
+    <tbody>
+      <tr ng-repeat="dis in slice.sliceDisjunctions" class="{{ (!$first || slice.manualConjunction) ? 'slice-tr-show-and' : '' }}">
+        <td class="slice-disjunction-field" colspan="dis.disjunctionValues.length">{{ dis.fieldName }}</td>
+        <td class="slice-disjunction-value-td">
+          <ul class="list-group slice-disjunction-value-list">
+            <li class="list-group-item slice-disjunction-value {{ $first ? 'slice-disjunction-value-first' : 'slice-disjunction-value-show-or' }}" 
+                ng-repeat="val in dis.disjunctionValues">{{ val }}</li>
+          </ul>
+        </td>
+      </tr>
+    </tbody>
+  </table>
 </div>
 
 
 <!-- EDIT MODE -->
 
-<form ng-if="editMode" novalidate class="simple-form edit-slice" ng-submit="updateSlice(sliceCopy)">
-  <div class="panel panel-default slice {{ additionalClass }}">
+<div ng-if="editMode" class="edit-slice panel panel-default slice {{ additionalClass }}">
+  <form novalidate class="simple-form" ng-submit="updateSlice(sliceCopy)">
+    <input type="submit" class="hidden">
     <div class="panel-heading">
       <div class="has-feedback form-group {{ nameValid === true ? 'has-success' : '' }} {{ nameValid === false ? 'has-error' : '' }}">
         <input type="text" class="form-control" id="inputName"
@@ -63,8 +76,66 @@
     </div>
     
     <ul class="list-group">
-      <li ng-if="slice.manualConjunction" class="list-group-item">{{ slice.manualConjunction }}</li>
-      <li ng-repeat="dis in slice.sliceDisjunctions" class="list-group-item">{{ dis.field }}</li>
+      <li class="list-group-item">
+        <div class="form-group">
+          <input type="text" class="form-control" id="inputManualConjunction"
+            placeholder="Manual conjunction" ng-model="sliceCopy.manualConjunction">
+        </div>
+      </li>
     </ul>
-  </div>
-</form>
+    <table class="table table-condensed">
+      <tbody>
+        <tr ng-repeat="dis in sliceCopy.sliceDisjunctions track by $index" class="slice-tr-show-and">
+        
+          <td class="slice-disjunction-field" colspan="dis.disjunctionValues.length">
+            <span>{{ dis.fieldName }}</span>&nbsp;
+            <a href title="Remove field" ng-click="removeDisjunctionField(sliceCopy, $index)">
+              <i class="fa fa-minus remove-action"></i>
+            </a>
+          </td>
+          
+          <td class="slice-disjunction-value-td">
+            <ul class="list-group slice-disjunction-value-list">
+            
+              <li class="list-group-item slice-disjunction-value {{ $first ? 'slice-disjunction-value-first' : 'slice-disjunction-value-show-or' }}" 
+                  ng-repeat="val in dis.disjunctionValues track by $index">
+                <span class="has-feedback form-group slice-value-group {{ isDisjunctionValueValid(val) === true ? 'has-success' : '' }} {{ isDisjunctionValueValid(val) === false ? 'has-error' : '' }}">
+                  <input type="text" class="form-control" ng-attr-id="slice.id + '-' + $parent.$index + '-' + $index"
+                    placeholder="Value" ng-model="dis.disjunctionValues[$index]">
+                  <span ng-if="isDisjunctionValueValid(val) === true" class="fa fa-check form-control-feedback"></span>
+                  <span ng-if="isDisjunctionValueValid(val) === false" class="fa fa-exclamation-triangle form-control-feedback"></span>
+                  <div class="slice-value-group-actions">
+                    <a href class="slice-value-group-action" title="Remove value" ng-click="removeDisjunctionValue(sliceCopy, $parent.$index, $index)">
+                      <i class="fa fa-minus remove-action"></i>
+                    </a>
+                  </div>
+                </span>
+              </li>
+              
+              <li class="list-group-item slice-disjunction-value slice-disjunction-actions {{ !dis.disjunctionValues ? 'slice-disjunction-value-first' : '' }}">
+                <a href class="slice-disjunction-action" title="Add value" ng-click="addDisjunctionValue(sliceCopy, $index)">
+                  <i class="fa fa-plus add-action" ></i>
+                </a>
+              </li>
+            </ul>
+          </td>
+        </tr> 
+      </tbody>
+    </table>
+  </form>
+  <form novalidate class="simple-form" ng-submit="addDisjunctionField(sliceCopy, newDisjunctionFieldName)">
+    <table class="table table-condensed">
+    <tbody>
+      <tr>
+        <td class="slice-add-field-td">
+          <input type="text" class="form-control"
+                 placeholder="Field name" ng-model="newDisjunctionFieldName">&nbsp;
+          <a href title="Add field" ng-click="addDisjunctionField(sliceCopy, newDisjunctionFieldName)">
+            &nbsp;<i class="fa fa-plus add-action"></i>&nbsp;Add&nbsp;field
+          </a>
+        </td>
+      </tr>
+    </tbody>
+    </table>
+  </form>
+</div>
