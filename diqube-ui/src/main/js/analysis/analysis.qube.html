@@ -24,7 +24,7 @@
   <div class="qube-header">
   
     <span ng-if="!editMode" class="qube-header-left">{{ qube.name }}</span>
-    <div class="qube-action-list" ng-if="!editMode">
+    <div class="qube-action-list" ng-if="!editMode && !removeMode">
       <span class="qube-slice qube-action">
         <i class="fa fa-pie-chart"></i>&nbsp;{{ slice.name }}
       </span>
@@ -35,7 +35,7 @@
     
     <!-- EDIT MODE -->
         
-    <div ng-if="editMode" class="edit-qube">
+    <div ng-if="editMode && !removeMode" class="edit-qube">
       <form novalidate class="simple-form" ng-submit="updateQube(qubeCopy)">
         <div class="qube-header-left has-feedback form-group {{ nameValid === true ? 'has-success' : '' }} {{ nameValid === false ? 'has-error' : '' }}">
           <input type="text" class="form-control" id="inputName"
@@ -45,6 +45,8 @@
           <span ng-if="!nameValid" class="fa fa-exclamation-triangle form-control-feedback"></span>
         </div>
         <div class="qube-action-list">
+          <a ng-if="!working" class="qube-action" href title="Remove qube" ng-click="enterRemoveMode()"><i class="fa fa-minus remove-action"></i></a>
+
           <span class="qube-action">
             <i class="fa fa-pie-chart"></i>
             <select ng-model="qubeCopy.sliceId" class="qube-action form-control" 
@@ -59,9 +61,23 @@
       </form>
     </div>
   </div>
-  <div class="query-container">
+  
+  <!-- qube display -->
+  <div class="query-container" ng-if="!removeMode">
     <div ng-repeat="query in qube.queries">
       <diqube-query qube="qube" query="query" analysis="analysis"></diqube-query>
     </div>
+  </div>
+  
+  <!-- REMOVE MODE -->
+  <div ng-if="editMode && removeMode" class="remove-qube">
+    <div class="qube-header">
+      <span class="qube-header-left">{{ qube.name }}</span>
+    </div>
+    <p>Are you sure you want to remove this qube?</p>
+    <p>
+      <button class="btn btn-default" ng-click="toggleEditMode()">Cancel</button>
+      <button class="btn btn-danger" ng-click="removeQube()">Yes, remove.</button>
+    </p>
   </div>
 </div>

@@ -26,7 +26,6 @@ import javax.validation.constraints.NotNull;
 import org.diqube.ui.AnalysisRegistry;
 import org.diqube.ui.analysis.UiAnalysis;
 import org.diqube.ui.analysis.UiQube;
-import org.diqube.ui.analysis.UiQuery;
 import org.diqube.ui.websocket.request.CommandClusterInteraction;
 import org.diqube.ui.websocket.request.CommandResultHandler;
 import org.diqube.ui.websocket.request.commands.CommandInformation;
@@ -36,7 +35,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * Remove a query.
+ * Removes a qube.
  * 
  * <p>
  * Sends following results:
@@ -46,10 +45,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * 
  * @author Bastian Gloeckle
  */
-@CommandInformation(name = RemoveQueryJsonCommand.NAME)
-public class RemoveQueryJsonCommand implements JsonCommand {
+@CommandInformation(name = RemoveQubeJsonCommand.NAME)
+public class RemoveQubeJsonCommand implements JsonCommand {
 
-  public static final String NAME = "removeQuery";
+  public static final String NAME = "removeQube";
 
   @JsonProperty
   @NotNull
@@ -58,10 +57,6 @@ public class RemoveQueryJsonCommand implements JsonCommand {
   @JsonProperty
   @NotNull
   public String qubeId;
-
-  @JsonProperty
-  @NotNull
-  public String queryId;
 
   @JsonIgnore
   @Inject
@@ -78,11 +73,7 @@ public class RemoveQueryJsonCommand implements JsonCommand {
     if (qube == null)
       throw new RuntimeException("Unknown qube: " + qubeId);
 
-    UiQuery query = qube.getQuery(queryId);
-    if (query == null)
-      throw new RuntimeException("Unknwon query: " + queryId);
-
-    qube.getQueries().remove(query);
+    analysis.getQubes().remove(qube);
   }
 
 }

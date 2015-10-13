@@ -214,6 +214,11 @@
     queryId: "queryId2"
   });
   
+  var removeQubeCommand = validatedData.commandData("removeQube", {
+    analysisId: "analysisId", 
+    qubeId: "qubeId2"
+  });
+  
   describe("diqube.analysis module", function() {
     var remoteServiceHandlerFn = undefined;
     var rootScope = undefined;
@@ -681,6 +686,29 @@
         
         removePromise.then(function() {
           expect(testQube.queries.length).toEqual(0);
+          
+          testDone();
+        }).catch(function (text) {
+          fail(text);
+        });
+      });
+      
+      it("removeQube sends remove to server and clears local objects", function(testDone) {
+        remoteServiceHandlerFn = function(res, commandName, commandData) {
+          if (commandName === "removeQube") {
+            expect(commandData).toEqual(removeQubeCommand);
+            res.done();
+          } else
+            fail("Unexpected command sent by analysisService: " + commandName + ", " + commandData);
+        }
+        
+        var analysis = angular.copy(testTwoQubeAnalysis.analysis);
+        analysisService.setLoadedAnalysis(analysis);
+
+        var removePromise = analysisService.removeQube("qubeId2");
+        
+        removePromise.then(function() {
+          expect(analysis.qubes.filter(function(q) { return q.id === "qubeId2"; }).length).toEqual(0);
           
           testDone();
         }).catch(function (text) {

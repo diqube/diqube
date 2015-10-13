@@ -120,6 +120,21 @@ textarea.diql-full {
   margin-bottom: 15px;
 }
 
+.qube .remove-qube {
+  display:flex;
+  flex-direction: column;
+}
+
+.qube .remove-qube > *:not(.qube-header) {
+  display:flex;
+  justify-content: center;
+  font-weight: bold;
+}
+
+.qube .remove-qube button {
+  margin-left: 10px;
+}
+
 
 /* ============= Query ============= */
 

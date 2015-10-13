@@ -40,6 +40,7 @@
         me.updateSlice = updateSlice;
         
         me.removeQuery = removeQuery;
+        me.removeQube = removeQube;
         
         me.provideQueryResults = provideQueryResults;
         
@@ -452,6 +453,46 @@
                   }
                 })());
           });
+        }
+        
+        /**
+         * Deletes a qube.
+         */
+        function removeQube(qubeId) {
+          return new Promise(function(resolve, reject) {
+            remoteService.execute("removeQube", {
+              analysisId: me.loadedAnalysis.id,
+              qubeId: qubeId,
+            }, new (function() {
+              this.done = function done_(dataType, data) {
+                // noop.
+              }
+              this.exception = function exception_(text) {
+                reject(text);
+              }
+              this.done = function done_() {
+                var removedQube = false;
+                for (var qubeIdx in me.loadedAnalysis.qubes) {
+                  var qube = me.loadedAnalysis.qubes[qubeIdx];
+                  
+                  if (qube.id === qubeId) {
+                    me.loadedAnalysis.qubes.splice(qubeIdx, 1);
+                    removedQube = true;
+                    break;
+                  }
+                }
+                
+                if (!removedQube) { 
+                  $log.warn("Could not find the qube that should have been removed.");
+                  reject("Internal error. Please refresh the page.");
+                  return;
+                }
+                
+                $rootScope.$broadcast("analysis:qubeRemoved", qubeId);
+                resolve();
+              }
+            }));
+          })
         }
         
         /**

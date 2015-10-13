@@ -126,6 +126,22 @@
         expect(newQubeSent.name).toEqual("newName");
         expect(newQubeSent.sliceId).toEqual("newSliceId");
       });
+      
+      it("removeQube sends removal", function() {
+        spyOn(mockedAnalysisService, "removeQube").and.callThrough();
+
+        var compiledElement = $compile(pureElement)($scope);
+        $scope.$digest();
+         
+        expect(mockedAnalysisService.removeQube).not.toHaveBeenCalled();
+        
+        var isolatedScope = compiledElement.isolateScope();
+        isolatedScope.removeQube();
+        
+        expect(mockedAnalysisService.removeQube).toHaveBeenCalled();
+        var qubeIdRemoved = mockedAnalysisService.removeQube.calls.argsFor(0)[0];
+        expect(qubeIdRemoved).toEqual("qubeId2");
+      });
     });
   });
 })();

@@ -36,12 +36,18 @@
             $scope.addQuery = addQuery;
             
             $scope.editMode = false;
+            // remove mode can only be accessed in edit mode. To exit removeMode, call toggleEditMode therefore.
+            $scope.removeMode = false;
+            
             $scope.toggleEditMode = toggleEditMode;
             $scope.nameValid = true;
             $scope.validateName = validateName;
             $scope.qubeCopy = undefined;
             $scope.updateQube = updateQube;
             $scope.working = false;
+            
+            $scope.enterRemoveMode = enterRemoveMode;
+            $scope.removeQube = removeQube;
             
             // ====
             
@@ -80,7 +86,8 @@
               if ($scope.editMode) {
                 $scope.qubeCopy = angular.copy($scope.qube);
                 $scope.nameValid = true;
-              }
+              } else
+                $scope.removeMode = false;
             }
             
             function validateName(name) {
@@ -103,6 +110,19 @@
                   $log.warn("Exception when trying to update a qube:", text);
                 });
               })
+            }
+            
+            function enterRemoveMode() {
+              $scope.removeMode = true;
+            }
+            
+            function removeQube() {
+              analysisService.removeQube($scope.qube.id).then(function() {
+                // noop as controllers will update and this directive will be removed automatically.
+              }).catch(function(text) {
+                $log.error(text);
+                toggleEditMode();
+              });
             }
           }
         };
