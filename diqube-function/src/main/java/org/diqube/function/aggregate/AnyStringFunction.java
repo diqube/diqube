@@ -92,4 +92,10 @@ public class AnyStringFunction implements AggregationFunction<String, Intermedia
       constantParameters.add(null);
     constantParameters.set(idx, value);
   }
+
+  @Override
+  public boolean needsActualValues() {
+    return true;
+  }
+
 }

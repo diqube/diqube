@@ -23,9 +23,11 @@ package org.diqube.execution.steps;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -147,15 +149,41 @@ public class GroupIntermediaryAggregationStep extends AbstractThreadedExecutable
         }
       }
 
+      ColumnType inputColType;
+      if (inputColumnName == null)
+        inputColType = null;
+      else
+        inputColType = env.getColumnType(inputColumnName);
+      AggregationFunction<Object, IntermediaryResult<Object, Object, Object>, Object> tmpFn =
+          functionFactory.createAggregationFunction(functionNameLowerCase, inputColType);
+
+      // map from groupId to array of colShardIds, may be null if not pre-resolved.
+      Map<Long, Long[]> preResolvedColShardIds;
+
+      if (tmpFn.needsActualValues()) {
+        // we pre-resolve all values, as this should speed things up heavily if the input column is RunLength encoded.
+        preResolvedColShardIds = new HashMap<>();
+
+        Set<Long> allRowIds = new HashSet<>();
+        for (Entry<Long, List<Long>> deltaEntry : groupDeltas.entrySet())
+          allRowIds.addAll(deltaEntry.getValue());
+
+        Map<Long, Long> rowIdToColShardId = env.getColumnShard(inputColumnName).resolveColumnValueIdsForRows(allRowIds);
+
+        for (Entry<Long, List<Long>> deltaEntry : groupDeltas.entrySet()) {
+          Long[] colShardIds = new Long[deltaEntry.getValue().size()];
+          for (int i = 0; i < colShardIds.length; i++)
+            colShardIds[i] = rowIdToColShardId.get(deltaEntry.getValue().get(i));
+          preResolvedColShardIds.put(deltaEntry.getKey(), colShardIds);
+        }
+        logger.trace("Pre-resolved column shard IDs for {} groups.", groupDeltas.size());
+      } else
+        preResolvedColShardIds = null;
+
       for (Entry<Long, List<Long>> groupDeltaEntry : groupDeltas.entrySet()) {
         Long groupId = groupDeltaEntry.getKey();
         List<Long> newRowIds = groupDeltaEntry.getValue();
         if (!aggregationFunctions.containsKey(groupId)) {
-          ColumnType inputColType;
-          if (inputColumnName == null)
-            inputColType = null;
-          else
-            inputColType = env.getColumnType(inputColumnName);
           AggregationFunction<Object, IntermediaryResult<Object, Object, Object>, Object> newFn =
               functionFactory.createAggregationFunction(functionNameLowerCase, inputColType);
 
@@ -177,7 +205,12 @@ public class GroupIntermediaryAggregationStep extends AbstractThreadedExecutable
         aggregationFunctions.get(groupId).addValues(new ValueProvider<Object>() {
           @Override
           public Object[] getValues() {
-            Long[] columnValueIds = env.getColumnShard(inputColumnName).resolveColumnValueIdsForRowsFlat(newRowIds);
+            Long[] columnValueIds;
+            if (preResolvedColShardIds != null && preResolvedColShardIds.containsKey(groupId))
+              columnValueIds = preResolvedColShardIds.get(groupId);
+            else
+              columnValueIds = env.getColumnShard(inputColumnName).resolveColumnValueIdsForRowsFlat(newRowIds);
+
             return env.getColumnShard(inputColumnName).getColumnShardDictionary().decompressValues(columnValueIds);
           }
 

@@ -112,4 +112,9 @@ public class MaxDoubleFunction
     // noop.
   }
 
+  @Override
+  public boolean needsActualValues() {
+    return true;
+  }
+
 }

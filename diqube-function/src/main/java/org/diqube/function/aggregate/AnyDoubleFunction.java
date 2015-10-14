@@ -93,4 +93,10 @@ public class AnyDoubleFunction implements AggregationFunction<Double, Intermedia
       constantParameters.add(null);
     constantParameters.set(idx, value);
   }
+
+  @Override
+  public boolean needsActualValues() {
+    return true;
+  }
+
 }

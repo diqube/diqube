@@ -84,4 +84,9 @@ public class CountFunction implements AggregationFunction<Object, IntermediaryRe
     // noop.
   }
 
+  @Override
+  public boolean needsActualValues() {
+    return false;
+  }
+
 }

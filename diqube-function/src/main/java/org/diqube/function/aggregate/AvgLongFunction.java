@@ -111,4 +111,9 @@ public class AvgLongFunction implements AggregationFunction<Long, IntermediaryRe
     // noop.
   }
 
+  @Override
+  public boolean needsActualValues() {
+    return true;
+  }
+
 }

@@ -92,4 +92,10 @@ public class AnyLongFunction implements AggregationFunction<Long, IntermediaryRe
       constantParameters.add(null);
     constantParameters.set(idx, value);
   }
+
+  @Override
+  public boolean needsActualValues() {
+    return true;
+  }
+
 }

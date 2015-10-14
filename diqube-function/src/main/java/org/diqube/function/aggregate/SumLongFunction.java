@@ -84,4 +84,9 @@ public class SumLongFunction implements AggregationFunction<Long, IntermediaryRe
     return ColumnType.LONG;
   }
 
+  @Override
+  public boolean needsActualValues() {
+    return true;
+  }
+
 }

@@ -92,4 +92,10 @@ public class ConcatGroupFunction
     if (idx == 0)
       delim = value;
   }
+
+  @Override
+  public boolean needsActualValues() {
+    return true;
+  }
+
 }

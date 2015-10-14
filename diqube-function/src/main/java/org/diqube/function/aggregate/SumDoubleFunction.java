@@ -85,4 +85,9 @@ public class SumDoubleFunction
     return ColumnType.DOUBLE;
   }
 
+  @Override
+  public boolean needsActualValues() {
+    return true;
+  }
+
 }

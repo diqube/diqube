@@ -90,6 +90,8 @@ public interface AggregationFunction<I, M extends IntermediaryResult<?, ?, ?>, O
    * <p>
    * The values are not provided directly, but by an instance of a {@link ValueProvider}. The implementing class should
    * call only that method of the ValueProvider which returns the minimum information needed by the function to proceed.
+   * 
+   * @see #needsActualValues()
    */
   public void addValues(ValueProvider<I> valueProvider);
 
@@ -120,6 +122,12 @@ public interface AggregationFunction<I, M extends IntermediaryResult<?, ?, ?>, O
    * method does not need an input parameter, <code>null</code> must be returned.
    */
   public ColumnType getInputType();
+
+  /**
+   * @return true if {@link #addValues(ValueProvider)} will call the {@link ValueProvider#getValues()} method, false if
+   *         not.
+   */
+  public boolean needsActualValues();
 
   /**
    * Provides values which the function needs in the {@link AggregationFunction#addValues(ValueProvider)} call.

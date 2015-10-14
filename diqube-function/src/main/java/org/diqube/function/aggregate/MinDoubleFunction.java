@@ -108,4 +108,9 @@ public class MinDoubleFunction
     // noop.
   }
 
+  @Override
+  public boolean needsActualValues() {
+    return true;
+  }
+
 }

@@ -111,4 +111,9 @@ public class MaxLongFunction implements AggregationFunction<Long, IntermediaryRe
     // noop.
   }
 
+  @Override
+  public boolean needsActualValues() {
+    return true;
+  }
+
 }

@@ -112,4 +112,9 @@ public class AvgDoubleFunction
     // noop.
   }
 
+  @Override
+  public boolean needsActualValues() {
+    return true;
+  }
+
 }
