@@ -30,6 +30,7 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
 import org.diqube.data.ColumnType;
@@ -473,7 +474,7 @@ public class ProjectStep extends AbstractThreadedExecutablePlanStep {
     }
 
     Long[] columnValueIds = column.resolveColumnValueIdsForRowsFlat( //
-        LongStream.range(firstRowId, firstRowId + length).mapToObj(Long::valueOf).toArray(l -> new Long[l]));
+        LongStream.range(firstRowId, firstRowId + length).mapToObj(Long::valueOf).collect(Collectors.toList()));
 
     int resultIdx = 0;
     for (long colValueId : columnValueIds) {

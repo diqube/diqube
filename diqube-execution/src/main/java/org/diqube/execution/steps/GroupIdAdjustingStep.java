@@ -31,6 +31,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.diqube.execution.consumers.AbstractThreadedColumnValueConsumer;
@@ -64,7 +65,7 @@ public class GroupIdAdjustingStep extends AbstractThreadedExecutablePlanStep {
 
   private static final Logger logger = LoggerFactory.getLogger(GroupIdAdjustingStep.class);
 
-  private volatile Map<Long, Map<String, Object>> incomingGroupIdToValues = new ConcurrentHashMap<>();
+  private volatile ConcurrentMap<Long, Map<String, Object>> incomingGroupIdToValues = new ConcurrentHashMap<>();
   private AtomicBoolean columnValueSourceIsDone = new AtomicBoolean(false);
 
   private AbstractThreadedColumnValueConsumer columnValueConsumer = new AbstractThreadedColumnValueConsumer(this) {
@@ -76,19 +77,15 @@ public class GroupIdAdjustingStep extends AbstractThreadedExecutablePlanStep {
     @Override
     protected void doConsume(String colName, Map<Long, Object> values) {
       for (Entry<Long, Object> valueEntry : values.entrySet()) {
-        if (!incomingGroupIdToValues.containsKey(valueEntry.getKey())) {
-          synchronized (incomingGroupIdToValues) {
-            if (!incomingGroupIdToValues.containsKey(valueEntry.getKey()))
-              incomingGroupIdToValues.put(valueEntry.getKey(), new ConcurrentHashMap<String, Object>());
-          }
-        }
+        Map<String, Object> valueMap =
+            incomingGroupIdToValues.computeIfAbsent(valueEntry.getKey(), l -> new ConcurrentHashMap<String, Object>());
 
-        incomingGroupIdToValues.get(valueEntry.getKey()).put(colName, valueEntry.getValue());
+        valueMap.put(colName, valueEntry.getValue());
       }
     }
   };
 
-  private volatile Map<Long, Deque<Triple<String, IntermediaryResult<Object, Object, Object>, IntermediaryResult<Object, Object, Object>>>> incomingGroupIntermediaries =
+  private volatile ConcurrentMap<Long, Deque<Triple<String, IntermediaryResult<Object, Object, Object>, IntermediaryResult<Object, Object, Object>>>> incomingGroupIntermediaries =
       new ConcurrentHashMap<>();
 
   private AtomicBoolean groupInputIsDone = new AtomicBoolean(false);
@@ -104,15 +101,19 @@ public class GroupIdAdjustingStep extends AbstractThreadedExecutablePlanStep {
         protected void doConsumeIntermediaryAggregationResult(long groupId, String colName,
             IntermediaryResult<Object, Object, Object> oldIntermediaryResult,
             IntermediaryResult<Object, Object, Object> newIntermediaryResult) {
-          if (!incomingGroupIntermediaries.containsKey(groupId)) {
-            synchronized (incomingGroupIntermediaries) {
-              if (!incomingGroupIntermediaries.containsKey(groupId))
-                incomingGroupIntermediaries.put(groupId, new ConcurrentLinkedDeque<>());
-            }
-          }
+          Deque<Triple<String, IntermediaryResult<Object, Object, Object>, IntermediaryResult<Object, Object, Object>>> deque =
+              incomingGroupIntermediaries.computeIfAbsent(groupId, g -> new ConcurrentLinkedDeque<>());
 
-          incomingGroupIntermediaries.get(groupId)
-              .addLast(new Triple<>(colName, oldIntermediaryResult, newIntermediaryResult));
+          deque.addLast(new Triple<>(colName, oldIntermediaryResult, newIntermediaryResult));
+
+          // value might have been removed again already, and even another new Deque might have been installed. Make
+          // sure our values are not lost.
+          incomingGroupIntermediaries.merge(groupId, deque, (oldDeque, ourDeque) -> {
+            if (oldDeque == ourDeque)
+              return ourDeque;
+            oldDeque.addAll(deque);
+            return oldDeque;
+          });
         }
       };
 
@@ -200,6 +201,14 @@ public class GroupIdAdjustingStep extends AbstractThreadedExecutablePlanStep {
           new ArrayList<>(Sets.intersection(groupIdMap.keySet(), incomingGroupIntermediaries.keySet()));
       for (Long inputGroupId : activeGroupIds) {
         long newGroupId = groupIdMap.get(inputGroupId);
+
+        Deque<Triple<String, IntermediaryResult<Object, Object, Object>, IntermediaryResult<Object, Object, Object>>> intermediaries =
+            incomingGroupIntermediaries.get(inputGroupId);
+
+        if (intermediaries.isEmpty()) {
+          incomingGroupIntermediaries.remove(inputGroupId);
+          continue;
+        }
 
         logger.trace("Processing collected changes for group {}", newGroupId);
         while (!incomingGroupIntermediaries.get(inputGroupId).isEmpty()) {

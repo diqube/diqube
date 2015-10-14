@@ -131,25 +131,14 @@ public abstract class AbstractQueryableColumnShardFacade implements QueryableCol
                       NavigableSet<Long> rowIds =
                           entry.getValue().headSet(page.getFirstRowId() + page.getValues().size(), false);
 
-                      Long[] columnPageValueIds = new Long[rowIds.size()];
+                      List<Long> columnPageValueIds = page.getValues().getMultiple(rowIds.stream()
+                          .map(rowId -> (int) (rowId - page.getFirstRowId())).collect(Collectors.toList()));
+
+                      Long[] columnValueIds = page.getColumnPageDict()
+                          .decompressValues(columnPageValueIds.toArray(new Long[columnPageValueIds.size()]));
+
                       Iterator<Long> rowIdIt = rowIds.iterator();
-                      if (columnPageValueIds.length >= page.getValues().size() / 3) {
-                        // if we try to resolve more than 1/3 of the rowIds, decompress whole values array here and do
-                        // not resolve 1-by-1.
-                        // TODO #7 formalize and centralize this heurisitc
-                        long[] allColPageValueIdsDecompressed = page.getValues().decompressedArray();
-                        for (int i = 0; i < columnPageValueIds.length; i++)
-                          columnPageValueIds[i] =
-                              allColPageValueIdsDecompressed[(int) (rowIdIt.next() - page.getFirstRowId())];
-                      } else {
-                        for (int i = 0; i < columnPageValueIds.length; i++)
-                          columnPageValueIds[i] = page.getValues().get((int) (rowIdIt.next() - page.getFirstRowId()));
-                      }
-
-                      Long[] columnValueIds = page.getColumnPageDict().decompressValues(columnPageValueIds);
-
-                      rowIdIt = rowIds.iterator();
-                      for (int i = 0; i < columnPageValueIds.length; i++)
+                      for (int i = 0; i < columnValueIds.length; i++)
                         res.add(new Pair<Long, Long>(rowIdIt.next(), columnValueIds[i]));
 
                       return res.stream();
@@ -171,16 +160,16 @@ public abstract class AbstractQueryableColumnShardFacade implements QueryableCol
   }
 
   @Override
-  public Long[] resolveColumnValueIdsForRowsFlat(Long[] rowIds) {
+  public Long[] resolveColumnValueIdsForRowsFlat(List<Long> rowIds) {
     if (delegate instanceof StandardColumnShard) {
-      Map<Long, Long> rowIdToColumnValueId = resolveColumnValueIdsForRows(Arrays.asList(rowIds));
-      Long[] res = new Long[rowIds.length];
-      for (int i = 0; i < rowIds.length; i++)
-        res[i] = (rowIdToColumnValueId.containsKey(rowIds[i])) ? rowIdToColumnValueId.get(rowIds[i]) : -1L;
+      Map<Long, Long> rowIdToColumnValueId = resolveColumnValueIdsForRows(rowIds);
+      Long[] res = new Long[rowIds.size()];
+      for (int i = 0; i < rowIds.size(); i++)
+        res[i] = (rowIdToColumnValueId.containsKey(rowIds.get(i))) ? rowIdToColumnValueId.get(rowIds.get(i)) : -1L;
 
       return res;
     }
-    Long[] res = new Long[rowIds.length];
+    Long[] res = new Long[rowIds.size()];
     Arrays.fill(res, 0L);
 
     return res;

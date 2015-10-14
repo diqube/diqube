@@ -20,6 +20,8 @@
  */
 package org.diqube.data.lng.array;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
@@ -203,6 +205,21 @@ public class ReferenceBasedLongArray
     if (compressedValues != null)
       return compressedValues[index] + refPoint;
     return delegateCompressedValueLongArray.get(index) + refPoint;
+  }
+
+  @Override
+  public List<Long> getMultiple(List<Integer> sortedIndices) throws ArrayIndexOutOfBoundsException {
+    List<Long> res = new ArrayList<>();
+    if (compressedValues != null) {
+      for (int idx : sortedIndices) {
+        res.add(compressedValues[idx] + refPoint);
+      }
+    } else {
+      List<Long> delegateResults = delegateCompressedValueLongArray.getMultiple(sortedIndices);
+      for (long delegateRes : delegateResults)
+        res.add(delegateRes + refPoint);
+    }
+    return res;
   }
 
   @Override

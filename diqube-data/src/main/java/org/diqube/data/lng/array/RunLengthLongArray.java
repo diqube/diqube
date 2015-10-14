@@ -20,6 +20,9 @@
  */
 package org.diqube.data.lng.array;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.TreeSet;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
@@ -31,6 +34,9 @@ import org.diqube.data.serialize.thrift.v1.SLongCompressedArray;
 import org.diqube.data.serialize.thrift.v1.SLongCompressedArrayRLE;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Iterators;
+import com.google.common.collect.PeekingIterator;
 
 /**
  * Run-Length-Encoding for long arrays.
@@ -276,6 +282,70 @@ public class RunLengthLongArray extends AbstractTransitiveExplorableCompressedLo
     if (compressedValues != null)
       return compressedValues[internalSize - 1];
     return delegateCompressedValue.get(internalSize - 1);
+  }
+
+  @Override
+  public List<Long> getMultiple(List<Integer> sortedIndices) throws ArrayIndexOutOfBoundsException {
+    // first: Find the internal indices that we need to resolve
+    List<Integer> internalIndicesToResolveSorted = new ArrayList<>();
+
+    try {
+      int internalSize;
+      if (compressedCounts != null)
+        internalSize = compressedCounts.length;
+      else
+        internalSize = delegateCompressedCounts.size();
+
+      PeekingIterator<Integer> sortedIndicesIt = Iterators.peekingIterator(sortedIndices.iterator());
+      if (sortedIndicesIt.peek() < 0 || sortedIndicesIt.peek() >= size)
+        throw new ArrayIndexOutOfBoundsException("Array index out of bounds: Requested index " + sortedIndicesIt.peek()
+            + " but have only " + size + " elements.");
+
+      int decompressedCount = 0;
+      for (int pos = 0; pos < internalSize && sortedIndicesIt.hasNext(); pos++) {
+        long lengthValue;
+        if (compressedValues != null)
+          lengthValue = compressedCounts[pos];
+        else
+          lengthValue = delegateCompressedCounts.get(pos);
+
+        decompressedCount += lengthValue;
+
+        while (sortedIndicesIt.hasNext() && sortedIndicesIt.peek() < decompressedCount) {
+          internalIndicesToResolveSorted.add(pos);
+          sortedIndicesIt.next();
+          if (sortedIndicesIt.hasNext() && (sortedIndicesIt.peek() < 0 || sortedIndicesIt.peek() >= size))
+            throw new ArrayIndexOutOfBoundsException("Array index out of bounds: Requested index "
+                + sortedIndicesIt.peek() + " but have only " + size + " elements.");
+        }
+      }
+    } catch (Throwable t) {
+      throw t;
+    }
+
+    // second: resolve those internal indices
+    List<Long> res = new ArrayList<>();
+    if (compressedValues != null) {
+      for (int idx : internalIndicesToResolveSorted)
+        res.add(compressedValues[idx]);
+    } else {
+      // unique-ify indices to resolve
+      List<Integer> delegateIdx = new ArrayList<>(new TreeSet<>(internalIndicesToResolveSorted));
+      List<Long> delegateRes = delegateCompressedValue.getMultiple(delegateIdx);
+
+      PeekingIterator<Integer> delegateIdxIt = Iterators.peekingIterator(delegateIdx.iterator());
+      PeekingIterator<Long> delegateResIt = Iterators.peekingIterator(delegateRes.iterator());
+
+      for (int idx : internalIndicesToResolveSorted) {
+        while (delegateIdxIt.peek() != idx) {
+          delegateIdxIt.next();
+          delegateResIt.next();
+        }
+
+        res.add(delegateResIt.peek());
+      }
+    }
+    return res;
   }
 
   @Override

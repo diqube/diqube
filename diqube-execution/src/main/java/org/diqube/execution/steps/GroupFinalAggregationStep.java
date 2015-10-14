@@ -108,6 +108,8 @@ public class GroupFinalAggregationStep extends AbstractThreadedExecutablePlanSte
 
   private List<Object> constantFunctionParameters;
 
+  private Set<Long> groupIdsChangedSinceLastOutputVersionBuilt = new HashSet<>();
+
   public GroupFinalAggregationStep(int stepId, QueryRegistry queryRegistry, ExecutionEnvironment defaultEnv,
       FunctionFactory functionFactory, ColumnShardBuilderFactory columnShardBuilderFactory,
       String functionNameLowerCase, String outputColName, ColumnVersionManager columnVersionManager,
@@ -139,9 +141,8 @@ public class GroupFinalAggregationStep extends AbstractThreadedExecutablePlanSte
     for (int i = 0; i < activeUpdates.length; i++)
       activeUpdates[i] = groupIntermediaryUpdates.poll();
 
-    Set<Long> groupIdsChanged = null;
     if (activeUpdates.length > 0) {
-      groupIdsChanged = new HashSet<>();
+      Set<Long> groupIdsChanged = new HashSet<>();
       for (Triple<Long, IntermediaryResult<Object, Object, Object>, IntermediaryResult<Object, Object, Object>> update : activeUpdates) {
         Long groupId = update.getLeft();
         groupIdsChanged.add(groupId);
@@ -180,19 +181,28 @@ public class GroupFinalAggregationStep extends AbstractThreadedExecutablePlanSte
         forEachOutputConsumerOfType(GroupFinalAggregationConsumer.class,
             c -> c.consumeAggregationResult(groupId, outputColName, result));
       }
+
+      groupIdsChangedSinceLastOutputVersionBuilt.addAll(groupIdsChanged);
     }
 
     ColumnShard newCol = null;
-    // inform ColumnVersionBuiltConsumers
+    // inform ColumnVersionBuiltConsumers (and build new version of column) if there are "enough" updates - do not do
+    // this too often as it is pretty time consuming.
     if (activeUpdates.length > 0 && existsOutputConsumerOfType(ColumnVersionBuiltConsumer.class)) {
-      logger.trace("Creating new column version of {}, changed group IDs {}", outputColName, groupIdsChanged);
 
-      newCol = createNewColumn();
-      VersionedExecutionEnvironment newEnv = columnVersionManager.createNewVersion(newCol);
-      Set<Long> finalGroupIdsChanged = groupIdsChanged;
+      // TODO #2 (stats): base this on stats.
+      if (groupIdsChangedSinceLastOutputVersionBuilt.size() >= 0.05 * aggregationFunctions.size()) {
+        logger.trace("Creating new column version of {}, changed group IDs {}", outputColName,
+            groupIdsChangedSinceLastOutputVersionBuilt);
 
-      forEachOutputConsumerOfType(ColumnVersionBuiltConsumer.class,
-          c -> c.columnVersionBuilt(newEnv, outputColName, finalGroupIdsChanged));
+        newCol = createNewColumn();
+        VersionedExecutionEnvironment newEnv = columnVersionManager.createNewVersion(newCol);
+        Set<Long> finalGroupIdsChanged = groupIdsChangedSinceLastOutputVersionBuilt;
+
+        forEachOutputConsumerOfType(ColumnVersionBuiltConsumer.class,
+            c -> c.columnVersionBuilt(newEnv, outputColName, finalGroupIdsChanged));
+        groupIdsChangedSinceLastOutputVersionBuilt = new HashSet<>();
+      }
     }
 
     // if done, inform other consumers.

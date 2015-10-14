@@ -296,8 +296,6 @@ public class RepeatedProjectStep extends AbstractThreadedExecutablePlanStep {
                 } else
                   logger.trace("No need to fill length outcol for batch {} as it exists already.", firstRowId);
 
-                Long[] rowIdsArray = rowIds.toArray(new Long[rowIds.size()]);
-
                 // prepare parameters to the projection function
                 Map<Integer, Object> constantFunctionParams = new HashMap<>();
                 Map<Integer, List<Object>> functionParamValues = new HashMap<>();
@@ -344,7 +342,7 @@ public class RepeatedProjectStep extends AbstractThreadedExecutablePlanStep {
                       } else {
                         QueryableColumnShard queryableColShard = defaultEnv.getColumnShard(actualColName);
                         values = queryableColShard.getColumnShardDictionary()
-                            .decompressValues(queryableColShard.resolveColumnValueIdsForRowsFlat(rowIdsArray));
+                            .decompressValues(queryableColShard.resolveColumnValueIdsForRowsFlat(rowIds));
                       }
 
                       functionParamValues.get(paramIdx).addAll(Arrays.asList(values));

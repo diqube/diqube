@@ -20,6 +20,8 @@
  */
 package org.diqube.data.lng.array;
 
+import java.util.List;
+
 import org.apache.thrift.TBase;
 import org.diqube.data.serialize.DataSerializable;
 import org.diqube.data.serialize.DataSerialization;
@@ -57,11 +59,25 @@ public interface CompressedLongArray<T extends TBase<?, ?>> extends DataSerializ
   public long[] decompressedArray();
 
   /**
-   * @return Decompressed long at given index. This runs in O(1).
+   * @return Decompressed long at given index.
    * @throws ArrayIndexOutOfBoundsException
    *           If index is invalid.
    */
   public long get(int index) throws ArrayIndexOutOfBoundsException;
+
+  /**
+   * Returns multiple entries of this array.
+   * 
+   * This method should be preferred compared to {@link #get(int)}, as the compression might be able to work more
+   * effectively if it can resolve multiple values at once.
+   * 
+   * @param sortedIndices
+   *          Sorted!
+   * @return Decompressed long at given index.
+   * @throws ArrayIndexOutOfBoundsException
+   *           If any index is invalid.
+   */
+  public List<Long> getMultiple(List<Integer> sortedIndices) throws ArrayIndexOutOfBoundsException;
 
   /**
    * @return An approximate number of bytes taken up by this {@link CompressedLongArray}. Note that this is only an

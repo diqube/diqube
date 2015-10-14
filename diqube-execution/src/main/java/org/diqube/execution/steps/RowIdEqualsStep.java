@@ -38,6 +38,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.diqube.data.Dictionary;
@@ -431,12 +432,15 @@ public class RowIdEqualsStep extends AbstractThreadedExecutablePlanStep {
                 // check those.
                 SortedSet<Long> activeRowIdsInThisPage = activeRowIds.subSet( //
                     page.getFirstRowId(), page.getFirstRowId() + page.size());
+                List<Integer> valueIndices = activeRowIdsInThisPage.stream()
+                    .map(rowId -> (int) (rowId - page.getFirstRowId())).collect(Collectors.toList());
 
-                for (Long rowId : activeRowIdsInThisPage) {
-                  // TODO #7 perhaps decompress whole value array, as it may be RLE encoded anyway.
-                  Long decompressedColumnPageId = page.getValues().get((int) (rowId - page.getFirstRowId()));
+                List<Long> decompressedColumnPageIds = page.getValues().getMultiple(valueIndices);
+
+                for (int i = 0; i < decompressedColumnPageIds.size(); i++) {
+                  Long decompressedColumnPageId = decompressedColumnPageIds.get(i);
                   if (searchedPageValueIds.contains(decompressedColumnPageId))
-                    res.add(rowId);
+                    res.add(valueIndices.get(i) + page.getFirstRowId());
                 }
               } else {
                 // TODO #2 STAT use statistics to decide if we should decompress the whole array here.

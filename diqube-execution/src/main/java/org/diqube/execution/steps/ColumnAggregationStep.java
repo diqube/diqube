@@ -203,8 +203,8 @@ public class ColumnAggregationStep extends AbstractThreadedExecutablePlanStep {
               logger.trace("Resolving colValue IDs for batch {}", firstRowId);
               Class<?> valueClass = null;
               Object[][] valuesByCol = new Object[finalAllColNames.size()][];
-              Long[] rowIds = LongStream.range(firstRowId, Math.min(firstRowId + BATCH_SIZE, lastRowIdInShard + 1))
-                  .mapToObj(Long::valueOf).toArray(l -> new Long[l]);
+              List<Long> rowIds = LongStream.range(firstRowId, Math.min(firstRowId + BATCH_SIZE, lastRowIdInShard + 1))
+                  .mapToObj(Long::valueOf).collect(Collectors.toList());
               for (Entry<String, Integer> inputColNameEntry : finalAllColNames.entrySet()) {
                 String inputColName = inputColNameEntry.getKey();
 

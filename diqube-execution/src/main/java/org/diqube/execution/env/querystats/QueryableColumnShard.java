@@ -21,6 +21,7 @@
 package org.diqube.execution.env.querystats;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -54,8 +55,8 @@ public interface QueryableColumnShard extends ColumnShard {
   public Map<Long, Long> resolveColumnValueIdsForRows(Collection<Long> rowIds);
 
   /**
-   * Just like {@link #resolveColumnValueIdsForRows(Long[])}, but maps the column value ids back into a flat Long[] ->
-   * the index of the provided row ID matches the corresponding value in the result array.
+   * Just like {@link #resolveColumnValueIdsForRows(Collection)}, but maps the column value ids back into a flat Long[]
+   * -> the index of the provided row ID matches the corresponding value in the result array.
    * 
    * <p>
    * Please note that for row IDs that are not available in this column shard, the returned array will be -1.
@@ -63,7 +64,7 @@ public interface QueryableColumnShard extends ColumnShard {
    * <p>
    * This method will automatically gather query stats.
    */
-  public Long[] resolveColumnValueIdsForRowsFlat(Long[] rowIds);
+  public Long[] resolveColumnValueIdsForRowsFlat(List<Long> rowIds);
 
   /**
    * Just like {@link #resolveColumnValueIdsForRowsFlat(Long[])},but for one rowId only.

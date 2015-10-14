@@ -20,7 +20,9 @@
  */
 package org.diqube.data.lng.array;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -398,6 +400,15 @@ public class BitEfficientLongArray extends AbstractExplorableCompressedLongArray
         return numberOfLongMinValuesBeforeCurrentPos;
       }
     });
+  }
+
+  @Override
+  public List<Long> getMultiple(List<Integer> sortedIndices) throws ArrayIndexOutOfBoundsException {
+    List<Long> res = new ArrayList<>();
+    // as this compression has a approx O(1) access time on get(), we can simply execute get() here in a loop.
+    for (int idx : sortedIndices)
+      res.add(get(idx));
+    return res;
   }
 
   /**
