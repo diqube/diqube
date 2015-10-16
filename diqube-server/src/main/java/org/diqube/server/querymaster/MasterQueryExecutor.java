@@ -69,6 +69,9 @@ import org.slf4j.LoggerFactory;
  * @author Bastian Gloeckle
  */
 class MasterQueryExecutor {
+  /** Milliseconds that need to be between sending out intermediary updates */
+  private static final int MIN_INTERVAL_BETWEEN_INTERMEDIARY_UPDATES_MS = 300;
+
   private static final Logger logger = LoggerFactory.getLogger(MasterQueryExecutor.class);
 
   private MasterQueryExecutor.QueryExecutorCallback callback;
@@ -91,6 +94,8 @@ class MasterQueryExecutor {
   private boolean isOrdered;
   private List<String> selectedColumns;
   private boolean createIntermediaryUpdates;
+  private RResultTable lastIntermediaryResultSent = null;
+  private long lastIntermediaryResultSentNanoTime = Long.MIN_VALUE;
 
   private ExecutorManager executorManager;
 
@@ -276,11 +281,20 @@ class MasterQueryExecutor {
       }
 
       if (createIntermediaryUpdates && thereAreUpdates) {
-        RResultTable table = createRResultTableFromCurrentValues();
-        if (table != null) {
-          short percentDone = (short) ((percentDoneRemotesSum.get() + masterExecutionPercentage.calculatePercentDone())
-              / (numberOfRemotesTriggered + 1));
-          callback.intermediaryResultTableAvailable(table, percentDone);
+        if (System.nanoTime() >= lastIntermediaryResultSentNanoTime
+            + (MIN_INTERVAL_BETWEEN_INTERMEDIARY_UPDATES_MS * 1_000_000)) {
+
+          RResultTable table = createRResultTableFromCurrentValues();
+          if (table != null) {
+            if (lastIntermediaryResultSent == null || !table.equals(lastIntermediaryResultSent)) {
+              short percentDone =
+                  (short) ((percentDoneRemotesSum.get() + masterExecutionPercentage.calculatePercentDone())
+                      / (numberOfRemotesTriggered + 1));
+              callback.intermediaryResultTableAvailable(table, percentDone);
+              lastIntermediaryResultSent = table;
+              lastIntermediaryResultSentNanoTime = System.nanoTime();
+            }
+          }
         }
       }
     }
