@@ -54,6 +54,10 @@ textarea.diql-full {
   flex-wrap: wrap;
 }
 
+.slice-container {
+	min-width: 300px;
+}
+
 /* ============= Qube ============= */
 
 .add-qube-btn {

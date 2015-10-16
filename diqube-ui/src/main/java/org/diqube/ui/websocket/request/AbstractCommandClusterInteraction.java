@@ -129,6 +129,9 @@ public abstract class AbstractCommandClusterInteraction implements CommandCluste
     QueryService.Iface queryClient =
         openConnection(QueryService.Client.class, QueryServiceConstants.SERVICE_NAME, node);
 
+    if (queryClient == null)
+      return null;
+
     UUID queryUuid = UUID.randomUUID();
     try {
       registerQueryThriftResultCallback(node, queryUuid, resultHandler);
