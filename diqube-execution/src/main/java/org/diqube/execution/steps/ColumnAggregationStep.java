@@ -282,6 +282,13 @@ public class ColumnAggregationStep extends AbstractThreadedExecutablePlanStep {
 
     QueryUuid.setCurrentThreadState(uuidState);
 
+    if (Thread.interrupted()) {
+      // If we were interrupted, exit quietly before we start to build the new col.
+      logger.info("Interrupted. Stopping processing.");
+      doneProcessing();
+      return;
+    }
+
     logger.trace("Building output column {}", outputColName);
     ColumnShard outputCol = colShardBuilderManager.buildAndFree(outputColName);
     logger.trace("Column {} built.", outputColName);

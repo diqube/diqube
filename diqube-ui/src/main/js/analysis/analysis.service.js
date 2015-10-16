@@ -22,8 +22,8 @@
 (function() {
   "use strict";
   angular.module("diqube.analysis").service("analysisService",
-      [ "$log", "$rootScope", "remoteService", "$timeout", "analysisStateService",
-      function analysisServiceProvider($log, $rootScope, remoteService, $timeout, analysisStateService) {
+      [ "$log", "$rootScope", "remoteService", "$timeout", "analysisStateService", "analysisExecutionService",
+      function analysisServiceProvider($log, $rootScope, remoteService, $timeout, analysisStateService, analysisExecutionService) {
         var me = this;
 
         me.loadedAnalysis = undefined;
@@ -198,76 +198,16 @@
         
         /**
          * Loads a field "$results" into the query object which is updated continuously until it contains the full
-         * results of executing the query. With each new intermediate update available, the optional 
-         * intermediateResultsFn will be called.
+         * results of executing the query
          * 
-         * If there are results available already (query.$results !== undefined), the results will not be loaded again.
-         * 
-         * The results object which is published in the Promise #resolve and #intermediateResultsFn and is set to 
-         * query.$results looks like this:
-         * 
-         * {
-         * percentComplete [number]: 0-100 percent complete of query.
-         * rows [array of array of cell values]: The cell values of the result table. Outer arrays are rows, inner are
-         *                                       indexed the same way as "columnNames".
-         * columnNames [array of string]: the column names. 
-         * exception [string]: If set, an exception occurred executing the query. Display the text and ignore other 
-         *                     values.
-         * }
-         * 
-         * Note that the returned Promise will return one of those "result objects" even on a call to "reject"!
-         * 
-         * TODO cancel previous query results executions if the same query is executed again (e.g. because of a changed query or slice etc).
-         * 
+         * For details, see corresponding method in analysis.execution.service.js.
+         *  
          * @param qube The qube of the query to execute
          * @param query The query to execute
          * @param intermediateResultsFn function(resultsObj): called when intermediate results are available. Can be undefined. This will only be called asynchronously.
          */
         function provideQueryResults(qube, query, intermediateResultsFn) {
-          if (query.$results !== undefined) {
-            return new Promise(function(resolve, reject) {
-              resolve(query.$results);
-            })
-          }
-
-          query.$results = { percentComplete: 0, 
-                            rows: undefined, 
-                            columnNames: undefined, 
-                            exception: undefined };
-          if (intermediateResultsFn) {
-            // use timeout to call intermediateResultsFn asynchronously. This is needed to not mess up with $scope.$apply calls...
-            $timeout(function() {
-              intermediateResultsFn(query.$results);              
-            }, 0, false);
-          }
-          
-          return new Promise(function(resolve, reject) {
-            remoteService.execute("analysisQuery", 
-                { analysisId: me.loadedAnalysis.id,
-                  qubeId: qube.id,
-                  queryId: query.id
-                }, new (function() {
-                  this.data = function data_(dataType, data) { 
-                    if (dataType === "table" && !query.$results.exception) {
-                      if (data.percentComplete >= query.$results.percentComplete) {
-                        query.$results.rows = data.rows;
-                        query.$results.columnNames = data.columnNames;
-                        query.$results.percentComplete = data.percentComplete;
-                      }
-                      if (intermediateResultsFn)
-                        intermediateResultsFn(query.$results);
-                    }
-                  };
-                  this.exception = function exception_(text) {
-                    query.$results.exception = text;
-                    reject(query.$results);
-                  }
-                  this.done = function done_() {
-                    query.$results.percentComplete = 100;
-                    resolve(query.$results);
-                  }
-                })());
-          });
+          return analysisExecutionService.provideQueryResults(me.loadedAnalysis.id, qube, query, intermediateResultsFn);
         }
         
         /**
@@ -318,6 +258,9 @@
                             if (oldQuery.diql == receivedQuery.diql)
                               // preserve the $results we loaded already, if possible!
                               receivedQuery.$results = oldQuery.$results;
+                            else
+                              // be sure to cancel execution if the query executes based on old properties
+                              analysisExecutionService.cancelQueryIfRunning(oldQuery);
                             
                             replacedQuery = true;
                             break;
@@ -347,6 +290,10 @@
          */
         function removeQuery(qubeId, queryId) {
           return new Promise(function(resolve, reject) {
+            var qube = me.loadedAnalysis.qubes.filter(function (q) { return q.id === qubeId; })[0];
+            var query = qube.queries.filter(function (q) { return q.id === queryId; })[0];
+            analysisExecutionService.cancelQueryIfRunning(query);
+            
             remoteService.execute("removeQuery", {
               analysisId: me.loadedAnalysis.id,
               qubeId: qubeId,
@@ -436,15 +383,20 @@
                     
                     var oldQube = me.loadedAnalysis.qubes[foundQubeIdx];
                     me.loadedAnalysis.qubes[foundQubeIdx] = receivedQube;
-                    
-                    if (oldQube.sliceId === receivedQube.sliceId) {
-                      // we replaces the whole qube including the $results of all queries (which are empty now again).
-                      // If the slice did not change, we can preserve the results! Otherwise we have to re-run the queries.
-                      for (var newQueryIdx in receivedQube.queries) {
-                        var newQuery = receivedQube.queries[newQueryIdx];
-                        var oldQueryArray = oldQube.queries.filter(function (q) { return q.id === newQuery.id; });
-                        if (oldQueryArray && oldQueryArray.length) {
+
+                    // we replaced the whole qube including the $results of all queries (which are empty now again).
+                    // If the slice did not change, we can preserve the results! Otherwise we have to re-run the queries.
+                    // Be sure to cancel any potentially runnign queries if we effectively delete $results.
+                    for (var newQueryIdx in receivedQube.queries) {
+                      var newQuery = receivedQube.queries[newQueryIdx];
+                      var oldQueryArray = oldQube.queries.filter(function (q) { return q.id === newQuery.id; });
+                      if (oldQueryArray && oldQueryArray.length) {
+                        if (oldQube.sliceId === receivedQube.sliceId) {
+                          // preserve results
                           newQuery.$results = oldQueryArray[0].$results;
+                        } else {
+                          // Do not preserve results, if executing: cancel!
+                          analysisExecutionService.cancelQueryIfRunning(oldQueryArray[0]);
                         }
                       }
                     }
@@ -461,6 +413,11 @@
          */
         function removeQube(qubeId) {
           return new Promise(function(resolve, reject) {
+            var qube = me.loadedAnalysis.qubes.filter(function (q) { return q.id === qubeId; })[0];
+            for (var queryIdx in qube.queries) {
+              analysisExecutionService.cancelQueryIfRunning(qube.queries[queryIdx]);
+            }
+            
             remoteService.execute("removeQube", {
               analysisId: me.loadedAnalysis.id,
               qubeId: qubeId,
@@ -542,8 +499,10 @@
                         var qube = me.loadedAnalysis.qubes[qubeIdx];
                         if (qube.sliceId === receivedSlice.id) {
                           // clean $results
-                          for (var queryIdx in qube.queries) 
+                          for (var queryIdx in qube.queries) {
                             qube.queries[queryIdx].$results = undefined;
+                            analysisExecutionService.cancelQueryIfRunning(qube.queries[queryIdx]);
+                          }
                         }
                       }
                     }
