@@ -182,8 +182,8 @@
                   margin : {
                       top: 5,
                       right: 5,
-                      bottom: xAxisLabelsHeight + 10 + xAxisTextHeight + 20, // use "xAxisTextHeight" as height of axis text
-                      left: leftMargin
+                      bottom: xAxisLabelsHeight + 10 + xAxisTextHeight + 25, // use "xAxisTextHeight" as height of axis text
+                      left: leftMargin + 20
                   },
                   x: function(d) { return d.label; },
                   y: function(d) { return d.value; },
