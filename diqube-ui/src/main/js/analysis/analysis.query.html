@@ -83,7 +83,14 @@
         </div>
         <span class="query-header-actions">
           <a ng-if="!working" href class="query-header-action" title="Remove query" ng-click="enterRemoveMode()"><i class="fa fa-minus remove-action"></i></a>
-          <a ng-if="!working" href class="query-header-action" title="Cancel edit" ng-click="toggleEditMode()"><i class="fa fa-close"></i></a>
+          <div dropdown class="btn-group query-header-action">
+            <a href dropdown-toggle><i class="fa {{ getDisplayTypeOptions(queryCopy.displayType).icon }}"></i> <i
+              class="caret"></i></a>
+            <ul class="dropdown-menu">
+              <li ng-repeat="choice in validQueryDisplayTypes"><a href ng-click="queryCopy.displayType = choice.id"><i
+                  class="fa {{ choice.icon }}"></i> {{ choice.title }}</a></li>
+            </ul>
+          </div> <a ng-if="!working" href class="query-header-action" title="Cancel edit" ng-click="toggleEditMode()"><i class="fa fa-close"></i></a>
           <a ng-if="!working" href class="query-header-action" title="Save" ng-click="updateQuery(queryCopy)"><i class="fa fa-floppy-o"></i></a>
           <i ng-if="working" class="query-header-action fa fa-spinner fa-spin"></i>
         </span>
