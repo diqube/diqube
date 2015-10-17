@@ -30,6 +30,9 @@ import org.diqube.util.ColumnOrValue;
 /**
  * Represents a restriction that can either be present in a WHERE or in a HAVING clause in a select stmt.
  *
+ * <p>
+ * Correctly implements {@link Object#equals(Object)} and {@link Object#hashCode()}.
+ *
  * @author Bastian Gloeckle
  */
 public abstract class ComparisonRequest {
@@ -95,6 +98,40 @@ public abstract class ComparisonRequest {
     public String toString() {
       return "[" + getLeftColumnName().toString() + " " + op.toString() + " " + getRight().toString() + "]";
     }
+
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = super.hashCode();
+      result = prime * result + ((leftColumnName == null) ? 0 : leftColumnName.hashCode());
+      result = prime * result + ((op == null) ? 0 : op.hashCode());
+      result = prime * result + ((right == null) ? 0 : right.hashCode());
+      return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj)
+        return true;
+      if (obj == null)
+        return false;
+      if (!(obj instanceof Leaf))
+        return false;
+      Leaf other = (Leaf) obj;
+      if (leftColumnName == null) {
+        if (other.leftColumnName != null)
+          return false;
+      } else if (!leftColumnName.equals(other.leftColumnName))
+        return false;
+      if (op != other.op)
+        return false;
+      if (right == null) {
+        if (other.right != null)
+          return false;
+      } else if (!right.equals(other.right))
+        return false;
+      return true;
+    }
   }
 
   public abstract static class DelegateComparisonRequest extends ComparisonRequest {
@@ -128,6 +165,37 @@ public abstract class ComparisonRequest {
       if (type.equals(this.getClass()))
         res.add((T) this);
       return res;
+    }
+
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = super.hashCode();
+      result = prime * result + ((left == null) ? 0 : left.hashCode());
+      result = prime * result + ((right == null) ? 0 : right.hashCode());
+      return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj)
+        return true;
+      if (obj == null)
+        return false;
+      if (!(obj instanceof DelegateComparisonRequest))
+        return false;
+      DelegateComparisonRequest other = (DelegateComparisonRequest) obj;
+      if (left == null) {
+        if (other.left != null)
+          return false;
+      } else if (!left.equals(other.left))
+        return false;
+      if (right == null) {
+        if (other.right != null)
+          return false;
+      } else if (!right.equals(other.right))
+        return false;
+      return true;
     }
   }
 
@@ -170,6 +238,31 @@ public abstract class ComparisonRequest {
     @Override
     public String toString() {
       return "Not[" + child.toString() + "]";
+    }
+
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = super.hashCode();
+      result = prime * result + ((child == null) ? 0 : child.hashCode());
+      return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj)
+        return true;
+      if (obj == null)
+        return false;
+      if (!(obj instanceof Not))
+        return false;
+      Not other = (Not) obj;
+      if (child == null) {
+        if (other.child != null)
+          return false;
+      } else if (!child.equals(other.child))
+        return false;
+      return true;
     }
 
   }

@@ -231,6 +231,13 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>diqube-plan</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    
+    <dependency>
       <groupId>net.bytebuddy</groupId>
       <artifactId>byte-buddy-dep</artifactId>
       <scope>test</scope>

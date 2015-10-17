@@ -25,6 +25,9 @@ import org.diqube.util.ColumnOrValue;
 /**
  * Resolve the value of a specific column or literal value.
  *
+ * <p>
+ * Correctly implements {@link Object#equals(Object)} and {@link Object#hashCode()}.
+ * 
  * @author Bastian Gloeckle
  */
 public class ResolveValueRequest {
@@ -36,6 +39,31 @@ public class ResolveValueRequest {
 
   public void setResolve(ColumnOrValue resolve) {
     this.resolve = resolve;
+  }
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((resolve == null) ? 0 : resolve.hashCode());
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (obj == null)
+      return false;
+    if (!(obj instanceof ResolveValueRequest))
+      return false;
+    ResolveValueRequest other = (ResolveValueRequest) obj;
+    if (resolve == null) {
+      if (other.resolve != null)
+        return false;
+    } else if (!resolve.equals(other.resolve))
+      return false;
+    return true;
   }
 
 }

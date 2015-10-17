@@ -29,6 +29,9 @@ import org.diqube.util.Pair;
 /**
  * Represents the ordering requested in a select stmt and an optional LIMIT clause.
  *
+ * <p>
+ * Correctly implements {@link Object#equals(Object)} and {@link Object#hashCode()}.
+ * 
  * @author Bastian Gloeckle
  */
 public class OrderRequest {
@@ -105,6 +108,49 @@ public class OrderRequest {
     res.setLimitStart(this.limitStart);
     res.setColumns(newColumns);
     return res;
+  }
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((columns == null) ? 0 : columns.hashCode());
+    result = prime * result + ((limit == null) ? 0 : limit.hashCode());
+    result = prime * result + ((limitStart == null) ? 0 : limitStart.hashCode());
+    result = prime * result + ((softLimit == null) ? 0 : softLimit.hashCode());
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (obj == null)
+      return false;
+    if (!(obj instanceof OrderRequest))
+      return false;
+    OrderRequest other = (OrderRequest) obj;
+    if (columns == null) {
+      if (other.columns != null)
+        return false;
+    } else if (!columns.equals(other.columns))
+      return false;
+    if (limit == null) {
+      if (other.limit != null)
+        return false;
+    } else if (!limit.equals(other.limit))
+      return false;
+    if (limitStart == null) {
+      if (other.limitStart != null)
+        return false;
+    } else if (!limitStart.equals(other.limitStart))
+      return false;
+    if (softLimit == null) {
+      if (other.softLimit != null)
+        return false;
+    } else if (!softLimit.equals(other.softLimit))
+      return false;
+    return true;
   }
 
 }

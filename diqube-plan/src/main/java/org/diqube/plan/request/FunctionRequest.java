@@ -47,6 +47,9 @@ import org.diqube.util.ColumnOrValue;
  * unneeded function executions (because we do not need to calculate the same function on the same arguments twice). One
  * should use {@link FunctionBasedColumnNameBuilder} to create the output column names.
  *
+ * <p>
+ * Correctly implements {@link Object#equals(Object)} and {@link Object#hashCode()}.
+ * 
  * @author Bastian Gloeckle
  */
 public class FunctionRequest {
@@ -104,6 +107,46 @@ public class FunctionRequest {
 
   public void setType(Type type) {
     this.type = type;
+  }
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((functionName == null) ? 0 : functionName.hashCode());
+    result = prime * result + ((inputParameters == null) ? 0 : inputParameters.hashCode());
+    result = prime * result + ((outputColumn == null) ? 0 : outputColumn.hashCode());
+    result = prime * result + ((type == null) ? 0 : type.hashCode());
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (obj == null)
+      return false;
+    if (!(obj instanceof FunctionRequest))
+      return false;
+    FunctionRequest other = (FunctionRequest) obj;
+    if (functionName == null) {
+      if (other.functionName != null)
+        return false;
+    } else if (!functionName.equals(other.functionName))
+      return false;
+    if (inputParameters == null) {
+      if (other.inputParameters != null)
+        return false;
+    } else if (!inputParameters.equals(other.inputParameters))
+      return false;
+    if (outputColumn == null) {
+      if (other.outputColumn != null)
+        return false;
+    } else if (!outputColumn.equals(other.outputColumn))
+      return false;
+    if (type != other.type)
+      return false;
+    return true;
   }
 
 }

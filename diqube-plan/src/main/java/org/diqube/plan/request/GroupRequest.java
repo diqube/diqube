@@ -26,6 +26,9 @@ import java.util.List;
 /**
  * Represents the column to GROUP BY in a select stmt.
  *
+ * <p>
+ * Correctly implements {@link Object#equals(Object)} and {@link Object#hashCode()}.
+ * 
  * @author Bastian Gloeckle
  */
 public class GroupRequest {
@@ -37,5 +40,30 @@ public class GroupRequest {
 
   public void setGroupColumns(List<String> groupColumns) {
     this.groupColumns = groupColumns;
+  }
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((groupColumns == null) ? 0 : groupColumns.hashCode());
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (obj == null)
+      return false;
+    if (!(obj instanceof GroupRequest))
+      return false;
+    GroupRequest other = (GroupRequest) obj;
+    if (groupColumns == null) {
+      if (other.groupColumns != null)
+        return false;
+    } else if (!groupColumns.equals(other.groupColumns))
+      return false;
+    return true;
   }
 }

@@ -28,6 +28,9 @@ import org.diqube.plan.visitors.SelectStmtVisitor;
 /**
  * Represents all the data that was contained in a select statement and has been evaluated by {@link SelectStmtVisitor}.
  *
+ * <p>
+ * Correctly implements {@link Object#equals(Object)} and {@link Object#hashCode()}.
+ *
  * @author Bastian Gloeckle
  */
 public class ExecutionRequest {
@@ -125,6 +128,67 @@ public class ExecutionRequest {
 
   public void setOrder(OrderRequest order) {
     this.order = order;
+  }
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((group == null) ? 0 : group.hashCode());
+    result = prime * result + ((having == null) ? 0 : having.hashCode());
+    result = prime * result + ((order == null) ? 0 : order.hashCode());
+    result = prime * result + ((projectAndAggregate == null) ? 0 : projectAndAggregate.hashCode());
+    result = prime * result + ((resolveValues == null) ? 0 : resolveValues.hashCode());
+    result = prime * result + ((tableName == null) ? 0 : tableName.hashCode());
+    result = prime * result + ((where == null) ? 0 : where.hashCode());
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (obj == null)
+      return false;
+    if (!(obj instanceof ExecutionRequest))
+      return false;
+    ExecutionRequest other = (ExecutionRequest) obj;
+    if (group == null) {
+      if (other.group != null)
+        return false;
+    } else if (!group.equals(other.group))
+      return false;
+    if (having == null) {
+      if (other.having != null)
+        return false;
+    } else if (!having.equals(other.having))
+      return false;
+    if (order == null) {
+      if (other.order != null)
+        return false;
+    } else if (!order.equals(other.order))
+      return false;
+    if (projectAndAggregate == null) {
+      if (other.projectAndAggregate != null)
+        return false;
+    } else if (!projectAndAggregate.equals(other.projectAndAggregate))
+      return false;
+    if (resolveValues == null) {
+      if (other.resolveValues != null)
+        return false;
+    } else if (!resolveValues.equals(other.resolveValues))
+      return false;
+    if (tableName == null) {
+      if (other.tableName != null)
+        return false;
+    } else if (!tableName.equals(other.tableName))
+      return false;
+    if (where == null) {
+      if (other.where != null)
+        return false;
+    } else if (!where.equals(other.where))
+      return false;
+    return true;
   }
 
 }
