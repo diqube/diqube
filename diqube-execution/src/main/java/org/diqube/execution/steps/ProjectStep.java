@@ -476,19 +476,47 @@ public class ProjectStep extends AbstractThreadedExecutablePlanStep {
     Long[] columnValueIds = column.resolveColumnValueIdsForRowsFlat( //
         LongStream.range(firstRowId, firstRowId + length).mapToObj(Long::valueOf).collect(Collectors.toList()));
 
-    int resultIdx = 0;
-    for (long colValueId : columnValueIds) {
+    // highest index in columnValueIds where the value is != -1
+    int maxIdx = columnValueIds.length - 1;
+    if (columnValueIds[maxIdx] == -1L) {
       // resolveColumnValueIdsForRowsFlat returns -1 for rowIds not contained in the column shard. This can happen if
       // the length parameter of this method is too high. As we though provided a sorted input to
-      // resolveColumnValueIdsForRowsFlat, this can happen only at the end of the columnValueIds array, therefore we
-      // just have to 'break'.
-      if (colValueId == -1L)
-        break;
+      // resolveColumnValueIdsForRowsFlat, this can happen only at the end of the columnValueIds array.
+      // We therefore do a binary search for the first -1 in a consecutive batch of -1s.
+      int lo = 0;
+      int hi = columnValueIds.length - 1;
+      boolean found = false;
+      while (!found && hi >= 0 && lo < columnValueIds.length && hi >= lo) {
+        if (columnValueIds[lo] == -1L) {
+          maxIdx = lo - 1;
+          found = true;
+        } else if (columnValueIds[hi] != -1L) {
+          maxIdx = hi;
+          found = true;
+        } else {
+          int mid = (hi - lo) / 2;
+          if (columnValueIds[mid] == -1L)
+            hi = mid - 1;
+          else
+            lo = mid + 1;
+        }
+      }
 
-      result[resultIdx++] = column.getColumnShardDictionary().decompressValue(colValueId);
+      if (maxIdx == -1)
+        // all columnValueIds == -1
+        return 0;
     }
 
-    return resultIdx;
+    if (maxIdx < columnValueIds.length - 1) {
+      Long[] newColumnValueIds = new Long[maxIdx + 1];
+      System.arraycopy(columnValueIds, 0, newColumnValueIds, 0, maxIdx + 1);
+      columnValueIds = newColumnValueIds;
+    }
+
+    Object[] values = column.getColumnShardDictionary().decompressValues(columnValueIds);
+    System.arraycopy(values, 0, result, 0, values.length);
+
+    return values.length;
   }
 
   @Override
