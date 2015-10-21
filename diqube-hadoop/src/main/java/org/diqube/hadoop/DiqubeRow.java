@@ -163,6 +163,10 @@ public class DiqubeRow implements Serializable {
       return parent;
     }
 
+    public boolean isEmpty() {
+      return data.isEmpty() && repeatedData.isEmpty();
+    }
+
     /**
      * Validates the data in this {@link DiqubeData} and in all its transitive children. Automatically called by
      * {@link DiqubeRecordWriter}.
@@ -171,8 +175,9 @@ public class DiqubeRow implements Serializable {
      *           If anything is wrong.
      */
     /* package */ void validate() throws IllegalStateException {
-      if (data.isEmpty() && repeatedData.isEmpty())
-        throw new IllegalStateException("Neither normal nor repeated data set.");
+      if (isEmpty())
+        // accept empty data object, DiqubeRecordWriter will handle that correctly.
+        return;
 
       Set<String> multipleMappedKeys = Sets.intersection(data.keySet(), repeatedData.keySet());
       if (!multipleMappedKeys.isEmpty())
@@ -208,6 +213,7 @@ public class DiqubeRow implements Serializable {
     /* package */Map<String, List<Object>> getRepeatedData() {
       return repeatedData;
     }
+
   }
 
 }

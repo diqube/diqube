@@ -112,6 +112,10 @@ public class DiqubeRecordWriter extends RecordWriter<NullWritable, DiqubeRow> {
 
     try {
       row.getData().validate();
+
+      if (row.getData().isEmpty())
+        // root object must not be empty, otherwise the row would be empty. This is most probably an error!
+        throw new IllegalStateException("Root DiqubeData object is empty.");
     } catch (IllegalStateException e) {
       throw new IOException("DiqubeRow not valid: " + e.getMessage(), e);
     }
@@ -144,6 +148,10 @@ public class DiqubeRecordWriter extends RecordWriter<NullWritable, DiqubeRow> {
       Pair<String, DiqubeData> dataPair = dataQueue.poll();
       DiqubeData data = dataPair.getRight();
       String parentColName = dataPair.getLeft();
+
+      if (data.isEmpty())
+        // skip empty DiqubeData objects.
+        continue;
 
       for (Entry<String, Object> fieldEntry : data.getData().entrySet()) {
         String colName;
