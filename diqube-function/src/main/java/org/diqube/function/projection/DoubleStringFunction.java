@@ -22,6 +22,7 @@ package org.diqube.function.projection;
 
 import org.diqube.data.column.ColumnType;
 import org.diqube.function.Function;
+import org.diqube.function.FunctionException;
 
 /**
  * Parses a string into a double.
@@ -33,6 +34,14 @@ public class DoubleStringFunction extends AbstractSingleParamProjectionFunction<
   public static final String NAME = "double";
 
   public DoubleStringFunction() {
-    super(NAME, ColumnType.STRING, ColumnType.DOUBLE, Double::parseDouble);
+    super(NAME, ColumnType.STRING, ColumnType.DOUBLE, DoubleStringFunction::parse);
+  }
+
+  public static Double parse(String s) {
+    try {
+      return Double.parseDouble(s);
+    } catch (NumberFormatException e) {
+      throw new FunctionException(s + " cannot be parsed to an int.");
+    }
   }
 }

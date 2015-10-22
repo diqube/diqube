@@ -22,9 +22,13 @@ package org.diqube.function.projection;
 
 import org.diqube.data.column.ColumnType;
 import org.diqube.function.Function;
+import org.diqube.function.FunctionException;
 
 /**
  * Parses a string into a long.
+ * 
+ * This is for convenience, because users might be more used to using "int" to convert a string to a number format than
+ * using "long". This implementation is totally equivalent to {@link LongStringFunction}.
  *
  * @author Bastian Gloeckle
  */
@@ -33,6 +37,14 @@ public class IntStringFunction extends AbstractSingleParamProjectionFunction<Str
   public static final String NAME = "int";
 
   public IntStringFunction() {
-    super(NAME, ColumnType.STRING, ColumnType.LONG, Long::parseLong);
+    super(NAME, ColumnType.STRING, ColumnType.LONG, IntStringFunction::parse);
+  }
+
+  public static Long parse(String s) {
+    try {
+      return Long.parseLong(s);
+    } catch (NumberFormatException e) {
+      throw new FunctionException(s + " cannot be parsed to an int.");
+    }
   }
 }

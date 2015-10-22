@@ -22,6 +22,7 @@ package org.diqube.function.projection;
 
 import org.diqube.data.column.ColumnType;
 import org.diqube.function.Function;
+import org.diqube.function.FunctionException;
 
 /**
  * Parses a string into a long.
@@ -33,6 +34,14 @@ public class LongStringFunction extends AbstractSingleParamProjectionFunction<St
   public static final String NAME = "long";
 
   public LongStringFunction() {
-    super(NAME, ColumnType.STRING, ColumnType.LONG, Long::parseLong);
+    super(NAME, ColumnType.STRING, ColumnType.LONG, LongStringFunction::parse);
+  }
+
+  public static Long parse(String s) {
+    try {
+      return Long.parseLong(s);
+    } catch (NumberFormatException e) {
+      throw new FunctionException(s + " cannot be parsed to a long.");
+    }
   }
 }
