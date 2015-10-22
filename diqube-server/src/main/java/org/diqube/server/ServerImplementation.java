@@ -75,10 +75,10 @@ public class ServerImplementation {
   private ClusterQueryService.Iface clusterQueryHandler;
 
   @Inject
-  private ClusterManagementService.Iface clusterManagementService;
+  private ClusterManagementService.Iface clusterManagementHandler;
 
   @Inject
-  private ClusterInformationService.Iface clusterInformationService;
+  private ClusterInformationService.Iface clusterInformationHandler;
 
   @Inject
   private QueryService.Iface queryHandler;
@@ -95,8 +95,7 @@ public class ServerImplementation {
   private TThreadedSelectorServer server;
 
   public void serve() {
-    TThreadedSelectorServer.Args serverArgs =
-        createServerArgs(clusterQueryHandler, clusterManagementService, queryHandler);
+    TThreadedSelectorServer.Args serverArgs = createServerArgs();
 
     if (serverArgs == null)
       return;
@@ -120,8 +119,7 @@ public class ServerImplementation {
     server.serve();
   }
 
-  private TThreadedSelectorServer.Args createServerArgs(ClusterQueryService.Iface clusterQueryHandler,
-      ClusterManagementService.Iface clusterManagementHandler, QueryService.Iface queryHandler) {
+  private TThreadedSelectorServer.Args createServerArgs() {
     TMultiplexedProcessor multiProcessor = new TMultiplexedProcessor();
 
     multiProcessor.registerProcessor(QueryServiceConstants.SERVICE_NAME,
@@ -133,7 +131,7 @@ public class ServerImplementation {
     multiProcessor.registerProcessor(KeepAliveServiceConstants.SERVICE_NAME,
         new KeepAliveService.Processor<KeepAliveService.Iface>(keepAliveHandler));
     multiProcessor.registerProcessor(ClusterInformationServiceConstants.SERVICE_NAME,
-        new ClusterInformationService.Processor<ClusterInformationService.Iface>(clusterInformationService));
+        new ClusterInformationService.Processor<ClusterInformationService.Iface>(clusterInformationHandler));
 
     TNonblockingServerTransport transport;
     try {

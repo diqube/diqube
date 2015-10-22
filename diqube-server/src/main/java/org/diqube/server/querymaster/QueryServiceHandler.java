@@ -220,7 +220,6 @@ public class QueryServiceHandler implements Iface {
             logger.trace("New intermediary result for {}: {}", queryUuid, resultTable);
             try {
               synchronized (resultConnection) {
-                // TODO #31 calculate percentages
                 resultService.partialUpdate(queryRUuid, resultTable, percentDone);
               }
             } catch (TException e) {

@@ -157,6 +157,10 @@ public class GroupIntermediaryAggregationStep extends AbstractThreadedExecutable
       AggregationFunction<Object, IntermediaryResult<Object, Object, Object>, Object> tmpFn =
           functionFactory.createAggregationFunction(functionNameLowerCase, inputColType);
 
+      if (tmpFn == null)
+        throw new ExecutablePlanExecutionException(
+            "Cannot find function '" + functionNameLowerCase + "' with input data type " + inputColType);
+
       // map from groupId to array of colShardIds, may be null if not pre-resolved.
       Map<Long, Long[]> preResolvedColShardIds;
 

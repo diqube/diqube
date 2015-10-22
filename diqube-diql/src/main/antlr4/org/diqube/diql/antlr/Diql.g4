@@ -149,6 +149,10 @@ projectionFunctionName
  | F_LOG
  | F_HOST
  | F_TOPLEVELDOMAIN
+ | F_STRING
+ | F_INT
+ | F_LONG
+ | F_DOUBLE
  ;
 
 keyword
@@ -215,7 +219,10 @@ F_SUM: S U M '(';
 F_LOG: L O G '(';
 F_HOST: H O S T '(';
 F_TOPLEVELDOMAIN: T O P L E V E L D O M A I N '(';
-
+F_STRING: S T R I N G '(';
+F_INT: I N T '(';
+F_LONG: L O N G '(';
+F_DOUBLE: D O U B L E '(';
 
 ID
  : [a-zA-Z_] [a-zA-Z_0-9]* 
