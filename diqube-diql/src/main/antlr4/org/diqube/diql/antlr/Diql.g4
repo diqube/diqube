@@ -147,6 +147,8 @@ projectionFunctionName
  | F_MUL
  | F_SUB
  | F_LOG
+ | F_HOST
+ | F_TOPLEVELDOMAIN
  ;
 
 keyword
@@ -211,6 +213,8 @@ F_SUB: S U B '(';
 F_CONCATGROUP: C O N C A T G R O U P '(';
 F_SUM: S U M '(';
 F_LOG: L O G '(';
+F_HOST: H O S T '(';
+F_TOPLEVELDOMAIN: T O P L E V E L D O M A I N '(';
 
 
 ID

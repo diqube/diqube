@@ -438,6 +438,12 @@ public class OrderStep extends AbstractThreadedExecutablePlanStep {
           length -= sortedRowIdsLength - finalIntendedCutOffPoint;
         }
 
+        if (length < 0 || startIdx >= sortedRowIds.length) {
+          // ensure that we do not pass on invalid values to ArrayViewLongList.
+          startIdx = 0;
+          length = 0;
+        }
+
         orderedConsumer.consumeOrderedRowIds(new ArrayViewLongList(sortedRowIds, startIdx, length));
       }
     });
