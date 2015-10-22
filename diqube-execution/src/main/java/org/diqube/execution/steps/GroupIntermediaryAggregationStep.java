@@ -31,7 +31,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.diqube.data.ColumnType;
+import org.diqube.data.column.ColumnType;
 import org.diqube.execution.consumers.AbstractThreadedColumnBuiltConsumer;
 import org.diqube.execution.consumers.AbstractThreadedGroupDeltaConsumer;
 import org.diqube.execution.consumers.ColumnBuiltConsumer;

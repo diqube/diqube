@@ -24,11 +24,11 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.diqube.data.Dictionary;
-import org.diqube.data.colshard.ColumnPage;
-import org.diqube.data.colshard.ColumnPageFactory;
-import org.diqube.data.colshard.ColumnShard;
-import org.diqube.data.colshard.ColumnShardFactory;
+import org.diqube.data.column.ColumnPage;
+import org.diqube.data.column.ColumnPageFactory;
+import org.diqube.data.column.ColumnShard;
+import org.diqube.data.column.ColumnShardFactory;
+import org.diqube.data.dictionary.Dictionary;
 import org.diqube.data.str.StringStandardColumnShard;
 import org.diqube.data.str.dict.StringDictionary;
 import org.diqube.loader.columnshard.ColumnShardBuilder;

@@ -33,10 +33,10 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 
-import org.diqube.data.ColumnType;
-import org.diqube.data.TableShard;
+import org.diqube.data.column.ColumnType;
 import org.diqube.data.serialize.DataSerialization;
 import org.diqube.data.serialize.DataSerializer.ObjectDoneConsumer;
+import org.diqube.data.table.TableShard;
 import org.diqube.data.serialize.SerializationException;
 import org.diqube.file.DiqubeFileFactory;
 import org.diqube.file.DiqubeFileWriter;

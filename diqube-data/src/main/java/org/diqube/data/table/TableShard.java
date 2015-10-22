@@ -18,7 +18,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.data;
+package org.diqube.data.table;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -26,8 +26,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.diqube.data.colshard.ColumnShard;
-import org.diqube.data.colshard.StandardColumnShard;
+import org.diqube.data.column.ColumnShard;
+import org.diqube.data.column.StandardColumnShard;
 import org.diqube.data.dbl.DoubleStandardColumnShard;
 import org.diqube.data.lng.LongStandardColumnShard;
 import org.diqube.data.serialize.DataSerializable;

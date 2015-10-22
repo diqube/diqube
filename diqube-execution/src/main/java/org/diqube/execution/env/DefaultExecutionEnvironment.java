@@ -26,11 +26,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.diqube.data.TableShard;
-import org.diqube.data.colshard.ColumnShard;
+import org.diqube.data.column.ColumnShard;
 import org.diqube.data.dbl.DoubleColumnShard;
 import org.diqube.data.lng.LongColumnShard;
 import org.diqube.data.str.StringColumnShard;
+import org.diqube.data.table.TableShard;
 import org.diqube.execution.cache.ColumnShardCache;
 import org.diqube.execution.env.querystats.QueryableColumnShard;
 import org.diqube.execution.env.querystats.QueryableDoubleColumnShard;

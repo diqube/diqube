@@ -33,7 +33,7 @@ import org.diqube.cluster.connection.ConnectionFactory;
 import org.diqube.cluster.connection.ConnectionPool;
 import org.diqube.cluster.connection.ConnectionPoolTestUtil;
 import org.diqube.cluster.connection.SocketListener;
-import org.diqube.data.ColumnType;
+import org.diqube.data.column.ColumnType;
 import org.diqube.queries.QueryRegistry;
 import org.diqube.remote.base.thrift.RNodeAddress;
 import org.diqube.remote.cluster.thrift.ClusterQueryService;

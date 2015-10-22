@@ -29,10 +29,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 import org.diqube.context.Profiles;
-import org.diqube.data.ColumnType;
-import org.diqube.data.TableFactory;
-import org.diqube.data.TableShard;
-import org.diqube.data.colshard.StandardColumnShard;
+import org.diqube.data.column.ColumnType;
+import org.diqube.data.column.StandardColumnShard;
+import org.diqube.data.table.TableFactory;
+import org.diqube.data.table.TableShard;
 import org.diqube.data.util.RepeatedColumnNameGenerator;
 import org.diqube.execution.ExecutablePlan;
 import org.diqube.execution.TableRegistry;
@@ -276,7 +276,7 @@ public abstract class AbstractDiqlExecutionTest<T> {
 
     TableRegistry tableRegistry = dataContext.getBean(TableRegistry.class);
     TableFactory tableFactory = dataContext.getBean(TableFactory.class);
-    tableRegistry.addTable(TABLE, tableFactory.createTable(TABLE, Arrays.asList(tableShard)));
+    tableRegistry.addTable(TABLE, tableFactory.createDefaultTable(TABLE, Arrays.asList(tableShard)));
   }
 
   /**
@@ -310,7 +310,7 @@ public abstract class AbstractDiqlExecutionTest<T> {
       firstRowId += colAValues.length;
     }
 
-    tableRegistry.addTable(TABLE, tableFactory.createTable(TABLE, tableShards));
+    tableRegistry.addTable(TABLE, tableFactory.createDefaultTable(TABLE, tableShards));
   }
 
   /* package */ AnnotationConfigApplicationContext getDataContext() {

@@ -30,12 +30,10 @@ import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.TreeMap;
 
-import org.diqube.data.TableFactory;
-import org.diqube.data.TableShard;
-import org.diqube.data.colshard.ColumnPage;
-import org.diqube.data.colshard.ColumnPageFactory;
-import org.diqube.data.colshard.ColumnShard;
-import org.diqube.data.colshard.StandardColumnShard;
+import org.diqube.data.column.ColumnPage;
+import org.diqube.data.column.ColumnPageFactory;
+import org.diqube.data.column.ColumnShard;
+import org.diqube.data.column.StandardColumnShard;
 import org.diqube.data.lng.array.BitEfficientLongArray;
 import org.diqube.data.lng.dict.ArrayCompressedLongDictionary;
 import org.diqube.data.serialize.DataDeserializer;
@@ -49,6 +47,8 @@ import org.diqube.data.str.dict.ConstantStringDictionary;
 import org.diqube.data.str.dict.ParentNode;
 import org.diqube.data.str.dict.StringDictionary;
 import org.diqube.data.str.dict.TrieStringDictionary;
+import org.diqube.data.table.TableFactory;
+import org.diqube.data.table.TableShard;
 import org.diqube.util.Pair;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.testng.Assert;
@@ -205,7 +205,7 @@ public class StringColumnSerializationTest {
 
         BitEfficientLongArray pageDictArray = new BitEfficientLongArray(pageDictArrayPlain, true);
         BitEfficientLongArray pageValueArray = new BitEfficientLongArray(pageValueArrayPlain, false);
-        ColumnPage page = columnPageFactory.createColumnPage(new ArrayCompressedLongDictionary(pageDictArray),
+        ColumnPage page = columnPageFactory.createDefaultColumnPage(new ArrayCompressedLongDictionary(pageDictArray),
             pageValueArray, i * numberOfRowsPerShard, COL + "#" + (nextId - numberOfRowsPerShard));
         colPages.put(nextId - numberOfRowsPerShard, page);
       }

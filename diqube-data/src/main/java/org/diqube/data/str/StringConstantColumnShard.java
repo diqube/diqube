@@ -20,9 +20,9 @@
  */
 package org.diqube.data.str;
 
-import org.diqube.data.ColumnType;
-import org.diqube.data.colshard.AbstractConstantColumnShard;
-import org.diqube.data.colshard.ConstantColumnShard;
+import org.diqube.data.column.AbstractConstantColumnShard;
+import org.diqube.data.column.ColumnType;
+import org.diqube.data.column.ConstantColumnShard;
 import org.diqube.data.str.dict.ConstantStringDictionary;
 import org.diqube.data.str.dict.StringDictionary;
 

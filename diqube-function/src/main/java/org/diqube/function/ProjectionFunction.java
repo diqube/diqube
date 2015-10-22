@@ -23,7 +23,7 @@ package org.diqube.function;
 import java.util.List;
 import java.util.Set;
 
-import org.diqube.data.ColumnType;
+import org.diqube.data.column.ColumnType;
 
 /**
  * A function that projects some input to an output. The inputs can either be literal values or other columns.

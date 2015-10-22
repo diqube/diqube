@@ -22,7 +22,7 @@ package org.diqube.loader;
 
 import java.util.Collection;
 
-import org.diqube.data.TableShard;
+import org.diqube.data.table.TableShard;
 import org.diqube.util.BigByteBuffer;
 
 /**

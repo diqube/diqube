@@ -18,9 +18,9 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.data.colshard;
+package org.diqube.data.column;
 
-import org.diqube.data.TableShard;
+import org.diqube.data.table.TableShard;
 
 /**
  * A {@link ConstantColumnShard} is a {@link ColumnShard} that has a single value for all rows.

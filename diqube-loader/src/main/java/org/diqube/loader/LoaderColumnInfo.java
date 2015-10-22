@@ -25,7 +25,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
-import org.diqube.data.ColumnType;
+import org.diqube.data.column.ColumnType;
 
 /**
  * Contains information about each column for the loader.

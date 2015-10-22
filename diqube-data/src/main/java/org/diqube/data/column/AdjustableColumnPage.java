@@ -18,19 +18,18 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.data;
-
-import org.diqube.data.colshard.ColumnShard;
+package org.diqube.data.column;
 
 /**
- * Type of a column.
- * 
- * <p>
- * This enum basically identifies which subclass of {@link ColumnShard}/which type of {@link Dictionary} is used for a
- * column.
+ * A {@link ColumnPage} where things are adjustable.
  *
  * @author Bastian Gloeckle
  */
-public enum ColumnType {
-  STRING, DOUBLE, LONG
+public interface AdjustableColumnPage extends ColumnPage {
+
+  /**
+   * Sets the first row ID. Only to be used when {@link AdjustableStandardColumnShard#adjustToFirstRowId(long)} is
+   * called.
+   */
+  public void setFirstRowId(long firstRowId);
 }

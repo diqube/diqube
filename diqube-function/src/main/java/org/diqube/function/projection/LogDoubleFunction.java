@@ -21,7 +21,7 @@
 package org.diqube.function.projection;
 
 import org.apache.commons.math3.util.FastMath;
-import org.diqube.data.ColumnType;
+import org.diqube.data.column.ColumnType;
 import org.diqube.function.Function;
 
 /**

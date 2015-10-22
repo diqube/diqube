@@ -18,25 +18,22 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.data;
-
-import org.apache.thrift.TBase;
-import org.diqube.data.serialize.DataSerializable;
-import org.diqube.data.serialize.DataSerialization;
-import org.diqube.data.serialize.thrift.v1.SDictionary;
+package org.diqube.data.column;
 
 /**
- * A {@link Dictionary} that is {@link DataSerializable}.
- *
- * @param <T>
- *          type of data the dict contains
- * @param <S>
- *          serialized class this dict serializes to/from.
+ * A {@link StandardColumnShard} of which some properties are adjustable - this is needed for example after
+ * deserializing a col shard, if it should adhere to other circumstances.
  *
  * @author Bastian Gloeckle
  */
-@DataSerializable(thriftClass = SDictionary.class,
-    deserializationDelegationManager = DictionaryDeserializationDelegationManager.class)
-public interface SerializableDictionary<T, S extends TBase<?, ?>> extends Dictionary<T>, DataSerialization<S> {
-
+public interface AdjustableStandardColumnShard extends StandardColumnShard {
+  /**
+   * Adjusts the values in the column shard and all {@link ColumnPage}s, so that the first row has the given row ID.
+   * 
+   * This needs to be called before the column is reachable from the TableRegistry.
+   * 
+   * @throws UnsupportedOperationException
+   *           In case the row ID cannot be adjusted.
+   */
+  public void adjustToFirstRowId(long firstRowId) throws UnsupportedOperationException;
 }

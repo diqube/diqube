@@ -23,7 +23,7 @@ package org.diqube.execution.cache;
 import java.util.ArrayList;
 import java.util.Collection;
 
-import org.diqube.data.colshard.ColumnShard;
+import org.diqube.data.column.ColumnShard;
 
 /**
  * A cache that does not cache anything. Will be implemented in case the user configuration disables caching.

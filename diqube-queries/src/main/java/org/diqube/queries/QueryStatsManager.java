@@ -27,7 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.diqube.data.colshard.ColumnPage;
+import org.diqube.data.column.ColumnPage;
 
 /**
  * Collects data about a query execution to later be able to create a {@link QueryStats}.

@@ -34,8 +34,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
-import org.diqube.data.TableShard;
-import org.diqube.data.colshard.StandardColumnShard;
+import org.diqube.data.column.StandardColumnShard;
+import org.diqube.data.table.TableShard;
 import org.diqube.execution.consumers.AbstractThreadedColumnBuiltConsumer;
 import org.diqube.execution.consumers.AbstractThreadedRowIdConsumer;
 import org.diqube.execution.consumers.ColumnBuiltConsumer;

@@ -35,7 +35,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.diqube.data.TableShard;
+import org.diqube.data.table.TableShard;
 import org.diqube.execution.ExecutablePlan;
 import org.diqube.execution.ExecutablePlanFromRemoteBuilder;
 import org.diqube.execution.ExecutablePlanFromRemoteBuilderFactory;

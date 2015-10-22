@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.BiFunction;
 
-import org.diqube.data.ColumnType;
+import org.diqube.data.column.ColumnType;
 import org.diqube.function.FunctionException;
 import org.diqube.function.ProjectionFunction;
 

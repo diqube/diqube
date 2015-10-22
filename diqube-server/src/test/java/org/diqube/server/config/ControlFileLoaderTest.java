@@ -32,8 +32,8 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.function.Function;
 
 import org.diqube.context.Profiles;
-import org.diqube.data.TableFactory;
-import org.diqube.data.TableShard;
+import org.diqube.data.table.TableFactory;
+import org.diqube.data.table.TableShard;
 import org.diqube.execution.TableRegistry;
 import org.diqube.loader.CsvLoader;
 import org.diqube.loader.DiqubeLoader;

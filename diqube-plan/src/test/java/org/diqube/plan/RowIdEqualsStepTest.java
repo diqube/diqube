@@ -28,11 +28,11 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.diqube.context.Profiles;
-import org.diqube.data.ColumnType;
-import org.diqube.data.TableFactory;
-import org.diqube.data.TableShard;
-import org.diqube.data.colshard.StandardColumnShard;
+import org.diqube.data.column.ColumnType;
+import org.diqube.data.column.StandardColumnShard;
 import org.diqube.data.lng.dict.LongDictionary;
+import org.diqube.data.table.TableFactory;
+import org.diqube.data.table.TableShard;
 import org.diqube.execution.consumers.AbstractThreadedColumnDictIdConsumer;
 import org.diqube.execution.consumers.RowIdConsumer;
 import org.diqube.execution.env.ExecutionEnvironment;

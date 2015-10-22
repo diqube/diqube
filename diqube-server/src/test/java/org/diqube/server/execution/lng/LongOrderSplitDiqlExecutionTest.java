@@ -20,7 +20,7 @@
  */
 package org.diqube.server.execution.lng;
 
-import org.diqube.data.ColumnType;
+import org.diqube.data.column.ColumnType;
 import org.diqube.server.execution.OrderSplitDiqlExecutionTest;
 import org.testng.annotations.Test;
 

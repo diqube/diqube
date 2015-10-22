@@ -23,7 +23,7 @@ package org.diqube.server.util;
 import java.util.List;
 import java.util.Map.Entry;
 
-import org.diqube.data.TableShard;
+import org.diqube.data.table.TableShard;
 import org.diqube.execution.ColumnVersionManager;
 import org.diqube.execution.ExecutablePlan;
 import org.diqube.execution.env.ExecutionEnvironment;

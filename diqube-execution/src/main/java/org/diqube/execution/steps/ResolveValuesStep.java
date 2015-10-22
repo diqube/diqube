@@ -40,7 +40,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
-import org.diqube.data.colshard.ColumnShard;
+import org.diqube.data.column.ColumnShard;
 import org.diqube.execution.consumers.AbstractThreadedColumnDictIdConsumer;
 import org.diqube.execution.consumers.ColumnDictIdConsumer;
 import org.diqube.execution.consumers.ColumnValueConsumer;

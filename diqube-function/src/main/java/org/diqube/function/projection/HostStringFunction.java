@@ -23,7 +23,7 @@ package org.diqube.function.projection;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-import org.diqube.data.ColumnType;
+import org.diqube.data.column.ColumnType;
 import org.diqube.function.Function;
 
 /**

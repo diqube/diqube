@@ -18,10 +18,9 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.data.colshard;
+package org.diqube.data.column;
 
-import org.diqube.data.ColumnType;
-import org.diqube.data.Dictionary;
+import org.diqube.data.dictionary.Dictionary;
 
 /**
  * Abstract base implementation of a {@link ConstantColumnShard}.

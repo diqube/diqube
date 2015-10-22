@@ -18,14 +18,14 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.data.colshard;
+package org.diqube.data.column;
 
 import java.util.NavigableMap;
 
-import org.diqube.data.TableShard;
 import org.diqube.data.serialize.DataSerializable;
 import org.diqube.data.serialize.DataSerialization;
 import org.diqube.data.serialize.thrift.v1.SColumnShard;
+import org.diqube.data.table.TableShard;
 
 /**
  * A {@link StandardColumnShard} contains separate values for each row of a single column of a {@link TableShard}.

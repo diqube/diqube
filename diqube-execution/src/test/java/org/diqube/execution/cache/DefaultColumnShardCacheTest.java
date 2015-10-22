@@ -24,7 +24,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.stream.Collectors;
 
-import org.diqube.data.colshard.ColumnShard;
+import org.diqube.data.column.ColumnShard;
 import org.mockito.Mockito;
 import org.testng.Assert;
 import org.testng.annotations.Test;

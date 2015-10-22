@@ -33,12 +33,12 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
-import org.diqube.data.ColumnType;
-import org.diqube.data.colshard.ColumnPage;
-import org.diqube.data.colshard.ColumnShard;
-import org.diqube.data.colshard.ColumnShardFactory;
-import org.diqube.data.colshard.ConstantColumnShard;
-import org.diqube.data.colshard.StandardColumnShard;
+import org.diqube.data.column.ColumnPage;
+import org.diqube.data.column.ColumnShard;
+import org.diqube.data.column.ColumnShardFactory;
+import org.diqube.data.column.ColumnType;
+import org.diqube.data.column.ConstantColumnShard;
+import org.diqube.data.column.StandardColumnShard;
 import org.diqube.data.dbl.DoubleColumnShard;
 import org.diqube.data.lng.LongColumnShard;
 import org.diqube.data.str.StringColumnShard;

@@ -46,9 +46,10 @@ import org.diqube.config.Config;
 import org.diqube.config.ConfigKey;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.context.Profiles;
-import org.diqube.data.Table;
-import org.diqube.data.TableFactory;
-import org.diqube.data.TableShard;
+import org.diqube.data.table.AdjustableTable;
+import org.diqube.data.table.Table;
+import org.diqube.data.table.TableFactory;
+import org.diqube.data.table.TableShard;
 import org.diqube.execution.TableRegistry;
 import org.diqube.listeners.ClusterManagerListener;
 import org.diqube.loader.CsvLoader;
@@ -193,7 +194,7 @@ public class NewDataWatcher implements ClusterManagerListener {
           controlFile.getAbsolutePath(), tableInfo.getLeft(), tableInfo.getRight());
       List<TableShard> shardsToDelete = t.getShards().stream()
           .filter(s -> tableInfo.getRight().contains(s.getLowestRowId())).collect(Collectors.toList());
-      shardsToDelete.forEach(s -> t.removeTableShard(s));
+      shardsToDelete.forEach(s -> ((AdjustableTable) t).removeTableShard(s));
       if (t.getShards().isEmpty()) {
         logger.info("Removed last table shard of table '{}', will stop serving this table completely.",
             tableInfo.getLeft());

@@ -25,8 +25,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 
-import org.diqube.data.colshard.ColumnPage;
-import org.diqube.data.colshard.ColumnPageFactory;
+import org.diqube.data.column.ColumnPage;
+import org.diqube.data.column.ColumnPageFactory;
 import org.diqube.data.lng.array.BitEfficientLongArray;
 import org.diqube.data.lng.array.CompressedLongArray;
 import org.diqube.data.lng.array.RunLengthLongArray;
@@ -137,7 +137,7 @@ public class ColumnPageBuilder {
       CompressedLongArray<?> compressedValues = bestStrat.compress(values);
 
       // build final ColumnPage
-      ColumnPage page = columnPageFactory.createColumnPage(columnPageDict, compressedValues, firstRowId, name);
+      ColumnPage page = columnPageFactory.createDefaultColumnPage(columnPageDict, compressedValues, firstRowId, name);
       return page;
     } finally {
       for (LongArrayCompressionStrategy strat : COMPRESSION_STRATEGIES)

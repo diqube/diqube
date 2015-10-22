@@ -20,7 +20,7 @@
  */
 package org.diqube.execution;
 
-import org.diqube.data.colshard.ColumnShard;
+import org.diqube.data.column.ColumnShard;
 import org.diqube.data.dbl.DoubleColumnShard;
 import org.diqube.data.lng.LongColumnShard;
 import org.diqube.data.str.StringColumnShard;

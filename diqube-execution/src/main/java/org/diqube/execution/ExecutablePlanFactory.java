@@ -29,7 +29,7 @@ import org.diqube.cluster.ClusterManager;
 import org.diqube.cluster.connection.ConnectionPool;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.context.InjectOptional;
-import org.diqube.data.colshard.ColumnShardFactory;
+import org.diqube.data.column.ColumnShardFactory;
 import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.steps.BuildColumnFromValuesStep;
 import org.diqube.execution.steps.ExecuteRemotePlanOnShardsStep;

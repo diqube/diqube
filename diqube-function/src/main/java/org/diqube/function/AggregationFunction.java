@@ -20,7 +20,7 @@
  */
 package org.diqube.function;
 
-import org.diqube.data.ColumnType;
+import org.diqube.data.column.ColumnType;
 
 /**
  * A function that aggregates values that have been grouped.

@@ -28,7 +28,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
-import org.diqube.data.ColumnType;
+import org.diqube.data.column.ColumnType;
 import org.diqube.execution.ExecutablePlan;
 import org.diqube.execution.consumers.ColumnVersionBuiltConsumer;
 import org.diqube.execution.env.ExecutionEnvironment;

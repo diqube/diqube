@@ -27,7 +27,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.LongStream;
 
-import org.diqube.data.Dictionary;
+import org.diqube.data.dictionary.Dictionary;
 import org.diqube.data.lng.array.CompressedLongArray;
 import org.diqube.data.serialize.DataSerializable;
 import org.diqube.data.serialize.DeserializationException;

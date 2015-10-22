@@ -33,7 +33,7 @@ import java.util.concurrent.Future;
 import java.util.function.Consumer;
 
 import org.antlr.v4.runtime.misc.Triple;
-import org.diqube.data.ColumnType;
+import org.diqube.data.column.ColumnType;
 import org.diqube.execution.ExecutablePlan;
 import org.diqube.execution.ExecutablePlanStep;
 import org.diqube.execution.consumers.AbstractThreadedRowIdConsumer;

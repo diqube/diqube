@@ -35,11 +35,11 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.diqube.data.ColumnType;
-import org.diqube.data.Dictionary;
-import org.diqube.data.colshard.ColumnPage;
-import org.diqube.data.colshard.ColumnShard;
-import org.diqube.data.colshard.StandardColumnShard;
+import org.diqube.data.column.ColumnPage;
+import org.diqube.data.column.ColumnShard;
+import org.diqube.data.column.ColumnType;
+import org.diqube.data.column.StandardColumnShard;
+import org.diqube.data.dictionary.Dictionary;
 import org.diqube.queries.QueryRegistry;
 import org.diqube.queries.QueryUuid;
 import org.diqube.queries.QueryUuid.QueryUuidThreadState;

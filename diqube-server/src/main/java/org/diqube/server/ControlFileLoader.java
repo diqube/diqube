@@ -29,11 +29,12 @@ import java.util.List;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
-import org.diqube.data.ColumnType;
-import org.diqube.data.Table;
-import org.diqube.data.Table.TableShardsOverlappingException;
-import org.diqube.data.TableFactory;
-import org.diqube.data.TableShard;
+import org.diqube.data.column.ColumnType;
+import org.diqube.data.table.AdjustableTable;
+import org.diqube.data.table.AdjustableTable.TableShardsOverlappingException;
+import org.diqube.data.table.Table;
+import org.diqube.data.table.TableFactory;
+import org.diqube.data.table.TableShard;
 import org.diqube.execution.TableRegistry;
 import org.diqube.loader.CsvLoader;
 import org.diqube.loader.DiqubeLoader;
@@ -199,15 +200,18 @@ public class ControlFileLoader {
     synchronized (tableRegistrySync) {
       Table table = tableRegistry.getTable(tableName);
       if (table != null) {
+        if (!(table instanceof AdjustableTable))
+          throw new LoadException("The target table '" + tableName + "' cannot be adjusted.");
+
         try {
           for (TableShard newTableShard : newTableShards)
-            table.addTableShard(newTableShard);
+            ((AdjustableTable) table).addTableShard(newTableShard);
         } catch (TableShardsOverlappingException e) {
           throw new LoadException("Cannot load TableShard as it overlaps with an already loaded one", e);
         }
       } else {
         Collection<TableShard> newTableShardCollection = newTableShards;
-        table = tableFactory.createTable(tableName, newTableShardCollection);
+        table = tableFactory.createDefaultTable(tableName, newTableShardCollection);
 
         tableRegistry.addTable(tableName, table);
       }

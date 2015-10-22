@@ -21,8 +21,8 @@
 package org.diqube.data.lng.dict;
 
 import org.apache.thrift.TBase;
-import org.diqube.data.Dictionary;
-import org.diqube.data.SerializableDictionary;
+import org.diqube.data.dictionary.Dictionary;
+import org.diqube.data.dictionary.SerializableDictionary;
 import org.diqube.data.serialize.DataSerializable;
 import org.diqube.data.serialize.thrift.v1.SLongDictionary;
 

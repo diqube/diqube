@@ -22,7 +22,7 @@ package org.diqube.function.projection;
 
 import java.util.function.BiFunction;
 
-import org.diqube.data.ColumnType;
+import org.diqube.data.column.ColumnType;
 
 /**
  * Abstract implementation for projection functions with a two params and which produce the same output

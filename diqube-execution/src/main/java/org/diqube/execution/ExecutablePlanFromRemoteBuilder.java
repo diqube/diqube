@@ -27,8 +27,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
-import org.diqube.data.Table;
-import org.diqube.data.TableShard;
+import org.diqube.data.table.Table;
+import org.diqube.data.table.TableShard;
 import org.diqube.execution.consumers.ColumnBuiltConsumer;
 import org.diqube.execution.consumers.ColumnDictIdConsumer;
 import org.diqube.execution.consumers.ColumnValueConsumer;

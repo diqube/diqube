@@ -28,7 +28,7 @@ import java.util.Map;
 
 import org.diqube.context.AutoInstatiate;
 import org.diqube.context.InjectOptional;
-import org.diqube.data.Table;
+import org.diqube.data.table.Table;
 import org.diqube.listeners.TableLoadListener;
 
 /**

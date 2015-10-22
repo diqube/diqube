@@ -20,7 +20,7 @@
  */
 package org.diqube.function.projection;
 
-import org.diqube.data.ColumnType;
+import org.diqube.data.column.ColumnType;
 import org.diqube.function.Function;
 
 /**

@@ -27,7 +27,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
-import org.diqube.data.ColumnType;
+import org.diqube.data.column.ColumnType;
 import org.diqube.execution.ExecutablePlan;
 import org.diqube.function.projection.IdLongFunction;
 import org.diqube.loader.LoadException;

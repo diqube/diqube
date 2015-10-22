@@ -20,8 +20,8 @@
  */
 package org.diqube.data.dbl;
 
-import org.diqube.data.ColumnType;
-import org.diqube.data.colshard.ColumnShard;
+import org.diqube.data.column.ColumnShard;
+import org.diqube.data.column.ColumnType;
 import org.diqube.data.dbl.dict.DoubleDictionary;
 
 /**

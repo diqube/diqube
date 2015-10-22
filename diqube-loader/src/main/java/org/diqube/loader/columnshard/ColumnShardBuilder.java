@@ -32,11 +32,11 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.ToLongFunction;
 
-import org.diqube.data.colshard.ColumnPage;
-import org.diqube.data.colshard.ColumnPageFactory;
-import org.diqube.data.colshard.ColumnShard;
-import org.diqube.data.colshard.ColumnShardFactory;
-import org.diqube.data.colshard.StandardColumnShard;
+import org.diqube.data.column.ColumnPage;
+import org.diqube.data.column.ColumnPageFactory;
+import org.diqube.data.column.ColumnShard;
+import org.diqube.data.column.ColumnShardFactory;
+import org.diqube.data.column.StandardColumnShard;
 import org.diqube.data.dbl.dict.DoubleDictionary;
 import org.diqube.data.lng.dict.LongDictionary;
 import org.diqube.data.str.dict.StringDictionary;

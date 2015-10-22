@@ -27,10 +27,10 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.diqube.data.ColumnType;
-import org.diqube.data.TableShard;
-import org.diqube.data.colshard.ColumnPage;
+import org.diqube.data.column.ColumnPage;
+import org.diqube.data.column.ColumnType;
 import org.diqube.data.lng.LongStandardColumnShard;
+import org.diqube.data.table.TableShard;
 import org.diqube.data.util.RepeatedColumnNameGenerator;
 import org.diqube.util.BigByteBuffer;
 import org.diqube.util.Pair;

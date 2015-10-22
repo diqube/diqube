@@ -22,9 +22,9 @@ package org.diqube.data.str;
 
 import java.util.NavigableMap;
 
-import org.diqube.data.ColumnType;
-import org.diqube.data.colshard.AbstractStandardColumnShard;
-import org.diqube.data.colshard.ColumnPage;
+import org.diqube.data.column.AbstractStandardColumnShard;
+import org.diqube.data.column.ColumnPage;
+import org.diqube.data.column.ColumnType;
 import org.diqube.data.str.dict.StringDictionary;
 
 /**

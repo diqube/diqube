@@ -22,8 +22,8 @@ package org.diqube.execution.cache;
 
 import java.util.Collection;
 
-import org.diqube.data.TableShard;
-import org.diqube.data.colshard.ColumnShard;
+import org.diqube.data.column.ColumnShard;
+import org.diqube.data.table.TableShard;
 
 /**
  * An instance caches column shards for a single table.

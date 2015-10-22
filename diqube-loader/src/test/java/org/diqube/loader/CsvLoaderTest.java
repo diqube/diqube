@@ -28,13 +28,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.diqube.data.ColumnType;
-import org.diqube.data.TableShard;
-import org.diqube.data.colshard.ColumnPage;
-import org.diqube.data.colshard.StandardColumnShard;
+import org.diqube.data.column.ColumnPage;
+import org.diqube.data.column.ColumnType;
+import org.diqube.data.column.StandardColumnShard;
 import org.diqube.data.dbl.dict.DoubleDictionary;
 import org.diqube.data.lng.dict.LongDictionary;
 import org.diqube.data.str.dict.StringDictionary;
+import org.diqube.data.table.TableShard;
 import org.diqube.loader.columnshard.ColumnShardBuilder;
 import org.diqube.util.BigByteBuffer;
 import org.diqube.util.IoUtils;

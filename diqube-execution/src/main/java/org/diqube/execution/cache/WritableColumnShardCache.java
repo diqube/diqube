@@ -20,8 +20,8 @@
  */
 package org.diqube.execution.cache;
 
-import org.diqube.data.TableShard;
-import org.diqube.data.colshard.ColumnShard;
+import org.diqube.data.column.ColumnShard;
+import org.diqube.data.table.TableShard;
 import org.diqube.loader.columnshard.SparseColumnShardBuilder;
 
 /**

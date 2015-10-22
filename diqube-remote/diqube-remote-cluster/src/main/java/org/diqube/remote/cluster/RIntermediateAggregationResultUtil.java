@@ -20,7 +20,7 @@
  */
 package org.diqube.remote.cluster;
 
-import org.diqube.data.ColumnType;
+import org.diqube.data.column.ColumnType;
 import org.diqube.function.IntermediaryResult;
 import org.diqube.remote.base.util.RValueUtil;
 import org.diqube.remote.cluster.thrift.RColumnType;

@@ -22,10 +22,10 @@ package org.diqube.data.dbl;
 
 import java.util.NavigableMap;
 
-import org.diqube.data.ColumnType;
-import org.diqube.data.colshard.AbstractStandardColumnShard;
-import org.diqube.data.colshard.ColumnPage;
-import org.diqube.data.colshard.StandardColumnShard;
+import org.diqube.data.column.AbstractStandardColumnShard;
+import org.diqube.data.column.ColumnPage;
+import org.diqube.data.column.ColumnType;
+import org.diqube.data.column.StandardColumnShard;
 import org.diqube.data.dbl.dict.DoubleDictionary;
 
 /**

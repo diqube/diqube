@@ -18,7 +18,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.data;
+package org.diqube.data.table;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -28,60 +28,37 @@ import java.util.NavigableMap;
 import java.util.TreeMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import org.diqube.data.colshard.ColumnShard;
-
 /**
- * A {@link Table} is the basic container of any data.
- * 
- * <p>
- * From a logical point of view, a Table is made up of columns and rows, whereas each row can hold an arbitrary complex
- * object whose values are split into separate columns ({@link ColumnShard}) on import time.
- * 
- * <p>
- * Technically, a table consists of {@link TableShard}s of which one or multiple might be available on the current
- * machine, and others being resident on other cluster machines. Each {@link TableShard} contains the data of a subset
- * of the tables rows. Each TableShard then contains a set of {@link ColumnShard}s, which in turn contain the actual
- * data. Note that each TableShard might contain a different set of columns, as each TableShard only materializes those
- * Columns, that it actually has data for.
+ * Default implementation for a {@link Table} which contains raw data that was loaded from input files.
  *
  * @author Bastian Gloeckle
  */
-public class Table {
+public class DefaultTable implements AdjustableTable {
   private String name;
   private Collection<TableShard> shards;
   private ReentrantReadWriteLock shardsLock = new ReentrantReadWriteLock();
 
-  /* package */ Table(String name, Collection<TableShard> shards) {
+  /* package */ DefaultTable(String name, Collection<TableShard> shards) {
     this.name = name;
     this.shards = shards;
   }
 
-  /**
-   * @return Name of this table
-   */
+  @Override
   public String getName() {
     return name;
   }
 
-  /**
-   * @return Shards of this table, unmodifiable.
-   */
+  @Override
   public Collection<TableShard> getShards() {
     shardsLock.readLock().lock();
     try {
-      return Collections.unmodifiableCollection(shards);
+      return Collections.unmodifiableCollection(new ArrayList<>(shards));
     } finally {
       shardsLock.readLock().unlock();
     }
   }
 
-  /**
-   * Adds a {@link TableShard} to this table.
-   * 
-   * @throws TableShardsOverlappingException
-   *           If the rows served by the new tableShard overlap with a tableShard already in the table. If the exception
-   *           is thrown, the new TableShard is not added to the table.
-   */
+  @Override
   public void addTableShard(TableShard tableShard) throws TableShardsOverlappingException {
     shardsLock.writeLock().lock();
     try {
@@ -109,11 +86,7 @@ public class Table {
     }
   }
 
-  /**
-   * Remove the given tableShard from this table.
-   * 
-   * @return true if the tableShard was contained in this table.
-   */
+  @Override
   public boolean removeTableShard(TableShard tableShard) {
     shardsLock.writeLock().lock();
     try {
@@ -128,11 +101,4 @@ public class Table {
     }
   }
 
-  public class TableShardsOverlappingException extends Exception {
-    private static final long serialVersionUID = 1L;
-
-    public TableShardsOverlappingException(String msg) {
-      super(msg);
-    }
-  }
 }

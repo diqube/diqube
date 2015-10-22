@@ -25,9 +25,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.diqube.data.colshard.ColumnShard;
-import org.diqube.data.colshard.ConstantColumnShard;
-import org.diqube.data.colshard.StandardColumnShard;
+import org.diqube.data.column.ColumnShard;
+import org.diqube.data.column.ConstantColumnShard;
+import org.diqube.data.column.StandardColumnShard;
 import org.diqube.util.Pair;
 
 /**

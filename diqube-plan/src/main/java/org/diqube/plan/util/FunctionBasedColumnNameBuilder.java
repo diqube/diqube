@@ -29,7 +29,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
-import org.diqube.data.ColumnType;
+import org.diqube.data.column.ColumnType;
 import org.diqube.data.util.RepeatedColumnNameGenerator;
 import org.diqube.function.FunctionFactory;
 

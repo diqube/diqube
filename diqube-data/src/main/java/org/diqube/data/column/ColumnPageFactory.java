@@ -18,7 +18,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.data.colshard;
+package org.diqube.data.column;
 
 import org.diqube.context.AutoInstatiate;
 import org.diqube.data.lng.array.CompressedLongArray;
@@ -46,8 +46,8 @@ public class ColumnPageFactory {
    *          column it is.
    * @return The new {@link ColumnPage}.
    */
-  public ColumnPage createColumnPage(LongDictionary<?> columnPageDict, CompressedLongArray<?> values, long firstRowId,
-      String name) {
-    return new ColumnPage(columnPageDict, values, firstRowId, name);
+  public DefaultColumnPage createDefaultColumnPage(LongDictionary<?> columnPageDict, CompressedLongArray<?> values,
+      long firstRowId, String name) {
+    return new DefaultColumnPage(columnPageDict, values, firstRowId, name);
   }
 }

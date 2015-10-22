@@ -30,12 +30,10 @@ import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.TreeMap;
 
-import org.diqube.data.TableFactory;
-import org.diqube.data.TableShard;
-import org.diqube.data.colshard.ColumnPage;
-import org.diqube.data.colshard.ColumnPageFactory;
-import org.diqube.data.colshard.ColumnShard;
-import org.diqube.data.colshard.StandardColumnShard;
+import org.diqube.data.column.ColumnPage;
+import org.diqube.data.column.ColumnPageFactory;
+import org.diqube.data.column.ColumnShard;
+import org.diqube.data.column.StandardColumnShard;
 import org.diqube.data.dbl.dict.ConstantDoubleDictionary;
 import org.diqube.data.dbl.dict.DoubleDictionary;
 import org.diqube.data.dbl.dict.FpcDoubleDictionary;
@@ -47,6 +45,8 @@ import org.diqube.data.serialize.DataSerialization;
 import org.diqube.data.serialize.DataSerializationManager;
 import org.diqube.data.serialize.DataSerializer;
 import org.diqube.data.serialize.DataSerializer.ObjectDoneConsumer;
+import org.diqube.data.table.TableFactory;
+import org.diqube.data.table.TableShard;
 import org.diqube.data.serialize.DeserializationException;
 import org.diqube.data.serialize.SerializationException;
 import org.diqube.util.Pair;
@@ -232,7 +232,7 @@ public class DoubleColumnSerializationTest {
 
       BitEfficientLongArray pageDictArray = new BitEfficientLongArray(pageDictArrayPlain, true);
       BitEfficientLongArray pageValueArray = new BitEfficientLongArray(pageValueArrayPlain, false);
-      ColumnPage page = columnPageFactory.createColumnPage(new ArrayCompressedLongDictionary(pageDictArray),
+      ColumnPage page = columnPageFactory.createDefaultColumnPage(new ArrayCompressedLongDictionary(pageDictArray),
           pageValueArray, i * numberOfRowsPerShard, COL + "#" + (nextId - numberOfRowsPerShard));
       colPages.put(nextId - numberOfRowsPerShard, page);
     }

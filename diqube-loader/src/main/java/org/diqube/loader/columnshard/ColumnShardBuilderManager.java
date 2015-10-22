@@ -26,10 +26,10 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.diqube.data.TableShard;
-import org.diqube.data.colshard.ColumnPageFactory;
-import org.diqube.data.colshard.ColumnShardFactory;
-import org.diqube.data.colshard.StandardColumnShard;
+import org.diqube.data.column.ColumnPageFactory;
+import org.diqube.data.column.ColumnShardFactory;
+import org.diqube.data.column.StandardColumnShard;
+import org.diqube.data.table.TableShard;
 import org.diqube.loader.LoaderColumnInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

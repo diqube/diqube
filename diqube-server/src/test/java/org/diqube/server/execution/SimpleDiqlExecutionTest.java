@@ -30,7 +30,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.stream.LongStream;
 
-import org.diqube.data.ColumnType;
+import org.diqube.data.column.ColumnType;
 import org.diqube.execution.ExecutablePlan;
 import org.diqube.plan.exception.ValidationException;
 import org.testng.Assert;

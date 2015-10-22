@@ -20,7 +20,7 @@
  */
 package org.diqube.server.execution;
 
-import org.diqube.data.ColumnType;
+import org.diqube.data.column.ColumnType;
 import org.testng.annotations.Factory;
 
 /**

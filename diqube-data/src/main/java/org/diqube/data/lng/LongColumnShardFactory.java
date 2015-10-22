@@ -23,8 +23,8 @@ package org.diqube.data.lng;
 import java.util.NavigableMap;
 
 import org.diqube.context.AutoInstatiate;
-import org.diqube.data.colshard.ColumnPage;
-import org.diqube.data.colshard.ColumnShardFactory;
+import org.diqube.data.column.ColumnPage;
+import org.diqube.data.column.ColumnShardFactory;
 import org.diqube.data.lng.dict.LongDictionary;
 
 /**

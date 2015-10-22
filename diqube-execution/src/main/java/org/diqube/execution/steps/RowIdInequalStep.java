@@ -43,10 +43,10 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.diqube.data.Dictionary;
-import org.diqube.data.colshard.ColumnPage;
-import org.diqube.data.colshard.ColumnShard;
-import org.diqube.data.colshard.StandardColumnShard;
+import org.diqube.data.column.ColumnPage;
+import org.diqube.data.column.ColumnShard;
+import org.diqube.data.column.StandardColumnShard;
+import org.diqube.data.dictionary.Dictionary;
 import org.diqube.execution.consumers.AbstractThreadedColumnBuiltConsumer;
 import org.diqube.execution.consumers.AbstractThreadedColumnVersionBuiltConsumer;
 import org.diqube.execution.consumers.AbstractThreadedRowIdConsumer;

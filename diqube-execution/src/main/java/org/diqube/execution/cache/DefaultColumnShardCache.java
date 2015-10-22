@@ -34,8 +34,8 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import org.diqube.data.TableShard;
-import org.diqube.data.colshard.ColumnShard;
+import org.diqube.data.column.ColumnShard;
+import org.diqube.data.table.TableShard;
 import org.diqube.util.DiqubeIterables;
 import org.diqube.util.Pair;
 import org.slf4j.Logger;

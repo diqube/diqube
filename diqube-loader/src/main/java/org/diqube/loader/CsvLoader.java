@@ -37,9 +37,9 @@ import java.util.stream.StreamSupport;
 import javax.inject.Inject;
 
 import org.diqube.context.AutoInstatiate;
-import org.diqube.data.TableFactory;
-import org.diqube.data.TableShard;
-import org.diqube.data.colshard.StandardColumnShard;
+import org.diqube.data.column.StandardColumnShard;
+import org.diqube.data.table.TableFactory;
+import org.diqube.data.table.TableShard;
 import org.diqube.loader.columnshard.ColumnShardBuilderFactory;
 import org.diqube.loader.columnshard.ColumnShardBuilderManager;
 import org.diqube.loader.util.ParallelLoadAndTransposeHelper;

@@ -18,12 +18,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.data;
+package org.diqube.data.table;
 
 import java.util.Collection;
 
 import org.diqube.context.AutoInstatiate;
-import org.diqube.data.colshard.StandardColumnShard;
+import org.diqube.data.column.StandardColumnShard;
 
 /**
  * A Factory for {@link Table} and {@link TableShard} objects.
@@ -36,7 +36,7 @@ public class TableFactory {
     return new TableShard(tableName, columns);
   }
 
-  public Table createTable(String name, Collection<TableShard> tableShards) {
-    return new Table(name, tableShards);
+  public DefaultTable createDefaultTable(String name, Collection<TableShard> tableShards) {
+    return new DefaultTable(name, tableShards);
   }
 }

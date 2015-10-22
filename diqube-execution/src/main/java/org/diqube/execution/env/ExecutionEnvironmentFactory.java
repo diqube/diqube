@@ -23,7 +23,7 @@ package org.diqube.execution.env;
 import javax.inject.Inject;
 
 import org.diqube.context.AutoInstatiate;
-import org.diqube.data.TableShard;
+import org.diqube.data.table.TableShard;
 import org.diqube.execution.cache.ColumnShardCacheRegistry;
 import org.diqube.queries.QueryRegistry;
 

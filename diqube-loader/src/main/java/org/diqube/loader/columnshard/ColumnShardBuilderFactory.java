@@ -23,8 +23,8 @@ package org.diqube.loader.columnshard;
 import javax.inject.Inject;
 
 import org.diqube.context.AutoInstatiate;
-import org.diqube.data.colshard.ColumnPageFactory;
-import org.diqube.data.colshard.ColumnShardFactory;
+import org.diqube.data.column.ColumnPageFactory;
+import org.diqube.data.column.ColumnShardFactory;
 import org.diqube.loader.LoaderColumnInfo;
 
 /**

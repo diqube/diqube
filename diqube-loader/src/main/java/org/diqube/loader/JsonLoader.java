@@ -48,10 +48,10 @@ import java.util.stream.StreamSupport;
 import javax.inject.Inject;
 
 import org.diqube.context.AutoInstatiate;
-import org.diqube.data.ColumnType;
-import org.diqube.data.TableFactory;
-import org.diqube.data.TableShard;
-import org.diqube.data.colshard.StandardColumnShard;
+import org.diqube.data.column.ColumnType;
+import org.diqube.data.column.StandardColumnShard;
+import org.diqube.data.table.TableFactory;
+import org.diqube.data.table.TableShard;
 import org.diqube.data.util.RepeatedColumnNameGenerator;
 import org.diqube.loader.JsonLoader.Parser.Handler;
 import org.diqube.loader.columnshard.ColumnShardBuilderFactory;

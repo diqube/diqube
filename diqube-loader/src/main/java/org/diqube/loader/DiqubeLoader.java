@@ -28,10 +28,10 @@ import java.util.Collection;
 import javax.inject.Inject;
 
 import org.diqube.context.AutoInstatiate;
-import org.diqube.data.TableShard;
-import org.diqube.data.colshard.AdjustableStandardColumnShard;
-import org.diqube.data.colshard.StandardColumnShard;
+import org.diqube.data.column.AdjustableStandardColumnShard;
+import org.diqube.data.column.StandardColumnShard;
 import org.diqube.data.serialize.DeserializationException;
+import org.diqube.data.table.TableShard;
 import org.diqube.file.DiqubeFileFactory;
 import org.diqube.file.DiqubeFileReader;
 import org.diqube.util.BigByteBuffer;

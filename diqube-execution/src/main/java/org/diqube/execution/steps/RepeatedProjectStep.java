@@ -41,9 +41,9 @@ import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
-import org.diqube.data.ColumnType;
-import org.diqube.data.colshard.ColumnShard;
-import org.diqube.data.colshard.ConstantColumnShard;
+import org.diqube.data.column.ColumnShard;
+import org.diqube.data.column.ColumnType;
+import org.diqube.data.column.ConstantColumnShard;
 import org.diqube.data.dbl.DoubleColumnShard;
 import org.diqube.data.lng.LongColumnShard;
 import org.diqube.data.str.StringColumnShard;

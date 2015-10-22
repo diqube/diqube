@@ -20,7 +20,7 @@
  */
 package org.diqube.function;
 
-import org.diqube.data.ColumnType;
+import org.diqube.data.column.ColumnType;
 import org.diqube.util.Triple;
 
 /**

@@ -30,7 +30,7 @@ import java.util.function.Supplier;
 import javax.annotation.PostConstruct;
 
 import org.diqube.context.AutoInstatiate;
-import org.diqube.data.ColumnType;
+import org.diqube.data.column.ColumnType;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.reflect.ClassPath;

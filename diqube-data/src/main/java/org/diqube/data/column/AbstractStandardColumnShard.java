@@ -18,7 +18,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.data.colshard;
+package org.diqube.data.column;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,9 +26,8 @@ import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.TreeMap;
 
-import org.diqube.data.ColumnType;
-import org.diqube.data.Dictionary;
-import org.diqube.data.SerializableDictionary;
+import org.diqube.data.dictionary.Dictionary;
+import org.diqube.data.dictionary.SerializableDictionary;
 import org.diqube.data.serialize.DeserializationException;
 import org.diqube.data.serialize.SerializationException;
 import org.diqube.data.serialize.thrift.v1.SColumnPage;
@@ -113,13 +112,16 @@ public abstract class AbstractStandardColumnShard implements StandardColumnShard
   }
 
   @Override
-  public void adjustToFirstRowId(long firstRowId) {
+  public void adjustToFirstRowId(long firstRowId) throws UnsupportedOperationException {
     long delta = firstRowId - pages.firstKey();
+
+    if (pages.values().stream().anyMatch(page -> !(page instanceof AdjustableColumnPage)))
+      throw new UnsupportedOperationException("Cannot adjust rowIDs, because not all ColumnPages are adjustable.");
 
     NavigableMap<Long, ColumnPage> newPages = new TreeMap<>();
     for (Entry<Long, ColumnPage> pageEntry : pages.entrySet()) {
       ColumnPage page = pageEntry.getValue();
-      page.setFirstRowId(page.getFirstRowId() + delta);
+      ((AdjustableColumnPage) page).setFirstRowId(page.getFirstRowId() + delta);
       newPages.put(pageEntry.getKey() + delta, page);
     }
 
@@ -167,7 +169,7 @@ public abstract class AbstractStandardColumnShard implements StandardColumnShard
     columnShardDictionary = mgr.deserializeChild(SerializableDictionary.class, source.getDictionary());
     pages = new TreeMap<>();
     for (SColumnPage serializedPage : source.getPages()) {
-      ColumnPage page = mgr.deserializeChild(ColumnPage.class, serializedPage);
+      ColumnPage page = mgr.deserializeChild(DefaultColumnPage.class, serializedPage);
       pages.put(page.getFirstRowId(), page);
     }
   }
