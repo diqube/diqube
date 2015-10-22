@@ -20,8 +20,8 @@
  */
 package org.diqube.execution.env.querystats;
 
-import org.diqube.data.str.StringColumnShard;
-import org.diqube.data.str.dict.StringDictionary;
+import org.diqube.data.types.str.StringColumnShard;
+import org.diqube.data.types.str.dict.StringDictionary;
 import org.diqube.queries.QueryRegistry;
 
 /**

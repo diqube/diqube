@@ -20,7 +20,7 @@
  */
 package org.diqube.execution.env.querystats;
 
-import org.diqube.data.dbl.DoubleColumnShard;
+import org.diqube.data.types.dbl.DoubleColumnShard;
 
 /**
  * A {@link QueryableColumnShard} for double columns.

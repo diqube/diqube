@@ -25,18 +25,18 @@ import java.util.NavigableMap;
 import javax.inject.Inject;
 
 import org.diqube.context.AutoInstatiate;
-import org.diqube.data.dbl.DoubleColumnShardFactory;
-import org.diqube.data.dbl.DoubleConstantColumnShard;
-import org.diqube.data.dbl.DoubleStandardColumnShard;
-import org.diqube.data.dbl.dict.DoubleDictionary;
-import org.diqube.data.lng.LongColumnShardFactory;
-import org.diqube.data.lng.LongConstantColumnShard;
-import org.diqube.data.lng.LongStandardColumnShard;
-import org.diqube.data.lng.dict.LongDictionary;
-import org.diqube.data.str.StringColumnShardFactory;
-import org.diqube.data.str.StringConstantColumnShard;
-import org.diqube.data.str.StringStandardColumnShard;
-import org.diqube.data.str.dict.StringDictionary;
+import org.diqube.data.types.dbl.DoubleColumnShardFactory;
+import org.diqube.data.types.dbl.DoubleConstantColumnShard;
+import org.diqube.data.types.dbl.DoubleStandardColumnShard;
+import org.diqube.data.types.dbl.dict.DoubleDictionary;
+import org.diqube.data.types.lng.LongColumnShardFactory;
+import org.diqube.data.types.lng.LongConstantColumnShard;
+import org.diqube.data.types.lng.LongStandardColumnShard;
+import org.diqube.data.types.lng.dict.LongDictionary;
+import org.diqube.data.types.str.StringColumnShardFactory;
+import org.diqube.data.types.str.StringConstantColumnShard;
+import org.diqube.data.types.str.StringStandardColumnShard;
+import org.diqube.data.types.str.dict.StringDictionary;
 
 /**
  * A Factory for implementations of {@link ColumnShard}.

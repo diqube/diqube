@@ -20,8 +20,8 @@
  */
 package org.diqube.execution.env.querystats;
 
-import org.diqube.data.dbl.DoubleColumnShard;
-import org.diqube.data.dbl.dict.DoubleDictionary;
+import org.diqube.data.types.dbl.DoubleColumnShard;
+import org.diqube.data.types.dbl.dict.DoubleDictionary;
 import org.diqube.queries.QueryRegistry;
 
 /**

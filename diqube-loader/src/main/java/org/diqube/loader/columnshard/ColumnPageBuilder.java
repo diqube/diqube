@@ -27,11 +27,11 @@ import java.util.NavigableMap;
 
 import org.diqube.data.column.ColumnPage;
 import org.diqube.data.column.ColumnPageFactory;
-import org.diqube.data.lng.array.BitEfficientLongArray;
-import org.diqube.data.lng.array.CompressedLongArray;
-import org.diqube.data.lng.array.RunLengthLongArray;
-import org.diqube.data.lng.array.TransitiveExplorableCompressedLongArray.TransitiveCompressionRatioCalculator;
-import org.diqube.data.lng.dict.LongDictionary;
+import org.diqube.data.types.lng.array.BitEfficientLongArray;
+import org.diqube.data.types.lng.array.CompressedLongArray;
+import org.diqube.data.types.lng.array.RunLengthLongArray;
+import org.diqube.data.types.lng.array.TransitiveExplorableCompressedLongArray.TransitiveCompressionRatioCalculator;
+import org.diqube.data.types.lng.dict.LongDictionary;
 import org.diqube.loader.compression.CompressedLongDictionaryBuilder;
 import org.diqube.util.Pair;
 import org.slf4j.Logger;

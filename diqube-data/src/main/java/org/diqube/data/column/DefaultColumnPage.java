@@ -20,14 +20,14 @@
  */
 package org.diqube.data.column;
 
-import org.diqube.data.lng.array.CompressedLongArray;
-import org.diqube.data.lng.dict.LongDictionary;
 import org.diqube.data.serialize.DataSerializable;
 import org.diqube.data.serialize.DeserializationException;
 import org.diqube.data.serialize.SerializationException;
 import org.diqube.data.serialize.thrift.v1.SColumnPage;
 import org.diqube.data.serialize.thrift.v1.SLongCompressedArray;
 import org.diqube.data.serialize.thrift.v1.SLongDictionary;
+import org.diqube.data.types.lng.array.CompressedLongArray;
+import org.diqube.data.types.lng.dict.LongDictionary;
 
 /**
  * Default implementation of {@link ColumnPage} which holds values that were loaded from data files e.g.

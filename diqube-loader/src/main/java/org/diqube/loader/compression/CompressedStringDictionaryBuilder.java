@@ -34,11 +34,11 @@ import java.util.stream.Stream;
 import org.apache.thrift.TBase;
 import org.diqube.data.serialize.DeserializationException;
 import org.diqube.data.serialize.SerializationException;
-import org.diqube.data.str.dict.ParentNode;
-import org.diqube.data.str.dict.StringDictionary;
-import org.diqube.data.str.dict.TerminalNode;
-import org.diqube.data.str.dict.TrieNode;
-import org.diqube.data.str.dict.TrieStringDictionary;
+import org.diqube.data.types.str.dict.ParentNode;
+import org.diqube.data.types.str.dict.StringDictionary;
+import org.diqube.data.types.str.dict.TerminalNode;
+import org.diqube.data.types.str.dict.TrieNode;
+import org.diqube.data.types.str.dict.TrieStringDictionary;
 import org.diqube.util.Pair;
 import org.diqube.util.SortedSetUnionStreamSupplier;
 

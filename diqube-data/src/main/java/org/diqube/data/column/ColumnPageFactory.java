@@ -21,8 +21,8 @@
 package org.diqube.data.column;
 
 import org.diqube.context.AutoInstatiate;
-import org.diqube.data.lng.array.CompressedLongArray;
-import org.diqube.data.lng.dict.LongDictionary;
+import org.diqube.data.types.lng.array.CompressedLongArray;
+import org.diqube.data.types.lng.dict.LongDictionary;
 
 /**
  * Factory for {@link ColumnPage}s.

@@ -25,7 +25,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.diqube.data.lng.dict.LongDictionary;
+import org.diqube.data.types.lng.dict.LongDictionary;
 import org.diqube.data.util.RepeatedColumnNameGenerator;
 import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.env.querystats.QueryableLongColumnShard;

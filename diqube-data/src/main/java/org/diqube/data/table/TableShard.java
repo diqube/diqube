@@ -28,15 +28,15 @@ import java.util.Map;
 
 import org.diqube.data.column.ColumnShard;
 import org.diqube.data.column.StandardColumnShard;
-import org.diqube.data.dbl.DoubleStandardColumnShard;
-import org.diqube.data.lng.LongStandardColumnShard;
 import org.diqube.data.serialize.DataSerializable;
 import org.diqube.data.serialize.DataSerialization;
 import org.diqube.data.serialize.DeserializationException;
 import org.diqube.data.serialize.SerializationException;
 import org.diqube.data.serialize.thrift.v1.SColumnShard;
 import org.diqube.data.serialize.thrift.v1.STableShard;
-import org.diqube.data.str.StringStandardColumnShard;
+import org.diqube.data.types.dbl.DoubleStandardColumnShard;
+import org.diqube.data.types.lng.LongStandardColumnShard;
+import org.diqube.data.types.str.StringStandardColumnShard;
 
 import com.google.common.collect.Iterables;
 

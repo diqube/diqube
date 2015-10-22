@@ -20,10 +20,10 @@
  */
 package org.diqube.data.column;
 
-import org.diqube.data.lng.array.CompressedLongArray;
-import org.diqube.data.lng.dict.LongDictionary;
 import org.diqube.data.serialize.DataSerialization;
 import org.diqube.data.serialize.thrift.v1.SColumnPage;
+import org.diqube.data.types.lng.array.CompressedLongArray;
+import org.diqube.data.types.lng.dict.LongDictionary;
 
 /**
  * {@link ColumnPage} holds the data of a specific set of consecutive rows of one {@link ColumnShard}.

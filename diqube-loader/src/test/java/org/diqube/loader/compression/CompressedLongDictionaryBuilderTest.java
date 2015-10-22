@@ -25,7 +25,7 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.TreeMap;
 
-import org.diqube.data.lng.dict.LongDictionary;
+import org.diqube.data.types.lng.dict.LongDictionary;
 import org.diqube.util.Pair;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;

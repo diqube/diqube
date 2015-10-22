@@ -21,9 +21,9 @@
 package org.diqube.execution;
 
 import org.diqube.data.column.ColumnShard;
-import org.diqube.data.dbl.DoubleColumnShard;
-import org.diqube.data.lng.LongColumnShard;
-import org.diqube.data.str.StringColumnShard;
+import org.diqube.data.types.dbl.DoubleColumnShard;
+import org.diqube.data.types.lng.LongColumnShard;
+import org.diqube.data.types.str.StringColumnShard;
 import org.diqube.execution.env.DelegatingExecutionEnvironment;
 import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.env.ExecutionEnvironmentFactory;

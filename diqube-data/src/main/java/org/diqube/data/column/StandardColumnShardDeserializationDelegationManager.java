@@ -21,14 +21,14 @@
 package org.diqube.data.column;
 
 import org.apache.thrift.TBase;
-import org.diqube.data.dbl.DoubleStandardColumnShard;
-import org.diqube.data.lng.LongStandardColumnShard;
 import org.diqube.data.serialize.DataSerialization;
 import org.diqube.data.serialize.DataSerializationDelegationManager;
 import org.diqube.data.serialize.DeserializationException;
 import org.diqube.data.serialize.SerializationException;
 import org.diqube.data.serialize.thrift.v1.SColumnShard;
-import org.diqube.data.str.StringStandardColumnShard;
+import org.diqube.data.types.dbl.DoubleStandardColumnShard;
+import org.diqube.data.types.lng.LongStandardColumnShard;
+import org.diqube.data.types.str.StringStandardColumnShard;
 import org.diqube.util.Pair;
 
 /**

@@ -27,10 +27,10 @@ import java.util.NavigableMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 
-import org.diqube.data.dbl.dict.DoubleDictionary;
-import org.diqube.data.dbl.dict.FpcDoubleDictionary;
-import org.diqube.data.dbl.dict.FpcPage;
-import org.diqube.data.dbl.dict.FpcPage.State;
+import org.diqube.data.types.dbl.dict.DoubleDictionary;
+import org.diqube.data.types.dbl.dict.FpcDoubleDictionary;
+import org.diqube.data.types.dbl.dict.FpcPage;
+import org.diqube.data.types.dbl.dict.FpcPage.State;
 import org.diqube.util.Pair;
 
 /**

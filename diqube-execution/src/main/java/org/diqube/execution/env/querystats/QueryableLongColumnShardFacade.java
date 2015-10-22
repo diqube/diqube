@@ -20,8 +20,8 @@
  */
 package org.diqube.execution.env.querystats;
 
-import org.diqube.data.lng.LongColumnShard;
-import org.diqube.data.lng.dict.LongDictionary;
+import org.diqube.data.types.lng.LongColumnShard;
+import org.diqube.data.types.lng.dict.LongDictionary;
 import org.diqube.queries.QueryRegistry;
 
 /**

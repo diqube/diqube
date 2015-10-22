@@ -20,7 +20,7 @@
  */
 package org.diqube.execution.env.querystats;
 
-import org.diqube.data.lng.LongColumnShard;
+import org.diqube.data.types.lng.LongColumnShard;
 
 /**
  * A {@link QueryableColumnShard} for long columns.

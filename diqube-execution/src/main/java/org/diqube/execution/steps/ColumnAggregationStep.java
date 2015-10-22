@@ -35,9 +35,9 @@ import java.util.stream.LongStream;
 
 import org.diqube.data.column.ColumnShard;
 import org.diqube.data.column.ColumnType;
-import org.diqube.data.dbl.DoubleColumnShard;
-import org.diqube.data.lng.LongColumnShard;
-import org.diqube.data.str.StringColumnShard;
+import org.diqube.data.types.dbl.DoubleColumnShard;
+import org.diqube.data.types.lng.LongColumnShard;
+import org.diqube.data.types.str.StringColumnShard;
 import org.diqube.execution.consumers.AbstractThreadedColumnBuiltConsumer;
 import org.diqube.execution.consumers.ColumnBuiltConsumer;
 import org.diqube.execution.consumers.DoneConsumer;

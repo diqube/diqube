@@ -20,7 +20,7 @@
  */
 package org.diqube.execution.env.querystats;
 
-import org.diqube.data.str.StringColumnShard;
+import org.diqube.data.types.str.StringColumnShard;
 
 /**
  * A {@link QueryableColumnShard} for string columns.

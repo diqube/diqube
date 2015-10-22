@@ -30,9 +30,9 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.diqube.data.column.ColumnShard;
-import org.diqube.data.dbl.DoubleColumnShard;
-import org.diqube.data.lng.LongColumnShard;
-import org.diqube.data.str.StringColumnShard;
+import org.diqube.data.types.dbl.DoubleColumnShard;
+import org.diqube.data.types.lng.LongColumnShard;
+import org.diqube.data.types.str.StringColumnShard;
 import org.diqube.execution.ColumnVersionManager;
 import org.diqube.execution.consumers.AbstractThreadedColumnValueConsumer;
 import org.diqube.execution.consumers.ColumnBuiltConsumer;

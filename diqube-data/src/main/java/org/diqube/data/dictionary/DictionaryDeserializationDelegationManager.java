@@ -21,11 +21,6 @@
 package org.diqube.data.dictionary;
 
 import org.apache.thrift.TBase;
-import org.diqube.data.dbl.dict.ConstantDoubleDictionary;
-import org.diqube.data.dbl.dict.FpcDoubleDictionary;
-import org.diqube.data.lng.dict.ArrayCompressedLongDictionary;
-import org.diqube.data.lng.dict.ConstantLongDictionary;
-import org.diqube.data.lng.dict.EmptyLongDictionary;
 import org.diqube.data.serialize.DataSerialization;
 import org.diqube.data.serialize.DataSerializationDelegationManager;
 import org.diqube.data.serialize.DeserializationException;
@@ -41,8 +36,13 @@ import org.diqube.data.serialize.thrift.v1.SLongDictionaryEmpty;
 import org.diqube.data.serialize.thrift.v1.SStringDictionary;
 import org.diqube.data.serialize.thrift.v1.SStringDictionaryConstant;
 import org.diqube.data.serialize.thrift.v1.SStringDictionaryTrie;
-import org.diqube.data.str.dict.ConstantStringDictionary;
-import org.diqube.data.str.dict.TrieStringDictionary;
+import org.diqube.data.types.dbl.dict.ConstantDoubleDictionary;
+import org.diqube.data.types.dbl.dict.FpcDoubleDictionary;
+import org.diqube.data.types.lng.dict.ArrayCompressedLongDictionary;
+import org.diqube.data.types.lng.dict.ConstantLongDictionary;
+import org.diqube.data.types.lng.dict.EmptyLongDictionary;
+import org.diqube.data.types.str.dict.ConstantStringDictionary;
+import org.diqube.data.types.str.dict.TrieStringDictionary;
 import org.diqube.util.Pair;
 
 /**
