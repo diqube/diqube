@@ -25,7 +25,7 @@ To create a Docker image, follow the instructions at
 Make sure you have the prerequisites installed:
 
  * Java 8
- * [Maven 3][1]
+ * [Maven 3][1] (>= 3.1)
  * [Apache Thrift][2] compiler 0.9.2
 
 In addition to that, you need to provide the location of the Thrift compiler executable to the maven build. Do this by
