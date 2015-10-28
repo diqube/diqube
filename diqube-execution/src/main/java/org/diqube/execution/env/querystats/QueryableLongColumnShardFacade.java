@@ -36,6 +36,13 @@ public class QueryableLongColumnShardFacade extends AbstractQueryableColumnShard
     super(delegate, isTempColumn, queryRegistry);
   }
 
+  /**
+   * Creates a {@link QueryableLongColumnShardFacade} that does not collect statistics.
+   */
+  public QueryableLongColumnShardFacade(LongColumnShard delegate) {
+    super(delegate, false, null);
+  }
+
   @Override
   public LongColumnShard getDelegate() {
     return (LongColumnShard) super.getDelegate();

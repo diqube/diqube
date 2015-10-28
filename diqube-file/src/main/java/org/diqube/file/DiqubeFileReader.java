@@ -35,6 +35,7 @@ import org.apache.thrift.transport.TIOStreamTransport;
 import org.diqube.data.serialize.DataDeserializer;
 import org.diqube.data.serialize.DataSerializer;
 import org.diqube.data.serialize.DeserializationException;
+import org.diqube.data.table.DefaultTableShard;
 import org.diqube.data.table.TableShard;
 import org.diqube.file.v1.SDiqubeFileFooter;
 import org.diqube.file.v1.SDiqubeFileFooterInfo;
@@ -181,8 +182,8 @@ public class DiqubeFileReader {
   /**
    * Deserializes all {@link TableShard}s stored in the file.
    */
-  public Collection<TableShard> loadAllTableShards() throws IOException, DeserializationException {
-    List<TableShard> res = new ArrayList<>();
+  public Collection<DefaultTableShard> loadAllTableShards() throws IOException, DeserializationException {
+    List<DefaultTableShard> res = new ArrayList<>();
 
     try (InputStream is = data.createInputStream()) {
       TIOStreamTransport transport = new TIOStreamTransport(is);
@@ -192,7 +193,7 @@ public class DiqubeFileReader {
       header.read(compactProt);
 
       for (int i = 0; i < getNumberOfTableShards(); i++) {
-        TableShard tableShard = deserializer.deserialize(TableShard.class, is);
+        DefaultTableShard tableShard = deserializer.deserialize(DefaultTableShard.class, is);
         res.add(tableShard);
       }
     } catch (TException e) {

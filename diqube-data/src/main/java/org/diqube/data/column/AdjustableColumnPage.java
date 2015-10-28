@@ -32,4 +32,9 @@ public interface AdjustableColumnPage extends ColumnPage {
    * called.
    */
   public void setFirstRowId(long firstRowId);
+
+  /**
+   * Sets the name of the colPage. Only to be used before the colPage is live.
+   */
+  public void setName(String name);
 }

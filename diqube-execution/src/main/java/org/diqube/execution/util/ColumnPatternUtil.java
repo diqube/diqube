@@ -38,6 +38,7 @@ import org.diqube.context.AutoInstatiate;
 import org.diqube.data.util.RepeatedColumnNameGenerator;
 import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.env.querystats.QueryableLongColumnShard;
+import org.diqube.execution.env.resolver.QueryableLongColumnShardResolver;
 
 import com.google.common.collect.Iterables;
 
@@ -55,18 +56,19 @@ public class ColumnPatternUtil {
   /**
    * Replaces all the [*] strings in the pattern with actual column indices.
    * 
-   * @param env
-   *          The {@link ExecutionEnvironment} that should be used to find "length" columns of the repeated fields.
+   * @param lengthColResolver
+   *          The {@link QueryableLongColumnShardResolver} that should be used to find "length" columns of the repeated
+   *          fields.
    * @param pattern
    *          The column name pattern
    * @return A {@link ColumnPatternContainer} that can provide the column names.
    * @throws LengthColumnMissingException
    *           in case a "length" column for one of the fields that are marked with "[*]" in the input pattern is not
-   *           available in the provided env.
+   *           available in the provided lengthColResolver.
    */
-  public ColumnPatternContainer findColNamesForColNamePattern(ExecutionEnvironment env, String pattern)
-      throws LengthColumnMissingException {
-    return findColNamesForColNamePattern(env, Arrays.asList(pattern));
+  public ColumnPatternContainer findColNamesForColNamePattern(QueryableLongColumnShardResolver lengthColResolver,
+      String pattern) throws LengthColumnMissingException {
+    return findColNamesForColNamePattern(lengthColResolver, Arrays.asList(pattern));
   }
 
   /**
@@ -112,8 +114,9 @@ public class ColumnPatternUtil {
    * a[1].b.c[1], a.x
    * </pre>
    * 
-   * @param env
-   *          The {@link ExecutionEnvironment} that should be used to find "length" columns of the repeated fields.
+   * @param lengthColResolver
+   *          The {@link QueryableLongColumnShardResolver} that should be used to find "length" columns of the repeated
+   *          fields.
    * @param patterns
    *          The patterns that should be resolved, adhering to the fact that they follow the same "path" (see above).
    * @return A {@link ColumnPatternContainer} that can be used to fetch the colnames.
@@ -121,10 +124,10 @@ public class ColumnPatternUtil {
    *           in case the patterns do not repeat on the same "path".
    * @throws LengthColumnMissingException
    *           In case a "length" column for one of the fields that are marked with "[*]" in the input patterns is not
-   *           available in the provided env.
+   *           available in the provided lengthColResolver.
    */
-  public ColumnPatternContainer findColNamesForColNamePattern(ExecutionEnvironment env, List<String> patterns)
-      throws PatternException, LengthColumnMissingException {
+  public ColumnPatternContainer findColNamesForColNamePattern(QueryableLongColumnShardResolver lengthColResolver,
+      List<String> patterns) throws PatternException, LengthColumnMissingException {
 
     if (patterns.size() > 1) {
       // Validate that patterns "repeat" in the same paths. For example the following is invalid:
@@ -174,7 +177,7 @@ public class ColumnPatternUtil {
       baseNames.add(newBaseNames);
     }
 
-    return new ColumnPatternContainer(env, baseNames);
+    return new ColumnPatternContainer(lengthColResolver, baseNames);
   }
 
   /** for tests */
@@ -208,7 +211,7 @@ public class ColumnPatternUtil {
    * Contains the actual column names of resolved patterns.
    */
   public class ColumnPatternContainer {
-    private final long MAX_LEN = Long.MIN_VALUE;
+    private static final long MAX_LEN = Long.MIN_VALUE;
 
     /**
      * Map from indices (for each occurrence of [*] one) to a list of {@link ConcatStringProvider}s, for each pattern
@@ -225,7 +228,7 @@ public class ColumnPatternUtil {
     private int longestPatternBaseNameIndex;
     /** number of [*] that need to be inserted. */
     private int numberOfStars;
-    private ExecutionEnvironment env;
+    private QueryableLongColumnShardResolver lengthColResolver;
 
     /**
      * 
@@ -234,9 +237,9 @@ public class ColumnPatternUtil {
      *          {@link ColumnPatternContainer} will then fill in indices "between" two of these baseNames. Note that all
      *          baseNames need to be along the same "path".
      */
-    private ColumnPatternContainer(ExecutionEnvironment env, List<List<String>> baseNames)
+    private ColumnPatternContainer(QueryableLongColumnShardResolver lengthColResolver, List<List<String>> baseNames)
         throws LengthColumnMissingException {
-      this.env = env;
+      this.lengthColResolver = lengthColResolver;
       this.baseNames = baseNames;
       numberOfStars = -1;
       for (int i = 0; i < baseNames.size(); i++)
@@ -304,7 +307,7 @@ public class ColumnPatternUtil {
 
       sb.append(baseNames.get(longestPatternBaseNameIndex).get(indices.size()));
       String lenColName = repeatedColNames.repeatedLength(sb.toString());
-      QueryableLongColumnShard res = env.getLongColumnShard(lenColName);
+      QueryableLongColumnShard res = lengthColResolver.getLongColumnShard(lenColName);
       if (res == null)
         throw new LengthColumnMissingException("Missing column " + lenColName);
       return res;

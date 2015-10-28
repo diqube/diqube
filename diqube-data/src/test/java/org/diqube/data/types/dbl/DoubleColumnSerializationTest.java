@@ -39,18 +39,17 @@ import org.diqube.data.serialize.DataSerialization;
 import org.diqube.data.serialize.DataSerializationManager;
 import org.diqube.data.serialize.DataSerializer;
 import org.diqube.data.serialize.DataSerializer.ObjectDoneConsumer;
+import org.diqube.data.serialize.DeserializationException;
+import org.diqube.data.serialize.SerializationException;
+import org.diqube.data.table.DefaultTableShard;
 import org.diqube.data.table.TableFactory;
 import org.diqube.data.table.TableShard;
-import org.diqube.data.types.dbl.DoubleColumnShardFactory;
-import org.diqube.data.types.dbl.DoubleStandardColumnShard;
 import org.diqube.data.types.dbl.dict.ConstantDoubleDictionary;
 import org.diqube.data.types.dbl.dict.DoubleDictionary;
 import org.diqube.data.types.dbl.dict.FpcDoubleDictionary;
 import org.diqube.data.types.dbl.dict.FpcPage;
 import org.diqube.data.types.lng.array.BitEfficientLongArray;
 import org.diqube.data.types.lng.dict.ArrayCompressedLongDictionary;
-import org.diqube.data.serialize.DeserializationException;
-import org.diqube.data.serialize.SerializationException;
 import org.diqube.util.Pair;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.testng.Assert;
@@ -105,7 +104,7 @@ public class DoubleColumnSerializationTest {
     Map<Long, Double> valuesBefore = getAllValues(p.getLeft(), p.getRight());
     serializer.serialize(p.getLeft(), outStream, NOOP);
     DataDeserializer deserializer = serializationManager.createDeserializer();
-    TableShard deserialized = (TableShard) ((DataSerialization<?>) deserializer.deserialize(TableShard.class,
+    TableShard deserialized = (TableShard) ((DataSerialization<?>) deserializer.deserialize(DefaultTableShard.class,
         new ByteArrayInputStream(outStream.toByteArray())));
 
     // THEN
@@ -125,7 +124,7 @@ public class DoubleColumnSerializationTest {
     Map<Long, Double> valuesBefore = getAllValues(p.getLeft(), p.getRight());
     serializer.serialize(p.getLeft(), outStream, NOOP);
     DataDeserializer deserializer = serializationManager.createDeserializer();
-    TableShard deserialized = (TableShard) ((DataSerialization<?>) deserializer.deserialize(TableShard.class,
+    TableShard deserialized = (TableShard) ((DataSerialization<?>) deserializer.deserialize(DefaultTableShard.class,
         new ByteArrayInputStream(outStream.toByteArray())));
 
     // THEN
@@ -147,7 +146,7 @@ public class DoubleColumnSerializationTest {
     serializer.serialize(p.getLeft(), outStream, NOOP);
 
     DataDeserializer deserializer = serializationManager.createDeserializer();
-    TableShard deserialized = (TableShard) ((DataSerialization<?>) deserializer.deserialize(TableShard.class,
+    TableShard deserialized = (TableShard) ((DataSerialization<?>) deserializer.deserialize(DefaultTableShard.class,
         new ByteArrayInputStream(outStream.toByteArray())));
 
     // THEN
@@ -168,7 +167,7 @@ public class DoubleColumnSerializationTest {
     Map<Long, Double> valuesBefore = getAllValues(p.getLeft(), p.getRight());
     serializer.serialize(p.getLeft(), outStream, NOOP);
     DataDeserializer deserializer = serializationManager.createDeserializer();
-    TableShard deserialized = (TableShard) ((DataSerialization<?>) deserializer.deserialize(TableShard.class,
+    TableShard deserialized = (TableShard) ((DataSerialization<?>) deserializer.deserialize(DefaultTableShard.class,
         new ByteArrayInputStream(outStream.toByteArray())));
 
     // THEN
@@ -188,7 +187,7 @@ public class DoubleColumnSerializationTest {
     Map<Long, Double> valuesBefore = getAllValues(p.getLeft(), p.getRight());
     serializer.serialize(p.getLeft(), outStream, NOOP);
     DataDeserializer deserializer = serializationManager.createDeserializer();
-    TableShard deserialized = (TableShard) ((DataSerialization<?>) deserializer.deserialize(TableShard.class,
+    TableShard deserialized = (TableShard) ((DataSerialization<?>) deserializer.deserialize(DefaultTableShard.class,
         new ByteArrayInputStream(outStream.toByteArray())));
 
     // THEN
@@ -241,7 +240,7 @@ public class DoubleColumnSerializationTest {
 
     DoubleStandardColumnShard col = doubleColumnShardFactory.createStandardDoubleColumnShard(COL, colPages, columnDict);
 
-    TableShard ts = tableFactory.createTableShard(TABLE, new ArrayList<>(Arrays.asList(col)));
+    TableShard ts = tableFactory.createDefaultTableShard(TABLE, new ArrayList<>(Arrays.asList(col)));
     return new Pair<>(ts, numberOfRowsPerShard * colPages.size());
   }
 

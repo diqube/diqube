@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel.MapMode;
 import java.util.Collection;
+import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
@@ -31,6 +32,7 @@ import org.diqube.context.AutoInstatiate;
 import org.diqube.data.column.AdjustableStandardColumnShard;
 import org.diqube.data.column.StandardColumnShard;
 import org.diqube.data.serialize.DeserializationException;
+import org.diqube.data.table.DefaultTableShard;
 import org.diqube.data.table.TableShard;
 import org.diqube.file.DiqubeFileFactory;
 import org.diqube.file.DiqubeFileReader;
@@ -78,18 +80,18 @@ public class DiqubeLoader implements Loader {
   @Override
   public Collection<TableShard> load(long firstRowId, BigByteBuffer buffer, String tableName,
       LoaderColumnInfo columnInfo) throws LoadException {
-    Collection<TableShard> tableShards;
+    Collection<DefaultTableShard> defaultTableShards;
     try {
       DiqubeFileReader reader = fileFactory.createDiqubeFileReader(buffer);
       logger.info("Loading data for table '{}' by deserializing it.", tableName);
-      tableShards = reader.loadAllTableShards();
+      defaultTableShards = reader.loadAllTableShards();
     } catch (DeserializationException | IOException e) {
       throw new LoadException("Could not deserialize data", e);
     }
 
     long nextFirstRowId = firstRowId;
     // adjust some data.
-    for (TableShard shard : tableShards) {
+    for (DefaultTableShard shard : defaultTableShards) {
       shard.setTableName(tableName);
       for (StandardColumnShard colShard : shard.getColumns().values())
         ((AdjustableStandardColumnShard) colShard).adjustToFirstRowId(nextFirstRowId);
@@ -98,7 +100,7 @@ public class DiqubeLoader implements Loader {
 
     logger.info("Successfully loaded data for table '{}', rowIds {}-{}.", tableName, firstRowId, nextFirstRowId - 1);
 
-    return tableShards;
+    return defaultTableShards.stream().map(s -> (TableShard) s).collect(Collectors.toList());
   }
 
 }

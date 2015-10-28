@@ -155,7 +155,7 @@ public class RowIdEqualsStepTest {
     for (String colName : columnShardBuilderManager.getAllColumnsWithValues())
       columns.add(columnShardBuilderManager.buildAndFree(colName));
 
-    return tableFactory.createTableShard("table", columns);
+    return tableFactory.createDefaultTableShard("table", columns);
   }
 
   private List<AbstractThreadedExecutablePlanStep> createIdEqualsAndResolveSteps(ExecutionEnvironment env,

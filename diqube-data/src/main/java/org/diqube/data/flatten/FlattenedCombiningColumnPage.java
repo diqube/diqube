@@ -20,61 +20,81 @@
  */
 package org.diqube.data.flatten;
 
-import java.util.List;
+import java.util.Set;
 
+import org.diqube.data.column.AdjustableColumnPage;
 import org.diqube.data.column.ColumnPage;
+import org.diqube.data.serialize.DataSerializableIgnore;
 import org.diqube.data.serialize.DeserializationException;
 import org.diqube.data.serialize.SerializationException;
 import org.diqube.data.serialize.thrift.v1.SColumnPage;
-import org.diqube.data.table.Table;
 import org.diqube.data.types.lng.array.CompressedLongArray;
 import org.diqube.data.types.lng.dict.LongDictionary;
-import org.diqube.util.Pair;
+import org.diqube.util.DiqubeCollectors;
 
 /**
- * A flattened {@link ColumnPage} which is created when flattening a {@link Table} by a specific (repeated) field name.
- * 
- * <p>
- * A {@link FlattenedColumnPage} does not hold any data itself, but delegates to possibly various {@link ColumnPage}s
- * from the original {@link Table} (the one which was flattened).
+ * TODO #27
  *
  * @author Bastian Gloeckle
  */
-public class FlattenedColumnPage implements ColumnPage {
+@DataSerializableIgnore
+public class FlattenedCombiningColumnPage implements AdjustableColumnPage {
 
-  /* package */ FlattenedColumnPage(String name, LongDictionary<?> colPageDict,
-      List<Pair<ColumnPage, List<Integer>>> delegatesAndIndicesToIgnore, long firstRowId) {
+  private String name;
+  private LongDictionary<?> colPageDict;
+  private long firstRowId;
+  private IndexRemovingCompressedLongArray values;
 
+  /* package */ FlattenedCombiningColumnPage(String name, LongDictionary<?> colPageDict, ColumnPage delegatePage,
+      Set<Long> notAvailableRowIds, long firstRowId) {
+    this.name = name;
+    this.colPageDict = colPageDict;
+    this.firstRowId = firstRowId;
+
+    values = new IndexRemovingCompressedLongArray(delegatePage.getValues(), //
+        notAvailableRowIds.stream().map(l -> (int) (l - delegatePage.getFirstRowId()))
+            .collect(DiqubeCollectors.toNavigableSet()),
+        0L);
   }
 
   @Override
   public LongDictionary<?> getColumnPageDict() {
-    return null;
+    return colPageDict;
   }
 
   @Override
   public CompressedLongArray<?> getValues() {
-    return null;
+    return values;
   }
 
   @Override
   public long getFirstRowId() {
-    return 0;
+    return firstRowId;
   }
 
   @Override
   public int size() {
-    return 0;
+    return values.size();
   }
 
   @Override
   public String getName() {
-    return null;
+    return name;
   }
 
   @Override
   public long calculateApproximateSizeInBytes() {
     return 0;
+  }
+
+  @Override
+  public void setFirstRowId(long firstRowId) {
+    this.firstRowId = firstRowId;
+  }
+
+  @Override
+  public void setName(String name) {
+    this.name = name;
   }
 
   @Override

@@ -20,25 +20,15 @@
  */
 package org.diqube.data.table;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.diqube.data.column.ColumnShard;
 import org.diqube.data.column.StandardColumnShard;
-import org.diqube.data.serialize.DataSerializable;
 import org.diqube.data.serialize.DataSerialization;
-import org.diqube.data.serialize.DeserializationException;
-import org.diqube.data.serialize.SerializationException;
-import org.diqube.data.serialize.thrift.v1.SColumnShard;
 import org.diqube.data.serialize.thrift.v1.STableShard;
 import org.diqube.data.types.dbl.DoubleStandardColumnShard;
 import org.diqube.data.types.lng.LongStandardColumnShard;
 import org.diqube.data.types.str.StringStandardColumnShard;
-
-import com.google.common.collect.Iterables;
 
 /**
  * A {@link TableShard} contains all data of a specific consecutive subset of rows of a {@link Table}.
@@ -48,114 +38,40 @@ import com.google.common.collect.Iterables;
  *
  * @author Bastian Gloeckle
  */
-@DataSerializable(thriftClass = STableShard.class)
-public class TableShard implements DataSerialization<STableShard> {
-  private Map<String, StringStandardColumnShard> stringColumns = new HashMap<>();
-  private Map<String, DoubleStandardColumnShard> doubleColumns = new HashMap<>();
-  private Map<String, LongStandardColumnShard> longColumns = new HashMap<>();
+public interface TableShard extends DataSerialization<STableShard> {
+  /**
+   * @return Map from col name to a string col.
+   */
+  public Map<String, StringStandardColumnShard> getStringColumns();
 
-  private String tableName;
+  /**
+   * @return Map from col name to a double col.
+   */
+  public Map<String, DoubleStandardColumnShard> getDoubleColumns();
 
-  /** for deserialization only */
-  public TableShard() {
-  }
+  /**
+   * @return Map from col name to a long col.
+   */
+  public Map<String, LongStandardColumnShard> getLongColumns();
 
-  /* package */ TableShard(String tableName, Collection<StandardColumnShard> columns) {
-    this.tableName = tableName;
-    for (ColumnShard col : columns) {
-      switch (col.getColumnType()) {
-      case STRING:
-        stringColumns.put(col.getName(), (StringStandardColumnShard) col);
-        break;
-      case LONG:
-        longColumns.put(col.getName(), (LongStandardColumnShard) col);
-        break;
-      case DOUBLE:
-        doubleColumns.put(col.getName(), (DoubleStandardColumnShard) col);
-        break;
-      }
-    }
-  }
-
-  public Map<String, StringStandardColumnShard> getStringColumns() {
-    return stringColumns;
-  }
-
-  public Map<String, DoubleStandardColumnShard> getDoubleColumns() {
-    return doubleColumns;
-  }
-
-  public Map<String, LongStandardColumnShard> getLongColumns() {
-    return longColumns;
-  }
-
-  public Map<String, StandardColumnShard> getColumns() {
-    Map<String, StandardColumnShard> res = new HashMap<>();
-    res.putAll(stringColumns);
-    res.putAll(longColumns);
-    res.putAll(doubleColumns);
-
-    return res;
-  }
+  /**
+   * @return Map from col name to a col. Contains all columns of the TableShard (= the union of
+   *         {@link #getStringColumns()}, {@link #getLongColumns()} and {@link #getDoubleColumns()}).
+   */
+  public Map<String, StandardColumnShard> getColumns();
 
   /**
    * @return The number of rows contained in this shard.
    */
-  public long getNumberOfRowsInShard() {
-    if (stringColumns.size() > 0)
-      return stringColumns.values().iterator().next().getNumberOfRowsInColumnShard();
-    if (doubleColumns.size() > 0)
-      return doubleColumns.values().iterator().next().getNumberOfRowsInColumnShard();
-    if (longColumns.size() > 0)
-      return longColumns.values().iterator().next().getNumberOfRowsInColumnShard();
-    return 0;
-  }
+  public long getNumberOfRowsInShard();
 
   /**
    * @return The lowest rowId stored in this TableShard. -1 if {@link #getNumberOfRowsInShard()} == 0.
    */
-  public long getLowestRowId() {
-    if (stringColumns.size() > 0)
-      return stringColumns.values().iterator().next().getPages().firstKey();
-    if (doubleColumns.size() > 0)
-      return doubleColumns.values().iterator().next().getPages().firstKey();
-    if (longColumns.size() > 0)
-      return longColumns.values().iterator().next().getPages().firstKey();
-    return -1;
-  }
+  public long getLowestRowId();
 
-  @Override
-  public void serialize(DataSerializationHelper mgr, STableShard target) throws SerializationException {
-    target.setTableName(tableName);
-    List<SColumnShard> serializedCols = new ArrayList<>();
-    for (StandardColumnShard shard : Iterables.concat(stringColumns.values(), longColumns.values(),
-        doubleColumns.values()))
-      serializedCols.add(mgr.serializeChild(SColumnShard.class, shard));
-    target.setColumnShards(serializedCols);
-  }
-
-  @Override
-  public void deserialize(DataSerializationHelper mgr, STableShard source) throws DeserializationException {
-    this.tableName = source.getTableName();
-    for (SColumnShard serCol : source.getColumnShards()) {
-      StandardColumnShard de = mgr.deserializeChild(StandardColumnShard.class, serCol);
-      if (de instanceof StringStandardColumnShard)
-        stringColumns.put(de.getName(), (StringStandardColumnShard) de);
-      else if (de instanceof LongStandardColumnShard)
-        longColumns.put(de.getName(), (LongStandardColumnShard) de);
-      else if (de instanceof DoubleStandardColumnShard)
-        doubleColumns.put(de.getName(), (DoubleStandardColumnShard) de);
-      else
-        throw new DeserializationException("Cannot deserialize column " + de.getName());
-    }
-  }
-
-  /** Only allowed to be called before the TableShard is registered in the TableRegistry! */
-  public void setTableName(String tableName) {
-    this.tableName = tableName;
-  }
-
-  public String getTableName() {
-    return tableName;
-  }
+  /**
+   * @return Name of the table this TableShard belongs to.
+   */
+  public String getTableName();
 }

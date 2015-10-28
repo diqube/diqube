@@ -299,7 +299,7 @@ public class GroupStepTest {
       columns.put(colName, newColumn);
     }
 
-    return tableFactory.createTableShard("table", columns.values());
+    return tableFactory.createDefaultTableShard("table", columns.values());
   }
 
   private List<AbstractThreadedExecutablePlanStep> createExecutableSteps(ExecutionEnvironment env, String[] resolveCols,

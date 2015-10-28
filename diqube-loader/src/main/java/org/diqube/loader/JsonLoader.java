@@ -209,7 +209,7 @@ public class JsonLoader implements Loader {
     }
 
     logger.info("Columns for new table shard of table {} created, creating TableShard...", tableName);
-    TableShard tableShard = tableFactory.createTableShard(tableName, columns);
+    TableShard tableShard = tableFactory.createDefaultTableShard(tableName, columns);
 
     logger.info(
         "Table shard for new table shard of table {} created successfully, it contains {} rows starting from rowId {}",

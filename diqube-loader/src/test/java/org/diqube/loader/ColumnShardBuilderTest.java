@@ -29,6 +29,7 @@ import org.diqube.data.column.ColumnPageFactory;
 import org.diqube.data.column.ColumnShard;
 import org.diqube.data.column.ColumnShardFactory;
 import org.diqube.data.dictionary.Dictionary;
+import org.diqube.data.types.str.DefaultStringStandardColumnShard;
 import org.diqube.data.types.str.StringStandardColumnShard;
 import org.diqube.data.types.str.dict.StringDictionary;
 import org.diqube.loader.columnshard.ColumnShardBuilder;
@@ -76,7 +77,7 @@ public class ColumnShardBuilderTest {
     ColumnShard abstractShard = builder.build();
 
     // THEN
-    Assert.assertEquals(StringStandardColumnShard.class, abstractShard.getClass(),
+    Assert.assertEquals(DefaultStringStandardColumnShard.class, abstractShard.getClass(),
         "StringStandardColumnShard expected");
     StringStandardColumnShard shard = (StringStandardColumnShard) abstractShard;
 

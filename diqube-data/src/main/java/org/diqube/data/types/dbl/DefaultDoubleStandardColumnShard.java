@@ -20,27 +20,34 @@
  */
 package org.diqube.data.types.dbl;
 
-import java.util.List;
+import java.util.NavigableMap;
 
+import org.diqube.data.column.AbstractStandardColumnShard;
 import org.diqube.data.column.ColumnPage;
 import org.diqube.data.column.ColumnType;
-import org.diqube.data.flatten.AbstractFlattenedStandardColumnShard;
+import org.diqube.data.column.StandardColumnShard;
 import org.diqube.data.types.dbl.dict.DoubleDictionary;
 
 /**
+ * A {@link StandardColumnShard} of a column containing double values.
  *
  * @author Bastian Gloeckle
  */
-public class FlattenedDoubleStandardColumnShard extends AbstractFlattenedStandardColumnShard
-    implements DoubleStandardColumnShard {
+public class DefaultDoubleStandardColumnShard extends AbstractStandardColumnShard implements DoubleStandardColumnShard {
 
-  /* package */ FlattenedDoubleStandardColumnShard(String name, DoubleDictionary<?> columnShardDict, long firstRowId,
-      List<ColumnPage> pages) {
-    super(name, ColumnType.DOUBLE, columnShardDict, firstRowId, pages);
+  /** for deserialization */
+  public DefaultDoubleStandardColumnShard() {
+    super();
+  }
+
+  DefaultDoubleStandardColumnShard(String name, NavigableMap<Long, ColumnPage> pages,
+      DoubleDictionary<?> columnDictionary) {
+    super(ColumnType.DOUBLE, name, pages, columnDictionary);
   }
 
   @Override
   public DoubleDictionary<?> getColumnShardDictionary() {
     return (DoubleDictionary<?>) super.getColumnShardDictionary();
   }
+
 }

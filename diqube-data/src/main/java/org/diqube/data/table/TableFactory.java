@@ -32,8 +32,8 @@ import org.diqube.data.column.StandardColumnShard;
  */
 @AutoInstatiate
 public class TableFactory {
-  public TableShard createTableShard(String tableName, Collection<StandardColumnShard> columns) {
-    return new TableShard(tableName, columns);
+  public DefaultTableShard createDefaultTableShard(String tableName, Collection<StandardColumnShard> columns) {
+    return new DefaultTableShard(tableName, columns);
   }
 
   public DefaultTable createDefaultTable(String name, Collection<TableShard> tableShards) {

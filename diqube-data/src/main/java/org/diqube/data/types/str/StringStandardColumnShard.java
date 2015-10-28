@@ -20,11 +20,7 @@
  */
 package org.diqube.data.types.str;
 
-import java.util.NavigableMap;
-
-import org.diqube.data.column.AbstractStandardColumnShard;
-import org.diqube.data.column.ColumnPage;
-import org.diqube.data.column.ColumnType;
+import org.diqube.data.column.StandardColumnShard;
 import org.diqube.data.types.str.dict.StringDictionary;
 
 /**
@@ -32,19 +28,8 @@ import org.diqube.data.types.str.dict.StringDictionary;
  *
  * @author Bastian Gloeckle
  */
-public class StringStandardColumnShard extends AbstractStandardColumnShard implements StringColumnShard {
-
-  /** for deserialization */
-  public StringStandardColumnShard() {
-    super();
-  }
-
-  StringStandardColumnShard(String name, NavigableMap<Long, ColumnPage> pages, StringDictionary<?> columnDictionary) {
-    super(ColumnType.STRING, name, pages, columnDictionary);
-  }
+public interface StringStandardColumnShard extends StandardColumnShard, StringColumnShard {
 
   @Override
-  public StringDictionary<?> getColumnShardDictionary() {
-    return (StringDictionary<?>) super.getColumnShardDictionary();
-  }
+  public StringDictionary<?> getColumnShardDictionary();
 }

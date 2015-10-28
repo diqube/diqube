@@ -57,6 +57,12 @@ public abstract class AbstractQueryableColumnShardFacade implements QueryableCol
   private QueryRegistry queryRegistry;
   private boolean isTempColumn;
 
+  /**
+   * @param isTempColumn
+   *          is ignored if queryRegistry == null.
+   * @param queryRegistry
+   *          Can be <code>null</code>, then no stats will be collected.
+   */
   public AbstractQueryableColumnShardFacade(ColumnShard delegate, boolean isTempColumn, QueryRegistry queryRegistry) {
     this.delegate = delegate;
     this.isTempColumn = isTempColumn;
@@ -111,9 +117,11 @@ public abstract class AbstractQueryableColumnShardFacade implements QueryableCol
               }
             } , DiqubeCollectors.toNavigableSet()));
 
-        QueryUuid.setCurrentThreadState(uuidState);
-        for (ColumnPage page : rowIdsByPage.keySet())
-          queryRegistry.getOrCreateCurrentStatsManager().registerPageAccess(page, isTempColumn);
+        if (queryRegistry != null) {
+          QueryUuid.setCurrentThreadState(uuidState);
+          for (ColumnPage page : rowIdsByPage.keySet())
+            queryRegistry.getOrCreateCurrentStatsManager().registerPageAccess(page, isTempColumn);
+        }
 
         Map<Long, Long> rowIdToColumnValueId =
             rowIdsByPage.entrySet().stream().parallel().filter(e -> e.getKey() != null)
@@ -185,7 +193,8 @@ public abstract class AbstractQueryableColumnShardFacade implements QueryableCol
       if (rowId >= page.getFirstRowId() + page.getValues().size())
         return -1;
 
-      queryRegistry.getOrCreateCurrentStatsManager().registerPageAccess(page, isTempColumn);
+      if (queryRegistry != null)
+        queryRegistry.getOrCreateCurrentStatsManager().registerPageAccess(page, isTempColumn);
 
       return page.getColumnPageDict().decompressValue(page.getValues().get((int) (rowId - page.getFirstRowId())));
     }

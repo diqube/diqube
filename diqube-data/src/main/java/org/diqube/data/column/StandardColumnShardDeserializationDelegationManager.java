@@ -26,9 +26,9 @@ import org.diqube.data.serialize.DataSerializationDelegationManager;
 import org.diqube.data.serialize.DeserializationException;
 import org.diqube.data.serialize.SerializationException;
 import org.diqube.data.serialize.thrift.v1.SColumnShard;
-import org.diqube.data.types.dbl.DoubleStandardColumnShard;
-import org.diqube.data.types.lng.LongStandardColumnShard;
-import org.diqube.data.types.str.StringStandardColumnShard;
+import org.diqube.data.types.dbl.DefaultDoubleStandardColumnShard;
+import org.diqube.data.types.lng.DefaultLongStandardColumnShard;
+import org.diqube.data.types.str.DefaultStringStandardColumnShard;
 import org.diqube.util.Pair;
 
 /**
@@ -45,13 +45,13 @@ public class StandardColumnShardDeserializationDelegationManager
     Class<? extends DataSerialization<?>> resClass;
     switch (serialized.getType()) {
     case STRING:
-      resClass = StringStandardColumnShard.class;
+      resClass = DefaultStringStandardColumnShard.class;
       break;
     case LONG:
-      resClass = LongStandardColumnShard.class;
+      resClass = DefaultLongStandardColumnShard.class;
       break;
     case DOUBLE:
-      resClass = DoubleStandardColumnShard.class;
+      resClass = DefaultDoubleStandardColumnShard.class;
       break;
     default:
       throw new DeserializationException("Cannot deserialize column shard: unknown type.");

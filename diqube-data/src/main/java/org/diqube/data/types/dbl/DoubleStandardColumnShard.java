@@ -20,11 +20,6 @@
  */
 package org.diqube.data.types.dbl;
 
-import java.util.NavigableMap;
-
-import org.diqube.data.column.AbstractStandardColumnShard;
-import org.diqube.data.column.ColumnPage;
-import org.diqube.data.column.ColumnType;
 import org.diqube.data.column.StandardColumnShard;
 import org.diqube.data.types.dbl.dict.DoubleDictionary;
 
@@ -33,20 +28,9 @@ import org.diqube.data.types.dbl.dict.DoubleDictionary;
  *
  * @author Bastian Gloeckle
  */
-public class DoubleStandardColumnShard extends AbstractStandardColumnShard implements DoubleColumnShard {
-
-  /** for deserialization */
-  public DoubleStandardColumnShard() {
-    super();
-  }
-
-  DoubleStandardColumnShard(String name, NavigableMap<Long, ColumnPage> pages, DoubleDictionary<?> columnDictionary) {
-    super(ColumnType.DOUBLE, name, pages, columnDictionary);
-  }
+public interface DoubleStandardColumnShard extends StandardColumnShard, DoubleColumnShard {
 
   @Override
-  public DoubleDictionary<?> getColumnShardDictionary() {
-    return (DoubleDictionary<?>) super.getColumnShardDictionary();
-  }
+  public DoubleDictionary<?> getColumnShardDictionary();
 
 }

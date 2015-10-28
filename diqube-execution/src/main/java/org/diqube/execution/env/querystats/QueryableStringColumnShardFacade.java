@@ -37,6 +37,13 @@ public class QueryableStringColumnShardFacade extends AbstractQueryableColumnSha
     super(delegate, isTempColumn, queryRegistry);
   }
 
+  /**
+   * Creates a {@link QueryableStringColumnShardFacade} that does not collect statistics.
+   */
+  public QueryableStringColumnShardFacade(StringColumnShard delegate) {
+    super(delegate, false, null);
+  }
+
   @Override
   public StringColumnShard getDelegate() {
     return (StringColumnShard) super.getDelegate();

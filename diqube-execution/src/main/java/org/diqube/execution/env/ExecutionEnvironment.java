@@ -34,9 +34,9 @@ import org.diqube.data.types.str.StringColumnShard;
 import org.diqube.execution.ExecutablePlanStep;
 import org.diqube.execution.cache.ColumnShardCache;
 import org.diqube.execution.env.querystats.QueryableColumnShard;
-import org.diqube.execution.env.querystats.QueryableDoubleColumnShard;
-import org.diqube.execution.env.querystats.QueryableLongColumnShard;
-import org.diqube.execution.env.querystats.QueryableStringColumnShard;
+import org.diqube.execution.env.resolver.QueryableDoubleColumnShardResolver;
+import org.diqube.execution.env.resolver.QueryableLongColumnShardResolver;
+import org.diqube.execution.env.resolver.QueryableStringColumnShardResolver;
 
 /**
  * The environment of an execution, which holds for example temporary data produced by some {@link ExecutablePlanStep}s
@@ -74,52 +74,8 @@ import org.diqube.execution.env.querystats.QueryableStringColumnShard;
  *
  * @author Bastian Gloeckle
  */
-public interface ExecutionEnvironment {
-
-  /**
-   * Returns a {@link QueryableLongColumnShard} for a specific column.
-   * 
-   * <p>
-   * That column shard can either be a temporary one or a "real" one from a {@link TableShard}.
-   * 
-   * <p>
-   * Note that this method might actually return a different instance each time called, but when a column for a name was
-   * returned once, there will be data available until this {@link ExecutionEnvironment} is at its end of life.
-   * 
-   * @return A {@link QueryableLongColumnShard} for the column with the given name or <code>null</code> if it does not
-   *         exist.
-   */
-  public QueryableLongColumnShard getLongColumnShard(String name);
-
-  /**
-   * Returns a {@link QueryableStringColumnShard} for a specific column.
-   * 
-   * <p>
-   * That column shard can either be a temporary one or a "real" one from a {@link TableShard}.
-   * 
-   * <p>
-   * Note that this method might actually return a different instance each time called, but when a column for a name was
-   * returned once, there will be data available until this {@link ExecutionEnvironment} is at its end of life.
-   * 
-   * @return A {@link QueryableStringColumnShard} for the column with the given name or <code>null</code> if it does not
-   *         exist.
-   */
-  public QueryableStringColumnShard getStringColumnShard(String name);
-
-  /**
-   * Returns a {@link QueryableDoubleColumnShard} for a specific column.
-   * 
-   * <p>
-   * That column shard can either be a temporary one or a "real" one from a {@link TableShard}.
-   * 
-   * <p>
-   * Note that this method might actually return a different instance each time called, but when a column for a name was
-   * returned once, there will be data available until this {@link ExecutionEnvironment} is at its end of life.
-   * 
-   * @return A {@link QueryableDoubleColumnShard} for the column with the given name or <code>null</code> if it does not
-   *         exist.
-   */
-  public QueryableDoubleColumnShard getDoubleColumnShard(String name);
+public interface ExecutionEnvironment
+    extends QueryableDoubleColumnShardResolver, QueryableLongColumnShardResolver, QueryableStringColumnShardResolver {
 
   /**
    * @return the {@link ColumnType} of a column that can be fetched with {@link #getColumnShard(String)},

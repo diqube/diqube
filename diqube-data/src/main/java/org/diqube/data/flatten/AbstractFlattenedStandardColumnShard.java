@@ -22,6 +22,7 @@ package org.diqube.data.flatten;
 
 import java.util.List;
 import java.util.NavigableMap;
+import java.util.TreeMap;
 
 import org.diqube.data.column.ColumnPage;
 import org.diqube.data.column.ColumnShard;
@@ -46,29 +47,42 @@ import org.diqube.data.table.Table;
  */
 public abstract class AbstractFlattenedStandardColumnShard implements StandardColumnShard {
 
-  protected AbstractFlattenedStandardColumnShard(String name, Dictionary<?> columnShardDict, long firstRowId,
-      List<ColumnPage> pages) {
+  private String name;
+  private ColumnType colType;
+  private Dictionary<?> columnShardDict;
+  private long firstRowId;
+  private NavigableMap<Long, ColumnPage> pages;
 
+  protected AbstractFlattenedStandardColumnShard(String name, ColumnType colType, Dictionary<?> columnShardDict,
+      long firstRowId, List<ColumnPage> pages) {
+    this.name = name;
+    this.colType = colType;
+    this.columnShardDict = columnShardDict;
+    this.firstRowId = firstRowId;
+    this.pages = new TreeMap<>();
+    for (ColumnPage page : pages) {
+      this.pages.put(page.getFirstRowId(), page);
+    }
   }
 
   @Override
   public String getName() {
-    return null;
+    return name;
   }
 
   @Override
   public Dictionary<?> getColumnShardDictionary() {
-    return null;
+    return columnShardDict;
   }
 
   @Override
   public ColumnType getColumnType() {
-    return null;
+    return colType;
   }
 
   @Override
   public long getFirstRowId() {
-    return 0;
+    return firstRowId;
   }
 
   @Override
@@ -78,12 +92,12 @@ public abstract class AbstractFlattenedStandardColumnShard implements StandardCo
 
   @Override
   public NavigableMap<Long, ColumnPage> getPages() {
-    return null;
+    return pages;
   }
 
   @Override
   public long getNumberOfRowsInColumnShard() {
-    return 0;
+    return pages.values().stream().mapToLong(page -> page.getValues().size()).sum();
   }
 
   @Override

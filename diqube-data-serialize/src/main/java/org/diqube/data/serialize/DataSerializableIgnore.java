@@ -18,29 +18,21 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.data.types.dbl;
+package org.diqube.data.serialize;
 
-import java.util.List;
-
-import org.diqube.data.column.ColumnPage;
-import org.diqube.data.column.ColumnType;
-import org.diqube.data.flatten.AbstractFlattenedStandardColumnShard;
-import org.diqube.data.types.dbl.dict.DoubleDictionary;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Inherited;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /**
+ * Ignores a specific class for data de-/serialization.
  *
  * @author Bastian Gloeckle
  */
-public class FlattenedDoubleStandardColumnShard extends AbstractFlattenedStandardColumnShard
-    implements DoubleStandardColumnShard {
-
-  /* package */ FlattenedDoubleStandardColumnShard(String name, DoubleDictionary<?> columnShardDict, long firstRowId,
-      List<ColumnPage> pages) {
-    super(name, ColumnType.DOUBLE, columnShardDict, firstRowId, pages);
-  }
-
-  @Override
-  public DoubleDictionary<?> getColumnShardDictionary() {
-    return (DoubleDictionary<?>) super.getColumnShardDictionary();
-  }
+@Target(value = ElementType.TYPE)
+@Retention(RetentionPolicy.RUNTIME)
+@Inherited
+public @interface DataSerializableIgnore {
 }

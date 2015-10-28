@@ -18,29 +18,35 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.data.types.dbl;
+package org.diqube.data.types.lng;
 
-import java.util.List;
+import java.util.NavigableMap;
 
+import org.diqube.data.column.AbstractStandardColumnShard;
 import org.diqube.data.column.ColumnPage;
 import org.diqube.data.column.ColumnType;
-import org.diqube.data.flatten.AbstractFlattenedStandardColumnShard;
-import org.diqube.data.types.dbl.dict.DoubleDictionary;
+import org.diqube.data.column.StandardColumnShard;
+import org.diqube.data.types.lng.dict.LongDictionary;
 
 /**
+ * A {@link StandardColumnShard} of a column containing long values.
  *
  * @author Bastian Gloeckle
  */
-public class FlattenedDoubleStandardColumnShard extends AbstractFlattenedStandardColumnShard
-    implements DoubleStandardColumnShard {
+public class DefaultLongStandardColumnShard extends AbstractStandardColumnShard implements LongStandardColumnShard {
 
-  /* package */ FlattenedDoubleStandardColumnShard(String name, DoubleDictionary<?> columnShardDict, long firstRowId,
-      List<ColumnPage> pages) {
-    super(name, ColumnType.DOUBLE, columnShardDict, firstRowId, pages);
+  /** for deserialization */
+  public DefaultLongStandardColumnShard() {
+    super();
+  }
+
+  DefaultLongStandardColumnShard(String name, NavigableMap<Long, ColumnPage> pages,
+      LongDictionary<?> columnDictionary) {
+    super(ColumnType.LONG, name, pages, columnDictionary);
   }
 
   @Override
-  public DoubleDictionary<?> getColumnShardDictionary() {
-    return (DoubleDictionary<?>) super.getColumnShardDictionary();
+  public LongDictionary<?> getColumnShardDictionary() {
+    return (LongDictionary<?>) super.getColumnShardDictionary();
   }
 }

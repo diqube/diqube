@@ -18,29 +18,38 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.data.types.dbl;
+package org.diqube.data.flatten;
 
-import java.util.List;
+import java.util.Collection;
+import java.util.Collections;
 
-import org.diqube.data.column.ColumnPage;
-import org.diqube.data.column.ColumnType;
-import org.diqube.data.flatten.AbstractFlattenedStandardColumnShard;
-import org.diqube.data.types.dbl.dict.DoubleDictionary;
+import org.diqube.data.table.Table;
+import org.diqube.data.table.TableShard;
 
 /**
- *
+ * A flattened {@link Table}, which is based on a delegate normal {@link Table} but was flattened on a specific
+ * (repeated) column.
+ * 
  * @author Bastian Gloeckle
  */
-public class FlattenedDoubleStandardColumnShard extends AbstractFlattenedStandardColumnShard
-    implements DoubleStandardColumnShard {
+public class FlattenedTable implements Table {
 
-  /* package */ FlattenedDoubleStandardColumnShard(String name, DoubleDictionary<?> columnShardDict, long firstRowId,
-      List<ColumnPage> pages) {
-    super(name, ColumnType.DOUBLE, columnShardDict, firstRowId, pages);
+  private String name;
+  private Collection<TableShard> shards;
+
+  /* package */ FlattenedTable(String name, Collection<TableShard> shards) {
+    this.name = name;
+    this.shards = shards;
   }
 
   @Override
-  public DoubleDictionary<?> getColumnShardDictionary() {
-    return (DoubleDictionary<?>) super.getColumnShardDictionary();
+  public String getName() {
+    return name;
   }
+
+  @Override
+  public Collection<TableShard> getShards() {
+    return Collections.unmodifiableCollection(shards);
+  }
+
 }

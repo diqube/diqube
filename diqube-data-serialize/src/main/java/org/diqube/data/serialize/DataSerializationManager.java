@@ -87,6 +87,9 @@ public class DataSerializationManager {
       allClasses.add(clazz);
       while (!allClasses.isEmpty()) {
         Class<?> curClazz = allClasses.pop();
+        if (curClazz.getDeclaredAnnotation(DataSerializableIgnore.class) != null)
+          break;
+
         DataSerializable ann = curClazz.getDeclaredAnnotation(DataSerializable.class);
         if (ann != null) {
           @SuppressWarnings("unchecked")

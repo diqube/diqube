@@ -40,10 +40,11 @@ import org.diqube.data.serialize.DataSerialization;
 import org.diqube.data.serialize.DataSerializationManager;
 import org.diqube.data.serialize.DataSerializer;
 import org.diqube.data.serialize.DataSerializer.ObjectDoneConsumer;
+import org.diqube.data.serialize.DeserializationException;
+import org.diqube.data.serialize.SerializationException;
+import org.diqube.data.table.DefaultTableShard;
 import org.diqube.data.table.TableFactory;
 import org.diqube.data.table.TableShard;
-import org.diqube.data.types.lng.LongColumnShardFactory;
-import org.diqube.data.types.lng.LongStandardColumnShard;
 import org.diqube.data.types.lng.array.BitEfficientLongArray;
 import org.diqube.data.types.lng.array.ExplorableCompressedLongArray;
 import org.diqube.data.types.lng.array.ReferenceBasedLongArray;
@@ -52,8 +53,6 @@ import org.diqube.data.types.lng.dict.ArrayCompressedLongDictionary;
 import org.diqube.data.types.lng.dict.ConstantLongDictionary;
 import org.diqube.data.types.lng.dict.EmptyLongDictionary;
 import org.diqube.data.types.lng.dict.LongDictionary;
-import org.diqube.data.serialize.DeserializationException;
-import org.diqube.data.serialize.SerializationException;
 import org.diqube.util.Pair;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.testng.Assert;
@@ -108,7 +107,7 @@ public class LongColumnSerializationTest {
     Map<Long, Long> valuesBefore = getAllValues(p.getLeft(), p.getRight());
     serializer.serialize(p.getLeft(), outStream, NOOP);
     DataDeserializer deserializer = serializationManager.createDeserializer();
-    TableShard deserialized = (TableShard) ((DataSerialization<?>) deserializer.deserialize(TableShard.class,
+    TableShard deserialized = (TableShard) ((DataSerialization<?>) deserializer.deserialize(DefaultTableShard.class,
         new ByteArrayInputStream(outStream.toByteArray())));
 
     // THEN
@@ -128,7 +127,7 @@ public class LongColumnSerializationTest {
     Map<Long, Long> valuesBefore = getAllValues(p.getLeft(), p.getRight());
     serializer.serialize(p.getLeft(), outStream, NOOP);
     DataDeserializer deserializer = serializationManager.createDeserializer();
-    TableShard deserialized = (TableShard) ((DataSerialization<?>) deserializer.deserialize(TableShard.class,
+    TableShard deserialized = (TableShard) ((DataSerialization<?>) deserializer.deserialize(DefaultTableShard.class,
         new ByteArrayInputStream(outStream.toByteArray())));
 
     // THEN
@@ -148,7 +147,7 @@ public class LongColumnSerializationTest {
     Map<Long, Long> valuesBefore = getAllValues(p.getLeft(), p.getRight());
     serializer.serialize(p.getLeft(), outStream, NOOP);
     DataDeserializer deserializer = serializationManager.createDeserializer();
-    TableShard deserialized = (TableShard) ((DataSerialization<?>) deserializer.deserialize(TableShard.class,
+    TableShard deserialized = (TableShard) ((DataSerialization<?>) deserializer.deserialize(DefaultTableShard.class,
         new ByteArrayInputStream(outStream.toByteArray())));
 
     // THEN
@@ -168,7 +167,7 @@ public class LongColumnSerializationTest {
     Map<Long, Long> valuesBefore = getAllValues(p.getLeft(), p.getRight());
     serializer.serialize(p.getLeft(), outStream, NOOP);
     DataDeserializer deserializer = serializationManager.createDeserializer();
-    TableShard deserialized = (TableShard) ((DataSerialization<?>) deserializer.deserialize(TableShard.class,
+    TableShard deserialized = (TableShard) ((DataSerialization<?>) deserializer.deserialize(DefaultTableShard.class,
         new ByteArrayInputStream(outStream.toByteArray())));
 
     // THEN
@@ -188,7 +187,7 @@ public class LongColumnSerializationTest {
     Map<Long, Long> valuesBefore = getAllValues(p.getLeft(), p.getRight());
     serializer.serialize(p.getLeft(), outStream, NOOP);
     DataDeserializer deserializer = serializationManager.createDeserializer();
-    TableShard deserialized = (TableShard) ((DataSerialization<?>) deserializer.deserialize(TableShard.class,
+    TableShard deserialized = (TableShard) ((DataSerialization<?>) deserializer.deserialize(DefaultTableShard.class,
         new ByteArrayInputStream(outStream.toByteArray())));
 
     // THEN
@@ -208,7 +207,7 @@ public class LongColumnSerializationTest {
     Map<Long, Long> valuesBefore = getAllValues(p.getLeft(), p.getRight());
     serializer.serialize(p.getLeft(), outStream, NOOP);
     DataDeserializer deserializer = serializationManager.createDeserializer();
-    TableShard deserialized = (TableShard) ((DataSerialization<?>) deserializer.deserialize(TableShard.class,
+    TableShard deserialized = (TableShard) ((DataSerialization<?>) deserializer.deserialize(DefaultTableShard.class,
         new ByteArrayInputStream(outStream.toByteArray())));
 
     // THEN
@@ -228,7 +227,7 @@ public class LongColumnSerializationTest {
     Map<Long, Long> valuesBefore = getAllValues(p.getLeft(), p.getRight());
     serializer.serialize(p.getLeft(), outStream, NOOP);
     DataDeserializer deserializer = serializationManager.createDeserializer();
-    TableShard deserialized = (TableShard) ((DataSerialization<?>) deserializer.deserialize(TableShard.class,
+    TableShard deserialized = (TableShard) ((DataSerialization<?>) deserializer.deserialize(DefaultTableShard.class,
         new ByteArrayInputStream(outStream.toByteArray())));
 
     // THEN
@@ -248,7 +247,7 @@ public class LongColumnSerializationTest {
     Map<Long, Long> valuesBefore = getAllValues(p.getLeft(), p.getRight());
     serializer.serialize(p.getLeft(), outStream, NOOP);
     DataDeserializer deserializer = serializationManager.createDeserializer();
-    TableShard deserialized = (TableShard) ((DataSerialization<?>) deserializer.deserialize(TableShard.class,
+    TableShard deserialized = (TableShard) ((DataSerialization<?>) deserializer.deserialize(DefaultTableShard.class,
         new ByteArrayInputStream(outStream.toByteArray())));
 
     // THEN
@@ -305,7 +304,7 @@ public class LongColumnSerializationTest {
 
     LongStandardColumnShard col = longColumnShardFactory.createStandardLongColumnShard(COL, colPages, columnDict);
 
-    TableShard ts = tableFactory.createTableShard(TABLE, new ArrayList<>(Arrays.asList(col)));
+    TableShard ts = tableFactory.createDefaultTableShard(TABLE, new ArrayList<>(Arrays.asList(col)));
 
     return new Pair<>(ts, numberOfRowsPerShard * colPages.size());
   }

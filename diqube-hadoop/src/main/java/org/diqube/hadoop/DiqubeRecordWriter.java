@@ -255,7 +255,7 @@ public class DiqubeRecordWriter extends RecordWriter<NullWritable, DiqubeRow> {
     logger.info("Columns created, preparing to write new TableShard to output..");
 
     TableFactory tableFactory = ctx.getBean(TableFactory.class);
-    TableShard tableShard = tableFactory.createTableShard(
+    TableShard tableShard = tableFactory.createDefaultTableShard(
         // this tableName will be overwritten when importing the data into a diqube-server.
         "hadoop_created", colShards);
 

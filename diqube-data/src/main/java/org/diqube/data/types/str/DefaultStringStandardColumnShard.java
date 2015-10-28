@@ -18,29 +18,34 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.data.types.dbl;
+package org.diqube.data.types.str;
 
-import java.util.List;
+import java.util.NavigableMap;
 
+import org.diqube.data.column.AbstractStandardColumnShard;
 import org.diqube.data.column.ColumnPage;
 import org.diqube.data.column.ColumnType;
-import org.diqube.data.flatten.AbstractFlattenedStandardColumnShard;
-import org.diqube.data.types.dbl.dict.DoubleDictionary;
+import org.diqube.data.types.str.dict.StringDictionary;
 
 /**
+ * A {@link StringColumnShard} of a column containing string values.
  *
  * @author Bastian Gloeckle
  */
-public class FlattenedDoubleStandardColumnShard extends AbstractFlattenedStandardColumnShard
-    implements DoubleStandardColumnShard {
+public class DefaultStringStandardColumnShard extends AbstractStandardColumnShard implements StringStandardColumnShard {
 
-  /* package */ FlattenedDoubleStandardColumnShard(String name, DoubleDictionary<?> columnShardDict, long firstRowId,
-      List<ColumnPage> pages) {
-    super(name, ColumnType.DOUBLE, columnShardDict, firstRowId, pages);
+  /** for deserialization */
+  public DefaultStringStandardColumnShard() {
+    super();
+  }
+
+  DefaultStringStandardColumnShard(String name, NavigableMap<Long, ColumnPage> pages,
+      StringDictionary<?> columnDictionary) {
+    super(ColumnType.STRING, name, pages, columnDictionary);
   }
 
   @Override
-  public DoubleDictionary<?> getColumnShardDictionary() {
-    return (DoubleDictionary<?>) super.getColumnShardDictionary();
+  public StringDictionary<?> getColumnShardDictionary() {
+    return (StringDictionary<?>) super.getColumnShardDictionary();
   }
 }

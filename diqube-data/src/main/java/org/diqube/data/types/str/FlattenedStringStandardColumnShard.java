@@ -23,6 +23,7 @@ package org.diqube.data.types.str;
 import java.util.List;
 
 import org.diqube.data.column.ColumnPage;
+import org.diqube.data.column.ColumnType;
 import org.diqube.data.flatten.AbstractFlattenedStandardColumnShard;
 import org.diqube.data.types.str.dict.StringDictionary;
 
@@ -31,11 +32,11 @@ import org.diqube.data.types.str.dict.StringDictionary;
  * @author Bastian Gloeckle
  */
 public class FlattenedStringStandardColumnShard extends AbstractFlattenedStandardColumnShard
-    implements StringColumnShard {
+    implements StringStandardColumnShard {
 
   /* package */ FlattenedStringStandardColumnShard(String name, StringDictionary<?> columnShardDict, long firstRowId,
       List<ColumnPage> pages) {
-    super(name, columnShardDict, firstRowId, pages);
+    super(name, ColumnType.STRING, columnShardDict, firstRowId, pages);
   }
 
   @Override

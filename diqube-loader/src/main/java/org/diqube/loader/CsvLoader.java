@@ -202,7 +202,7 @@ public class CsvLoader implements Loader {
     }
 
     logger.info("Columns for new table shard of table {} created, creating table shard...", tableName);
-    TableShard tableShard = tableFactory.createTableShard(tableName, columns);
+    TableShard tableShard = tableFactory.createDefaultTableShard(tableName, columns);
 
     logger.info("Table shard for table {} created successfully.", tableName);
     return Arrays.asList(tableShard);
