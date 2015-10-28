@@ -23,6 +23,7 @@ package org.diqube.data.types.dbl.dict;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -43,6 +44,7 @@ import org.diqube.data.serialize.thrift.v1.SDoubleDictionaryFpc;
 import org.diqube.data.serialize.thrift.v1.SDoubleDictionaryFpcPage;
 import org.diqube.util.DiqubeCollectors;
 import org.diqube.util.DoubleUtil;
+import org.diqube.util.Pair;
 
 import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
@@ -593,6 +595,13 @@ public class FpcDoubleDictionary implements DoubleDictionary<SDoubleDictionaryFp
         pagesSize + //
         24 // other small fields
         ;
+  }
+
+  @Override
+  public Iterator<Pair<Long, Double>> iterator() {
+    List<Iterator<Pair<Long, Double>>> pageIterators =
+        pages.values().stream().map(page -> page.iterator()).collect(Collectors.toList());
+    return Iterators.concat(pageIterators.iterator());
   }
 
   /**

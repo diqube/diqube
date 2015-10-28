@@ -23,19 +23,23 @@ package org.diqube.data.types.lng.compression;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
 import org.diqube.data.types.lng.array.BitEfficientLongArray;
 import org.diqube.data.types.lng.array.CompressedLongArray;
 import org.diqube.data.types.lng.dict.ArrayCompressedLongDictionary;
 import org.diqube.data.types.lng.dict.ConstantLongDictionary;
+import org.diqube.util.Pair;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import com.google.common.collect.HashBiMap;
+import com.google.common.collect.Lists;
 
 /**
  * Tests {@link ArrayCompressedLongDictionary}.
@@ -943,5 +947,15 @@ public class ArrayCompressedLongDictionaryTest {
     expected = new HashMap<>();
     expected.put(0L, -1L);
     Assert.assertEquals(expected, gtEq);
+  }
+
+  @Test
+  public void iteratorTest() {
+    List<Pair<Long, Long>> expected =
+        LongStream.range(0L, MAX_ID + 1).mapToObj(l -> new Pair<>(l, l + ID_VALUE_DELTA)).collect(Collectors.toList());
+
+    Assert.assertEquals(Lists.newArrayList(dict.iterator()), expected,
+        "Expected that iterator returns correct values.");
+
   }
 }

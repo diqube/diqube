@@ -23,16 +23,24 @@ package org.diqube.data.dictionary;
 import java.util.NavigableMap;
 import java.util.Set;
 
+import org.diqube.util.Pair;
+
 /**
  * An arbitrary dictionary, mapping values to long IDs.
  * 
+ * <p>
  * The first ID to be used is always 0L.
  * 
+ * <p>
  * See sub-interfaces.
+ * 
+ * <p>
+ * All {@link Dictionary}s are {@link Iterable} - they iterate over {@link Pair}s of the ID and value of an entry in a
+ * sorted way.
  *
  * @author Bastian Gloeckle
  */
-public interface Dictionary<T> {
+public interface Dictionary<T> extends Iterable<Pair<Long, T>> {
   /**
    * The maximum ID of the values in this dictionary or <code>null</code> if there are no entries at all.
    */

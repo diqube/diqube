@@ -22,6 +22,7 @@ package org.diqube.data.types.dbl.dict;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
@@ -33,6 +34,8 @@ import org.diqube.data.serialize.SerializationException;
 import org.diqube.data.serialize.thrift.v1.SDoubleDictionaryFpcPage;
 import org.diqube.data.serialize.thrift.v1.SDoubleDictionaryFpcState;
 import org.diqube.util.DoubleUtil;
+import org.diqube.util.Holder;
+import org.diqube.util.Pair;
 
 /**
  * Contains a sub-set of double values of a {@link FpcDoubleDictionary} in a compressed form.
@@ -54,7 +57,7 @@ import org.diqube.util.DoubleUtil;
  * @author Bastian Gloeckle
  */
 @DataSerializable(thriftClass = SDoubleDictionaryFpcPage.class)
-public class FpcPage implements DataSerialization<SDoubleDictionaryFpcPage> {
+public class FpcPage implements DataSerialization<SDoubleDictionaryFpcPage>, Iterable<Pair<Long, Double>> {
   public static final int HASH_TABLE_SIZE = 16; // 1 kB, needs to be a power of 2.
 
   private static final byte FCM = 0;
@@ -176,65 +179,85 @@ public class FpcPage implements DataSerialization<SDoubleDictionaryFpcPage> {
   }
 
   /**
-   * Decompress the values.
+   * Decompress all values.
    * 
    * @param callback
    *          When a new value has been decompressed the callback is called and the caller can act accordingly.
    */
   private void decompress(DecompressCallback callback) {
-    long[] fcmHashTable;
-    long[] dfcmHashTable;
-    byte fcmHash;
-    byte dfcmHash;
-    long lastValue;
-
-    if (startState != null) {
-      fcmHashTable = Arrays.copyOf(startState.fcmHashTable, startState.fcmHashTable.length);
-      dfcmHashTable = Arrays.copyOf(startState.dfcmHashTable, startState.dfcmHashTable.length);
-      fcmHash = startState.fcmHash;
-      dfcmHash = startState.dfcmHash;
-      lastValue = startState.lastValue;
-    } else {
-      fcmHashTable = new long[HASH_TABLE_SIZE];
-      dfcmHashTable = new long[HASH_TABLE_SIZE];
-      fcmHash = 0;
-      dfcmHash = 0;
-      lastValue = 0;
-    }
+    State curState = createInitialDecompressState();
 
     boolean continueProcessing = true;
-    int dataPos = 0;
+    Holder<Integer> dataPos = new Holder<Integer>(0);
     int curIndex = 0;
     do {
-      byte mgmtByte = data[dataPos];
-      byte numberOfLeadingZeroBytes = (byte) (mgmtByte & 7);
-      byte numberOfRemainingBytes = (byte) (8 - numberOfLeadingZeroBytes);
-      byte compressionMethod = (byte) ((mgmtByte & 8) >>> 3);
+      double value = decompressNext(dataPos, curState);
 
-      long xoredValue = 0;
-      for (int byteChunk = 0; byteChunk < numberOfRemainingBytes; byteChunk++)
-        xoredValue |= (data[dataPos + 1 + byteChunk] & 0xffL) << (byteChunk * 8);
+      continueProcessing = callback.decompressed(curIndex++, value);
+    } while (continueProcessing && curIndex < size);
+  }
 
-      long fcmPrediction = fcmHashTable[fcmHash];
-      long dfcmPrediction = dfcmHashTable[dfcmHash] + lastValue;
+  /**
+   * Decompress a value at a specific location and move forward.
+   * 
+   * @param dataPosHolder
+   *          The holder of the position in {@link #data} where the to-be-read entry starts. This holder will be updated
+   *          with the location of the next entry upon method return.
+   * @param state
+   *          The state that was valid at the end of the decompression of the previous value. If the first value in
+   *          {@link #data} should be decompressed, pass in the result of {@link #createInitialDecompressState()}.
+   * @return The decompressed double value.
+   */
+  private double decompressNext(Holder<Integer> dataPosHolder, State state) {
+    int dataPos = dataPosHolder.getValue();
+    byte mgmtByte = data[dataPos];
+    byte numberOfLeadingZeroBytes = (byte) (mgmtByte & 7);
+    byte numberOfRemainingBytes = (byte) (8 - numberOfLeadingZeroBytes);
+    byte compressionMethod = (byte) ((mgmtByte & 8) >>> 3);
 
-      long value;
-      if (compressionMethod == FCM)
-        value = xoredValue ^ fcmPrediction;
-      else
-        value = xoredValue ^ dfcmPrediction;
+    long xoredValue = 0;
+    for (int byteChunk = 0; byteChunk < numberOfRemainingBytes; byteChunk++)
+      xoredValue |= (data[dataPos + 1 + byteChunk] & 0xffL) << (byteChunk * 8);
 
-      fcmHashTable[fcmHash] = value;
-      fcmHash = (byte) (((((long) fcmHash) << 6) ^ (value >>> 48)) & (((long) HASH_TABLE_SIZE) - 1));
+    long fcmPrediction = state.fcmHashTable[state.fcmHash];
+    long dfcmPrediction = state.dfcmHashTable[state.dfcmHash] + state.lastValue;
 
-      dfcmHashTable[dfcmHash] = value - lastValue;
-      dfcmHash = (byte) (((((long) dfcmHash) << 2) ^ ((value - lastValue) >>> 40)) & (((long) HASH_TABLE_SIZE) - 1));
-      lastValue = value;
+    long value;
+    if (compressionMethod == FCM)
+      value = xoredValue ^ fcmPrediction;
+    else
+      value = xoredValue ^ dfcmPrediction;
 
-      dataPos += 1 + numberOfRemainingBytes;
+    state.fcmHashTable[state.fcmHash] = value;
+    state.fcmHash = (byte) (((((long) state.fcmHash) << 6) ^ (value >>> 48)) & (((long) HASH_TABLE_SIZE) - 1));
 
-      continueProcessing = callback.decompressed(curIndex++, Double.longBitsToDouble(value));
-    } while (continueProcessing && dataPos < data.length);
+    state.dfcmHashTable[state.dfcmHash] = value - state.lastValue;
+    state.dfcmHash =
+        (byte) (((((long) state.dfcmHash) << 2) ^ ((value - state.lastValue) >>> 40)) & (((long) HASH_TABLE_SIZE) - 1));
+    state.lastValue = value;
+
+    dataPosHolder.setValue(dataPos + 1 + numberOfRemainingBytes);
+
+    return Double.longBitsToDouble(state.lastValue);
+  }
+
+  private State createInitialDecompressState() {
+    State state = new State();
+
+    if (startState != null) {
+      state.fcmHashTable = Arrays.copyOf(startState.fcmHashTable, startState.fcmHashTable.length);
+      state.dfcmHashTable = Arrays.copyOf(startState.dfcmHashTable, startState.dfcmHashTable.length);
+      state.fcmHash = startState.fcmHash;
+      state.dfcmHash = startState.dfcmHash;
+      state.lastValue = startState.lastValue;
+    } else {
+      state.fcmHashTable = new long[HASH_TABLE_SIZE];
+      state.dfcmHashTable = new long[HASH_TABLE_SIZE];
+      state.fcmHash = 0;
+      state.dfcmHash = 0;
+      state.lastValue = 0;
+    }
+    return state;
   }
 
   /**
@@ -319,6 +342,26 @@ public class FpcPage implements DataSerialization<SDoubleDictionaryFpcPage> {
     res.add(mgmtByte);
     for (byte restByte : rest)
       res.add(restByte);
+  }
+
+  @Override
+  public Iterator<Pair<Long, Double>> iterator() {
+    return new Iterator<Pair<Long, Double>>() {
+      private State decompressState = createInitialDecompressState();
+      private Holder<Integer> nextDataPos = new Holder<>(0);
+      private long numberDecompressed = 0L;
+
+      @Override
+      public boolean hasNext() {
+        return numberDecompressed < size;
+      }
+
+      @Override
+      public Pair<Long, Double> next() {
+        double val = decompressNext(nextDataPos, decompressState);
+        return new Pair<>(firstId + (numberDecompressed++), val);
+      }
+    };
   }
 
   @Override

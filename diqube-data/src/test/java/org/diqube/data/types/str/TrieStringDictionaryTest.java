@@ -20,9 +20,11 @@
  */
 package org.diqube.data.types.str;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 
 import org.diqube.data.types.str.dict.ConstantStringDictionary;
@@ -35,6 +37,7 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.google.common.collect.HashBiMap;
+import com.google.common.collect.Lists;
 
 /**
  * TODO test dict-compare functions with a constant dict, too.
@@ -1701,6 +1704,34 @@ public class TrieStringDictionaryTest {
     expected = new HashMap<>();
     expected.put(0L, -2L);
     Assert.assertEquals(ltEqIds, expected);
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void iteratorTest() {
+    ParentNode root = parent( //
+        new Pair<>("a", //
+            parent( //
+                new Pair<>("ba", //
+                    parent(//
+                        new Pair<>("c", terminal(0)), //
+                        new Pair<>("d", //
+                            parent(//
+                                new Pair<>("", terminal(1)), //
+                                new Pair<>("e", terminal(2)))),
+                        new Pair<>("e", terminal(3)))), //
+                new Pair<>("bc", terminal(4)))));
+    TrieStringDictionary trieDict = new TrieStringDictionary(root, "abac", "abc", 4);
+
+    // THEN
+    List<Pair<Long, String>> expected = new ArrayList<>();
+    expected.add(new Pair<>(0L, "abac"));
+    expected.add(new Pair<>(1L, "abad"));
+    expected.add(new Pair<>(2L, "abade"));
+    expected.add(new Pair<>(3L, "abae"));
+    expected.add(new Pair<>(4L, "abc"));
+
+    Assert.assertEquals(Lists.newArrayList(trieDict.iterator()), expected, "Expected iterator to return correct data.");
   }
 
   private ParentNode parent(Pair<String, TrieNode<?>>... children) {

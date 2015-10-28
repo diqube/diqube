@@ -20,6 +20,7 @@
  */
 package org.diqube.data.types.str.dict;
 
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -41,6 +42,7 @@ import org.diqube.data.serialize.SerializationException;
 import org.diqube.data.serialize.thrift.v1.SStringDictionaryTrie;
 import org.diqube.data.serialize.thrift.v1.SStringDictionaryTrieNode;
 import org.diqube.data.types.str.dict.TrieValueAnalyzer.TrieValueAnalyzerCallback;
+import org.diqube.util.Pair;
 
 import com.google.common.collect.Sets;
 
@@ -522,6 +524,74 @@ public class TrieStringDictionary implements StringDictionary<SStringDictionaryT
         firstValue.getBytes().length + //
         lastValue.getBytes().length + //
         root.calculateApproximateSizeInBytes();
+  }
+
+  @Override
+  public Iterator<Pair<Long, String>> iterator() {
+    return new Iterator<Pair<Long, String>>() {
+      private TerminalNode curTerminal = null;
+      private Deque<char[]> curTraversedChars = new LinkedList<>();
+      private Deque<ParentNode> curTraversedParents = new LinkedList<>();
+      private Deque<Integer> curTraversedCharIdx = new LinkedList<>();
+
+      @Override
+      public boolean hasNext() {
+        return curTerminal == null || curTerminal.getTerminalId() < root.getMaxId();
+      }
+
+      @Override
+      public Pair<Long, String> next() {
+        if (curTerminal == null) {
+          // initial
+          TrieNode<?> curNode = root;
+          do {
+            ParentNode p = (ParentNode) curNode;
+            curTraversedChars.push(p.getChildChars()[0]);
+            curTraversedCharIdx.push(0);
+
+            curTraversedParents.push(p);
+            curNode = p.getChildNodes()[0];
+          } while (!(curNode instanceof TerminalNode));
+
+          curTerminal = (TerminalNode) curNode;
+        } else {
+          ParentNode p = curTraversedParents.peek();
+          while (true) {
+            int idx = curTraversedCharIdx.pop();
+            curTraversedChars.pop();
+
+            if (idx < p.getChildChars().length - 1) {
+              idx++;
+              curTraversedChars.push(p.getChildChars()[idx]);
+              curTraversedCharIdx.push(idx);
+
+              if (p.getChildNodes()[idx] instanceof TerminalNode) {
+                // child is terminal!
+                curTerminal = (TerminalNode) p.getChildNodes()[idx];
+                break;
+              } else {
+                // child is another parent, move into child
+                p = (ParentNode) p.getChildNodes()[idx];
+                curTraversedParents.push(p);
+
+                curTraversedChars.push(null);
+                curTraversedCharIdx.push(-1);
+              }
+            } else {
+              // move to parent
+              curTraversedParents.pop();
+              p = curTraversedParents.peek();
+            }
+          }
+        }
+
+        StringBuilder sb = new StringBuilder();
+        Iterator<char[]> it = curTraversedChars.descendingIterator();
+        while (it.hasNext())
+          sb.append(it.next());
+        return new Pair<>(curTerminal.getTerminalId(), sb.toString());
+      }
+    };
   }
 
 }

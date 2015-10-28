@@ -20,9 +20,11 @@
  */
 package org.diqube.data.types.dbl;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.TreeMap;
@@ -31,10 +33,12 @@ import org.diqube.data.types.dbl.dict.FpcDoubleDictionary;
 import org.diqube.data.types.dbl.dict.FpcPage;
 import org.diqube.data.types.dbl.dict.FpcPage.State;
 import org.diqube.util.DoubleUtil;
+import org.diqube.util.Pair;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.google.common.collect.HashBiMap;
+import com.google.common.collect.Lists;
 
 /**
  *
@@ -364,6 +368,27 @@ public class FpcDoubleDictionaryTest {
     expected.put(8L, -(10 + 1L));
     gtEqIds = dict2.findGtEqIds(dict1);
     Assert.assertEquals(gtEqIds, expected);
+  }
+
+  @Test
+  public void twoPageIteratorTest() {
+    // GIVEN
+    FpcPage page1 = new FpcPage(0L);
+    State statePage1 = page1.compress(new double[] { 0.5, 1.5, 2.5, 3.5, 4.5 });
+    FpcPage page2 = new FpcPage(5L, statePage1);
+    page2.compress(new double[] { 5.5, 6.5, 7.5, 8.5, 9.5 });
+
+    FpcDoubleDictionary dict = createDict(0.5, 9.5, page1, page2);
+
+    // THEN
+    List<Double> expectedValues = new ArrayList<>(Arrays.asList(0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5, 9.5));
+
+    List<Pair<Long, Double>> expected = new ArrayList<>();
+    for (long i = 0; i < expectedValues.size(); i++)
+      expected.add(new Pair<>(i, expectedValues.get((int) i)));
+
+    Assert.assertEquals(Lists.newArrayList(dict.iterator()), expected,
+        "Expected that iterator returns correct elements.");
   }
 
   private FpcDoubleDictionary createDict(double lowestValue, double highestValue, FpcPage... pages) {

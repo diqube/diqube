@@ -20,6 +20,7 @@
  */
 package org.diqube.data.flatten;
 
+import java.util.Iterator;
 import java.util.NavigableMap;
 import java.util.Set;
 
@@ -29,6 +30,7 @@ import org.diqube.data.serialize.DataSerializableIgnore;
 import org.diqube.data.serialize.DeserializationException;
 import org.diqube.data.serialize.SerializationException;
 import org.diqube.data.types.lng.dict.LongDictionary;
+import org.diqube.util.Pair;
 
 /**
  * A {@link LongDictionary} whose delegate can be changed after it's created.
@@ -153,6 +155,11 @@ public class FlattenedDelegateLongDictionary implements LongDictionary<TBase<?, 
   @Override
   public long calculateApproximateSizeInBytes() {
     return delegate.calculateApproximateSizeInBytes();
+  }
+
+  @Override
+  public Iterator<Pair<Long, Long>> iterator() {
+    return delegate.iterator();
   }
 
   @Override

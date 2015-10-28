@@ -21,7 +21,9 @@
 package org.diqube.data.types.lng.dict;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.TreeMap;
@@ -31,6 +33,7 @@ import org.diqube.data.serialize.DataSerializable;
 import org.diqube.data.serialize.DeserializationException;
 import org.diqube.data.serialize.SerializationException;
 import org.diqube.data.serialize.thrift.v1.SLongDictionaryEmpty;
+import org.diqube.util.Pair;
 
 /**
  * An empty {@link LongDictionary}.
@@ -148,5 +151,10 @@ public class EmptyLongDictionary implements LongDictionary<SLongDictionaryEmpty>
   @Override
   public long calculateApproximateSizeInBytes() {
     return 16; // object header of this.
+  }
+
+  @Override
+  public Iterator<Pair<Long, Long>> iterator() {
+    return Collections.emptyIterator();
   }
 }

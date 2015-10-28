@@ -22,6 +22,7 @@ package org.diqube.data.types.lng.dict;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.TreeMap;
@@ -31,6 +32,9 @@ import org.diqube.data.serialize.DataSerializable;
 import org.diqube.data.serialize.DeserializationException;
 import org.diqube.data.serialize.SerializationException;
 import org.diqube.data.serialize.thrift.v1.SLongDictionaryConstant;
+import org.diqube.util.Pair;
+
+import com.google.common.collect.Iterators;
 
 /**
  * A {@link LongDictionary} which was found to contain only a single value/id combination during compression.
@@ -218,6 +222,12 @@ public class ConstantLongDictionary implements LongDictionary<SLongDictionaryCon
   public long calculateApproximateSizeInBytes() {
     return 16 + // object header of this.
         4; // 4 bytes long.
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public Iterator<Pair<Long, Long>> iterator() {
+    return Iterators.forArray(new Pair<>(id, decompressedValue));
   }
 
 }

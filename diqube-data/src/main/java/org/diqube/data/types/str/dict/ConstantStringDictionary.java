@@ -21,6 +21,7 @@
 package org.diqube.data.types.str.dict;
 
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.TreeMap;
@@ -30,6 +31,9 @@ import org.diqube.data.serialize.DataSerializable;
 import org.diqube.data.serialize.DeserializationException;
 import org.diqube.data.serialize.SerializationException;
 import org.diqube.data.serialize.thrift.v1.SStringDictionaryConstant;
+import org.diqube.util.Pair;
+
+import com.google.common.collect.Iterators;
 
 /**
  * A {@link StringDictionary} that can hold a single constant value/id pair.
@@ -230,6 +234,12 @@ public class ConstantStringDictionary implements StringDictionary<SStringDiction
   public long calculateApproximateSizeInBytes() {
     return 16 + // object header of this.
         value.getBytes().length;
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public Iterator<Pair<Long, String>> iterator() {
+    return Iterators.forArray(new Pair<>(id, value));
   }
 
 }

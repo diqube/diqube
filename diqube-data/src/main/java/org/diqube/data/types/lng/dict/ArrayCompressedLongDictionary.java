@@ -22,6 +22,7 @@ package org.diqube.data.types.lng.dict;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.TreeMap;
@@ -34,6 +35,7 @@ import org.diqube.data.serialize.SerializationException;
 import org.diqube.data.serialize.thrift.v1.SLongCompressedArray;
 import org.diqube.data.serialize.thrift.v1.SLongDictionaryArray;
 import org.diqube.data.types.lng.array.CompressedLongArray;
+import org.diqube.util.Pair;
 
 /**
  * A {@link LongDictionary} based on a {@link CompressedLongArray}.
@@ -502,6 +504,25 @@ public class ArrayCompressedLongDictionary implements LongDictionary<SLongDictio
   public long calculateApproximateSizeInBytes() {
     return 16 + // object header of this.
         sortedValues.calculateApproximateSizeInBytes();
+  }
+
+  @Override
+  public Iterator<Pair<Long, Long>> iterator() {
+    return new Iterator<Pair<Long, Long>>() {
+      int nextIdx = 0;
+
+      @Override
+      public boolean hasNext() {
+        return nextIdx < sortedValues.size();
+      }
+
+      @Override
+      public Pair<Long, Long> next() {
+        Pair<Long, Long> p = new Pair<>((long) nextIdx, sortedValues.get(nextIdx));
+        nextIdx++;
+        return p;
+      }
+    };
   }
 
 }
