@@ -84,7 +84,11 @@ public class FlattenedCombiningColumnPage implements AdjustableColumnPage {
 
   @Override
   public long calculateApproximateSizeInBytes() {
-    return 0;
+    return 16 + // object header this
+        colPageDict.calculateApproximateSizeInBytes() + //
+        values.calculateApproximateSizeInBytes() + //
+        name.length() + //
+        8;
   }
 
   @Override

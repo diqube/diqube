@@ -154,7 +154,8 @@ public class FlattenedDelegateLongDictionary implements LongDictionary<TBase<?, 
 
   @Override
   public long calculateApproximateSizeInBytes() {
-    return delegate.calculateApproximateSizeInBytes();
+    return 16 + //
+        delegate.calculateApproximateSizeInBytes();
   }
 
   @Override

@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
+import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
@@ -63,7 +64,9 @@ import org.diqube.execution.util.ColumnPatternUtil.PatternException;
 import org.diqube.loader.compression.CompressedLongDictionaryBuilder;
 import org.diqube.util.Pair;
 
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
+import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.Sets;
 
 /**
@@ -247,9 +250,14 @@ public class FlattenUtil {
     for (String newColName : newColumns.keySet()) {
       long nextFirstRowId = inputTableShard.getLowestRowId();
 
-      // map from an artificial ID to the dictionary of an input column.
+      // map from an artificial ID to the dictionary of an input column. The artificial ID is built the following way:
+      // The first dict has artificial ID 0.
+      // The second dict has artificial ID = number of entries in first dict
+      // The third dict has artificial ID = number of entries in second dict
+      // and so on
+      // -> basically every entry in the dict has it's own artificial ID. These must not be overlapping!
       Map<Long, Dictionary<?>> origColDicts = new HashMap<>();
-      long nextColId = 0L;
+      long nextColAndColDictId = 0L;
 
       // map from "artificial" column ID to list of flattened col pages.
       Map<Long, List<ColumnPage>> flattenedColPages = new HashMap<>();
@@ -275,9 +283,9 @@ public class FlattenUtil {
 
           ColumnPage newPage = factory.createFlattenedConstantColumnPage(newColName + "#" + nextFirstRowId,
               /* TODO #27 */null, nextFirstRowId, noOfRows);
-          flattenedColPages.put(nextColId, new ArrayList<>(Arrays.asList(newPage)));
+          flattenedColPages.put(nextColAndColDictId, new ArrayList<>(Arrays.asList(newPage)));
           nextFirstRowId += noOfRows;
-          nextColId++;
+          nextColAndColDictId++;
 
           continue;
         }
@@ -285,10 +293,10 @@ public class FlattenUtil {
         if (colType == null)
           colType = inputTableShard.getColumns().get(inputColName).getColumnType();
 
-        long curColId = nextColId;
+        long curColId = nextColAndColDictId;
         Dictionary<?> colShardDict = inputTableShard.getColumns().get(inputColName).getColumnShardDictionary();
         origColDicts.put(curColId, colShardDict);
-        nextColId += colShardDict.getMaxId() + 1;
+        nextColAndColDictId += colShardDict.getMaxId() + 1;
 
         flattenedColPages.put(curColId, new ArrayList<>());
 
@@ -321,7 +329,7 @@ public class FlattenUtil {
         }
       }
 
-      Pair<Dictionary<?>, Map<Long, Map<Long, Long>>> mergeDictInfo = mergeDicts(origColDicts);
+      Pair<Dictionary<Object>, Map<Long, Map<Long, Long>>> mergeDictInfo = mergeDicts(origColDicts);
       Dictionary<?> colDict = mergeDictInfo.getLeft();
 
       // after merging the col dict, we need to adjust the colPage dicts to map to the new col value IDs!
@@ -329,13 +337,15 @@ public class FlattenUtil {
         long colId = mapInfoEntry.getKey();
         Map<Long, Long> mapInfo = mapInfoEntry.getValue();
 
-        for (ColumnPage page : flattenedColPages.get(colId)) {
-          FlattenedDelegateLongDictionary delegateDict = (FlattenedDelegateLongDictionary) page.getColumnPageDict();
-          LongDictionary<?> origDict = delegateDict.getDelegate();
+        if (mapInfo != null && !mapInfo.isEmpty()) {
+          for (ColumnPage page : flattenedColPages.get(colId)) {
+            FlattenedDelegateLongDictionary delegateDict = (FlattenedDelegateLongDictionary) page.getColumnPageDict();
+            LongDictionary<?> origDict = delegateDict.getDelegate();
 
-          LongDictionary<?> mappedDict = createValueMappedLongDict(origDict, mapInfo);
+            LongDictionary<?> mappedDict = createValueMappedLongDict(origDict, mapInfo);
 
-          delegateDict.setDelegate(mappedDict);
+            delegateDict.setDelegate(mappedDict);
+          }
         }
       }
 
@@ -367,12 +377,34 @@ public class FlattenUtil {
     return flattenedTableShard;
   }
 
-  private Pair<Dictionary<?>, Map<Long, Map<Long, Long>>> mergeDicts(Map<Long, Dictionary<?>> inputDicts) {
+  /**
+   * Merges multiple col dicts into one.
+   * 
+   * <p>
+   * The input dictionaries are expected to be of type T. T must be {@link Comparable} (which though is no problem for
+   * our values of String, Long, Double).
+   * 
+   * @param inputDicts
+   *          The col dicts of the input cols, indexed by an artificial "dictionary id", which for one dict basically is
+   *          the number of entries of all previous dicts.
+   * @return Pair of merged dictionary and for each input dict ID a mapping map. That map maps from old dict ID of a
+   *         value to the new dict ID in the merged dict. Map can be empty.
+   */
+  @SuppressWarnings("unchecked")
+  private <T> Pair<Dictionary<T>, Map<Long, Map<Long, Long>>> mergeDicts(Map<Long, Dictionary<?>> inputDicts) {
     if (inputDicts.size() == 1) {
-      return new Pair<>(inputDicts.values().iterator().next(), new HashMap<>());
+      return new Pair<>((Dictionary<T>) inputDicts.values().iterator().next(), new HashMap<>());
     }
 
-    // TODO #27
+    Map<Long, PeekingIterator<Pair<Long, T>>> iterators = new HashMap<>();
+    for (Entry<Long, Dictionary<?>> e : inputDicts.entrySet()) {
+      if (e.getValue().getMaxId() == null)
+        continue;
+      iterators.put(e.getKey(), Iterators.peekingIterator(((Dictionary<T>) e.getValue()).iterator()));
+    }
+
+    PriorityQueue<Pair<T, Long>> nextElements =
+        new PriorityQueue<>((p1, p2) -> ((Comparable<T>) p1.getLeft()).compareTo(p2.getLeft()));
 
     return null;
   }

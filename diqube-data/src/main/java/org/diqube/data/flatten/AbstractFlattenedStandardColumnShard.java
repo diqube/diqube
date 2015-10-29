@@ -87,7 +87,11 @@ public abstract class AbstractFlattenedStandardColumnShard implements StandardCo
 
   @Override
   public long calculateApproximateSizeInBytes() {
-    return 0;
+    return 16 + //
+        name.length() + //
+        columnShardDict.calculateApproximateSizeInBytes() + //
+        10 + //
+        pages.values().stream().mapToLong(p -> p.calculateApproximateSizeInBytes()).sum();
   }
 
   @Override

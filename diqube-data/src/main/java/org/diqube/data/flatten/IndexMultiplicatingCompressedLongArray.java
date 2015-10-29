@@ -147,7 +147,8 @@ public class IndexMultiplicatingCompressedLongArray implements CompressedLongArr
   public long calculateApproximateSizeInBytes() {
     // do not include size of delegate.
     return 16 + // object header of this
-        inputToDelegateIndex.size() * 8;
+        inputToDelegateIndex.size() * 8 + //
+        12;
   }
 
   @Override

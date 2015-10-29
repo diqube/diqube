@@ -20,10 +20,8 @@
  */
 package org.diqube.loader.compression;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
@@ -32,14 +30,13 @@ import org.diqube.data.types.lng.array.BitEfficientLongArray;
 import org.diqube.data.types.lng.array.CompressedLongArray;
 import org.diqube.data.types.lng.array.ReferenceBasedLongArray;
 import org.diqube.data.types.lng.array.RunLengthLongArray;
-import org.diqube.data.types.lng.array.TransitiveExplorableCompressedLongArray.TransitiveCompressionRatioCalculator;
 import org.diqube.data.types.lng.dict.ArrayCompressedLongDictionary;
 import org.diqube.data.types.lng.dict.ConstantLongDictionary;
 import org.diqube.data.types.lng.dict.EmptyLongDictionary;
 import org.diqube.data.types.lng.dict.LongDictionary;
+import org.diqube.loader.compression.CompressedLongArrayBuilder.BitEfficientCompressionStrategy;
+import org.diqube.loader.compression.CompressedLongArrayBuilder.ReferenceAndBitEfficientCompressionStrategy;
 import org.diqube.util.Pair;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Builds compressed {@link LongDictionary}s.
@@ -64,12 +61,6 @@ import org.slf4j.LoggerFactory;
  * @author Bastian Gloeckle
  */
 public class CompressedLongDictionaryBuilder {
-  private static final Logger logger = LoggerFactory.getLogger(CompressedLongDictionaryBuilder.class);
-
-  private static final List<LongArrayCompressionStrategy> COMPRESSION_STRATEGIES =
-      Arrays.asList(new LongArrayCompressionStrategy[] { new BitEfficientCompressionStrategy(),
-          new ReferenceAndBitEfficientCompressionStrategy() });
-
   private NavigableMap<Long, Long> entityMap;
 
   private String name;
@@ -120,126 +111,14 @@ public class CompressedLongDictionaryBuilder {
       }
     }
 
-    // Test all available compression strategies which one will compress the long array best, and then choose to use
-    // that.
-    LongArrayCompressionStrategy bestStrat = null;
-    double bestRatio = 100.;
-    for (LongArrayCompressionStrategy strat : COMPRESSION_STRATEGIES) {
-      double ratio = strat.compressionRatio(uncompressed);
+    @SuppressWarnings("unchecked")
+    CompressedLongArrayBuilder compressedBuilder =
+        new CompressedLongArrayBuilder().withLogName(name).withValues(uncompressed)
+            .withStrategies(BitEfficientCompressionStrategy.class, ReferenceAndBitEfficientCompressionStrategy.class);
 
-      logger.trace("Dictionary '{}' using {} would have expected ratio {}",
-          new Object[] { name, strat.getClass().getSimpleName(), ratio });
-
-      if (ratio < bestRatio) {
-        bestRatio = ratio;
-        bestStrat = strat;
-      }
-    }
-
-    LongDictionary<?> dictRes = null;
-    try {
-      logger.debug("Compressing dictionary '{}' using {} (expected ratio {})",
-          new Object[] { name, bestStrat.getClass().getSimpleName(), bestRatio });
-
-      CompressedLongArray<?> compressedArray = bestStrat.compress(uncompressed);
-      dictRes = new ArrayCompressedLongDictionary(compressedArray);
-      return new Pair<>(dictRes, idMap);
-    } finally {
-      for (LongArrayCompressionStrategy strat : COMPRESSION_STRATEGIES)
-        strat.clear();
-    }
-  }
-
-  /**
-   * A strategy on how to compress a sorted long array.
-   * 
-   * Calling the {@link #compressionRatio(long[])} method will tore thread local information, be sure to call
-   * {@link #clear()} after you're done!
-   */
-  private interface LongArrayCompressionStrategy {
-    /**
-     * Returns a approx. compression ratio this strategy would achieve on the given sorted array. The array is expected
-     * that it's values are pair-wise different.
-     */
-    double compressionRatio(long[] sortedInArray);
-
-    /** Compress using this strategy. The array is expected that it's values are pair-wise different. */
-    CompressedLongArray<?> compress(long[] sortedArray);
-
-    /** Clear thread local information that was stored when calling {@link #compressionRatio(long[])}. */
-    void clear();
-  }
-
-  /** Strategy using a plain {@link BitEfficientLongArray} */
-  private static class BitEfficientCompressionStrategy implements LongArrayCompressionStrategy {
-
-    private ThreadLocal<BitEfficientLongArray> threadLocalArray = new ThreadLocal<>();
-
-    @Override
-    public double compressionRatio(long[] sortedInArray) {
-      BitEfficientLongArray bitEfficient = new BitEfficientLongArray();
-      threadLocalArray.set(bitEfficient);
-      return bitEfficient.expectedCompressionRatio(sortedInArray, true);
-    }
-
-    @Override
-    public CompressedLongArray<?> compress(long[] sortedArray) {
-      BitEfficientLongArray be = threadLocalArray.get();
-      if (be == null)
-        be = new BitEfficientLongArray();
-      else
-        threadLocalArray.remove();
-
-      be.compress(sortedArray, true);
-      return be;
-    }
-
-    @Override
-    public void clear() {
-      if (threadLocalArray.get() != null)
-        threadLocalArray.remove();
-    }
-  }
-
-  /** Strategy using a {@link ReferenceBasedLongArray} with a {@link BitEfficientLongArray} inside. */
-  private static class ReferenceAndBitEfficientCompressionStrategy implements LongArrayCompressionStrategy {
-
-    private ThreadLocal<ReferenceBasedLongArray> threadLocalArray = new ThreadLocal<>();
-
-    @Override
-    public double compressionRatio(long[] sortedInArray) {
-      ReferenceBasedLongArray refBased = new ReferenceBasedLongArray();
-      threadLocalArray.set(refBased);
-      return refBased.expectedCompressionRatio(sortedInArray, true, new TransitiveCompressionRatioCalculator() {
-        @Override
-        public double calculateTransitiveCompressionRatio(long min, long secondMin, long max, long size) {
-          int numberOfMinValues = 0;
-          if (min == Long.MIN_VALUE) {
-            numberOfMinValues = 1;
-            min = secondMin;
-          }
-          return BitEfficientLongArray.calculateApproxCompressionRatio(min, max, (int) size, numberOfMinValues);
-        }
-      });
-    }
-
-    @Override
-    public CompressedLongArray<?> compress(long[] sortedArray) {
-      ReferenceBasedLongArray refBased = threadLocalArray.get();
-      if (refBased == null)
-        refBased = new ReferenceBasedLongArray();
-      else
-        threadLocalArray.remove();
-
-      refBased.compress(sortedArray, true, () -> new BitEfficientLongArray());
-      return refBased;
-    }
-
-    @Override
-    public void clear() {
-      if (threadLocalArray.get() != null)
-        threadLocalArray.remove();
-    }
+    CompressedLongArray<?> compressedArray = compressedBuilder.build();
+    LongDictionary<?> dictRes = new ArrayCompressedLongDictionary(compressedArray);
+    return new Pair<>(dictRes, idMap);
   }
 
 }

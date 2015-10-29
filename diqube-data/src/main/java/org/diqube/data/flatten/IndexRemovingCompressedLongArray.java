@@ -141,7 +141,8 @@ public class IndexRemovingCompressedLongArray implements CompressedLongArray<TBa
   public long calculateApproximateSizeInBytes() {
     // do not include size of delegate.
     return 16 + // object header of this
-        removeIndices.size() * 4;
+        removeIndices.size() * 4 + //
+        10;
   }
 
   @Override
