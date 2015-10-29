@@ -46,14 +46,18 @@ import org.diqube.data.column.ColumnPage;
 import org.diqube.data.column.ColumnType;
 import org.diqube.data.column.StandardColumnShard;
 import org.diqube.data.dictionary.Dictionary;
+import org.diqube.data.flatten.AdjustableConstantLongDictionary;
 import org.diqube.data.flatten.FlattenDataFactory;
 import org.diqube.data.flatten.FlattenedDelegateLongDictionary;
 import org.diqube.data.flatten.FlattenedTable;
 import org.diqube.data.flatten.FlattenedTableShard;
 import org.diqube.data.table.Table;
 import org.diqube.data.table.TableShard;
+import org.diqube.data.types.dbl.dict.ConstantDoubleDictionary;
 import org.diqube.data.types.dbl.dict.DoubleDictionary;
+import org.diqube.data.types.lng.dict.ConstantLongDictionary;
 import org.diqube.data.types.lng.dict.LongDictionary;
+import org.diqube.data.types.str.dict.ConstantStringDictionary;
 import org.diqube.data.types.str.dict.StringDictionary;
 import org.diqube.data.util.FlattenedTableNameGenerator;
 import org.diqube.data.util.RepeatedColumnNameGenerator;
@@ -61,7 +65,10 @@ import org.diqube.execution.env.querystats.QueryableLongColumnShardFacade;
 import org.diqube.execution.util.ColumnPatternUtil.ColumnPatternContainer;
 import org.diqube.execution.util.ColumnPatternUtil.LengthColumnMissingException;
 import org.diqube.execution.util.ColumnPatternUtil.PatternException;
+import org.diqube.loader.LoaderColumnInfo;
+import org.diqube.loader.compression.CompressedDoubleDictionaryBuilder;
 import org.diqube.loader.compression.CompressedLongDictionaryBuilder;
+import org.diqube.loader.compression.CompressedStringDictionaryBuilder;
 import org.diqube.util.Pair;
 
 import com.google.common.collect.Iterators;
@@ -80,6 +87,8 @@ import com.google.common.collect.Sets;
  */
 @AutoInstatiate
 public class FlattenUtil {
+
+  private static final long CONSTANT_PAGE_DICT_INTERMEDIARY_VALUE = 0L;
 
   @Inject
   private FlattenDataFactory factory;
@@ -261,11 +270,17 @@ public class FlattenUtil {
 
       // map from "artificial" column ID to list of flattened col pages.
       Map<Long, List<ColumnPage>> flattenedColPages = new HashMap<>();
-      ColumnType colType = null;
+
+      // find colType by searching an input col that exists and taking the coltype of that one.
+      ColumnType colType = newColumns.get(newColName).stream()
+          .filter(inputColName -> inputTableShard.getColumns().containsKey(inputColName))
+          .map(inputColName -> inputTableShard.getColumns().get(inputColName).getColumnType()).findAny().get();
 
       // Build for each input colpage in each input col a separate new colPage. This is far from optimal, but we can
       // merge those pages later on. TODO #27.
       for (String inputColName : newColumns.get(newColName)) {
+        long curColId = nextColAndColDictId;
+
         if (!inputTableShard.getColumns().containsKey(inputColName)) {
           // This col does not exist, therefore we add an "empty" colPage, which resolves statically to the colTypes'
           // default value.
@@ -282,18 +297,26 @@ public class FlattenUtil {
             throw new IllegalStateException("Could not find number of rows for empty ColPage.");
 
           ColumnPage newPage = factory.createFlattenedConstantColumnPage(newColName + "#" + nextFirstRowId,
-              /* TODO #27 */null, nextFirstRowId, noOfRows);
+              // create a dict whose value we will change later on.
+              factory.createAdjustableConstantLongDictionary(CONSTANT_PAGE_DICT_INTERMEDIARY_VALUE), //
+              nextFirstRowId, noOfRows);
           flattenedColPages.put(nextColAndColDictId, new ArrayList<>(Arrays.asList(newPage)));
           nextFirstRowId += noOfRows;
-          nextColAndColDictId++;
+
+          // assume we had an input col dict for this non-existing col. These dicts will later be merged to one single
+          // dict - we need to make sure that that merged dict contains the default value returned from the page dict we
+          // created above.
+          if (inputColName.endsWith(repeatedColNameGen.lengthIdentifyingSuffix()))
+            // length cols get "0" as default.
+            origColDicts.put(curColId, new ConstantLongDictionary(0L, 0L));
+          else
+            origColDicts.put(curColId, createDictionaryWithOnlyDefaultValue(colType));
+
+          nextColAndColDictId++; // single entry dict!
 
           continue;
         }
 
-        if (colType == null)
-          colType = inputTableShard.getColumns().get(inputColName).getColumnType();
-
-        long curColId = nextColAndColDictId;
         Dictionary<?> colShardDict = inputTableShard.getColumns().get(inputColName).getColumnShardDictionary();
         origColDicts.put(curColId, colShardDict);
         nextColAndColDictId += colShardDict.getMaxId() + 1;
@@ -329,7 +352,7 @@ public class FlattenUtil {
         }
       }
 
-      Pair<Dictionary<Object>, Map<Long, Map<Long, Long>>> mergeDictInfo = mergeDicts(origColDicts);
+      Pair<Dictionary<?>, Map<Long, Map<Long, Long>>> mergeDictInfo = mergeDicts(newColName, colType, origColDicts);
       Dictionary<?> colDict = mergeDictInfo.getLeft();
 
       // after merging the col dict, we need to adjust the colPage dicts to map to the new col value IDs!
@@ -339,12 +362,18 @@ public class FlattenUtil {
 
         if (mapInfo != null && !mapInfo.isEmpty()) {
           for (ColumnPage page : flattenedColPages.get(colId)) {
-            FlattenedDelegateLongDictionary delegateDict = (FlattenedDelegateLongDictionary) page.getColumnPageDict();
-            LongDictionary<?> origDict = delegateDict.getDelegate();
+            if (page.getColumnPageDict() instanceof FlattenedDelegateLongDictionary) {
+              FlattenedDelegateLongDictionary delegateDict = (FlattenedDelegateLongDictionary) page.getColumnPageDict();
+              LongDictionary<?> origDict = delegateDict.getDelegate();
 
-            LongDictionary<?> mappedDict = createValueMappedLongDict(origDict, mapInfo);
+              LongDictionary<?> mappedDict = createValueMappedLongDict(origDict, mapInfo);
 
-            delegateDict.setDelegate(mappedDict);
+              delegateDict.setDelegate(mappedDict);
+            } else if (page.getColumnPageDict() instanceof AdjustableConstantLongDictionary) {
+              AdjustableConstantLongDictionary<?> dict = (AdjustableConstantLongDictionary<?>) page.getColumnPageDict();
+              dict.setValue(mapInfo.get(CONSTANT_PAGE_DICT_INTERMEDIARY_VALUE));
+            } else
+              throw new IllegalStateException("Cannot adjust IDs in unknown page dict: " + page.getColumnPageDict());
           }
         }
       }
@@ -391,9 +420,12 @@ public class FlattenUtil {
    *         value to the new dict ID in the merged dict. Map can be empty.
    */
   @SuppressWarnings("unchecked")
-  private <T> Pair<Dictionary<T>, Map<Long, Map<Long, Long>>> mergeDicts(Map<Long, Dictionary<?>> inputDicts) {
+  private <T extends Comparable<T>> Pair<Dictionary<?>, Map<Long, Map<Long, Long>>> mergeDicts(String colName,
+      ColumnType colType, Map<Long, Dictionary<?>> inputDicts) throws IllegalStateException {
+    Map<Long, Map<Long, Long>> resMappingMap = new HashMap<>();
+
     if (inputDicts.size() == 1) {
-      return new Pair<>((Dictionary<T>) inputDicts.values().iterator().next(), new HashMap<>());
+      return new Pair<>(inputDicts.values().iterator().next(), resMappingMap);
     }
 
     Map<Long, PeekingIterator<Pair<Long, T>>> iterators = new HashMap<>();
@@ -403,10 +435,76 @@ public class FlattenUtil {
       iterators.put(e.getKey(), Iterators.peekingIterator(((Dictionary<T>) e.getValue()).iterator()));
     }
 
-    PriorityQueue<Pair<T, Long>> nextElements =
-        new PriorityQueue<>((p1, p2) -> ((Comparable<T>) p1.getLeft()).compareTo(p2.getLeft()));
+    // order the next elements of all dicts by their value.
+    // Pair of (Pair of ID in dict and value) and dictId
+    PriorityQueue<Pair<Pair<Long, T>, Long>> nextElements =
+        new PriorityQueue<>((p1, p2) -> p1.getLeft().getRight().compareTo(p2.getLeft().getRight()));
 
-    return null;
+    for (Entry<Long, PeekingIterator<Pair<Long, T>>> e : iterators.entrySet())
+      nextElements.add(new Pair<>(e.getValue().peek(), e.getKey()));
+
+    // map from value to new ID which will be fed into the dictionary builder.
+    NavigableMap<T, Long> entityMap = new TreeMap<>();
+    long nextEntityId = 0L;
+
+    Pair<T, Long> previous = null;
+
+    // traverse all dictionaries and build mapping list
+    while (!nextElements.isEmpty()) {
+      Pair<Pair<Long, T>, Long> p = nextElements.poll();
+      Long dictId = p.getRight();
+      Pair<Long, T> valuePair = p.getLeft();
+
+      // move iterator forward
+      iterators.get(dictId).next();
+      if (iterators.get(dictId).hasNext())
+        nextElements.add(new Pair<>(iterators.get(dictId).peek(), dictId));
+
+      long idInInputDict = valuePair.getLeft();
+      if (previous == null || valuePair.getRight().compareTo(previous.getLeft()) > 0) {
+        long resultNewId = nextEntityId++;
+
+        entityMap.put(valuePair.getRight(), resultNewId);
+
+        previous = new Pair<>(valuePair.getRight(), resultNewId);
+      }
+
+      if (!resMappingMap.containsKey(dictId))
+        resMappingMap.put(dictId, new HashMap<>());
+      resMappingMap.get(dictId).put(idInInputDict, previous.getRight());
+    }
+
+    Dictionary<?> resDict = null;
+    Map<Long, Long> builderAdjustMap = null;
+    switch (colType) {
+    case LONG:
+      CompressedLongDictionaryBuilder longBuilder = new CompressedLongDictionaryBuilder();
+      longBuilder.withDictionaryName(colName).fromEntityMap((NavigableMap<Long, Long>) entityMap);
+      Pair<LongDictionary<?>, Map<Long, Long>> longPair = longBuilder.build();
+      builderAdjustMap = longPair.getRight();
+      resDict = longPair.getLeft();
+      break;
+    case STRING:
+      CompressedStringDictionaryBuilder stringBuilder = new CompressedStringDictionaryBuilder();
+      stringBuilder.fromEntityMap((NavigableMap<String, Long>) entityMap);
+      Pair<StringDictionary<?>, Map<Long, Long>> stringPair = stringBuilder.build();
+      builderAdjustMap = stringPair.getRight();
+      resDict = stringPair.getLeft();
+      break;
+    case DOUBLE:
+      CompressedDoubleDictionaryBuilder doubleBuilder = new CompressedDoubleDictionaryBuilder();
+      doubleBuilder.fromEntityMap((NavigableMap<Double, Long>) entityMap);
+      Pair<DoubleDictionary<?>, Map<Long, Long>> doublePair = doubleBuilder.build();
+      builderAdjustMap = doublePair.getRight();
+      resDict = doublePair.getLeft();
+      break;
+    }
+
+    if (!builderAdjustMap.isEmpty())
+      throw new IllegalStateException(
+          "IDs of new col dict for col " + colName + " were adjusted although that was not expected!");
+
+    return new Pair<Dictionary<?>, Map<Long, Map<Long, Long>>>(resDict, resMappingMap);
   }
 
   /**
@@ -441,6 +539,22 @@ public class FlattenUtil {
       throw new IllegalStateException("Creating new ColPage dict changed IDs!");
 
     return buildRes.getLeft();
+  }
+
+  /**
+   * Create a new dictionary of the correct type, which will have a single entry at ID 0: the default value for the
+   * given type.
+   */
+  private Dictionary<?> createDictionaryWithOnlyDefaultValue(ColumnType colType) {
+    switch (colType) {
+    case STRING:
+      return new ConstantStringDictionary(LoaderColumnInfo.DEFAULT_STRING, 0L);
+    case LONG:
+      return new ConstantLongDictionary(LoaderColumnInfo.DEFAULT_LONG, 0L);
+    case DOUBLE:
+      return new ConstantDoubleDictionary(LoaderColumnInfo.DEFAULT_DOUBLE, 0L);
+    }
+    return null; // never happens
   }
 
 }

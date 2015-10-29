@@ -55,7 +55,14 @@ public class RepeatedColumnNameGenerator {
    * @return The colname whose col contains the length
    */
   public String repeatedLength(String baseName) {
-    return baseName + "[length]";
+    return baseName + lengthIdentifyingSuffix();
+  }
+
+  /**
+   * @return Suffix of a col name if that col name is a "length" column.
+   */
+  public String lengthIdentifyingSuffix() {
+    return "[length]";
   }
 
   /**

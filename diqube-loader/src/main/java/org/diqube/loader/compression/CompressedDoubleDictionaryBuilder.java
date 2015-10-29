@@ -36,6 +36,8 @@ import org.diqube.util.Pair;
 /**
  * Builds a compressed string dictionary out of a map that contains values and temporary ids.
  *
+ * TODO #83: Extract super-interface.
+ * 
  * @author Bastian Gloeckle
  */
 public class CompressedDoubleDictionaryBuilder {
@@ -63,8 +65,11 @@ public class CompressedDoubleDictionaryBuilder {
 
     Map<Long, Long> idMap = new HashMap<>();
     long newId = 0;
-    for (Double key : keys)
-      idMap.put(entityMap.get(key), newId++);
+    for (Double key : keys) {
+      long thisId = newId++;
+      if (entityMap.get(key) != thisId)
+        idMap.put(entityMap.get(key), thisId);
+    }
 
     NavigableMap<Long, FpcPage> pages = new TreeMap<>();
 

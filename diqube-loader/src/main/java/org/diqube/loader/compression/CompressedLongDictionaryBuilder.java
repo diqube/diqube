@@ -58,6 +58,8 @@ import org.diqube.util.Pair;
  * {@link RunLengthLongArray}s in dictionaries, as their get method is linear already and we would end up having worst
  * access to the dictionary of O(n log m).
  *
+ * TODO #83: Extract super-interface.
+ * 
  * @author Bastian Gloeckle
  */
 public class CompressedLongDictionaryBuilder {

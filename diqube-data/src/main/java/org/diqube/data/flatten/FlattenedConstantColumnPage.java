@@ -31,7 +31,6 @@ import org.diqube.data.serialize.DeserializationException;
 import org.diqube.data.serialize.SerializationException;
 import org.diqube.data.serialize.thrift.v1.SColumnPage;
 import org.diqube.data.types.lng.array.CompressedLongArray;
-import org.diqube.data.types.lng.dict.ConstantLongDictionary;
 import org.diqube.data.types.lng.dict.LongDictionary;
 
 /**
@@ -43,12 +42,12 @@ import org.diqube.data.types.lng.dict.LongDictionary;
 public class FlattenedConstantColumnPage implements ColumnPage {
 
   private String name;
-  private ConstantLongDictionary colPageDict;
+  private AdjustableConstantLongDictionary<?> colPageDict;
   private long firstRowId;
   private int rows;
 
-  /* package */ FlattenedConstantColumnPage(String name, ConstantLongDictionary colPageDict, long firstRowId,
-      int rows) {
+  /* package */ FlattenedConstantColumnPage(String name, AdjustableConstantLongDictionary<?> colPageDict,
+      long firstRowId, int rows) {
     this.name = name;
     this.colPageDict = colPageDict;
     this.firstRowId = firstRowId;

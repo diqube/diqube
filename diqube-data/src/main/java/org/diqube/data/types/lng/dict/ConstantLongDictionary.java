@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.TreeMap;
 
 import org.diqube.data.dictionary.Dictionary;
+import org.diqube.data.flatten.AdjustableConstantLongDictionary;
 import org.diqube.data.serialize.DataSerializable;
 import org.diqube.data.serialize.DeserializationException;
 import org.diqube.data.serialize.SerializationException;
@@ -42,7 +43,8 @@ import com.google.common.collect.Iterators;
  * @author Bastian Gloeckle
  */
 @DataSerializable(thriftClass = SLongDictionaryConstant.class)
-public class ConstantLongDictionary implements LongDictionary<SLongDictionaryConstant> {
+public class ConstantLongDictionary
+    implements LongDictionary<SLongDictionaryConstant>, AdjustableConstantLongDictionary<SLongDictionaryConstant> {
 
   private long decompressedValue;
   private long id;
@@ -55,6 +57,12 @@ public class ConstantLongDictionary implements LongDictionary<SLongDictionaryCon
   public ConstantLongDictionary(long decompressedValue, long id) {
     this.decompressedValue = decompressedValue;
     this.id = id;
+  }
+
+  @Override
+  public void setValue(long value) {
+    // needed for flattenning!
+    decompressedValue = value;
   }
 
   @Override

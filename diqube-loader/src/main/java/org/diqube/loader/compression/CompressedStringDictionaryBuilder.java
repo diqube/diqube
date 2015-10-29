@@ -47,6 +47,8 @@ import com.google.common.base.Strings;
 /**
  * Builds a compressed string dictionary out of a map that contains values and temporary ids.
  *
+ * TODO #83: Extract super-interface.
+ *
  * @author Bastian Gloeckle
  */
 public class CompressedStringDictionaryBuilder {

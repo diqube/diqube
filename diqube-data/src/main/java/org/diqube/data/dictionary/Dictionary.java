@@ -38,6 +38,11 @@ import org.diqube.util.Pair;
  * All {@link Dictionary}s are {@link Iterable} - they iterate over {@link Pair}s of the ID and value of an entry in a
  * sorted way.
  *
+ * <p>
+ * T needs to be {@link Comparable} if the dict is used in a col of a table that will be flattened.
+ * 
+ * TODO enforce T to be {@link Comparable}!
+ *
  * @author Bastian Gloeckle
  */
 public interface Dictionary<T> extends Iterable<Pair<Long, T>> {
@@ -157,12 +162,16 @@ public interface Dictionary<T> extends Iterable<Pair<Long, T>> {
   /**
    * Returns the IDs of the entries whose value is Greater or Equal to the given one.
    * 
+   * TODO #82 move to generic dictionary util
+   * 
    * @return is sorted.
    */
   public Set<Long> findIdsOfValuesGtEq(T value);
 
   /**
    * Returns the IDs of the entries whose value is 'greater' than the given one.
+   * 
+   * TODO #82 move to generic dictionary util
    * 
    * @return is sorted.
    */
@@ -171,12 +180,16 @@ public interface Dictionary<T> extends Iterable<Pair<Long, T>> {
   /**
    * Returns the IDs of the entries whose value is 'less than' the given one.
    * 
+   * TODO #82 move to generic dictionary util
+   * 
    * @return is sorted.
    */
   public Set<Long> findIdsOfValuesLt(T value);
 
   /**
    * Returns the IDs of the entries whose value is 'less than or equal' to the given one.
+   * 
+   * TODO #82 move to generic dictionary util
    * 
    * @return is sorted.
    */
@@ -193,6 +206,8 @@ public interface Dictionary<T> extends Iterable<Pair<Long, T>> {
   /**
    * Traverses both this and the given other dict, compares the values and returns IDs of both dicts where they have
    * matching values.
+   * 
+   * TODO #82 move to generic dictionary util
    * 
    * @return Returns a (key, value) pair of column value IDs. The 'key' is an ID in this dict. The 'value' is an ID in
    *         otherDict. For each ID in this dict where the >= equation holds to any element in otherDict, there is a

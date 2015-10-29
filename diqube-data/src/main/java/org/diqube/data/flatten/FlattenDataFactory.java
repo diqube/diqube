@@ -93,8 +93,8 @@ public class FlattenDataFactory {
     return new FlattenedTableShard(tableName, colShards);
   }
 
-  public FlattenedConstantColumnPage createFlattenedConstantColumnPage(String name, ConstantLongDictionary colPageDict,
-      long firstRowId, int rows) {
+  public FlattenedConstantColumnPage createFlattenedConstantColumnPage(String name,
+      AdjustableConstantLongDictionary<?> colPageDict, long firstRowId, int rows) {
     return new FlattenedConstantColumnPage(name, colPageDict, firstRowId, rows);
   }
 
@@ -102,4 +102,7 @@ public class FlattenDataFactory {
     return new FlattenedDelegateLongDictionary(delegate);
   }
 
+  public AdjustableConstantLongDictionary<?> createAdjustableConstantLongDictionary(long value) {
+    return new ConstantLongDictionary(value, 0L);
+  }
 }
