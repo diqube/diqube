@@ -20,9 +20,7 @@
  */
 package org.diqube.data.flatten;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
+import java.util.Set;
 
 import org.diqube.data.column.AdjustableColumnPage;
 import org.diqube.data.column.ColumnPage;
@@ -32,6 +30,7 @@ import org.diqube.data.serialize.SerializationException;
 import org.diqube.data.serialize.thrift.v1.SColumnPage;
 import org.diqube.data.types.lng.array.CompressedLongArray;
 import org.diqube.data.types.lng.dict.LongDictionary;
+import org.diqube.util.DiqubeCollectors;
 
 /**
  * TODO #27
@@ -39,24 +38,23 @@ import org.diqube.data.types.lng.dict.LongDictionary;
  * @author Bastian Gloeckle
  */
 @DataSerializableIgnore
-public class FlattenedMultiplicatingColumnPage implements AdjustableColumnPage {
+public class FlattenedIndexRemovingColumnPage implements AdjustableColumnPage {
 
   private String name;
   private LongDictionary<?> colPageDict;
   private long firstRowId;
-  private IndexMultiplicatingCompressedLongArray values;
+  private IndexRemovingCompressedLongArray values;
 
-  /* package */ FlattenedMultiplicatingColumnPage(String name, LongDictionary<?> colPageDict, ColumnPage delegatePage,
-      Map<Long, Integer> multiplyingFactorsByRowId, long firstRowId) {
+  /* package */ FlattenedIndexRemovingColumnPage(String name, LongDictionary<?> colPageDict, ColumnPage delegatePage,
+      Set<Long> notAvailableRowIds, long firstRowId) {
     this.name = name;
     this.colPageDict = colPageDict;
     this.firstRowId = firstRowId;
 
-    Map<Integer, Integer> indexMultiplications = new HashMap<>();
-    for (Entry<Long, Integer> e : multiplyingFactorsByRowId.entrySet())
-      indexMultiplications.put((int) (e.getKey() - delegatePage.getFirstRowId()), e.getValue());
-
-    values = new IndexMultiplicatingCompressedLongArray(delegatePage.getValues(), indexMultiplications, 0L);
+    values = new IndexRemovingCompressedLongArray(delegatePage.getValues(), //
+        notAvailableRowIds.stream().map(l -> (int) (l - delegatePage.getFirstRowId()))
+            .collect(DiqubeCollectors.toNavigableSet()),
+        0L);
   }
 
   @Override
@@ -86,11 +84,11 @@ public class FlattenedMultiplicatingColumnPage implements AdjustableColumnPage {
 
   @Override
   public long calculateApproximateSizeInBytes() {
-    return 16 + //
-        name.length() + //
-        8 + //
+    return 16 + // object header this
+        colPageDict.calculateApproximateSizeInBytes() + //
         values.calculateApproximateSizeInBytes() + //
-        colPageDict.calculateApproximateSizeInBytes();
+        name.length() + //
+        8;
   }
 
   @Override

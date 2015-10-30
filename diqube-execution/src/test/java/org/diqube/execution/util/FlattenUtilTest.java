@@ -47,6 +47,8 @@ import org.diqube.loader.JsonLoader;
 import org.diqube.loader.LoadException;
 import org.diqube.loader.LoaderColumnInfo;
 import org.diqube.util.BigByteBuffer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
@@ -59,6 +61,8 @@ import org.testng.annotations.Test;
  * @author Bastian Gloeckle
  */
 public class FlattenUtilTest {
+  private static final Logger logger = LoggerFactory.getLogger(FlattenUtilTest.class);
+
   private static final String TABLE = "table";
   private static final Comparator<SortedMap<String, Long>> MAP_COMPARATOR = new Comparator<SortedMap<String, Long>>() {
     @Override
@@ -80,7 +84,9 @@ public class FlattenUtilTest {
           return e1.getValue().compareTo(e2.getValue());
       }
       if (i2.hasNext())
-        return -1; // i1 is shorter
+        return -1; // i1
+                   // is
+                   // shorter
       return 0;
     }
   };
@@ -108,20 +114,26 @@ public class FlattenUtilTest {
     dataContext.close();
   }
 
-  @Test(enabled = false)
+  @Test(enabled = true)
   public void simpleTest() throws LoadException {
-    // GIVEN
-    Table t = loadFromJson("[ { " //
+    // Note: run test twice with rows interchanged to make it more likely that the source table of the flatten actually
+    // has each combination of rows once.
+    String json = "[ { " //
         + "\"a\": [ "//
     /* */ + "{ \"b\": 1, \"d\":[99, 100] }, "//
-    /* */ + "{ \"b\": 2 }"//
+    /* */ + "{ \"b\": 2, \"d\":[] }"//
         + "]" + //
         ",\"c\" : [ 9, 10 ] }," //
     //
         + "{ " //
         + "\"a\": [ "//
-    /* */ + "{ \"b\": 3, \"d\":[300,301,302] } "//
-        + "]" + ",\"c\" : [ 0 ]}" + " ]");
+    /* */ + "{ \"b\": 3, \"d\":[300,301,302] }, "//
+    /* */ + "{ \"b\": 4, \"d\":[303,304,305] }, "//
+    /* */ + "{ \"b\": 5, \"d\":[306,307,308] } "//
+        + "]" + ",\"c\" : [ 0 ]}" + " ]";
+
+    // GIVEN
+    Table t = loadFromJson(json);
 
     // WHEN
     FlattenedTable flattenedTable = flattenUtil.flattenTable(t, "a[*]");
@@ -130,12 +142,11 @@ public class FlattenUtilTest {
     Assert.assertEquals(flattenedTable.getShards().size(), 1, "Expected correct table shard count");
     TableShard tableShard = flattenedTable.getShards().iterator().next();
     Assert.assertEquals(tableShard.getLowestRowId(), 0L, "Expected correct lowest row ID");
-    Assert.assertEquals(tableShard.getNumberOfRowsInShard(), 3, "Expected correct number of rows.");
+    Assert.assertEquals(tableShard.getNumberOfRowsInShard(), 5, "Expected correct number of rows.");
 
     Assert.assertEquals(tableShard.getColumns().keySet(),
-        new HashSet<>(Arrays.asList("a.b", "a.d[0]", "a.d[1]", "a.d[2]", "a.d[length]", "c[0]", "c[1]", "c[length]", //
-            "a[length]" /* TODO #27 */
-    )), "Expected correct columns.");
+        new HashSet<>(Arrays.asList("a.b", "a.d[0]", "a.d[1]", "a.d[2]", "a.d[length]", "c[0]", "c[1]", "c[length]")),
+        "Expected correct columns.");
 
     SortedSet<SortedMap<String, Long>> expectedRows = new TreeSet<>(MAP_COMPARATOR);
 
@@ -148,7 +159,6 @@ public class FlattenUtilTest {
     row.put("c[0]", 9L);
     row.put("c[1]", 10L);
     row.put("c[length]", 2L);
-    row.put("a[length]", 2L); // TODO #27
     expectedRows.add(row);
 
     row = new TreeMap<>();
@@ -160,7 +170,6 @@ public class FlattenUtilTest {
     row.put("c[0]", 9L);
     row.put("c[1]", 10L);
     row.put("c[length]", 2L);
-    row.put("a[length]", 2L); // TODO #27
     expectedRows.add(row);
 
     row = new TreeMap<>();
@@ -172,13 +181,34 @@ public class FlattenUtilTest {
     row.put("c[0]", 0L);
     row.put("c[1]", LoaderColumnInfo.DEFAULT_LONG);
     row.put("c[length]", 1L);
-    row.put("a[length]", 1L); // TODO #27
+    expectedRows.add(row);
+
+    row = new TreeMap<>();
+    row.put("a.b", 4L);
+    row.put("a.d[0]", 303L);
+    row.put("a.d[1]", 304L);
+    row.put("a.d[2]", 305L);
+    row.put("a.d[length]", 3L);
+    row.put("c[0]", 0L);
+    row.put("c[1]", LoaderColumnInfo.DEFAULT_LONG);
+    row.put("c[length]", 1L);
+    expectedRows.add(row);
+
+    row = new TreeMap<>();
+    row.put("a.b", 5L);
+    row.put("a.d[0]", 306L);
+    row.put("a.d[1]", 307L);
+    row.put("a.d[2]", 308L);
+    row.put("a.d[length]", 3L);
+    row.put("c[0]", 0L);
+    row.put("c[1]", LoaderColumnInfo.DEFAULT_LONG);
+    row.put("c[length]", 1L);
     expectedRows.add(row);
 
     Assert.assertEquals(getAllRows(tableShard), expectedRows, "Expected to have correct rows.");
   }
 
-  @Test(enabled = false)
+  @Test(enabled = true)
   public void repeatedMiddleMissingTest() throws LoadException {
     // GIVEN
     Table t = loadFromJson("[ { " //
@@ -186,12 +216,12 @@ public class FlattenUtilTest {
     /* */ + "{ \"b\": [ " //
     /*   */ + "{ \"c\": 1 }," //
     /*   */ + "{ \"d\": 1 }," //
-    /*   */ + "{ \"c\": 1 }" //
+    /*   */ + "{ \"c\": 3 }" //
     /* */ + "] }, "//
     /* */ + "{ \"b\": [ " //
     /*   */ + "{ \"c\": 2 }," //
     /*   */ + "{ \"d\": 2 }," //
-    /*   */ + "{ \"c\": 2 }" //
+    /*   */ + "{ \"c\": 4 }" //
     /* */ + "] } "//
         + "]" + //
         "},"
@@ -199,14 +229,14 @@ public class FlattenUtilTest {
         + "{ " //
         + "\"a\": [ "//
     /* */ + "{ \"b\": [ " //
-    /*   */ + "{ \"c\": 1 }," //
-    /*   */ + "{ \"d\": 1 }," //
-    /*   */ + "{ \"c\": 1 }" //
+    /*   */ + "{ \"c\": 5 }," //
+    /*   */ + "{ \"d\": 5 }," //
+    /*   */ + "{ \"c\": 6 }" //
     /* */ + "] }, "//
     /* */ + "{ \"b\": [ " //
-    /*   */ + "{ \"c\": 2 }," //
-    /*   */ + "{ \"d\": 2 }," //
-    /*   */ + "{ \"c\": 2 }" //
+    /*   */ + "{ \"c\": 7 }," //
+    /*   */ + "{ \"d\": 7 }," //
+    /*   */ + "{ \"c\": 8 }" //
     /* */ + "] } "//
         + "]" + //
         "}" + " ]");
@@ -214,8 +244,68 @@ public class FlattenUtilTest {
     // WHEN
     FlattenedTable flattenedTable = flattenUtil.flattenTable(t, "a[*].b[*]");
 
-    System.out.println(flattenedTable);
     // THEN
+    Assert.assertEquals(flattenedTable.getShards().size(), 1, "Expected correct table shard count");
+    TableShard tableShard = flattenedTable.getShards().iterator().next();
+    Assert.assertEquals(tableShard.getLowestRowId(), 0L, "Expected correct lowest row ID");
+    Assert.assertEquals(tableShard.getNumberOfRowsInShard(), 12, "Expected correct number of rows.");
+
+    Assert.assertEquals(tableShard.getColumns().keySet(), new HashSet<>(Arrays.asList("a.b.c", "a.b.d")),
+        "Expected correct columns.");
+
+    SortedSet<SortedMap<String, Long>> expectedRows = new TreeSet<>(MAP_COMPARATOR);
+
+    SortedMap<String, Long> row = new TreeMap<>();
+    row.put("a.b.c", 1L);
+    row.put("a.b.d", LoaderColumnInfo.DEFAULT_LONG);
+    expectedRows.add(row);
+    row = new TreeMap<>();
+    row.put("a.b.c", LoaderColumnInfo.DEFAULT_LONG);
+    row.put("a.b.d", 1L);
+    expectedRows.add(row);
+    row = new TreeMap<>();
+    row.put("a.b.c", 3L);
+    row.put("a.b.d", LoaderColumnInfo.DEFAULT_LONG);
+    expectedRows.add(row);
+    row = new TreeMap<>();
+    row.put("a.b.c", 2L);
+    row.put("a.b.d", LoaderColumnInfo.DEFAULT_LONG);
+    expectedRows.add(row);
+    row = new TreeMap<>();
+    row.put("a.b.c", LoaderColumnInfo.DEFAULT_LONG);
+    row.put("a.b.d", 2L);
+    expectedRows.add(row);
+    row = new TreeMap<>();
+    row.put("a.b.c", 4L);
+    row.put("a.b.d", LoaderColumnInfo.DEFAULT_LONG);
+    expectedRows.add(row);
+
+    row = new TreeMap<>();
+    row.put("a.b.c", 5L);
+    row.put("a.b.d", LoaderColumnInfo.DEFAULT_LONG);
+    expectedRows.add(row);
+    row = new TreeMap<>();
+    row.put("a.b.c", LoaderColumnInfo.DEFAULT_LONG);
+    row.put("a.b.d", 5L);
+    expectedRows.add(row);
+    row = new TreeMap<>();
+    row.put("a.b.c", 6L);
+    row.put("a.b.d", LoaderColumnInfo.DEFAULT_LONG);
+    expectedRows.add(row);
+    row = new TreeMap<>();
+    row.put("a.b.c", 7L);
+    row.put("a.b.d", LoaderColumnInfo.DEFAULT_LONG);
+    expectedRows.add(row);
+    row = new TreeMap<>();
+    row.put("a.b.c", LoaderColumnInfo.DEFAULT_LONG);
+    row.put("a.b.d", 7L);
+    expectedRows.add(row);
+    row = new TreeMap<>();
+    row.put("a.b.c", 8L);
+    row.put("a.b.d", LoaderColumnInfo.DEFAULT_LONG);
+    expectedRows.add(row);
+
+    Assert.assertEquals(getAllRows(tableShard), expectedRows, "Expected to have correct rows.");
   }
 
   private Table loadFromJson(String json) throws LoadException {
@@ -243,4 +333,11 @@ public class FlattenUtilTest {
     res.addAll(rows.values());
     return res;
   }
+
+  // private List<Long> resolveValues(TableShard tableShard, String colName, List<Long> rowIds) {
+  // QueryableLongColumnShardFacade col =
+  // new QueryableLongColumnShardFacade((LongColumnShard) tableShard.getColumns().get(colName));
+  // Long[] colValueIds = col.resolveColumnValueIdsForRowsFlat(rowIds);
+  // return Arrays.asList(col.getColumnShardDictionary().decompressValues(colValueIds));
+  // }
 }

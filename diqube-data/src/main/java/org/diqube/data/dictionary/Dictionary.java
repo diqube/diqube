@@ -29,6 +29,10 @@ import org.diqube.util.Pair;
  * An arbitrary dictionary, mapping values to long IDs.
  * 
  * <p>
+ * Each ID is present only once in the dict, each value is also present only once. The values are ordered in increasing
+ * order, that means if a value A has index Aidx and value B has Bidx and Aidx > Bidx then also A > B.
+ * 
+ * <p>
  * The first ID to be used is always 0L.
  * 
  * <p>

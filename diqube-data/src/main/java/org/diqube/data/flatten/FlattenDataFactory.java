@@ -22,7 +22,6 @@ package org.diqube.data.flatten;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import javax.inject.Inject;
@@ -62,16 +61,9 @@ public class FlattenDataFactory {
     return new FlattenedTable(name, shards);
   }
 
-  public FlattenedMultiplicatingColumnPage createFlattenedMultiplicatingColumnPage(String name,
-      LongDictionary<?> colPageDict, ColumnPage delegatePage, Map<Long, Integer> multiplyingFactorsByRowId,
-      long firstRowId) {
-    return new FlattenedMultiplicatingColumnPage(name, colPageDict, delegatePage, multiplyingFactorsByRowId,
-        firstRowId);
-  }
-
-  public FlattenedCombiningColumnPage createFlattenedCombiningColumnPage(String name, LongDictionary<?> colPageDict,
+  public FlattenedIndexRemovingColumnPage createFlattenedIndexRemovingColumnPage(String name, LongDictionary<?> colPageDict,
       ColumnPage delegatePage, Set<Long> notAvailableRowIds, long firstRowId) {
-    return new FlattenedCombiningColumnPage(name, colPageDict, delegatePage, notAvailableRowIds, firstRowId);
+    return new FlattenedIndexRemovingColumnPage(name, colPageDict, delegatePage, notAvailableRowIds, firstRowId);
   }
 
   public FlattenedDoubleStandardColumnShard createFlattenedDoubleStandardColumnShard(String name,

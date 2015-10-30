@@ -195,6 +195,8 @@ public class ColumnShardBuilder<T> {
     if (pageProposals.size() <= upToProposalIdx)
       pageProposals.addAll(Arrays.asList(new ColumnPageProposal[upToProposalIdx - pageProposals.size() + 1]));
 
+    int noRowsFilled = 0;
+
     for (int propIdx = 0; propIdx <= upToProposalIdx; propIdx++) {
       ColumnPageProposal proposal = pageProposals.get(propIdx);
 
@@ -208,10 +210,14 @@ public class ColumnShardBuilder<T> {
           : (int) ((upUntilRowIncluding + 1 - firstRowIdInShard) % PROPOSAL_ROWS);
 
       for (int i = 0; i < lengthInCurrentProposal; i++) {
-        if (proposal.valueIds[i] == ColumnPageProposal.EMPTY)
+        if (proposal.valueIds[i] == ColumnPageProposal.EMPTY) {
           proposal.valueIds[i] = id;
+          noRowsFilled++;
+        }
       }
     }
+
+    logger.trace("Filled {} rows with static value {}", noRowsFilled, value);
   }
 
   /**

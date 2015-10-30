@@ -70,23 +70,54 @@ import org.diqube.loader.compression.CompressedDoubleDictionaryBuilder;
 import org.diqube.loader.compression.CompressedLongDictionaryBuilder;
 import org.diqube.loader.compression.CompressedStringDictionaryBuilder;
 import org.diqube.util.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.Sets;
 
 /**
- * Flattens a {@link Table} on a specific (repeated) field.
+ * Flattens a {@link Table} on a specific (repeated) field, i.e. that for each entry in the repeated field that is
+ * denoted by the flatten-by field the resulting table will contain a separate row.
  * 
  * <p>
  * The resulting table will have a different number of rows, as for each index of the repeated field of each row, a new
  * row will be provided.
- *
+ * 
+ * <p>
+ * Example input table with two rows and a nested array:
+ * 
+ * <pre>
+ * { a : [ { b : 1 },
+ *         { b : 2 } ],
+ *   c : 9 },
+ * { a : [ { b : 3 },
+ *         { b : 4 } ],
+ *   c : 10}
+ * </pre>
+ * 
+ * When flattenning this over "a[*]", all elements in the a[.] array are separated into a single row (= table with 4
+ * rows):
+ * 
+ * <pre>
+ * { a.b : 1, c : 9 },
+ * { a.b : 2, c : 9 },
+ * { a.b : 3, c : 10 },
+ * { a.b : 4, c : 10 }
+ * </pre>
+ * 
+ * <p>
+ * Note that values are not validated anyhow. That means that if a specific entry in the array did not have all fields
+ * defined, those non-defined fields will be non-defined in the resulting rows. TODO #14: Support optional columns.
+ * 
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
 public class FlattenUtil {
+  private static final Logger logger = LoggerFactory.getLogger(FlattenUtil.class);
 
   private static final long CONSTANT_PAGE_DICT_INTERMEDIARY_VALUE = 0L;
 
@@ -102,8 +133,30 @@ public class FlattenUtil {
   @Inject
   private ColumnPatternUtil colPatternUtil;
 
+  /**
+   * Flatten the given table by the given flatten-by field.
+   * 
+   * <p>
+   * For details, see class doc.
+   * 
+   * @param inputTable
+   *          The table that should be flattened. This cannot be an already flattened table.
+   * @param flattenByField
+   *          The field which should be flattened by, in the usual "all-array-notation" as defined in
+   *          {@link RepeatedColumnNameGenerator} (e.g. a[*].c.b[*] to get a single row for each index in all the "b"
+   *          arrays in a[*].c).
+   * @return The flattened table.
+   * @throws IllegalArgumentException
+   *           If a passed argument is invalid.
+   * @throws PatternException
+   *           If the flattenByField pattern was not recognized.
+   * @throws LengthColumnMissingException
+   *           If any required "length" col is missing.
+   * @throws IllegalStateException
+   *           If the table cannot be flattened for any reason.
+   */
   public FlattenedTable flattenTable(Table inputTable, String flattenByField)
-      throws IllegalArgumentException, PatternException, LengthColumnMissingException {
+      throws IllegalArgumentException, IllegalStateException, PatternException, LengthColumnMissingException {
     if (inputTable instanceof FlattenedTable)
       throw new IllegalArgumentException("Cannot flatten an already flattened table.");
 
@@ -120,6 +173,65 @@ public class FlattenUtil {
     return factory.createFlattenedTable(resultTableName, flattenedTableShards);
   }
 
+  /**
+   * Flattens a single {@link TableShard}.
+   * 
+   * <p>
+   * This works as follows:
+   * 
+   * <ol>
+   * <li>Find all patterns the flatten-by-field pattern matches to. These are then the prefixes of the column names of
+   * which a new row will be created.
+   * <li>Also find the names of the length columns of these patterns.
+   * <li>Produce a to-do list: What is the name of the output columns and what input columns is that output column
+   * created from?
+   * <ul>
+   * <li>Is the new column a "multiplicating col"? These cols are cols that are outside of the path of the repeated
+   * column that is flattened over. Nevertheless each input col contains a value for that row: A single row-value of the
+   * input columns needs to be available for multiple cols on the output table.
+   * <li>Remove previously found length-columns from to-be-created col list (when flattening over a[*] we do not want a
+   * a[length] column to appear in the output!).
+   * </ul>
+   * <li>Iterate over all rows of the input col and identify for each row and identify (1) how many output rows that row
+   * will create (taking into account the length columns of the flatten-by field in that row) and (2) if this row is
+   * missing of any child-fields (i.e. there is an array a[*].c[*], when flattening over a[*], there are output cols
+   * a.c[0], a.c[1], a.c[2], but it could be that a specific row does not contain a.c[2], because that row simply does
+   * not have that many entries in the array.
+   * <li>Build the new columns - each new column can be either "multiplicating" (see above), in which case the col pages
+   * are repeated accordingly (and no-longer repeated rows are removed from the repeated colpages) or they can be
+   * "flattned" - in which case the col is a sub-field of the flattened one and we only need to remove rows that do not
+   * contain any value.
+   * </ol>
+   * 
+   * We need to ensure that we do not mess up with the row-ordering of the various output columns: Each output column
+   * needs to have the same number of rows and the rowIds need to match correctly. Therefore, when creating a column
+   * e.g. based on inputColumns where we do not have realized all, we need to insert "constant" column pages into the
+   * output which will then resolve to default values. Example:
+   * 
+   * Source table:
+   * 
+   * <pre>
+   * {a:[ { b:[1] },
+   *      { b:[2, 3] }]},
+   * {a:[ { b:[4] },
+   *      { b:[5, 6] }]}
+   * </pre>
+   * 
+   * In this example, there will be no column a[0].b[1] in the input (as all a[0]s only have at max a single entry in
+   * .b). Would we now map new columns to col pages of old columns in the following way (flattened over a[*]; displayed
+   * is the list of col pages that are consecutively accessed for a new column):
+   * 
+   * <pre>
+   * a.b[0] = [ all col pages of a[0].b[0] ]
+   * a.b[1] = [ all col pages of a[0].b[1], all col pages of a[1].b[1] ]
+   * a.b[length] = [ all col pages of a[0].b[length], all col pages of a[1].b[length] ]
+   * </pre>
+   * 
+   * .. in that way we would mess up as a.b[0] would have less rows than a.b[1] -> we need to add a "constant" colPage
+   * to a.b[0] to resolve to a default value. Note that we nevertheless will probably never resolve those default values
+   * (at least in this example) as the a.b[length] value will not allow us to iterate that far in the corresponding
+   * rows.
+   */
   private TableShard flattenTableShard(String resultTableName, TableShard inputTableShard, String flattenByField)
       throws PatternException, LengthColumnMissingException, IllegalStateException {
     String[] flattenFieldSplit =
@@ -140,9 +252,12 @@ public class FlattenUtil {
     // calculate the most specific patterns first - colPatternUtil will return its lists in the same ordering!
     repeatedFieldsAlongPath = Lists.reverse(repeatedFieldsAlongPath);
 
-    ColumnPatternContainer patterns = colPatternUtil.findColNamesForColNamePattern(
-        lengthColName -> new QueryableLongColumnShardFacade(inputTableShard.getLongColumns().get(lengthColName)),
-        repeatedFieldsAlongPath);
+    Set<String> allInputLengthColsOfFlattenedFields = new HashSet<>();
+
+    ColumnPatternContainer patterns = colPatternUtil.findColNamesForColNamePattern(lengthColName -> {
+      allInputLengthColsOfFlattenedFields.add(lengthColName);
+      return new QueryableLongColumnShardFacade(inputTableShard.getLongColumns().get(lengthColName));
+    } , repeatedFieldsAlongPath);
 
     // transpose result of colPatternUtil: Collect all the most specific patterns in a set, then the second-most
     // specific patterns etc.
@@ -167,11 +282,17 @@ public class FlattenUtil {
     Map<String, SortedSet<String>> newColumns = new HashMap<>();
     // output cols whose row-values are based on using input cols values and each row value of those inputs is the value
     // of multiple output cols
-    Set<String> multiplyingOutputCols = new HashSet<>();
+    Set<String> multiplicatingOutputCols = new HashSet<>();
 
     Set<String> allInputColNames = inputTableShard.getColumns().keySet();
 
     for (String inputColName : allInputColNames) {
+      if (allInputLengthColsOfFlattenedFields.contains(inputColName))
+        // Remove certian length columns from the set of to-be-created columns. For example when flattenning over a[*],
+        // we do not want to create a[length] column, as it simply does not make sense any more as each of the entries
+        // in a[*] is now a separate row.
+        continue;
+
       String newColName = null;
       String foundPrefix = null;
       int foundPatternIdx = -1;
@@ -186,7 +307,8 @@ public class FlattenUtil {
               // not the first list of prefixes matched (= created from pattern equalling the "flatten-by"), but
               // less-specific patterns matched. That means that this column needs to act in a way, that the value of
               // one input row needs to be projected to multiple rows on the output side.
-              multiplyingOutputCols.add(newColName);
+              // Example: matched: a[0], but flattened over a[*].b[*]
+              multiplicatingOutputCols.add(newColName);
             break;
           }
         }
@@ -200,7 +322,7 @@ public class FlattenUtil {
         newColName = inputColName;
         // At the same time, this column needs to be multiplied: One row of the input col needs to be available in
         // multiple rows in the output.
-        multiplyingOutputCols.add(newColName);
+        multiplicatingOutputCols.add(newColName);
       }
 
       if (!newColumns.containsKey(newColName))
@@ -220,11 +342,14 @@ public class FlattenUtil {
       }
     }
 
-    // TODO remove unneeded [length] cols of flattened cols!
+    logger.trace("Will flatten following columns using following input cols (limit): {}",
+        Iterables.limit(newColumns.entrySet(), 100));
+    logger.trace("Following columns will be multiplicating (limit): {}",
+        Iterables.limit(multiplicatingOutputCols, 100));
 
     // prepare information of single rows:
 
-    NavigableMap<Long, Integer> multiplyingFactor = new TreeMap<>();
+    NavigableMap<Long, Integer> multiplicationFactor = new TreeMap<>();
     // map from input col prefix to rowIds that are not available for all cols starting with that prefix.
     NavigableMap<String, NavigableSet<Long>> rowIdsNotAvailableForInputCols = new TreeMap<>();
 
@@ -242,7 +367,7 @@ public class FlattenUtil {
 
       // This row will produce this many rows in the output.
       int numberOfNewRows = mostSpecificColPatterns.size();
-      multiplyingFactor.put(inputRowId, numberOfNewRows);
+      multiplicationFactor.put(inputRowId, numberOfNewRows);
       mostSpecificColPatterns.forEach(colPattern -> numberOfRowsByFlattenedPrefix.merge(colPattern, 1, Integer::sum));
 
       // This row might not have valid values for all those repeated cols that are available in the Table for the
@@ -253,6 +378,11 @@ public class FlattenUtil {
         rowIdsNotAvailableForInputCols.get(notAvailableColName).add(inputRowId);
       }
     }
+
+    logger.trace("Multiplication factors are the following for all rows (limit): {}",
+        Iterables.limit(multiplicationFactor.entrySet(), 100));
+
+    int maxMultiplicationFactor = multiplicationFactor.values().stream().mapToInt(Integer::intValue).max().getAsInt();
 
     // Build new col shards
     List<StandardColumnShard> flattenedColShards = new ArrayList<>();
@@ -265,6 +395,7 @@ public class FlattenUtil {
       // The third dict has artificial ID = number of entries in second dict
       // and so on
       // -> basically every entry in the dict has it's own artificial ID. These must not be overlapping!
+      // The artificial ID is defined in a way so it can be fed to #mergeDicts(.)
       Map<Long, Dictionary<?>> origColDicts = new HashMap<>();
       long nextColAndColDictId = 0L;
 
@@ -323,17 +454,37 @@ public class FlattenUtil {
 
         flattenedColPages.put(curColId, new ArrayList<>());
 
-        for (ColumnPage inputPage : inputTableShard.getColumns().get(inputColName).getPages().values()) {
-          ColumnPage newPage;
-          // create new page without the final dictionaries! We simply use the original Dicts first.
-          if (multiplyingOutputCols.contains(newColName)) {
-            Map<Long, Integer> curPageMultiplyingFactor = multiplyingFactor.subMap(inputPage.getFirstRowId(),
-                inputPage.getFirstRowId() + inputPage.getValues().size());
+        if (multiplicatingOutputCols.contains(newColName)) {
+          for (int multiplication = 0; multiplication < maxMultiplicationFactor; multiplication++)
+            for (ColumnPage inputPage : inputTableShard.getColumns().get(inputColName).getPages().values()) {
+              ColumnPage newPage;
+              // create new page without the final dictionaries! We simply use the original Dicts first.
+              // newPage = factory.createFlattenedMultiplicatingColumnPage(newColName + "#" + nextFirstRowId,
+              // factory.createFlattenedDelegateLongDictionary(inputPage.getColumnPageDict()), inputPage,
+              // new HashMap<>(), nextFirstRowId);
 
-            newPage = factory.createFlattenedMultiplicatingColumnPage(newColName + "#" + nextFirstRowId,
-                factory.createFlattenedDelegateLongDictionary(inputPage.getColumnPageDict()), inputPage,
-                curPageMultiplyingFactor, nextFirstRowId);
-          } else {
+              Map<Long, Integer> curPageMultiplyingFactor = multiplicationFactor.subMap(inputPage.getFirstRowId(),
+                  inputPage.getFirstRowId() + inputPage.getValues().size());
+
+              final int curMultiplicationNo = multiplication;
+              Set<Long> notAvailableRowIds = LongStream
+                  .range(inputPage.getFirstRowId(), inputPage.getFirstRowId() + inputPage.getValues().size()).filter( //
+                      rowId -> //
+                      (curPageMultiplyingFactor.containsKey(rowId) ? curPageMultiplyingFactor.get(rowId)
+                          : 1) <= curMultiplicationNo)
+                  .mapToObj(Long::valueOf).collect(Collectors.toSet());
+
+              newPage = factory.createFlattenedIndexRemovingColumnPage(newColName + "#" + nextFirstRowId,
+                  factory.createFlattenedDelegateLongDictionary(inputPage.getColumnPageDict()), inputPage,
+                  notAvailableRowIds, nextFirstRowId);
+
+              flattenedColPages.get(curColId).add(newPage);
+              nextFirstRowId += newPage.size();
+            }
+        } else {
+          for (ColumnPage inputPage : inputTableShard.getColumns().get(inputColName).getPages().values()) {
+            ColumnPage newPage;
+            // create new page without the final dictionaries! We simply use the original Dicts first.
             Set<Long> notAvailableRowIdsThisPage;
             String interestingPrefix = rowIdsNotAvailableForInputCols.floorKey(inputColName);
             if (interestingPrefix != null && inputColName.startsWith(interestingPrefix))
@@ -342,13 +493,13 @@ public class FlattenUtil {
             else
               notAvailableRowIdsThisPage = new HashSet<>();
 
-            newPage = factory.createFlattenedCombiningColumnPage(newColName + "#" + nextFirstRowId,
+            newPage = factory.createFlattenedIndexRemovingColumnPage(newColName + "#" + nextFirstRowId,
                 factory.createFlattenedDelegateLongDictionary(inputPage.getColumnPageDict()), inputPage,
                 notAvailableRowIdsThisPage, nextFirstRowId);
-          }
 
-          flattenedColPages.get(curColId).add(newPage);
-          nextFirstRowId += newPage.size();
+            flattenedColPages.get(curColId).add(newPage);
+            nextFirstRowId += newPage.size();
+          }
         }
       }
 
@@ -378,8 +529,6 @@ public class FlattenUtil {
         }
       }
 
-      // TODO #27: make sure default value is in dict and use it in constant pages!
-
       List<ColumnPage> flatFlattenedColPages =
           flattenedColPages.values().stream().flatMap(l -> l.stream()).collect(Collectors.toList());
       StandardColumnShard flattenedColShard = null;
@@ -399,9 +548,13 @@ public class FlattenUtil {
       }
 
       flattenedColShards.add(flattenedColShard);
+
+      logger.trace("Created flattened column {}", newColName);
     }
 
     FlattenedTableShard flattenedTableShard = factory.createFlattenedTableShard(resultTableName, flattenedColShards);
+
+    logger.trace("Created flattened table shard " + resultTableName);
 
     return flattenedTableShard;
   }
@@ -415,7 +568,7 @@ public class FlattenUtil {
    * 
    * @param inputDicts
    *          The col dicts of the input cols, indexed by an artificial "dictionary id", which for one dict basically is
-   *          the number of entries of all previous dicts.
+   *          the number of entries of all previous dicts. First ID is 0L.
    * @return Pair of merged dictionary and for each input dict ID a mapping map. That map maps from old dict ID of a
    *         value to the new dict ID in the merged dict. Map can be empty.
    */
