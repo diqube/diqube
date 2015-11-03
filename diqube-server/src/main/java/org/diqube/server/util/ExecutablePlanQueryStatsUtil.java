@@ -26,8 +26,8 @@ import java.util.Map.Entry;
 import org.diqube.data.table.TableShard;
 import org.diqube.execution.ColumnVersionManager;
 import org.diqube.execution.ExecutablePlan;
-import org.diqube.execution.env.ExecutionEnvironment;
-import org.diqube.execution.env.querystats.QueryableColumnShard;
+import org.diqube.executionenv.ExecutionEnvironment;
+import org.diqube.executionenv.querystats.QueryableColumnShard;
 import org.diqube.queries.QueryStats;
 import org.diqube.queries.QueryStatsManager;
 

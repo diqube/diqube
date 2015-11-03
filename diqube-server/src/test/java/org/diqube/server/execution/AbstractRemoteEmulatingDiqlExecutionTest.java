@@ -38,7 +38,7 @@ import org.diqube.queries.QueryRegistry;
 import org.diqube.remote.base.thrift.RNodeAddress;
 import org.diqube.remote.cluster.thrift.ClusterQueryService;
 import org.diqube.server.execution.util.NoopClusterQueryService;
-import org.diqube.server.queryremote.ClusterQueryServiceHandler;
+import org.diqube.server.queryremote.query.ClusterQueryServiceHandler;
 import org.diqube.util.Pair;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.support.GenericBeanDefinition;

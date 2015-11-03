@@ -21,7 +21,7 @@
 package org.diqube.execution.consumers;
 
 import org.diqube.execution.consumers.GenericConsumer.IdentifyingConsumerClass;
-import org.diqube.execution.env.ExecutionEnvironment;
+import org.diqube.executionenv.ExecutionEnvironment;
 
 /**
  * A consumer that cosnumes row IDs, but in contrast to the usual {@link RowIdConsumer}, this is an

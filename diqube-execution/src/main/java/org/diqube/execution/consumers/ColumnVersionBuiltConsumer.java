@@ -25,8 +25,8 @@ import java.util.Set;
 import org.diqube.execution.ColumnVersionManager;
 import org.diqube.execution.ExecutablePlanStep;
 import org.diqube.execution.consumers.GenericConsumer.IdentifyingConsumerClass;
-import org.diqube.execution.env.ExecutionEnvironment;
-import org.diqube.execution.env.VersionedExecutionEnvironment;
+import org.diqube.executionenv.ExecutionEnvironment;
+import org.diqube.executionenv.VersionedExecutionEnvironment;
 
 /**
  * An {@link OverwritingConsumer} that is called as soon as a new version of a specific column is built. This might

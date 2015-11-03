@@ -74,8 +74,12 @@ public class ExecutionPlanValidator {
    * parsing partial diql statements which lack a FROM in diqube-ui.
    */
   private void validateFrom(ExecutionRequest executionRequest) throws ValidationException {
-    if (executionRequest.getTableName() == null || executionRequest.getTableName().equals(""))
-      throw new ValidationException("No FROM clause specified.");
+    if (executionRequest.getFromRequest() == null || executionRequest.getFromRequest().getTable() == null
+        || executionRequest.getFromRequest().getTable().equals("")
+        || (executionRequest.getFromRequest().isFlattened()
+            && (executionRequest.getFromRequest().getFlattenByField() == null
+                || executionRequest.getFromRequest().getFlattenByField().equals(""))))
+      throw new ValidationException("No FROM clause or invalid FLATTEN specified.");
   }
 
   /**

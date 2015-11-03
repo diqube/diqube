@@ -33,8 +33,8 @@ import org.diqube.execution.consumers.DoneConsumer;
 import org.diqube.execution.consumers.GenericConsumer;
 import org.diqube.execution.consumers.OverwritingRowIdConsumer;
 import org.diqube.execution.consumers.RowIdConsumer;
-import org.diqube.execution.env.ExecutionEnvironment;
-import org.diqube.execution.env.VersionedExecutionEnvironment;
+import org.diqube.executionenv.ExecutionEnvironment;
+import org.diqube.executionenv.VersionedExecutionEnvironment;
 import org.diqube.queries.QueryRegistry;
 
 /**

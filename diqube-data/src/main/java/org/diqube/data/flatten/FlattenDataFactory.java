@@ -42,6 +42,7 @@ import org.diqube.data.types.str.StringColumnShardFactory;
 import org.diqube.data.types.str.dict.StringDictionary;
 
 /**
+ * Factory for data classes that are used in conjunction with flattenning tables.
  *
  * @author Bastian Gloeckle
  */
@@ -61,8 +62,8 @@ public class FlattenDataFactory {
     return new FlattenedTable(name, shards);
   }
 
-  public FlattenedIndexRemovingColumnPage createFlattenedIndexRemovingColumnPage(String name, LongDictionary<?> colPageDict,
-      ColumnPage delegatePage, Set<Long> notAvailableRowIds, long firstRowId) {
+  public FlattenedIndexRemovingColumnPage createFlattenedIndexRemovingColumnPage(String name,
+      LongDictionary<?> colPageDict, ColumnPage delegatePage, Set<Long> notAvailableRowIds, long firstRowId) {
     return new FlattenedIndexRemovingColumnPage(name, colPageDict, delegatePage, notAvailableRowIds, firstRowId);
   }
 

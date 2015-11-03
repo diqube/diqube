@@ -35,7 +35,7 @@ import org.diqube.plan.visitors.SelectStmtVisitor;
  */
 public class ExecutionRequest {
 
-  private String tableName;
+  private FromRequest fromRequest;
 
   private ComparisonRequest having;
 
@@ -54,14 +54,14 @@ public class ExecutionRequest {
   }
 
   /**
-   * @return Name of the table to select from
+   * @return From where to select
    */
-  public String getTableName() {
-    return tableName;
+  public FromRequest getFromRequest() {
+    return fromRequest;
   }
 
-  public void setTableName(String tableName) {
-    this.tableName = tableName;
+  public void setFromRequest(FromRequest fromRequest) {
+    this.fromRequest = fromRequest;
   }
 
   /**
@@ -134,12 +134,12 @@ public class ExecutionRequest {
   public int hashCode() {
     final int prime = 31;
     int result = 1;
+    result = prime * result + ((fromRequest == null) ? 0 : fromRequest.hashCode());
     result = prime * result + ((group == null) ? 0 : group.hashCode());
     result = prime * result + ((having == null) ? 0 : having.hashCode());
     result = prime * result + ((order == null) ? 0 : order.hashCode());
     result = prime * result + ((projectAndAggregate == null) ? 0 : projectAndAggregate.hashCode());
     result = prime * result + ((resolveValues == null) ? 0 : resolveValues.hashCode());
-    result = prime * result + ((tableName == null) ? 0 : tableName.hashCode());
     result = prime * result + ((where == null) ? 0 : where.hashCode());
     return result;
   }
@@ -153,6 +153,11 @@ public class ExecutionRequest {
     if (!(obj instanceof ExecutionRequest))
       return false;
     ExecutionRequest other = (ExecutionRequest) obj;
+    if (fromRequest == null) {
+      if (other.fromRequest != null)
+        return false;
+    } else if (!fromRequest.equals(other.fromRequest))
+      return false;
     if (group == null) {
       if (other.group != null)
         return false;
@@ -178,11 +183,6 @@ public class ExecutionRequest {
         return false;
     } else if (!resolveValues.equals(other.resolveValues))
       return false;
-    if (tableName == null) {
-      if (other.tableName != null)
-        return false;
-    } else if (!tableName.equals(other.tableName))
-      return false;
     if (where == null) {
       if (other.where != null)
         return false;
@@ -190,5 +190,4 @@ public class ExecutionRequest {
       return false;
     return true;
   }
-
 }

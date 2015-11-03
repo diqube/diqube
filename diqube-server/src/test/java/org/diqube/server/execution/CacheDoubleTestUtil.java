@@ -30,7 +30,7 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.diqube.execution.cache.ColumnShardCache;
+import org.diqube.executionenv.cache.ColumnShardCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.annotations.Factory;

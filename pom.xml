@@ -70,6 +70,8 @@
     <module>diqube-hadoop</module>
     <module>diqube-function</module>
     <module>diqube-plan</module>
+    <module>diqube-executionenv</module>
+    <module>diqube-flatten</module>
     <module>diqube-execution</module>
     <module>diqube-server</module>
     <module>diqube-ui</module>

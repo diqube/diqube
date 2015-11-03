@@ -22,22 +22,31 @@ package org.diqube.plan.visitors;
 
 import org.diqube.diql.antlr.DiqlBaseVisitor;
 import org.diqube.diql.antlr.DiqlParser.AnyNameContext;
+import org.diqube.diql.antlr.DiqlParser.ColumnNameContext;
 import org.diqube.diql.antlr.DiqlParser.TableNameContext;
+import org.diqube.plan.request.FromRequest;
 
 /**
  * Visits the name of a table and returns it.
  *
  * @author Bastian Gloeckle
  */
-public class TableNameVisitor extends DiqlBaseVisitor<String> {
+public class TableNameVisitor extends DiqlBaseVisitor<FromRequest> {
+
+  private static final String FLATTEN_FN = "flatten(";
 
   @Override
-  public String visitTableName(TableNameContext ctx) {
-    return ctx.getChild(AnyNameContext.class, 0).getText();
+  public FromRequest visitTableName(TableNameContext ctx) {
+    if (ctx.getText().toLowerCase().startsWith(FLATTEN_FN)) {
+      String origTable = ctx.getChild(AnyNameContext.class, 0).getText();
+      String flattenByField = ctx.getChild(ColumnNameContext.class, 0).getText();
+      return new FromRequest(origTable, flattenByField);
+    } else
+      return new FromRequest(ctx.getChild(AnyNameContext.class, 0).getText());
   }
 
   @Override
-  protected String aggregateResult(String aggregate, String nextResult) {
+  protected FromRequest aggregateResult(FromRequest aggregate, FromRequest nextResult) {
     // this visitor may visit a TerminalNode after the tableName node. We do not want to overwrite the result value with
     // the value of the terminal node (== null).
     if (nextResult != null && aggregate == null)

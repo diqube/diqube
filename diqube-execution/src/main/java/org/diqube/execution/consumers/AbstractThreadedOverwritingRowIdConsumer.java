@@ -21,8 +21,8 @@
 package org.diqube.execution.consumers;
 
 import org.diqube.execution.ExecutablePlanStep;
-import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.steps.AbstractThreadedExecutablePlanStep;
+import org.diqube.executionenv.ExecutionEnvironment;
 
 /**
  * Abstract base class of {@link OverwritingRowIdConsumer}s that handles calling the {@link ExecutablePlanStep}

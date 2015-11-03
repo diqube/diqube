@@ -174,7 +174,8 @@ keyword
  ;
 
 tableName 
- : anyName                                         
+ : F_FLATTEN anyName ',' columnName ')'
+ | anyName                                         
  ;
 
 columnName 
@@ -223,6 +224,8 @@ F_STRING: S T R I N G '(';
 F_INT: I N T '(';
 F_LONG: L O N G '(';
 F_DOUBLE: D O U B L E '(';
+
+F_FLATTEN: F L A T T E N '(';
 
 ID
  : [a-zA-Z_] [a-zA-Z_0-9]* 

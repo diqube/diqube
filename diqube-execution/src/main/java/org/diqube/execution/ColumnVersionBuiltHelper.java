@@ -27,8 +27,8 @@ import java.util.stream.Collectors;
 
 import org.diqube.execution.consumers.ColumnVersionBuiltConsumer;
 import org.diqube.execution.consumers.GenericConsumer;
-import org.diqube.execution.env.ExecutionEnvironment;
-import org.diqube.execution.env.querystats.QueryableColumnShard;
+import org.diqube.executionenv.ExecutionEnvironment;
+import org.diqube.executionenv.querystats.QueryableColumnShard;
 
 /**
  * Helper class providing methods for handling row IDs when a {@link ColumnVersionBuiltConsumer} is in place.

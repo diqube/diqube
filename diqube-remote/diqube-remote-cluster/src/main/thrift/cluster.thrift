@@ -211,3 +211,17 @@ service ClusterManagementService {
   
   oneway void nodeDied(1: base.RNodeAddress nodeAddr)
 }
+
+exception RFlattenException {
+  1: string message
+}
+
+service ClusterFlatteningService {
+  void flattenAllLocalShards(1: string tableName, 2: string flattenBy, 3: list<base.RNodeAddress> otherFlatteners, 
+    4: base.RNodeAddress resultAddress) throws (1: RFlattenException flattenException),
+  
+  oneway void shardsFlattened(1: string tableName, 2: string flattenBy, 
+    3: map<i64, i64> origShardFirstRowIdToFlattenedNumberOfRows, 4: base.RNodeAddress flattener),
+    
+  oneway void flatteningDone(1: string tableName, 2: string flattenBy, 3: base.RNodeAddress flattener) 
+}

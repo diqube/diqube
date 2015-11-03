@@ -24,7 +24,7 @@ import java.util.function.Supplier;
 
 import org.diqube.execution.ExecutablePlanFactory;
 import org.diqube.execution.ExecutablePlanStep;
-import org.diqube.execution.env.ExecutionEnvironment;
+import org.diqube.executionenv.ExecutionEnvironment;
 import org.diqube.plan.request.OrderRequest;
 import org.diqube.util.Pair;
 

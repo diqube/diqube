@@ -23,8 +23,8 @@ package org.diqube.execution.consumers;
 import java.util.Map;
 
 import org.diqube.execution.ExecutablePlanStep;
-import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.steps.AbstractThreadedExecutablePlanStep;
+import org.diqube.executionenv.ExecutionEnvironment;
 
 /**
  * Abstract base class of {@link ColumnDictIdConsumer}s that handles calling the {@link ExecutablePlanStep} correctly

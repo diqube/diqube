@@ -33,9 +33,9 @@ import java.util.stream.Collectors;
 
 import org.diqube.data.column.ColumnType;
 import org.diqube.execution.ExecutablePlan;
-import org.diqube.execution.cache.ColumnShardCacheRegistry;
-import org.diqube.execution.cache.DefaultColumnShardCache;
-import org.diqube.execution.cache.DefaultColumnShardCacheTestUtil;
+import org.diqube.executionenv.cache.ColumnShardCacheRegistry;
+import org.diqube.executionenv.cache.DefaultColumnShardCache;
+import org.diqube.executionenv.cache.DefaultColumnShardCacheTestUtil;
 import org.diqube.loader.LoadException;
 import org.diqube.plan.exception.ValidationException;
 import org.diqube.server.execution.AbstractCacheDoubleDiqlExecutionTest;

@@ -22,8 +22,8 @@ package org.diqube.execution.consumers;
 
 import java.util.Set;
 
-import org.diqube.execution.env.VersionedExecutionEnvironment;
 import org.diqube.execution.steps.AbstractThreadedExecutablePlanStep;
+import org.diqube.executionenv.VersionedExecutionEnvironment;
 
 /**
  * Abstract base class of of {@link ColumnVersionBuiltConsumer}.

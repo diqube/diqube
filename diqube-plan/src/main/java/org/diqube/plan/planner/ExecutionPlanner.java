@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import org.diqube.data.util.FlattenedTableNameGenerator;
 import org.diqube.execution.ColumnVersionManager;
 import org.diqube.execution.ColumnVersionManagerFactory;
 import org.diqube.execution.ExecutablePlan;
@@ -40,9 +41,9 @@ import org.diqube.execution.consumers.ColumnValueConsumer;
 import org.diqube.execution.consumers.GroupIntermediaryAggregationConsumer;
 import org.diqube.execution.consumers.OverwritingRowIdConsumer;
 import org.diqube.execution.consumers.RowIdConsumer;
-import org.diqube.execution.env.ExecutionEnvironment;
 import org.diqube.execution.steps.ExecuteRemotePlanOnShardsStep;
 import org.diqube.execution.steps.HavingResultStep;
+import org.diqube.executionenv.ExecutionEnvironment;
 import org.diqube.plan.PlannerColumnInfo;
 import org.diqube.plan.PlannerColumnInfoBuilder;
 import org.diqube.plan.RemoteExecutionPlanFactory;
@@ -70,16 +71,20 @@ public class ExecutionPlanner {
 
   private RemoteExecutionPlanFactory remoteExecutionPlanFactory;
 
+  private ColumnVersionManagerFactory columnVersionManagerFactory;
+
+  private FlattenedTableNameGenerator flattenedTableNameGenerator;
+
   private int nextMasterStepId = 0;
   private int nextRemoteStepId = 0;
 
-  private ColumnVersionManagerFactory columnVersionManagerFactory;
-
   public ExecutionPlanner(ExecutablePlanFactory executablePlanFactory,
-      RemoteExecutionPlanFactory remoteExecutionPlanFactory, ColumnVersionManagerFactory columnVersionManagerFactory) {
+      RemoteExecutionPlanFactory remoteExecutionPlanFactory, ColumnVersionManagerFactory columnVersionManagerFactory,
+      FlattenedTableNameGenerator flattenedTableNameGenerator) {
     this.executablePlanFactory = executablePlanFactory;
     this.remoteExecutionPlanFactory = remoteExecutionPlanFactory;
     this.columnVersionManagerFactory = columnVersionManagerFactory;
+    this.flattenedTableNameGenerator = flattenedTableNameGenerator;
   }
 
   /**
@@ -286,9 +291,17 @@ public class ExecutionPlanner {
       remoteStep.setStepId(remoteIdChangeMap.get(remoteStep.getStepId()));
     }
 
+    String finalTableName;
+    if (!executionRequest.getFromRequest().isFlattened())
+      finalTableName = executionRequest.getFromRequest().getTable();
+    else
+      finalTableName = flattenedTableNameGenerator.createFlattenedTableName(
+          executionRequest.getFromRequest().getTable(), executionRequest.getFromRequest().getFlattenByField());
+
+    // TODO #27 add step to initiate flattenning.
+
     // Build remote execution plan
-    RExecutionPlan remoteExecutionPlan =
-        remoteExecutionPlanFactory.createExecutionPlan(allRemoteSteps, executionRequest.getTableName());
+    RExecutionPlan remoteExecutionPlan = remoteExecutionPlanFactory.createExecutionPlan(allRemoteSteps, finalTableName);
 
     // ==== Build execution plan for master node.
     // Make query master execute remote execution plan on remotes.

@@ -23,7 +23,7 @@ package org.diqube.execution.consumers;
 import java.util.Map;
 
 import org.diqube.execution.consumers.GenericConsumer.IdentifyingConsumerClass;
-import org.diqube.execution.env.ExecutionEnvironment;
+import org.diqube.executionenv.ExecutionEnvironment;
 
 /**
  * A {@link OverwritingConsumer} that consumes the values of rows of a specific column, whereas the values are encoded

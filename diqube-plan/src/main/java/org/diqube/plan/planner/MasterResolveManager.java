@@ -31,7 +31,7 @@ import org.diqube.execution.ExecutablePlanStep;
 import org.diqube.execution.consumers.ColumnDictIdConsumer;
 import org.diqube.execution.consumers.ColumnValueConsumer;
 import org.diqube.execution.consumers.RowIdConsumer;
-import org.diqube.execution.env.ExecutionEnvironment;
+import org.diqube.executionenv.ExecutionEnvironment;
 
 /**
  * Resolve steps for query master.

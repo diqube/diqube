@@ -32,8 +32,8 @@ import java.util.stream.Collectors;
 
 import org.diqube.data.column.ColumnShard;
 import org.diqube.data.table.TableShard;
-import org.diqube.execution.cache.ColumnShardCache;
-import org.diqube.execution.env.ExecutionEnvironment;
+import org.diqube.executionenv.ExecutionEnvironment;
+import org.diqube.executionenv.cache.ColumnShardCache;
 import org.diqube.queries.QueryUuid.QueryUuidThreadState;
 import org.diqube.remote.cluster.thrift.RColOrValue;
 import org.diqube.remote.cluster.thrift.RExecutionPlan;

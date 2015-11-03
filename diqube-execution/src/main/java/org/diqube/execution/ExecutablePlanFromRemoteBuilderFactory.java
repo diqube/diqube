@@ -23,7 +23,7 @@ package org.diqube.execution;
 import javax.inject.Inject;
 
 import org.diqube.context.AutoInstatiate;
-import org.diqube.execution.env.ExecutionEnvironmentFactory;
+import org.diqube.executionenv.ExecutionEnvironmentFactory;
 
 /**
  * Factory for {@link ExecutablePlanFromRemoteBuilder}.

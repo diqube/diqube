@@ -21,7 +21,7 @@
 package org.diqube.execution.consumers;
 
 import org.diqube.execution.consumers.GenericConsumer.IdentifyingConsumerClass;
-import org.diqube.execution.env.ExecutionEnvironment;
+import org.diqube.executionenv.ExecutionEnvironment;
 
 /**
  * An {@link OverwritingConsumer} that is called as soon as a specific column is built - for each column it is at most

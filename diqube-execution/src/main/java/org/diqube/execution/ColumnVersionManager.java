@@ -24,10 +24,10 @@ import org.diqube.data.column.ColumnShard;
 import org.diqube.data.types.dbl.DoubleColumnShard;
 import org.diqube.data.types.lng.LongColumnShard;
 import org.diqube.data.types.str.StringColumnShard;
-import org.diqube.execution.env.DelegatingExecutionEnvironment;
-import org.diqube.execution.env.ExecutionEnvironment;
-import org.diqube.execution.env.ExecutionEnvironmentFactory;
-import org.diqube.execution.env.VersionedExecutionEnvironment;
+import org.diqube.executionenv.DelegatingExecutionEnvironment;
+import org.diqube.executionenv.ExecutionEnvironment;
+import org.diqube.executionenv.ExecutionEnvironmentFactory;
+import org.diqube.executionenv.VersionedExecutionEnvironment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

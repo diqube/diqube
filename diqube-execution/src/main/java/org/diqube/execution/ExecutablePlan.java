@@ -30,8 +30,8 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.diqube.data.table.TableShard;
-import org.diqube.execution.env.ExecutionEnvironment;
-import org.diqube.execution.env.VersionedExecutionEnvironment;
+import org.diqube.executionenv.ExecutionEnvironment;
+import org.diqube.executionenv.VersionedExecutionEnvironment;
 import org.diqube.queries.QueryRegistry;
 import org.diqube.queries.QueryUuid;
 import org.diqube.queries.QueryUuid.QueryUuidThreadState;

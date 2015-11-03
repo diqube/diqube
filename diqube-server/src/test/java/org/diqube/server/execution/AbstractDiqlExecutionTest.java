@@ -40,7 +40,7 @@ import org.diqube.execution.consumers.AbstractThreadedColumnValueConsumer;
 import org.diqube.execution.consumers.AbstractThreadedOrderedRowIdConsumer;
 import org.diqube.execution.consumers.AbstractThreadedOverwritingRowIdConsumer;
 import org.diqube.execution.consumers.ColumnValueConsumer;
-import org.diqube.execution.env.ExecutionEnvironment;
+import org.diqube.executionenv.ExecutionEnvironment;
 import org.diqube.loader.JsonLoader;
 import org.diqube.loader.LoadException;
 import org.diqube.loader.LoaderColumnInfo;

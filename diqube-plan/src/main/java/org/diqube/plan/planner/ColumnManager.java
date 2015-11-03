@@ -22,7 +22,7 @@ package org.diqube.plan.planner;
 
 import java.util.List;
 
-import org.diqube.execution.env.ExecutionEnvironment;
+import org.diqube.executionenv.ExecutionEnvironment;
 import org.diqube.plan.request.FunctionRequest;
 import org.diqube.remote.cluster.thrift.RExecutionPlanStep;
 import org.diqube.remote.cluster.thrift.RExecutionPlanStepType;

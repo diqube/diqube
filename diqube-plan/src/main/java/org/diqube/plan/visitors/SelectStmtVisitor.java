@@ -29,6 +29,7 @@ import org.diqube.diql.antlr.DiqlParser.GroupByClauseContext;
 import org.diqube.diql.antlr.DiqlParser.SelectStmtContext;
 import org.diqube.plan.request.ComparisonRequest;
 import org.diqube.plan.request.ExecutionRequest;
+import org.diqube.plan.request.FromRequest;
 import org.diqube.plan.request.GroupRequest;
 import org.diqube.plan.request.OrderRequest;
 import org.diqube.plan.request.ResolveValueRequest;
@@ -57,8 +58,8 @@ public class SelectStmtVisitor extends DiqlBaseVisitor<ExecutionRequest> {
     ExecutionRequest executionRequest = new ExecutionRequest();
     ExecutionRequestVisitorEnvironment env = new ExecutionRequestVisitorEnvironment(executionRequest);
 
-    String tableName = selectStmt.accept(new TableNameVisitor());
-    executionRequest.setTableName(tableName);
+    FromRequest fromRequest = selectStmt.accept(new TableNameVisitor());
+    executionRequest.setFromRequest(fromRequest);
 
     // scan GROUP BY
     Pair<GroupRequest, ComparisonRequest> groupBySteps =
@@ -71,6 +72,7 @@ public class SelectStmtVisitor extends DiqlBaseVisitor<ExecutionRequest> {
     }
 
     // scan WHERE clause
+    @SuppressWarnings("unchecked")
     ComparisonRequest restrictions =
         selectStmt.accept(new ComparisonVisitor(env, repeatedColNames, functionBasedColumnNameBuilderFactory,
             // we want to parse the WHERE clause here, so do not visit any sub-tree of GROUP BYs (as that might contain

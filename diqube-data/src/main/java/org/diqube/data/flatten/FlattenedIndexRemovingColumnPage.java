@@ -33,7 +33,8 @@ import org.diqube.data.types.lng.dict.LongDictionary;
 import org.diqube.util.DiqubeCollectors;
 
 /**
- * TODO #27
+ * A {@link ColumnPage} which is based on a delegatePage, but will "remove" multiple rowIds of that delegate in its
+ * outside view.
  *
  * @author Bastian Gloeckle
  */

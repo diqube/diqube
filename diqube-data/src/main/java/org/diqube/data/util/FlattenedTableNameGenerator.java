@@ -21,7 +21,6 @@
 package org.diqube.data.util;
 
 import org.diqube.context.AutoInstatiate;
-import org.diqube.data.table.Table;
 
 /**
  *
@@ -31,7 +30,7 @@ import org.diqube.data.table.Table;
 public class FlattenedTableNameGenerator {
   private static final String FLATTEN_FN = "flatten";
 
-  public String createFlattenedTableName(Table inputTable, String flattenByField) {
-    return FLATTEN_FN + "(" + inputTable.getName() + "," + flattenByField + ")";
+  public String createFlattenedTableName(String inputTableName, String flattenByField) {
+    return FLATTEN_FN + "(" + inputTableName + "," + flattenByField + ")";
   }
 }

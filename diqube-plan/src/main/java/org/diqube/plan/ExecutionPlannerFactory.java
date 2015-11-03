@@ -23,6 +23,7 @@ package org.diqube.plan;
 import javax.inject.Inject;
 
 import org.diqube.context.AutoInstatiate;
+import org.diqube.data.util.FlattenedTableNameGenerator;
 import org.diqube.execution.ColumnVersionManagerFactory;
 import org.diqube.execution.ExecutablePlanFactory;
 import org.diqube.plan.planner.ExecutionPlanner;
@@ -43,7 +44,11 @@ public class ExecutionPlannerFactory {
   @Inject
   private ColumnVersionManagerFactory columnVersionManagerFactory;
 
+  @Inject
+  private FlattenedTableNameGenerator flattenedTableNameGenerator;
+
   public ExecutionPlanner createExecutionPlanner() {
-    return new ExecutionPlanner(executablePlanFactory, remoteExecutionPlanFactory, columnVersionManagerFactory);
+    return new ExecutionPlanner(executablePlanFactory, remoteExecutionPlanFactory, columnVersionManagerFactory,
+        flattenedTableNameGenerator);
   }
 }
