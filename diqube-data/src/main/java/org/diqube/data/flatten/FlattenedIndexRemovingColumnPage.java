@@ -20,8 +20,6 @@
  */
 package org.diqube.data.flatten;
 
-import java.util.Set;
-
 import org.diqube.data.column.AdjustableColumnPage;
 import org.diqube.data.column.ColumnPage;
 import org.diqube.data.serialize.DataSerializableIgnore;
@@ -29,8 +27,8 @@ import org.diqube.data.serialize.DeserializationException;
 import org.diqube.data.serialize.SerializationException;
 import org.diqube.data.serialize.thrift.v1.SColumnPage;
 import org.diqube.data.types.lng.array.CompressedLongArray;
+import org.diqube.data.types.lng.array.RunLengthLongArray;
 import org.diqube.data.types.lng.dict.LongDictionary;
-import org.diqube.util.DiqubeCollectors;
 
 /**
  * A {@link ColumnPage} which is based on a delegatePage, but will "remove" multiple rowIds of that delegate in its
@@ -46,16 +44,17 @@ public class FlattenedIndexRemovingColumnPage implements AdjustableColumnPage {
   private long firstRowId;
   private IndexRemovingCompressedLongArray values;
 
+  /**
+   * @param sortedRemoveIndices
+   *          Indices in delegatePages' value array that are to be "removed". No {@link RunLengthLongArray}.
+   */
   /* package */ FlattenedIndexRemovingColumnPage(String name, LongDictionary<?> colPageDict, ColumnPage delegatePage,
-      Set<Long> notAvailableRowIds, long firstRowId) {
+      CompressedLongArray<?> sortedRemoveIndices, long firstRowId) {
     this.name = name;
     this.colPageDict = colPageDict;
     this.firstRowId = firstRowId;
 
-    values = new IndexRemovingCompressedLongArray(delegatePage.getValues(), //
-        notAvailableRowIds.stream().map(l -> (int) (l - delegatePage.getFirstRowId()))
-            .collect(DiqubeCollectors.toNavigableSet()),
-        0L);
+    values = new IndexRemovingCompressedLongArray(delegatePage.getValues(), sortedRemoveIndices, 0L);
   }
 
   @Override

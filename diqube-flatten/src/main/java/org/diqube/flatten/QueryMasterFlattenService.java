@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
@@ -89,7 +90,7 @@ public class QueryMasterFlattenService {
       throws FlattenException, InterruptedException {
     logger.info("Identified that a flattened version of '{}' is needed (by '{}').", table, flattenBy);
 
-    long timeoutTime = System.nanoTime() + flattenTimeoutSeconds * 1_000_000_000;
+    long timeoutTime = System.nanoTime() + flattenTimeoutSeconds * 1_000_000_000L;
 
     boolean firstRun = true;
     while (true) {
@@ -143,12 +144,14 @@ public class QueryMasterFlattenService {
         try {
           error = false;
           for (RNodeAddress node : nodesServingTable) {
+            List<RNodeAddress> otherFlatteners =
+                nodesServingTable.stream().filter(n -> n != node).collect(Collectors.toList());
             try (ServiceProvider<ClusterFlatteningService.Iface> serviceProv =
                 connectionOrLocalHelper.getService(ClusterFlatteningService.Client.class,
                     ClusterFlatteningService.Iface.class, ClusterFlatteningServiceConstants.SERVICE_NAME, node, null)) {
 
-              serviceProv.getService().flattenAllLocalShards(flattenRequestRuuid, table, flattenBy,
-                  new ArrayList<>(nodesServingTable), clusterManager.getOurHostAddr().createRemote());
+              serviceProv.getService().flattenAllLocalShards(flattenRequestRuuid, table, flattenBy, otherFlatteners,
+                  clusterManager.getOurHostAddr().createRemote());
             } catch (ConnectionException | IOException | IllegalStateException | TException e) {
               logger.info("Exception while talking to {} about flattening table {}. Will retry.", node, table, e);
               error = true;

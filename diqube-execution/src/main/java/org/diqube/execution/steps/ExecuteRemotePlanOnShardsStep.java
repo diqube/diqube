@@ -22,11 +22,13 @@ package org.diqube.execution.steps;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -38,11 +40,13 @@ import org.diqube.cluster.connection.ConnectionOrLocalHelper;
 import org.diqube.cluster.connection.ServiceProvider;
 import org.diqube.cluster.connection.SocketListener;
 import org.diqube.execution.RemotesTriggeredListener;
+import org.diqube.execution.consumers.AbstractThreadedTableFlattenedConsumer;
 import org.diqube.execution.consumers.ColumnValueConsumer;
 import org.diqube.execution.consumers.DoneConsumer;
 import org.diqube.execution.consumers.GenericConsumer;
 import org.diqube.execution.consumers.GroupIntermediaryAggregationConsumer;
 import org.diqube.execution.consumers.RowIdConsumer;
+import org.diqube.execution.consumers.TableFlattenedConsumer;
 import org.diqube.execution.exception.ExecutablePlanExecutionException;
 import org.diqube.executionenv.ExecutionEnvironment;
 import org.diqube.function.IntermediaryResult;
@@ -54,6 +58,7 @@ import org.diqube.remote.base.util.RUuidUtil;
 import org.diqube.remote.cluster.ClusterQueryServiceConstants;
 import org.diqube.remote.cluster.thrift.ClusterQueryService;
 import org.diqube.remote.cluster.thrift.RExecutionPlan;
+import org.diqube.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,7 +74,7 @@ import com.google.common.collect.Iterables;
  * remote to other methods of the {@link QueryResultHandler} have returned already.
  * 
  * <p>
- * Input: None. <br>
+ * Input: 1 optional {@link TableFlattenedConsumer} (if query is based on a flattened table). <br>
  * Output: {@link ColumnValueConsumer}, {@link GroupIntermediaryAggregationConsumer}, {@link RowIdConsumer}.
  * 
  * @author Bastian Gloeckle
@@ -77,6 +82,23 @@ import com.google.common.collect.Iterables;
 public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePlanStep {
 
   private static final Logger logger = LoggerFactory.getLogger(ExecuteRemotePlanOnShardsStep.class);
+
+  private Pair<UUID, Collection<RNodeAddress>> flattenResult = null;
+  private Object flattenResultSync = new Object();
+
+  private TableFlattenedConsumer tableFlattenedConsumer = new AbstractThreadedTableFlattenedConsumer(this) {
+    @Override
+    protected void allSourcesAreDone() {
+      // noop.
+    }
+
+    @Override
+    protected void doTableFlattened(UUID flattenId, Collection<RNodeAddress> remoteNodes) {
+      synchronized (flattenResultSync) {
+        flattenResult = new Pair<>(flattenId, remoteNodes);
+      }
+    }
+  };
 
   private List<RemotesTriggeredListener> remotesTriggeredListeners = new ArrayList<>();
 
@@ -164,14 +186,34 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
 
   @Override
   protected void execute() {
-    Collection<RNodeAddress> remoteNodes =
-        clusterManager.getClusterLayout().findNodesServingTable(remoteExecutionPlan.getTable());
+    Collection<RNodeAddress> remoteNodes;
+    UUID flattenId = null;
+    if (tableFlattenedConsumer.getNumberOfTimesWired() > 0) {
+      Pair<UUID, Collection<RNodeAddress>> flattenResult;
+      synchronized (flattenResultSync) {
+        flattenResult = this.flattenResult;
+      }
+      if (flattenResult == null)
+        // flattening not yet done.
+        return;
+
+      remoteNodes = flattenResult.getRight();
+      flattenId = flattenResult.getLeft();
+
+      // provide the remote plan with the correct & valid flatten ID.
+      remoteExecutionPlan.getFrom().getFlattened().setFlattenId(RUuidUtil.toRUuid(flattenId));
+    } else {
+      if (!remoteExecutionPlan.getFrom().isSetPlainTableName())
+        throw new ExecutablePlanExecutionException("Expected to have a plain table name to select from.");
+
+      String tableName = remoteExecutionPlan.getFrom().getPlainTableName();
+
+      remoteNodes = clusterManager.getClusterLayout().findNodesServingTable(tableName);
+      if (remoteNodes.isEmpty())
+        throw new ExecutablePlanExecutionException("There are no cluster nodes serving table '" + tableName + "'");
+    }
 
     remotesActive = new ConcurrentLinkedDeque<>();
-
-    if (remoteNodes.isEmpty())
-      throw new ExecutablePlanExecutionException(
-          "There are no cluster nodes serving table '" + remoteExecutionPlan.getTable() + "'");
 
     // this will be installed on the sockets we use to communicate to the remotes.
     SocketListener socketListener = new SocketListener() {
@@ -263,7 +305,7 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
 
   @Override
   protected List<GenericConsumer> inputConsumers() {
-    return new ArrayList<>();
+    return new ArrayList<>(Arrays.asList(new GenericConsumer[] { tableFlattenedConsumer }));
   }
 
   public RExecutionPlan getRemoteExecutionPlan() {

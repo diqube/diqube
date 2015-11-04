@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.diqube.data.table.Table;
@@ -45,6 +46,7 @@ import org.diqube.execution.steps.ResolveValuesStep;
 import org.diqube.executionenv.ExecutionEnvironment;
 import org.diqube.executionenv.ExecutionEnvironmentFactory;
 import org.diqube.queries.QueryUuid.QueryUuidThreadState;
+import org.diqube.remote.base.util.RUuidUtil;
 import org.diqube.remote.cluster.thrift.RExecutionPlan;
 import org.diqube.remote.cluster.thrift.RExecutionPlanStep;
 import org.diqube.remote.cluster.thrift.RExecutionPlanStepDataType;
@@ -77,13 +79,17 @@ public class ExecutablePlanFromRemoteBuilder {
 
   private ExecutablePlanFactory executablePlanFactory;
 
+  private FlattenedTableManager flattenedTableManager;
+
   /* package */ ExecutablePlanFromRemoteBuilder(TableRegistry tableRegistry,
       ExecutionEnvironmentFactory executionEnvironmentFactory,
-      ExecutablePlanStepFromRemoteFactory executablePlanStepFactory, ExecutablePlanFactory executablePlanFactory) {
+      ExecutablePlanStepFromRemoteFactory executablePlanStepFactory, ExecutablePlanFactory executablePlanFactory,
+      FlattenedTableManager flattenedTableManager) {
     this.tableRegistry = tableRegistry;
     this.executionEnvironmentFactory = executionEnvironmentFactory;
     this.executablePlanStepFactory = executablePlanStepFactory;
     this.executablePlanFactory = executablePlanFactory;
+    this.flattenedTableManager = flattenedTableManager;
   }
 
   /**
@@ -116,13 +122,25 @@ public class ExecutablePlanFromRemoteBuilder {
    * Build the {@link ExecutablePlan}s, for each {@link TableShard} that is available on this node one.
    * 
    * <p>
-   * This method must be executed with correct {@link QueryUuidThreadState} set, as
-   * {@link RemoteExecutionPlanOptimizer} needs correct thread state!
+   * This method must be executed with correct {@link QueryUuidThreadState} set, as {@link RemoteExecutionPlanOptimizer}
+   * needs correct thread state!
    */
   public List<ExecutablePlan> build() throws ExecutablePlanBuildException {
-    Table table = tableRegistry.getTable(plan.getTable());
-    if (table == null) {
-      throw new ExecutablePlanBuildException("Table '" + plan.getTable() + "' does not exist.");
+    Table table;
+    if (plan.getFrom().isSetPlainTableName()) {
+      String tableName = plan.getFrom().getPlainTableName();
+      table = tableRegistry.getTable(tableName);
+      if (table == null) {
+        throw new ExecutablePlanBuildException("Table '" + tableName + "' does not exist.");
+      }
+    } else {
+      String tableName = plan.getFrom().getFlattened().getTableName();
+      String flattenBy = plan.getFrom().getFlattened().getFlattenBy();
+      UUID flattenId = RUuidUtil.toUuid(plan.getFrom().getFlattened().getFlattenId());
+      table = flattenedTableManager.getFlattenedTable(flattenId, tableName, flattenBy);
+      if (table == null)
+        throw new ExecutablePlanBuildException(
+            "Flattened table " + tableName + "/" + flattenBy + "/" + flattenId + " is not available.");
     }
 
     List<ExecutablePlan> res = new ArrayList<>(table.getShards().size());

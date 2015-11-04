@@ -20,6 +20,8 @@
  */
 package org.diqube.data.util;
 
+import java.util.UUID;
+
 import org.diqube.context.AutoInstatiate;
 
 /**
@@ -30,7 +32,7 @@ import org.diqube.context.AutoInstatiate;
 public class FlattenedTableNameGenerator {
   private static final String FLATTEN_FN = "flatten";
 
-  public String createFlattenedTableName(String inputTableName, String flattenByField) {
-    return FLATTEN_FN + "(" + inputTableName + "," + flattenByField + ")";
+  public String createFlattenedTableName(String inputTableName, String flattenByField, UUID flattenId) {
+    return FLATTEN_FN + "(" + inputTableName + "," + flattenByField + "," + flattenId + ")";
   }
 }

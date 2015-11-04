@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.plan.request.ComparisonRequest;
 import org.diqube.plan.request.ExecutionRequest;
+import org.diqube.plan.request.FromRequest;
 import org.diqube.plan.request.FunctionRequest;
 import org.diqube.plan.request.GroupRequest;
 import org.diqube.plan.request.OrderRequest;
@@ -33,6 +34,8 @@ import org.diqube.remote.base.thrift.RValue;
 import org.diqube.remote.cluster.thrift.RCol;
 import org.diqube.remote.cluster.thrift.RColOrValue;
 import org.diqube.remote.cluster.thrift.RExecutionPlan;
+import org.diqube.remote.cluster.thrift.RExecutionPlanFrom;
+import org.diqube.remote.cluster.thrift.RExecutionPlanFromFlattened;
 import org.diqube.remote.cluster.thrift.RExecutionPlanStep;
 import org.diqube.remote.cluster.thrift.RExecutionPlanStepDetailsFunction;
 import org.diqube.remote.cluster.thrift.RExecutionPlanStepDetailsGroup;
@@ -209,10 +212,22 @@ public class RemoteExecutionPlanFactory {
     return step;
   }
 
-  public RExecutionPlan createExecutionPlan(List<RExecutionPlanStep> steps, String tableName) {
+  public RExecutionPlan createExecutionPlan(List<RExecutionPlanStep> steps, FromRequest fromRequest) {
     RExecutionPlan res = new RExecutionPlan();
     res.setSteps(steps);
-    res.setTable(tableName);
+    RExecutionPlanFrom from = new RExecutionPlanFrom();
+    res.setFrom(from);
+    if (fromRequest.isFlattened()) {
+      RExecutionPlanFromFlattened flattened = new RExecutionPlanFromFlattened();
+      from.setFlattened(flattened);
+
+      flattened.setTableName(fromRequest.getTable());
+      flattened.setFlattenBy(fromRequest.getFlattenByField());
+      // Cannot be called yet: flattened.setFlattenId(). This will be filled in automatically by the
+      // ExecuteRemotePlanOnShardsStep.
+    } else {
+      from.setPlainTableName(fromRequest.getTable());
+    }
     return res;
   }
 }

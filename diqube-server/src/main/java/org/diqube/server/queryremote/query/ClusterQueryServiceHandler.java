@@ -41,6 +41,7 @@ import org.diqube.config.ConfigKey;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.data.column.ColumnShard;
 import org.diqube.data.table.TableShard;
+import org.diqube.data.util.FlattenedTableNameGenerator;
 import org.diqube.execution.ExecutablePlan;
 import org.diqube.execution.ExecutablePlanFromRemoteBuilderFactory;
 import org.diqube.execution.TableRegistry;
@@ -259,7 +260,17 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
             // specific columns from the cache, they will be available in the ExecutionEnv as "temporary columns" - and
             // we will present them to the cache again right away. With this mechanism the cache can actively count the
             // usages of specific columns and therefore tune what it should cache and what not.
-            WritableColumnShardCache tableCache = tableCacheRegistry.getColumnShardCache(executionPlan.getTable());
+            String finalTableName;
+            if (executionPlan.getFrom().isSetPlainTableName())
+              finalTableName = executionPlan.getFrom().getPlainTableName();
+            else {
+              String origTableName = executionPlan.getFrom().getFlattened().getTableName();
+              String flattenBy = executionPlan.getFrom().getFlattened().getFlattenBy();
+              UUID flattenId = RUuidUtil.toUuid(executionPlan.getFrom().getFlattened().getFlattenId());
+              finalTableName =
+                  new FlattenedTableNameGenerator().createFlattenedTableName(origTableName, flattenBy, flattenId);
+            }
+            WritableColumnShardCache tableCache = tableCacheRegistry.getColumnShardCache(finalTableName);
             if (tableCache != null) {
               logger.info("Updating the table cache with results of query {}, execution {}", queryUuid, executionUuid);
               for (ExecutablePlan plan : executablePlansHolder.getValue()) {

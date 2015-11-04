@@ -23,7 +23,6 @@ package org.diqube.data.flatten;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.NavigableSet;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
@@ -32,9 +31,7 @@ import org.diqube.data.serialize.DataSerializableIgnore;
 import org.diqube.data.serialize.DeserializationException;
 import org.diqube.data.serialize.SerializationException;
 import org.diqube.data.types.lng.array.CompressedLongArray;
-
-import com.google.common.collect.Iterators;
-import com.google.common.collect.PeekingIterator;
+import org.diqube.data.types.lng.array.CompressedLongArrayUtil;
 
 /**
  * A {@link CompressedLongArray} whose values are based on a delegate, but the values at specific indices of the
@@ -48,14 +45,19 @@ import com.google.common.collect.PeekingIterator;
 @DataSerializableIgnore
 public class IndexRemovingCompressedLongArray implements CompressedLongArray<TBase<?, ?>> {
   private CompressedLongArray<?> delegate;
-  private NavigableSet<Integer> removeIndices;
+  private CompressedLongArray<?> sortedRemoveIndices;
   private boolean isSameValue;
   private long valueDelta;
 
-  /* package */ IndexRemovingCompressedLongArray(CompressedLongArray<?> delegate, NavigableSet<Integer> removeIndices,
-      long valueDelta) {
+  /**
+   * @param sortedRemoveIndices
+   *          sorted list of indices that should be "removed" from the delegate. Be aware that this array should be
+   *          accessible in constant-time, i.e. this should not be a run-length encoded one.
+   */
+  /* package */ IndexRemovingCompressedLongArray(CompressedLongArray<?> delegate,
+      CompressedLongArray<?> sortedRemoveIndices, long valueDelta) {
     this.delegate = delegate;
-    this.removeIndices = removeIndices;
+    this.sortedRemoveIndices = sortedRemoveIndices;
     this.valueDelta = valueDelta;
 
     isSameValue = LongStream.of(decompressedArray()).distinct().count() == 1;
@@ -68,7 +70,7 @@ public class IndexRemovingCompressedLongArray implements CompressedLongArray<TBa
 
   @Override
   public int size() {
-    return delegate.size() - removeIndices.size();
+    return delegate.size() - sortedRemoveIndices.size();
   }
 
   @Override
@@ -79,19 +81,21 @@ public class IndexRemovingCompressedLongArray implements CompressedLongArray<TBa
   @Override
   public long[] decompressedArray() {
     long[] delResult = delegate.decompressedArray();
-    if (removeIndices.isEmpty())
+    if (sortedRemoveIndices.size() == 0)
       return delResult;
 
-    long[] res = new long[delResult.length - removeIndices.size()];
+    long[] res = new long[delResult.length - sortedRemoveIndices.size()];
 
     int resPos = 0;
-    PeekingIterator<Integer> removedIt = Iterators.peekingIterator(removeIndices.iterator());
+    int nextRemoveIndicesPos = 0;
     for (int i = 0; i < delResult.length; i++) {
-      if (!removedIt.hasNext()) {
+      if (nextRemoveIndicesPos == sortedRemoveIndices.size()) {
         res[resPos++] = delResult[i] + valueDelta;
       } else {
-        if (removedIt.peek() == i)
+        if (sortedRemoveIndices.get(nextRemoveIndicesPos) == i) {
+          nextRemoveIndicesPos++;
           continue;
+        }
 
         res[resPos++] = delResult[i] + valueDelta;
       }
@@ -126,10 +130,23 @@ public class IndexRemovingCompressedLongArray implements CompressedLongArray<TBa
   private List<Integer> toDelegateIndices(List<Integer> inputIndices) {
     List<Integer> res = new ArrayList<>();
     for (int inputIdx : inputIndices) {
-      int numberOfRemovedEntriesBefore = removeIndices.headSet(inputIdx, true).size();
+      int curRemovedIdx = CompressedLongArrayUtil.binarySearch(sortedRemoveIndices, inputIdx);
+      int numberOfRemovedEntriesBefore = curRemovedIdx;
+      if (numberOfRemovedEntriesBefore < 0) {
+        int insertionPoint = -1 - numberOfRemovedEntriesBefore;
+        numberOfRemovedEntriesBefore = insertionPoint;
+        curRemovedIdx = insertionPoint;
+      }
+
+      // numberOfRemovedEntriesBefore number of entries are removed in the input indices. We therefore have to advance
+      // the inputIdx by that many not-again-removed entries to get the delegate idx.
+
       while (numberOfRemovedEntriesBefore > 0) {
         inputIdx++;
-        if (!removeIndices.contains(inputIdx))
+        while (sortedRemoveIndices.get(curRemovedIdx) < inputIdx)
+          curRemovedIdx++;
+        if (sortedRemoveIndices.get(curRemovedIdx) != inputIdx)
+          // index is not again removed
           numberOfRemovedEntriesBefore--;
       }
       res.add(inputIdx);
@@ -141,7 +158,7 @@ public class IndexRemovingCompressedLongArray implements CompressedLongArray<TBa
   public long calculateApproximateSizeInBytes() {
     // do not include size of delegate.
     return 16 + // object header of this
-        removeIndices.size() * 4 + //
+        sortedRemoveIndices.calculateApproximateSizeInBytes() + //
         10;
   }
 

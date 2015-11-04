@@ -41,7 +41,9 @@ import org.diqube.execution.consumers.ColumnValueConsumer;
 import org.diqube.execution.consumers.GroupIntermediaryAggregationConsumer;
 import org.diqube.execution.consumers.OverwritingRowIdConsumer;
 import org.diqube.execution.consumers.RowIdConsumer;
+import org.diqube.execution.consumers.TableFlattenedConsumer;
 import org.diqube.execution.steps.ExecuteRemotePlanOnShardsStep;
+import org.diqube.execution.steps.FlattenStep;
 import org.diqube.execution.steps.HavingResultStep;
 import org.diqube.executionenv.ExecutionEnvironment;
 import org.diqube.plan.PlannerColumnInfo;
@@ -291,23 +293,27 @@ public class ExecutionPlanner {
       remoteStep.setStepId(remoteIdChangeMap.get(remoteStep.getStepId()));
     }
 
-    String finalTableName;
-    if (!executionRequest.getFromRequest().isFlattened())
-      finalTableName = executionRequest.getFromRequest().getTable();
-    else
-      finalTableName = flattenedTableNameGenerator.createFlattenedTableName(
-          executionRequest.getFromRequest().getTable(), executionRequest.getFromRequest().getFlattenByField());
-
-    // TODO #27 add step to initiate flattenning.
-
     // Build remote execution plan
-    RExecutionPlan remoteExecutionPlan = remoteExecutionPlanFactory.createExecutionPlan(allRemoteSteps, finalTableName);
+    RExecutionPlan remoteExecutionPlan =
+        remoteExecutionPlanFactory.createExecutionPlan(allRemoteSteps, executionRequest.getFromRequest());
 
     // ==== Build execution plan for master node.
+
+    // If flattened, be sure to trigger flattening correctly.
+    FlattenStep flattenStep = null;
+    if (executionRequest.getFromRequest().isFlattened()) {
+      flattenStep = executablePlanFactory.createFlattenStep(nextMasterIdSupplier.get(),
+          executionRequest.getFromRequest().getTable(), executionRequest.getFromRequest().getFlattenByField());
+      allMasterSteps.add(flattenStep);
+    }
+
     // Make query master execute remote execution plan on remotes.
     ExecutablePlanStep executeRemoteStep = executablePlanFactory.createExecuteRemotePlanStep(nextMasterIdSupplier.get(),
         masterDefaultExecutionEnv, remoteExecutionPlan);
     allMasterSteps.add(executeRemoteStep);
+
+    if (flattenStep != null)
+      masterWireManager.wire(TableFlattenedConsumer.class, flattenStep, executeRemoteStep);
 
     // ==== Handle a GROUP and aggregation functions on master
     boolean rowAggregateFunctionsAvailable = columnInfo.values().stream()

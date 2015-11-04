@@ -150,8 +150,19 @@ struct RExecutionPlanStep {
   8: optional RExecutionPlanStepDetailsFunction detailsFunction,    // set on type == PROJECT, GROUP_INTERMEDIATE_AGGREGATE and COLUMN_AGGREGATE
 }
 
+struct RExecutionPlanFromFlattened {
+  1: string tableName,
+  2: string flattenBy,
+  3: base.RUUID flattenId
+}
+
+union RExecutionPlanFrom {
+  1: optional string plainTableName,
+  2: optional RExecutionPlanFromFlattened flattened
+}
+
 struct RExecutionPlan {
-  1: string table,
+  1: RExecutionPlanFrom from,
   2: list<RExecutionPlanStep> steps,
 }
 

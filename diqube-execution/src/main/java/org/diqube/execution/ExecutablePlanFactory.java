@@ -32,6 +32,7 @@ import org.diqube.data.column.ColumnShardFactory;
 import org.diqube.execution.steps.BuildColumnFromValuesStep;
 import org.diqube.execution.steps.ExecuteRemotePlanOnShardsStep;
 import org.diqube.execution.steps.FilterRequestedColumnsAndActiveRowIdsStep;
+import org.diqube.execution.steps.FlattenStep;
 import org.diqube.execution.steps.GroupFinalAggregationStep;
 import org.diqube.execution.steps.GroupIdAdjustingStep;
 import org.diqube.execution.steps.HavingResultStep;
@@ -46,6 +47,7 @@ import org.diqube.execution.steps.RowIdEqualsStep;
 import org.diqube.execution.steps.RowIdInequalStep;
 import org.diqube.execution.steps.RowIdInequalStep.RowIdComparator;
 import org.diqube.executionenv.ExecutionEnvironment;
+import org.diqube.flatten.QueryMasterFlattenService;
 import org.diqube.function.FunctionFactory;
 import org.diqube.loader.columnshard.ColumnShardBuilderFactory;
 import org.diqube.queries.QueryRegistry;
@@ -77,6 +79,9 @@ public class ExecutablePlanFactory {
 
   @Inject
   private ConnectionOrLocalHelper connectionOrLocalHelper;
+
+  @Inject
+  private QueryMasterFlattenService queryMasterFlattenService;
 
   public GroupFinalAggregationStep createGroupFinalAggregationStep(int stepId, ExecutionEnvironment env,
       String functionNameLowerCase, String outputColName, ColumnVersionManager columnVersionManager,
@@ -169,6 +174,10 @@ public class ExecutablePlanFactory {
 
   public HavingResultStep createHavingResultStep(int stepId) {
     return new HavingResultStep(stepId, queryRegistry);
+  }
+
+  public FlattenStep createFlattenStep(int stepId, String tableName, String flattenBy) {
+    return new FlattenStep(stepId, queryRegistry, tableName, flattenBy, queryMasterFlattenService);
   }
 
 }

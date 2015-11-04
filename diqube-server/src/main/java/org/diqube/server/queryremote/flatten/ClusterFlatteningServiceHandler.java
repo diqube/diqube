@@ -185,6 +185,7 @@ public class ClusterFlatteningServiceHandler implements ClusterFlatteningService
       throw new RFlattenException("Table '" + tableName + "' not available.");
 
     UUID requestUuid = RUuidUtil.toUuid(flattenRequestId);
+    UUID flattenedTableId = requestUuid; // result UUID for the flattened table if we succeed.
 
     logger.info("Starting to flatten '{}' by '{}', request ID {}, result addr {}, other flatteners: {}", tableName,
         flattenBy, requestUuid, resultAddress, otherFlatteners);
@@ -201,7 +202,7 @@ public class ClusterFlatteningServiceHandler implements ClusterFlatteningService
       List<TableShard> inputShards = table.getShards().stream()
           .sorted((s1, s2) -> Long.compare(s1.getLowestRowId(), s2.getLowestRowId())).collect(Collectors.toList());
 
-      FlattenedTable flattenedTable = flattenUtil.flattenTable(table, inputShards, flattenBy);
+      FlattenedTable flattenedTable = flattenUtil.flattenTable(table, inputShards, flattenBy, flattenedTableId);
 
       List<TableShard> flattenedShards = flattenedTable.getShards().stream()
           .sorted((s1, s2) -> Long.compare(s1.getLowestRowId(), s2.getLowestRowId())).collect(Collectors.toList());
@@ -254,7 +255,7 @@ public class ClusterFlatteningServiceHandler implements ClusterFlatteningService
       // flatteners, as we need to adjust our rowIds accordingly.
 
       int numberOfOtherFlattenersResponded = 0;
-      long timeoutTime = System.nanoTime() + flattenTimeoutSeconds * 1_000_000_000;
+      long timeoutTime = System.nanoTime() + flattenTimeoutSeconds * 1_000_000_000L;
 
       logger.trace("Flattening '{}' by '{}', request ID {}, waiting for results from other flatteners", tableName,
           flattenBy, requestUuid);
@@ -297,7 +298,6 @@ public class ClusterFlatteningServiceHandler implements ClusterFlatteningService
       }
 
       // Okay, all results from other flatteners received, we're done!
-      UUID flattenedTableId = requestUuid;
       flattenedTableManager.registerFlattenedTableVersion(flattenedTableId, flattenedTable, tableName, flattenBy);
 
       // not in "finally", since we do not want to clear this here if we have an exception -> the

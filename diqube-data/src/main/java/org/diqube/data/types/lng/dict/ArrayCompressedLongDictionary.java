@@ -20,7 +20,6 @@
  */
 package org.diqube.data.types.lng.dict;
 
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.NavigableMap;
@@ -35,6 +34,7 @@ import org.diqube.data.serialize.SerializationException;
 import org.diqube.data.serialize.thrift.v1.SLongCompressedArray;
 import org.diqube.data.serialize.thrift.v1.SLongDictionaryArray;
 import org.diqube.data.types.lng.array.CompressedLongArray;
+import org.diqube.data.types.lng.array.CompressedLongArrayUtil;
 import org.diqube.util.Pair;
 
 /**
@@ -91,7 +91,7 @@ public class ArrayCompressedLongDictionary implements LongDictionary<SLongDictio
     if (sortedValues.size() == 0)
       throw new IllegalArgumentException("Dictionary is empty.");
 
-    int idx = findIndex(value, 0, sortedValues.size() - 1);
+    int idx = CompressedLongArrayUtil.binarySearch(sortedValues, value);
     if (idx < 0)
       throw new IllegalArgumentException("Value " + value + " could not be found in dictionary.");
     return idx;
@@ -102,7 +102,7 @@ public class ArrayCompressedLongDictionary implements LongDictionary<SLongDictio
     if (sortedValues.size() == 0)
       return null;
 
-    int idx = findIndex(value, 0, sortedValues.size() - 1);
+    int idx = CompressedLongArrayUtil.binarySearch(sortedValues, value);
     if (idx >= 0)
       return (long) idx;
     if (idx == -(sortedValues.size() + 1))
@@ -115,7 +115,7 @@ public class ArrayCompressedLongDictionary implements LongDictionary<SLongDictio
     if (sortedValues.size() == 0)
       return null;
 
-    int idx = findIndex(value, 0, sortedValues.size() - 1);
+    int idx = CompressedLongArrayUtil.binarySearch(sortedValues, value);
     if (idx >= 0)
       return (long) idx;
 
@@ -127,53 +127,11 @@ public class ArrayCompressedLongDictionary implements LongDictionary<SLongDictio
     return -(idxOfNextSmallerValue + 1);
   }
 
-  /**
-   * Finds index of value in specific range of {@link #sortedValues}.
-   * 
-   * @return Index >= 0 if found. If not found, the result is (-1-instertionpoint), means < 0 and it might be -(high+2).
-   *         This is equal to the result of {@link Arrays#binarySearch(long[], long)}.
-   */
-  private int findIndex(long value, int lo, int high) {
-    // TODO #5 instead of decompressing a lot of values here, we should compress the search value itself and then search
-    // for it in the compressed space. This should be implemented in CompressedLongArray.
-    long decompressed = sortedValues.get(lo);
-    if (decompressed == value)
-      return lo;
-    if (decompressed > value)
-      return -1;
-    decompressed = sortedValues.get(high);
-    if (decompressed == value)
-      return high;
-    if (decompressed < value)
-      return -2 - high;
-    while (true) {
-      if (high - lo <= 10) {
-        for (int i = lo + 1; i <= high - 1; i++) {
-          decompressed = sortedValues.get(i);
-          if (decompressed == value)
-            return i;
-          if (decompressed > value) {
-            return -1 - i;
-          }
-        }
-        return -1 - high;
-      }
-      int mid = lo + ((high - lo) / 2);
-      long midValue = sortedValues.get(mid);
-      if (midValue == value)
-        return mid;
-      if (midValue > value)
-        high = mid;
-      else
-        lo = mid;
-    }
-  }
-
   @Override
   public Long[] findIdsOfValues(Long[] sortedSearchValues) {
     Long[] res = new Long[sortedSearchValues.length];
     for (int i = 0; i < res.length; i++) {
-      int idx = findIndex(sortedSearchValues[i], 0, sortedValues.size() - 1);
+      int idx = CompressedLongArrayUtil.binarySearch(sortedValues, sortedSearchValues[i]);
       res[i] = (idx >= 0) ? idx : -1L;
     }
     return res;
@@ -182,7 +140,7 @@ public class ArrayCompressedLongDictionary implements LongDictionary<SLongDictio
   @Override
   public boolean containsAnyValue(Long[] sortedSearchValues) {
     for (int i = 0; i < sortedSearchValues.length; i++)
-      if (findIndex(sortedSearchValues[i], 0, sortedValues.size() - 1) >= 0)
+      if (CompressedLongArrayUtil.binarySearch(sortedValues, sortedSearchValues[i]) >= 0)
         return true;
     return false;
   }
@@ -270,7 +228,7 @@ public class ArrayCompressedLongDictionary implements LongDictionary<SLongDictio
 
   @Override
   public Set<Long> findIdsOfValuesGtEq(Long value) {
-    int firstIdx = findIndex(value, 0, sortedValues.size() - 1);
+    int firstIdx = CompressedLongArrayUtil.binarySearch(sortedValues, value);
     if (firstIdx < 0)
       firstIdx = -firstIdx - 1;
 
@@ -285,7 +243,7 @@ public class ArrayCompressedLongDictionary implements LongDictionary<SLongDictio
 
   @Override
   public Set<Long> findIdsOfValuesGt(Long value) {
-    int firstIdx = findIndex(value, 0, sortedValues.size() - 1);
+    int firstIdx = CompressedLongArrayUtil.binarySearch(sortedValues, value);
     if (firstIdx < 0)
       firstIdx = -firstIdx - 1;
     else
@@ -301,7 +259,7 @@ public class ArrayCompressedLongDictionary implements LongDictionary<SLongDictio
 
   @Override
   public Set<Long> findIdsOfValuesLt(Long value) {
-    int lastIdx = findIndex(value, 0, sortedValues.size() - 1);
+    int lastIdx = CompressedLongArrayUtil.binarySearch(sortedValues, value);
     if (lastIdx < 0)
       lastIdx = -lastIdx - 2;
     else
@@ -317,7 +275,7 @@ public class ArrayCompressedLongDictionary implements LongDictionary<SLongDictio
 
   @Override
   public Set<Long> findIdsOfValuesLtEq(Long value) {
-    int lastIdx = findIndex(value, 0, sortedValues.size() - 1);
+    int lastIdx = CompressedLongArrayUtil.binarySearch(sortedValues, value);
     if (lastIdx < 0)
       lastIdx = -lastIdx - 2;
 

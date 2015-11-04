@@ -44,8 +44,11 @@ public class ExecutablePlanFromRemoteBuilderFactory {
   @Inject
   private ExecutablePlanFactory executablePlanFactory;
 
+  @Inject
+  private FlattenedTableManager flattenedTableManager;
+
   public ExecutablePlanFromRemoteBuilder createExecutablePlanFromRemoteBuilder() {
     return new ExecutablePlanFromRemoteBuilder(tableRegistry, executionEnvironmentFactory, executablePlanStepFactory,
-        executablePlanFactory);
+        executablePlanFactory, flattenedTableManager);
   }
 }

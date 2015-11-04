@@ -32,6 +32,7 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.UUID;
 import java.util.stream.LongStream;
 
 import org.diqube.context.Profiles;
@@ -132,7 +133,7 @@ public class FlattenUtilTest {
     Table t = loadFromJson(json);
 
     // WHEN
-    FlattenedTable flattenedTable = flattenUtil.flattenTable(t, null, "a[*]");
+    FlattenedTable flattenedTable = flattenUtil.flattenTable(t, null, "a[*]", UUID.randomUUID());
 
     // THEN
     Assert.assertEquals(flattenedTable.getShards().size(), 1, "Expected correct table shard count");
@@ -238,7 +239,7 @@ public class FlattenUtilTest {
         "}" + " ]");
 
     // WHEN
-    FlattenedTable flattenedTable = flattenUtil.flattenTable(t, null, "a[*].b[*]");
+    FlattenedTable flattenedTable = flattenUtil.flattenTable(t, null, "a[*].b[*]", UUID.randomUUID());
 
     // THEN
     Assert.assertEquals(flattenedTable.getShards().size(), 1, "Expected correct table shard count");
@@ -324,7 +325,7 @@ public class FlattenUtilTest {
     Table t = loadFromJson(100, json);
 
     // WHEN
-    FlattenedTable flattenedTable = flattenUtil.flattenTable(t, null, "a[*]");
+    FlattenedTable flattenedTable = flattenUtil.flattenTable(t, null, "a[*]", UUID.randomUUID());
 
     // THEN
     Assert.assertEquals(flattenedTable.getShards().size(), 1, "Expected correct table shard count");

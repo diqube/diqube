@@ -72,4 +72,17 @@ public class FlattenedTableManager {
       return null;
     }
   }
+
+  public FlattenedTable getFlattenedTable(UUID versionId, String origTableName, String flattenBy) {
+    Pair<String, String> keyPair = new Pair<>(origTableName, flattenBy);
+    Deque<Pair<UUID, FlattenedTable>> deque = tables.get(keyPair);
+    if (deque == null)
+      return null;
+
+    for (Pair<UUID, FlattenedTable> p : deque) {
+      if (p.getLeft().equals(versionId))
+        return p.getRight();
+    }
+    return null;
+  }
 }

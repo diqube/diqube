@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
@@ -50,12 +51,14 @@ import org.diqube.data.dictionary.Dictionary;
 import org.diqube.data.flatten.AdjustableConstantLongDictionary;
 import org.diqube.data.flatten.FlattenDataFactory;
 import org.diqube.data.flatten.FlattenedDelegateLongDictionary;
+import org.diqube.data.flatten.FlattenedIndexRemovingColumnPage;
 import org.diqube.data.flatten.FlattenedTable;
 import org.diqube.data.flatten.FlattenedTableShard;
 import org.diqube.data.table.Table;
 import org.diqube.data.table.TableShard;
 import org.diqube.data.types.dbl.dict.ConstantDoubleDictionary;
 import org.diqube.data.types.dbl.dict.DoubleDictionary;
+import org.diqube.data.types.lng.array.CompressedLongArray;
 import org.diqube.data.types.lng.dict.ConstantLongDictionary;
 import org.diqube.data.types.lng.dict.LongDictionary;
 import org.diqube.data.types.str.dict.ConstantStringDictionary;
@@ -69,8 +72,12 @@ import org.diqube.executionenv.util.ColumnPatternUtil.LengthColumnMissingExcepti
 import org.diqube.executionenv.util.ColumnPatternUtil.PatternException;
 import org.diqube.loader.LoaderColumnInfo;
 import org.diqube.loader.compression.CompressedDoubleDictionaryBuilder;
+import org.diqube.loader.compression.CompressedLongArrayBuilder;
+import org.diqube.loader.compression.CompressedLongArrayBuilder.BitEfficientCompressionStrategy;
+import org.diqube.loader.compression.CompressedLongArrayBuilder.ReferenceAndBitEfficientCompressionStrategy;
 import org.diqube.loader.compression.CompressedLongDictionaryBuilder;
 import org.diqube.loader.compression.CompressedStringDictionaryBuilder;
+import org.diqube.util.DiqubeCollectors;
 import org.diqube.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -158,6 +165,8 @@ public class FlattenUtil {
    *          The field which should be flattened by, in the usual "all-array-notation" as defined in
    *          {@link RepeatedColumnNameGenerator} (e.g. a[*].c.b[*] to get a single row for each index in all the "b"
    *          arrays in a[*].c).
+   * @param flattenId
+   *          The ID of the flattening that should be used to generate the output table name.
    * @return The flattened table.
    * @throws IllegalArgumentException
    *           If a passed argument is invalid.
@@ -168,8 +177,9 @@ public class FlattenUtil {
    * @throws IllegalStateException
    *           If the table cannot be flattened for any reason.
    */
-  public FlattenedTable flattenTable(Table inputTable, Collection<TableShard> inputTableShards, String flattenByField)
-      throws IllegalArgumentException, IllegalStateException, PatternException, LengthColumnMissingException {
+  public FlattenedTable flattenTable(Table inputTable, Collection<TableShard> inputTableShards, String flattenByField,
+      UUID flattenId)
+          throws IllegalArgumentException, IllegalStateException, PatternException, LengthColumnMissingException {
     if (inputTable instanceof FlattenedTable)
       throw new IllegalArgumentException("Cannot flatten an already flattened table.");
 
@@ -177,7 +187,8 @@ public class FlattenUtil {
       throw new IllegalArgumentException(
           "Flatten-By field does not end with '" + repeatedColNameGen.allEntriesIdentifyingSubstr() + "'");
 
-    String resultTableName = flattenedTableNameGen.createFlattenedTableName(inputTable.getName(), flattenByField);
+    String resultTableName =
+        flattenedTableNameGen.createFlattenedTableName(inputTable.getName(), flattenByField, flattenId);
 
     if (inputTableShards == null)
       inputTableShards = inputTable.getShards();
@@ -492,38 +503,40 @@ public class FlattenUtil {
                   inputPage.getFirstRowId() + inputPage.getValues().size());
 
               final int curMultiplicationNo = multiplication;
-              Set<Long> notAvailableRowIds = LongStream
+              NavigableSet<Long> notAvailableRowIds = LongStream
                   .range(inputPage.getFirstRowId(), inputPage.getFirstRowId() + inputPage.getValues().size()).filter( //
                       rowId -> //
                       (curPageMultiplyingFactor.containsKey(rowId) ? curPageMultiplyingFactor.get(rowId)
                           : 1) <= curMultiplicationNo)
-                  .mapToObj(Long::valueOf).collect(Collectors.toSet());
+                  .mapToObj(Long::valueOf).collect(DiqubeCollectors.toNavigableSet());
 
-              newPage = factory.createFlattenedIndexRemovingColumnPage(newColName + "#" + nextFirstRowId,
-                  factory.createFlattenedDelegateLongDictionary(inputPage.getColumnPageDict()), inputPage,
+              newPage = createRowRemovedFlattenedColumnPage(newColName + "#" + nextFirstRowId, inputPage,
                   notAvailableRowIds, nextFirstRowId);
 
-              flattenedColPages.get(curColId).add(newPage);
-              nextFirstRowId += newPage.size();
+              if (newPage != null) {
+                flattenedColPages.get(curColId).add(newPage);
+                nextFirstRowId += newPage.size();
+              }
             }
         } else {
           for (ColumnPage inputPage : inputTableShard.getColumns().get(inputColName).getPages().values()) {
             ColumnPage newPage;
             // create new page without the final dictionaries! We simply use the original Dicts first.
-            Set<Long> notAvailableRowIdsThisPage;
+            SortedSet<Long> notAvailableRowIdsThisPage;
             String interestingPrefix = rowIdsNotAvailableForInputCols.floorKey(inputColName);
             if (interestingPrefix != null && inputColName.startsWith(interestingPrefix))
               notAvailableRowIdsThisPage = rowIdsNotAvailableForInputCols.get(interestingPrefix)
                   .subSet(inputPage.getFirstRowId(), inputPage.getFirstRowId() + inputPage.getValues().size());
             else
-              notAvailableRowIdsThisPage = new HashSet<>();
+              notAvailableRowIdsThisPage = new TreeSet<>();
 
-            newPage = factory.createFlattenedIndexRemovingColumnPage(newColName + "#" + nextFirstRowId,
-                factory.createFlattenedDelegateLongDictionary(inputPage.getColumnPageDict()), inputPage,
+            newPage = createRowRemovedFlattenedColumnPage(newColName + "#" + nextFirstRowId, inputPage,
                 notAvailableRowIdsThisPage, nextFirstRowId);
 
-            flattenedColPages.get(curColId).add(newPage);
-            nextFirstRowId += newPage.size();
+            if (newPage != null) {
+              flattenedColPages.get(curColId).add(newPage);
+              nextFirstRowId += newPage.size();
+            }
           }
         }
       }
@@ -582,6 +595,36 @@ public class FlattenUtil {
     logger.trace("Created flattened table shard " + resultTableName);
 
     return flattenedTableShard;
+  }
+
+  /**
+   * Creates a new ColumnPage the default way for a flattened col shard (= removes specific rows from the page).
+   * 
+   * @param colPageName
+   *          Name of the new page
+   * @param delegate
+   *          The delegate {@link ColumnPage} of the input col shard.
+   * @param notAvailableRowIds
+   *          The RowIds that should not be available in the result col page as compared to the input col page.
+   * @param newFirstRowId
+   *          firstRowId the new page would have
+   * @return The new {@link ColumnPage}. Can be <code>null</code> in case the new colPage should not be added (e.g. if
+   *         it would be empty).
+   */
+  private ColumnPage createRowRemovedFlattenedColumnPage(String colPageName, ColumnPage delegate,
+      SortedSet<Long> notAvailableRowIds, long newFirstRowId) {
+    if (delegate.getValues().size() == notAvailableRowIds.size())
+      // we'd remove all values from the delegate, so we actually do not need to build a page at all.
+      return null;
+
+    // TODO #27: Use heuristic to identify the least-memory-intensive way to store this.
+    // It could be that we remove that much indices here that it would be easier to (1) store the indices that are still
+    // enabled or (2) re-create the column completely.
+    ColumnPage newPage = factory.createFlattenedIndexRemovingColumnPage(colPageName,
+        factory.createFlattenedDelegateLongDictionary(delegate.getColumnPageDict()), delegate,
+        compressRemovedRowIdIndicesToRemovedIndicesArray(notAvailableRowIds, delegate.getFirstRowId()), newFirstRowId);
+
+    return newPage;
   }
 
   /**
@@ -733,6 +776,29 @@ public class FlattenUtil {
       return new ConstantDoubleDictionary(LoaderColumnInfo.DEFAULT_DOUBLE, 0L);
     }
     return null; // never happens
+  }
+
+  /**
+   * Transforms a set of rowIds which should not be accessible in {@link FlattenedIndexRemovingColumnPage} to the
+   * {@link CompressedLongArray} of "removed indices" of the values array of that page, as that is needed to construct a
+   * {@link FlattenedIndexRemovingColumnPage}.
+   * 
+   * @param removedRowIds
+   * @param firstRowId
+   * @return
+   */
+  private CompressedLongArray<?> compressRemovedRowIdIndicesToRemovedIndicesArray(SortedSet<Long> removedRowIds,
+      long firstRowId) {
+    // do not use RunLengthLongArray startegy, as stated by FlattenedIndexRemovingColumnPage
+    @SuppressWarnings("unchecked")
+    CompressedLongArrayBuilder builder = new CompressedLongArrayBuilder()
+        .withStrategies(BitEfficientCompressionStrategy.class, ReferenceAndBitEfficientCompressionStrategy.class);
+
+    long[] values = removedRowIds.stream().mapToLong(rowId -> rowId - firstRowId).toArray();
+
+    builder.withValues(values);
+
+    return builder.build();
   }
 
 }

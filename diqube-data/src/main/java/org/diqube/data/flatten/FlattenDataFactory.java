@@ -35,6 +35,7 @@ import org.diqube.data.types.dbl.FlattenedDoubleStandardColumnShard;
 import org.diqube.data.types.dbl.dict.DoubleDictionary;
 import org.diqube.data.types.lng.FlattenedLongStandardColumnShard;
 import org.diqube.data.types.lng.LongColumnShardFactory;
+import org.diqube.data.types.lng.array.CompressedLongArray;
 import org.diqube.data.types.lng.dict.ConstantLongDictionary;
 import org.diqube.data.types.lng.dict.LongDictionary;
 import org.diqube.data.types.str.FlattenedStringStandardColumnShard;
@@ -64,8 +65,9 @@ public class FlattenDataFactory {
   }
 
   public FlattenedIndexRemovingColumnPage createFlattenedIndexRemovingColumnPage(String name,
-      LongDictionary<?> colPageDict, ColumnPage delegatePage, Set<Long> notAvailableRowIds, long firstRowId) {
-    return new FlattenedIndexRemovingColumnPage(name, colPageDict, delegatePage, notAvailableRowIds, firstRowId);
+      LongDictionary<?> colPageDict, ColumnPage delegatePage, CompressedLongArray<?> sortedRemoveIndices,
+      long firstRowId) {
+    return new FlattenedIndexRemovingColumnPage(name, colPageDict, delegatePage, sortedRemoveIndices, firstRowId);
   }
 
   public FlattenedDoubleStandardColumnShard createFlattenedDoubleStandardColumnShard(String name,
