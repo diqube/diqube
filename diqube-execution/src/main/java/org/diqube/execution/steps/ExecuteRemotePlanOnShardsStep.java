@@ -47,6 +47,7 @@ import org.diqube.execution.consumers.GenericConsumer;
 import org.diqube.execution.consumers.GroupIntermediaryAggregationConsumer;
 import org.diqube.execution.consumers.RowIdConsumer;
 import org.diqube.execution.consumers.TableFlattenedConsumer;
+import org.diqube.execution.exception.ExecutablePlanBuildException;
 import org.diqube.execution.exception.ExecutablePlanExecutionException;
 import org.diqube.executionenv.ExecutionEnvironment;
 import org.diqube.function.IntermediaryResult;
@@ -324,5 +325,10 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
 
   public void addRemotesTriggeredListener(RemotesTriggeredListener listener) {
     remotesTriggeredListeners.add(listener);
+  }
+
+  @Override
+  protected void validateWiredStatus() throws ExecutablePlanBuildException {
+    // noop. If TableFlattenedConsumer is wired, that's fine, but if it isn't that's ok, too.
   }
 }
