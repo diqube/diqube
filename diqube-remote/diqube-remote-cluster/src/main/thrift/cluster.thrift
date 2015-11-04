@@ -216,12 +216,25 @@ exception RFlattenException {
   1: string message
 }
 
+exception RRetryLaterException {
+  1: string message
+}
+
+struct ROptionalUuid {
+  1: optional base.RUUID uuid
+}
+
 service ClusterFlatteningService {
-  void flattenAllLocalShards(1: string tableName, 2: string flattenBy, 3: list<base.RNodeAddress> otherFlatteners, 
-    4: base.RNodeAddress resultAddress) throws (1: RFlattenException flattenException),
+  void flattenAllLocalShards(1: base.RUUID flattenRequestId, 2: string tableName, 3: string flattenBy, 
+    4: list<base.RNodeAddress> otherFlatteners, 5: base.RNodeAddress resultAddress) throws (1: RFlattenException flattenException),
   
-  oneway void shardsFlattened(1: string tableName, 2: string flattenBy, 
-    3: map<i64, i64> origShardFirstRowIdToFlattenedNumberOfRows, 4: base.RNodeAddress flattener),
+  void shardsFlattened(1: base.RUUID flattenRequestId, 
+    2: map<i64, i64> origShardFirstRowIdToFlattenedNumberOfRowsDelta, 3: base.RNodeAddress flattener) throws (1: RRetryLaterException retryLaterException),
     
-  oneway void flatteningDone(1: string tableName, 2: string flattenBy, 3: base.RNodeAddress flattener) 
+  ROptionalUuid getLatestValidFlattening(1: string tableName, 2: string flattenBy) throws (1: RFlattenException flattenException)
+    
+  oneway void flatteningDone(1: base.RUUID flattenRequestId, 2: base.RUUID flattenedTableId, 
+    3: base.RNodeAddress flattener)
+    
+  oneway void flatteningFailed(1: base.RUUID flattenRequestId, 2: RFlattenException flattenException)
 }

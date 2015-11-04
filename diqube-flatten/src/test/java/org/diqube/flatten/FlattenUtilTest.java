@@ -137,7 +137,7 @@ public class FlattenUtilTest {
     Table t = loadFromJson(json);
 
     // WHEN
-    FlattenedTable flattenedTable = flattenUtil.flattenTable(t, "a[*]");
+    FlattenedTable flattenedTable = flattenUtil.flattenTable(t, null, "a[*]");
 
     // THEN
     Assert.assertEquals(flattenedTable.getShards().size(), 1, "Expected correct table shard count");
@@ -243,7 +243,7 @@ public class FlattenUtilTest {
         "}" + " ]");
 
     // WHEN
-    FlattenedTable flattenedTable = flattenUtil.flattenTable(t, "a[*].b[*]");
+    FlattenedTable flattenedTable = flattenUtil.flattenTable(t, null, "a[*].b[*]");
 
     // THEN
     Assert.assertEquals(flattenedTable.getShards().size(), 1, "Expected correct table shard count");

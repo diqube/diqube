@@ -142,4 +142,9 @@ public class ConfigKey {
    * Set this to a value <= 0 to disable the cache.
    */
   public static final String TABLE_CACHE_APPROX_MAX_PER_TABLE_MB = "tableCacheApproxMaxPerTableMb";
+
+  /**
+   * Timeout of how long cluster nodes should wait for other nodes to finish flattening a table.
+   */
+  public static final String FLATTEN_TIMEOUT_SECONDS = "flattenTimeoutSeconds";
 }

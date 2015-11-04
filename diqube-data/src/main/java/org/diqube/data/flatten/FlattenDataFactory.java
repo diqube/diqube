@@ -58,8 +58,9 @@ public class FlattenDataFactory {
   @Inject
   private StringColumnShardFactory stringFactory;
 
-  public FlattenedTable createFlattenedTable(String name, Collection<TableShard> shards) {
-    return new FlattenedTable(name, shards);
+  public FlattenedTable createFlattenedTable(String name, Collection<TableShard> shards,
+      Set<Long> originalFirstRowIdsOfShards) {
+    return new FlattenedTable(name, shards, originalFirstRowIdsOfShards);
   }
 
   public FlattenedIndexRemovingColumnPage createFlattenedIndexRemovingColumnPage(String name,

@@ -26,9 +26,8 @@ import java.util.Set;
 import javax.inject.Inject;
 
 import org.diqube.cluster.ClusterManager;
-import org.diqube.cluster.connection.ConnectionPool;
+import org.diqube.cluster.connection.ConnectionOrLocalHelper;
 import org.diqube.context.AutoInstatiate;
-import org.diqube.context.InjectOptional;
 import org.diqube.data.column.ColumnShardFactory;
 import org.diqube.execution.steps.BuildColumnFromValuesStep;
 import org.diqube.execution.steps.ExecuteRemotePlanOnShardsStep;
@@ -50,7 +49,6 @@ import org.diqube.executionenv.ExecutionEnvironment;
 import org.diqube.function.FunctionFactory;
 import org.diqube.loader.columnshard.ColumnShardBuilderFactory;
 import org.diqube.queries.QueryRegistry;
-import org.diqube.remote.cluster.thrift.ClusterQueryService;
 import org.diqube.remote.cluster.thrift.RExecutionPlan;
 import org.diqube.util.ColumnOrValue;
 import org.diqube.util.Pair;
@@ -78,10 +76,7 @@ public class ExecutablePlanFactory {
   private ClusterManager clusterManager;
 
   @Inject
-  private ConnectionPool connectionPool;
-
-  @InjectOptional // not available in tests
-  private ClusterQueryService.Iface localClusterQueryService;
+  private ConnectionOrLocalHelper connectionOrLocalHelper;
 
   public GroupFinalAggregationStep createGroupFinalAggregationStep(int stepId, ExecutionEnvironment env,
       String functionNameLowerCase, String outputColName, ColumnVersionManager columnVersionManager,
@@ -116,8 +111,8 @@ public class ExecutablePlanFactory {
 
   public ExecuteRemotePlanOnShardsStep createExecuteRemotePlanStep(int stepId, ExecutionEnvironment env,
       RExecutionPlan remotePlan) {
-    return new ExecuteRemotePlanOnShardsStep(stepId, queryRegistry, env, remotePlan, clusterManager, connectionPool,
-        localClusterQueryService);
+    return new ExecuteRemotePlanOnShardsStep(stepId, queryRegistry, env, remotePlan, clusterManager,
+        connectionOrLocalHelper);
   }
 
   public OrderStep createOrderStep(int stepId, ExecutionEnvironment env, List<Pair<String, Boolean>> sortCols,

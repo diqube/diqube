@@ -35,6 +35,7 @@ import javax.inject.Inject;
 import org.apache.thrift.TException;
 import org.diqube.cluster.connection.Connection;
 import org.diqube.cluster.connection.ConnectionException;
+import org.diqube.cluster.connection.ConnectionOrLocalHelper;
 import org.diqube.cluster.connection.ConnectionPool;
 import org.diqube.cluster.connection.SocketListener;
 import org.diqube.context.AutoInstatiate;
@@ -92,6 +93,9 @@ public class QueryServiceHandler implements Iface {
 
   @Inject
   private QueryUuidProvider queryUuidProvider;
+
+  @Inject
+  private ConnectionOrLocalHelper connectionOrLocalHelper;
 
   private Set<UUID> toCancelQueries = new ConcurrentSkipListSet<>();
 

@@ -33,9 +33,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.thrift.TException;
 import org.diqube.cluster.ClusterManager;
-import org.diqube.cluster.connection.Connection;
 import org.diqube.cluster.connection.ConnectionException;
-import org.diqube.cluster.connection.ConnectionPool;
+import org.diqube.cluster.connection.ConnectionOrLocalHelper;
+import org.diqube.cluster.connection.ServiceProvider;
 import org.diqube.cluster.connection.SocketListener;
 import org.diqube.execution.RemotesTriggeredListener;
 import org.diqube.execution.consumers.ColumnValueConsumer;
@@ -83,8 +83,7 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
   private RExecutionPlan remoteExecutionPlan;
   private ClusterManager clusterManager;
   private QueryRegistry queryRegistry;
-  private ConnectionPool connectionPool;
-  private ClusterQueryService.Iface localClusterQueryService;
+  private ConnectionOrLocalHelper connectionOrLocalHelper;
 
   private Object wait = new Object();
 
@@ -146,14 +145,13 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
   private int numberOfRemotesInformed;
 
   public ExecuteRemotePlanOnShardsStep(int stepId, QueryRegistry queryRegistry, ExecutionEnvironment env,
-      RExecutionPlan remoteExecutionPlan, ClusterManager clusterManager, ConnectionPool connectionPool,
-      ClusterQueryService.Iface localClusterQueryService) {
+      RExecutionPlan remoteExecutionPlan, ClusterManager clusterManager,
+      ConnectionOrLocalHelper connectionOrLocalHelper) {
     super(stepId, queryRegistry);
     this.remoteExecutionPlan = remoteExecutionPlan;
     this.clusterManager = clusterManager;
     this.queryRegistry = queryRegistry;
-    this.connectionPool = connectionPool;
-    this.localClusterQueryService = localClusterQueryService;
+    this.connectionOrLocalHelper = connectionOrLocalHelper;
   }
 
   @Override
@@ -197,26 +195,20 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
       // distribute query execution
       RNodeAddress ourRemoteAddr = clusterManager.getOurHostAddr().createRemote();
       for (RNodeAddress remoteAddr : remoteNodes) {
-        if (remoteAddr.equals(ourRemoteAddr)) {
-          // short-cut in case the remote is actually local - do not de-/searialize and use network interface. This is
-          // a nice implementation for unit tests, too.
-          try {
-            localClusterQueryService.executeOnAllLocalShards(remoteExecutionPlan,
-                RUuidUtil.toRUuid(QueryUuid.getCurrentQueryUuid()), ourRemoteAddr);
-          } catch (TException e) {
+        try (ServiceProvider<ClusterQueryService.Iface> service =
+            connectionOrLocalHelper.getService(ClusterQueryService.Client.class, ClusterQueryService.Iface.class,
+                ClusterQueryServiceConstants.SERVICE_NAME, remoteAddr, socketListener)) {
+          service.getService().executeOnAllLocalShards(remoteExecutionPlan,
+              RUuidUtil.toRUuid(QueryUuid.getCurrentQueryUuid()), ourRemoteAddr);
+
+          if (service.isLocal())
+            remotesActive.add(remoteAddr);
+        } catch (IOException | ConnectionException | TException e) {
+          if (ourRemoteAddr.equals(remoteAddr)) {
             logger.error("Could not execute remote plan on local node", e);
             throw new ExecutablePlanExecutionException("Could not execute remote plan on local node", e);
           }
-          continue;
-        }
 
-        try (Connection<ClusterQueryService.Client> conn = connectionPool.reserveConnection(
-            ClusterQueryService.Client.class, ClusterQueryServiceConstants.SERVICE_NAME, remoteAddr, socketListener)) {
-
-          conn.getService().executeOnAllLocalShards(remoteExecutionPlan,
-              RUuidUtil.toRUuid(QueryUuid.getCurrentQueryUuid()), ourRemoteAddr);
-          remotesActive.add(remoteAddr);
-        } catch (IOException | ConnectionException | TException e) {
           // Connection will be marked as dead automatically, the remote will automatically be removed from ClusterNode
           // (see ConnectionPool). We just ignore the remote for now.
           logger.warn(
@@ -225,7 +217,7 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
               remoteAddr, QueryUuid.getCurrentQueryUuid(), QueryUuid.getCurrentExecutionUuid());
           remotesDone.incrementAndGet();
           // TODO #37: We should inform the user about this situation.
-        } catch (InterruptedException e) {
+        } catch (InterruptedException e1) {
           logger.trace("Interrupted while waiting for a new connection.");
           doneProcessing();
           return;

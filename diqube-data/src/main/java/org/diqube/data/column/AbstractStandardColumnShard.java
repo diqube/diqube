@@ -22,7 +22,6 @@ package org.diqube.data.column;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.TreeMap;
 
@@ -34,6 +33,7 @@ import org.diqube.data.serialize.thrift.v1.SColumnPage;
 import org.diqube.data.serialize.thrift.v1.SColumnShard;
 import org.diqube.data.serialize.thrift.v1.SColumnType;
 import org.diqube.data.serialize.thrift.v1.SDictionary;
+import org.diqube.data.util.StandardColumnShardUtil;
 
 /**
  * Abstract implementation of a {@link StandardColumnShard}.
@@ -115,17 +115,7 @@ public abstract class AbstractStandardColumnShard implements StandardColumnShard
   public void adjustToFirstRowId(long firstRowId) throws UnsupportedOperationException {
     long delta = firstRowId - pages.firstKey();
 
-    if (pages.values().stream().anyMatch(page -> !(page instanceof AdjustableColumnPage)))
-      throw new UnsupportedOperationException("Cannot adjust rowIDs, because not all ColumnPages are adjustable.");
-
-    NavigableMap<Long, ColumnPage> newPages = new TreeMap<>();
-    for (Entry<Long, ColumnPage> pageEntry : pages.entrySet()) {
-      ColumnPage page = pageEntry.getValue();
-      ((AdjustableColumnPage) page).setFirstRowId(page.getFirstRowId() + delta);
-      newPages.put(pageEntry.getKey() + delta, page);
-    }
-
-    pages = newPages;
+    pages = new StandardColumnShardUtil().adjustFirstRowIdOnPages(pages, delta, name);
   }
 
   @Override

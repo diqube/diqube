@@ -22,6 +22,7 @@ package org.diqube.flatten;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -135,13 +136,24 @@ public class FlattenUtil {
   private ColumnPatternUtil colPatternUtil;
 
   /**
-   * Flatten the given table by the given flatten-by field.
+   * Flatten the given table by the given flatten-by field, returning a premilinary flattened table (see below).
    * 
    * <p>
    * For details, see class doc.
    * 
+   * <p>
+   * For each TableShard, one new {@link TableShard} will be created. Note that each flattened table shard will have the
+   * same firstRowId as the corresponding input table Shard - although the flattened shards will usually contain more
+   * rows. This means that most probably the rowIds will be overlapping in the returned flattenedTable! <b>This needs to
+   * be fixed after calling this method, otherwise the Table is not usable!</b>. Typically a table is spread over
+   * multiple cluster nodes, which means that fixing the firstRowIds requires communicating with the other nodes,
+   * therefore this util class does not take care of this.
+   * 
    * @param inputTable
    *          The table that should be flattened. This cannot be an already flattened table.
+   * @param inputTableShards
+   *          Specify the tableShards to work on. If this is not set (== <code>null</code>), then the tableShards will
+   *          be read from the inputTable.
    * @param flattenByField
    *          The field which should be flattened by, in the usual "all-array-notation" as defined in
    *          {@link RepeatedColumnNameGenerator} (e.g. a[*].c.b[*] to get a single row for each index in all the "b"
@@ -156,7 +168,7 @@ public class FlattenUtil {
    * @throws IllegalStateException
    *           If the table cannot be flattened for any reason.
    */
-  public FlattenedTable flattenTable(Table inputTable, String flattenByField)
+  public FlattenedTable flattenTable(Table inputTable, Collection<TableShard> inputTableShards, String flattenByField)
       throws IllegalArgumentException, IllegalStateException, PatternException, LengthColumnMissingException {
     if (inputTable instanceof FlattenedTable)
       throw new IllegalArgumentException("Cannot flatten an already flattened table.");
@@ -167,11 +179,17 @@ public class FlattenUtil {
 
     String resultTableName = flattenedTableNameGen.createFlattenedTableName(inputTable.getName(), flattenByField);
 
+    if (inputTableShards == null)
+      inputTableShards = inputTable.getShards();
+
     List<TableShard> flattenedTableShards = new ArrayList<>();
-    for (TableShard shard : inputTable.getShards())
+    for (TableShard shard : inputTableShards)
       flattenedTableShards.add(flattenTableShard(resultTableName, shard, flattenByField));
 
-    return factory.createFlattenedTable(resultTableName, flattenedTableShards);
+    Set<Long> firstRowIdsOfInputShards =
+        inputTableShards.stream().map(shard -> shard.getLowestRowId()).collect(Collectors.toSet());
+
+    return factory.createFlattenedTable(resultTableName, flattenedTableShards, firstRowIdsOfInputShards);
   }
 
   /**
@@ -232,6 +250,12 @@ public class FlattenUtil {
    * to a.b[0] to resolve to a default value. Note that we nevertheless will probably never resolve those default values
    * (at least in this example) as the a.b[length] value will not allow us to iterate that far in the corresponding
    * rows.
+   * 
+   * <p>
+   * Note that the resulting TableShard will have the same first Row ID as the input TableShard. If multiple TableShards
+   * of the same table are flattened (this is usually the case), then after flattening them, the row IDs might overlap
+   * (since every TableShard has the original firstRow ID, but each table shard contains more rows). The rowIds need to
+   * be adjusted afterwards!.
    */
   private TableShard flattenTableShard(String resultTableName, TableShard inputTableShard, String flattenByField)
       throws PatternException, LengthColumnMissingException, IllegalStateException {

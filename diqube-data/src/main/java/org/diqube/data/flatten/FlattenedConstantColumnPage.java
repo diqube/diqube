@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.apache.thrift.TBase;
+import org.diqube.data.column.AdjustableColumnPage;
 import org.diqube.data.column.ColumnPage;
 import org.diqube.data.serialize.DataSerializableIgnore;
 import org.diqube.data.serialize.DeserializationException;
@@ -39,7 +40,7 @@ import org.diqube.data.types.lng.dict.LongDictionary;
  * @author Bastian Gloeckle
  */
 @DataSerializableIgnore
-public class FlattenedConstantColumnPage implements ColumnPage {
+public class FlattenedConstantColumnPage implements AdjustableColumnPage {
 
   private String name;
   private AdjustableConstantLongDictionary<?> colPageDict;
@@ -132,6 +133,16 @@ public class FlattenedConstantColumnPage implements ColumnPage {
   }
 
   @Override
+  public void setFirstRowId(long firstRowId) {
+    this.firstRowId = firstRowId;
+  }
+
+  @Override
+  public void setName(String name) {
+    this.name = name;
+  }
+
+  @Override
   public long calculateApproximateSizeInBytes() {
     return 16 + // object header of this.
         colPageDict.calculateApproximateSizeInBytes() + 12 + name.length();
@@ -148,4 +159,5 @@ public class FlattenedConstantColumnPage implements ColumnPage {
       SColumnPage source) throws DeserializationException {
     throw new DeserializationException("Cannot deserialize flattened ColPage.");
   }
+
 }

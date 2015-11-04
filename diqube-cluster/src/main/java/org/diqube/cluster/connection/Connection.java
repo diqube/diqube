@@ -35,7 +35,7 @@ import org.diqube.remote.base.thrift.RNodeAddress;
  *
  * @author Bastian Gloeckle
  */
-public class Connection<T> implements Closeable {
+public class Connection<T> implements Closeable, ServiceProvider<T> {
   private T service;
   private TTransport transport;
   private RNodeAddress address;
@@ -59,6 +59,7 @@ public class Connection<T> implements Closeable {
    * @throws IllegalStateException
    *           if connection was disabled.
    */
+  @Override
   public T getService() throws IllegalStateException {
     if (!enabled)
       throw new IllegalStateException("Connection disabled!");
@@ -124,6 +125,11 @@ public class Connection<T> implements Closeable {
   @Override
   public void close() throws IOException {
     parentPool.releaseConnection(this);
+  }
+
+  @Override
+  public boolean isLocal() {
+    return false;
   }
 
 }

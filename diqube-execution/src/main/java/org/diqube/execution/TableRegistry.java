@@ -28,11 +28,15 @@ import java.util.Map;
 
 import org.diqube.context.AutoInstatiate;
 import org.diqube.context.InjectOptional;
+import org.diqube.data.flatten.FlattenedTable;
 import org.diqube.data.table.Table;
 import org.diqube.listeners.TableLoadListener;
 
 /**
  * All {@link Table} objects that are available on the current cluster node are registered here.
+ * 
+ * <p>
+ * Note that this does <b>NOT</b> include {@link FlattenedTable}s, as they are managed in {@link FlattenedTableManager}.
  *
  * @author Bastian Gloeckle
  */

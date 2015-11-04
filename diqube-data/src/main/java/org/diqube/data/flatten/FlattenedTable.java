@@ -22,6 +22,7 @@ package org.diqube.data.flatten;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Set;
 
 import org.diqube.data.table.Table;
 import org.diqube.data.table.TableShard;
@@ -36,10 +37,12 @@ public class FlattenedTable implements Table {
 
   private String name;
   private Collection<TableShard> shards;
+  private Set<Long> originalFirstRowIdsOfShards;
 
-  /* package */ FlattenedTable(String name, Collection<TableShard> shards) {
+  /* package */ FlattenedTable(String name, Collection<TableShard> shards, Set<Long> originalFirstRowIdsOfShards) {
     this.name = name;
     this.shards = shards;
+    this.originalFirstRowIdsOfShards = originalFirstRowIdsOfShards;
   }
 
   @Override
@@ -52,4 +55,10 @@ public class FlattenedTable implements Table {
     return Collections.unmodifiableCollection(shards);
   }
 
+  /**
+   * The values of {@link TableShard#getLowestRowId()} of those tableShards that this flattening was based upon.
+   */
+  public Set<Long> getOriginalFirstRowIdsOfShards() {
+    return originalFirstRowIdsOfShards;
+  }
 }

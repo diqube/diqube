@@ -20,6 +20,7 @@
  */
 package org.diqube.server.queryremote.query;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,10 +32,9 @@ import java.util.concurrent.Executor;
 import javax.inject.Inject;
 
 import org.apache.thrift.TException;
-import org.diqube.cluster.ClusterManager;
-import org.diqube.cluster.connection.Connection;
 import org.diqube.cluster.connection.ConnectionException;
-import org.diqube.cluster.connection.ConnectionPool;
+import org.diqube.cluster.connection.ConnectionOrLocalHelper;
+import org.diqube.cluster.connection.ServiceProvider;
 import org.diqube.cluster.connection.SocketListener;
 import org.diqube.config.Config;
 import org.diqube.config.ConfigKey;
@@ -99,7 +99,8 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
    * being executed currently. Additionally this map contains the "resultConnection" that was opened for the given
    * query.
    */
-  private Map<UUID, Pair<UUID, Connection<?>>> executionUuidsAndResultConnections = new ConcurrentHashMap<>();
+  private Map<UUID, Pair<UUID, ServiceProvider<ClusterQueryService.Iface>>> executionUuidsAndResultConnections =
+      new ConcurrentHashMap<>();
 
   @Inject
   private TableRegistry tableRegistry;
@@ -111,19 +112,16 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
   private ExecutorManager executorManager;
 
   @Inject
-  private ConnectionPool connectionPool;
-
-  @Inject
   private QueryRegistry queryRegistry;
 
   @Inject
   private QueryUuidProvider queryUuidProvider;
 
   @Inject
-  private ClusterManager clusterManager;
+  private ColumnShardCacheRegistry tableCacheRegistry;
 
   @Inject
-  private ColumnShardCacheRegistry tableCacheRegistry;
+  private ConnectionOrLocalHelper connectionOrLocalHelper;
 
   @Config(ConfigKey.CONCURRENT_TABLE_SHARD_EXECUTION_PER_QUERY)
   private int numberOfTableShardsToExecuteConcurrently;
@@ -138,48 +136,36 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
   @Override
   public void executeOnAllLocalShards(RExecutionPlan executionPlan, RUUID remoteQueryUuid, RNodeAddress resultAddress)
       throws TException {
-    Object connSync = new Object();
-    Connection<ClusterQueryService.Client> resultConnection;
-    ClusterQueryService.Iface resultService;
-
     UUID queryUuid = RUuidUtil.toUuid(remoteQueryUuid);
     // The executionUuid we will use for the all executors executing something started by this API call.
     UUID executionUuid = queryUuidProvider.createNewExecutionUuid(queryUuid, "remote-" + queryUuid);
 
-    if (resultAddress.equals(clusterManager.getOurHostAddr().createRemote())) {
-      // implement short cut if we should answer to the local node, i.e. the query master is running on this node, too.
-      // This is a nice implementation for unit tests, too.
-      resultConnection = null;
-      resultService = this;
-    } else {
-      SocketListener resultSocketListener = new SocketListener() {
-        @Override
-        public void connectionDied() {
-          // Connection to result node died. The node will automatically be removed from ClusterManager and the
-          // connection will automatically be handled.
-          logger.error(
-              "Result node of query {} execution {} ({}) died unexpectedly. It will not receive any "
-                  + "results of the execution any more, cancelling execution.",
-              queryUuid, executionUuid, resultAddress);
+    SocketListener resultSocketListener = new SocketListener() {
+      @Override
+      public void connectionDied() {
+        // Connection to result node died. The node will automatically be removed from ClusterManager and the
+        // connection will automatically be handled.
+        logger.error("Result node of query {} execution {} ({}) died unexpectedly. It will not receive any "
+            + "results of the execution any more, cancelling execution.", queryUuid, executionUuid, resultAddress);
 
-          executionUuidsAndResultConnections.remove(queryUuid);
-          queryRegistry.unregisterQueryExecution(queryUuid, executionUuid);
-          executorManager.shutdownEverythingOfQueryExecution(queryUuid, executionUuid); // this will kill our thread!
-        }
-      };
-
-      try {
-        resultConnection = connectionPool.reserveConnection(ClusterQueryService.Client.class,
-            ClusterQueryServiceConstants.SERVICE_NAME, resultAddress, resultSocketListener);
-      } catch (ConnectionException | InterruptedException e) {
-        logger.error("Could not open connection to the result node for query {} execution {} ({}). Will not start "
-            + "executing anything.", queryUuid, executionUuid, resultAddress);
-        return;
+        executionUuidsAndResultConnections.remove(queryUuid);
+        queryRegistry.unregisterQueryExecution(queryUuid, executionUuid);
+        executorManager.shutdownEverythingOfQueryExecution(queryUuid, executionUuid); // this will kill our thread!
       }
-      resultService = resultConnection.getService();
+    };
+
+    ServiceProvider<ClusterQueryService.Iface> resultServiceProv;
+    try {
+      resultServiceProv =
+          connectionOrLocalHelper.getService(ClusterQueryService.Client.class, ClusterQueryService.Iface.class,
+              ClusterQueryServiceConstants.SERVICE_NAME, resultAddress, resultSocketListener);
+    } catch (ConnectionException | InterruptedException e1) {
+      logger.error("Could not open connection to the result node for query {} execution {} ({}). Will not start "
+          + "executing anything.", queryUuid, executionUuid, resultAddress);
+      return;
     }
 
-    executionUuidsAndResultConnections.put(queryUuid, new Pair<>(executionUuid, resultConnection));
+    executionUuidsAndResultConnections.put(queryUuid, new Pair<>(executionUuid, resultServiceProv));
 
     RemoteExecutionPlanExecutor executor = new RemoteExecutionPlanExecutor(tableRegistry, executablePlanBuilderFactory,
         executorManager, queryRegistry, numberOfTableShardsToExecuteConcurrently);
@@ -195,16 +181,20 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
           RExecutionException ex = new RExecutionException();
           ex.setMessage(t.getMessage());
           try {
-            resultService.executionException(remoteQueryUuid, ex);
+            synchronized (resultServiceProv) {
+              resultServiceProv.getService().executionException(remoteQueryUuid, ex);
+            }
           } catch (TException e) {
             // swallow, the resultSocketListener handles this.
           }
         }
 
         // shutdown everything for all TableShards.
-        if (resultConnection != null) {
-          synchronized (connSync) {
-            connectionPool.releaseConnection(resultConnection);
+        synchronized (resultServiceProv) {
+          try {
+            resultServiceProv.close();
+          } catch (IOException e) {
+            logger.warn("Could not close connection");
           }
         }
         executionUuidsAndResultConnections.remove(queryUuid);
@@ -220,10 +210,10 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
           @Override
           public void newGroupIntermediaryAggregration(long groupId, String colName,
               ROldNewIntermediateAggregationResult result, short percentDone) {
-            synchronized (connSync) {
+            synchronized (resultServiceProv) {
               try {
-                resultService.groupIntermediateAggregationResultAvailable(remoteQueryUuid, groupId, colName, result,
-                    percentDone);
+                resultServiceProv.getService().groupIntermediateAggregationResultAvailable(remoteQueryUuid, groupId,
+                    colName, result, percentDone);
               } catch (TException e) {
                 logger.error("Could not send new group intermediaries to client for query {}", queryUuid, e);
                 exceptionHandler.handleException(null);
@@ -233,10 +223,10 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
 
           @Override
           public void newColumnValues(String colName, Map<Long, RValue> values, short percentDone) {
-            synchronized (connSync) {
+            synchronized (resultServiceProv) {
               try {
                 logger.trace("Constructed final column values, sending them now.");
-                resultService.columnValueAvailable(remoteQueryUuid, colName, values, percentDone);
+                resultServiceProv.getService().columnValueAvailable(remoteQueryUuid, colName, values, percentDone);
               } catch (TException e) {
                 logger.error("Could not send new group intermediaries to client for query {}", queryUuid, e);
                 exceptionHandler.handleException(null);
@@ -256,9 +246,9 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
             RClusterQueryStatistics remoteStats =
                 RClusterQueryStatsUtil.createRQueryStats(queryRegistry.getCurrentStatsManager().createQueryStats());
             logger.trace("Sending query statistics of {} to query master: {}", queryUuid, remoteStats);
-            synchronized (connSync) {
+            synchronized (resultServiceProv) {
               try {
-                resultService.queryStatistics(remoteQueryUuid, remoteStats);
+                resultServiceProv.getService().queryStatistics(remoteQueryUuid, remoteStats);
               } catch (TException e) {
                 logger.error("Could not send statistics to client for query {}", queryUuid, e);
               }
@@ -282,9 +272,9 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
               }
             }
 
-            synchronized (connSync) {
+            synchronized (resultServiceProv) {
               try {
-                resultService.executionDone(remoteQueryUuid);
+                resultServiceProv.getService().executionDone(remoteQueryUuid);
               } catch (TException e) {
                 logger.error("Could not send 'done' to client for query {}", queryUuid, e);
               }
@@ -299,12 +289,12 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
       long now = System.nanoTime();
       queryRegistry.getOrCreateCurrentStatsManager().setStartedNanos(now);
       queryRegistry.getOrCreateCurrentStatsManager().setCompletedNanos(now);
-      synchronized (connSync) {
+      synchronized (resultServiceProv) {
         logger.info("As there's nothing to execute for query {} execution {}, sending empty stats and an executionDone",
             queryUuid, executionUuid);
-        resultService.queryStatistics(remoteQueryUuid,
+        resultServiceProv.getService().queryStatistics(remoteQueryUuid,
             RClusterQueryStatsUtil.createRQueryStats(queryRegistry.getCurrentStatsManager().createQueryStats()));
-        resultService.executionDone(remoteQueryUuid);
+        resultServiceProv.getService().executionDone(remoteQueryUuid);
       }
       exceptionHandler.handleException(null);
       return;
@@ -398,14 +388,18 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
   @Override
   public void cancelExecution(RUUID remoteQueryUuid) throws TException {
     UUID queryUuid = RUuidUtil.toUuid(remoteQueryUuid);
-    Pair<UUID, Connection<?>> p = executionUuidsAndResultConnections.get(queryUuid);
+    Pair<UUID, ServiceProvider<ClusterQueryService.Iface>> p = executionUuidsAndResultConnections.get(queryUuid);
     if (p != null) {
       UUID executionUuid = p.getLeft();
       logger.info("We were asked to cancel execution of query {} which has exection {}. Doing that.", queryUuid,
           executionUuid);
 
       if (p.getRight() != null)
-        connectionPool.releaseConnection(p.getRight());
+        try {
+          p.getRight().close();
+        } catch (IOException e) {
+          logger.warn("Could not close connection.");
+        }
 
       executionUuidsAndResultConnections.remove(queryUuid);
       queryRegistry.unregisterQueryExecution(queryUuid, executionUuid);

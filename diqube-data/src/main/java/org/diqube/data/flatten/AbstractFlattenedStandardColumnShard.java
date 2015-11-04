@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.NavigableMap;
 import java.util.TreeMap;
 
+import org.diqube.data.column.AdjustableStandardColumnShard;
 import org.diqube.data.column.ColumnPage;
 import org.diqube.data.column.ColumnShard;
 import org.diqube.data.column.ColumnType;
@@ -33,6 +34,7 @@ import org.diqube.data.serialize.DeserializationException;
 import org.diqube.data.serialize.SerializationException;
 import org.diqube.data.serialize.thrift.v1.SColumnShard;
 import org.diqube.data.table.Table;
+import org.diqube.data.util.StandardColumnShardUtil;
 
 /**
  * Abstract base class for flattened column shards.
@@ -45,7 +47,8 @@ import org.diqube.data.table.Table;
  *
  * @author Bastian Gloeckle
  */
-public abstract class AbstractFlattenedStandardColumnShard implements StandardColumnShard {
+public abstract class AbstractFlattenedStandardColumnShard
+    implements StandardColumnShard, AdjustableStandardColumnShard {
 
   private String name;
   private ColumnType colType;
@@ -78,6 +81,13 @@ public abstract class AbstractFlattenedStandardColumnShard implements StandardCo
   @Override
   public ColumnType getColumnType() {
     return colType;
+  }
+
+  @Override
+  public void adjustToFirstRowId(long firstRowId) throws UnsupportedOperationException {
+    long delta = firstRowId - this.firstRowId;
+    this.firstRowId = firstRowId;
+    pages = new StandardColumnShardUtil().adjustFirstRowIdOnPages(pages, delta, name);
   }
 
   @Override
