@@ -1,3 +1,23 @@
+/**
+ * diqube: Distributed Query Base.
+ *
+ * Copyright (C) 2015 Bastian Gloeckle
+ *
+ * This file is part of diqube.
+ *
+ * diqube is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 package org.diqube.data.types.lng.array;
 
 import java.util.Arrays;
@@ -22,6 +42,9 @@ public class CompressedLongArrayUtil {
    *         This is equal to the result of {@link Arrays#binarySearch(long[], long)}.
    */
   public static int binarySearch(CompressedLongArray<?> sortedArray, long value) {
+    if (sortedArray.size() == 0)
+      return -1 - 0; // Insertion point 0
+
     return binarySearch(sortedArray, value, 0, sortedArray.size() - 1);
   }
 

@@ -134,18 +134,24 @@ public class IndexRemovingCompressedLongArray implements CompressedLongArray<TBa
       int numberOfRemovedEntriesBefore = curRemovedIdx;
       if (numberOfRemovedEntriesBefore < 0) {
         int insertionPoint = -1 - numberOfRemovedEntriesBefore;
+        // insertionPoint is the next bigger element in the array.
         numberOfRemovedEntriesBefore = insertionPoint;
         curRemovedIdx = insertionPoint;
-      }
+      } else
+        // we found an exact match -> binarySearch returned the index. We want the size here, though, so add 1!
+        numberOfRemovedEntriesBefore++;
 
       // numberOfRemovedEntriesBefore number of entries are removed in the input indices. We therefore have to advance
       // the inputIdx by that many not-again-removed entries to get the delegate idx.
 
       while (numberOfRemovedEntriesBefore > 0) {
         inputIdx++;
-        while (sortedRemoveIndices.get(curRemovedIdx) < inputIdx)
+        while (curRemovedIdx < sortedRemoveIndices.size() && sortedRemoveIndices.get(curRemovedIdx) < inputIdx)
           curRemovedIdx++;
-        if (sortedRemoveIndices.get(curRemovedIdx) != inputIdx)
+        if (// No more removed indices
+        curRemovedIdx >= sortedRemoveIndices.size() || //
+        // inputIdx does not equal the next removed idx.
+        sortedRemoveIndices.get(curRemovedIdx) != inputIdx)
           // index is not again removed
           numberOfRemovedEntriesBefore--;
       }
