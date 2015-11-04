@@ -23,6 +23,7 @@ package org.diqube.execution.consumers;
 import java.util.Collection;
 import java.util.UUID;
 
+import org.diqube.execution.consumers.GenericConsumer.IdentifyingConsumerClass;
 import org.diqube.remote.base.thrift.RNodeAddress;
 
 /**
@@ -30,6 +31,7 @@ import org.diqube.remote.base.thrift.RNodeAddress;
  *
  * @author Bastian Gloeckle
  */
+@IdentifyingConsumerClass(TableFlattenedConsumer.class)
 public interface TableFlattenedConsumer extends OverwritingConsumer {
   /**
    * The required table has been flattened fully and is ready for being queried.

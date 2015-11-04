@@ -185,13 +185,19 @@ public class GroupFinalAggregationStep extends AbstractThreadedExecutablePlanSte
       groupIdsChangedSinceLastOutputVersionBuilt.addAll(groupIdsChanged);
     }
 
+    boolean isLastRun = sourceIsDone.get() && groupIntermediaryUpdates.isEmpty(); // Note: get "last run" value before
+                                                                                  // building the col!
+
     ColumnShard newCol = null;
     // inform ColumnVersionBuiltConsumers (and build new version of column) if there are "enough" updates - do not do
     // this too often as it is pretty time consuming.
     if (activeUpdates.length > 0 && existsOutputConsumerOfType(ColumnVersionBuiltConsumer.class)) {
 
       // TODO #2 (stats): base this on stats.
-      if (groupIdsChangedSinceLastOutputVersionBuilt.size() >= 0.05 * aggregationFunctions.size()) {
+      if ((groupIdsChangedSinceLastOutputVersionBuilt.size() >= 0.05 * aggregationFunctions.size()) || //
+      /* */ // execute definitely if this is the last run: We need to send the changed group ids!
+      /* */ isLastRun) {
+
         logger.trace("Creating new column version of {}, changed group IDs {}", outputColName,
             groupIdsChangedSinceLastOutputVersionBuilt);
 
@@ -206,7 +212,7 @@ public class GroupFinalAggregationStep extends AbstractThreadedExecutablePlanSte
     }
 
     // if done, inform other consumers.
-    if (sourceIsDone.get() && groupIntermediaryUpdates.isEmpty()) {
+    if (isLastRun) {
       if (!aggregationFunctions.isEmpty()) { // check if there is any result at all, if not, just report "done" (below).
         logger.trace("Creating final grouped column {}", outputColName);
         if (newCol == null)
