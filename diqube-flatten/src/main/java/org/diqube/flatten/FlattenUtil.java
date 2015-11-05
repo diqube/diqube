@@ -381,7 +381,7 @@ public class FlattenUtil {
 
     // prepare information of single rows:
 
-    Map<Long, Integer> multiplicationFactor = new HashMap<>();
+    Map<Long, Integer> multiplicationFactorByRowId = new HashMap<>();
     // map from input col prefix to rowIds that are not available for all cols starting with that prefix.
     NavigableMap<String, NavigableSet<Long>> rowIdsNotAvailableForInputCols = new TreeMap<>();
 
@@ -399,7 +399,7 @@ public class FlattenUtil {
 
       // This row will produce this many rows in the output.
       int numberOfNewRows = mostSpecificColPatterns.size();
-      multiplicationFactor.put(inputRowId, numberOfNewRows);
+      multiplicationFactorByRowId.put(inputRowId, numberOfNewRows);
       mostSpecificColPatterns.forEach(colPattern -> numberOfRowsByFlattenedPrefix.merge(colPattern, 1, Integer::sum));
 
       // This row might not have valid values for all those repeated cols that are available in the Table for the
@@ -412,9 +412,10 @@ public class FlattenUtil {
     }
 
     logger.trace("Multiplication factors are the following for all rows (limit): {}",
-        Iterables.limit(multiplicationFactor.entrySet(), 100));
+        Iterables.limit(multiplicationFactorByRowId.entrySet(), 100));
 
-    int maxMultiplicationFactor = multiplicationFactor.values().stream().mapToInt(Integer::intValue).max().getAsInt();
+    int maxMultiplicationFactor =
+        multiplicationFactorByRowId.values().stream().mapToInt(Integer::intValue).max().getAsInt();
 
     // Build new col shards
     List<StandardColumnShard> flattenedColShards = new ArrayList<>();
@@ -495,7 +496,7 @@ public class FlattenUtil {
               final int curMultiplicationNo = multiplication;
               List<Long> sortedNotAvailableIndicesList = new ArrayList<>();
               for (int i = 0; i < inputPage.getValues().size(); i++) {
-                Integer thisIndexMultiplicationFactor = multiplicationFactor.get(i);
+                Integer thisIndexMultiplicationFactor = multiplicationFactorByRowId.get(inputPage.getFirstRowId() + i);
                 if (thisIndexMultiplicationFactor == null)
                   thisIndexMultiplicationFactor = 1;
 
