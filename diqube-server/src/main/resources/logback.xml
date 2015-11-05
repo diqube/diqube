@@ -32,7 +32,8 @@
   <logger name="org.springframework" level="warn" />
   
   <logger name="org.diqube" level="trace" />
-  <logger name="org.diqube.loader.compression.CompressedLongArrayBuilder" level="warn" /> 
+  <logger name="org.diqube.loader.compression.CompressedLongArrayBuilder" level="warn" />
+  <logger name="org.diqube.data.types.lng.array.RunLengthLongArray" level="warn" /> 
 
   <root level="info">
     <appender-ref ref="STDOUT" />
