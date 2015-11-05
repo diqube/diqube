@@ -45,7 +45,7 @@ import org.diqube.data.types.lng.array.CompressedLongArray;
 public class IndexFilteringCompressedLongArray implements CompressedLongArray<TBase<?, ?>> {
   private CompressedLongArray<?> delegate;
   private CompressedLongArray<?> sortedFilteredIndices;
-  private boolean isSameValue;
+  private volatile Boolean isSameValue;
   private long valueDelta;
 
   /**
@@ -60,11 +60,18 @@ public class IndexFilteringCompressedLongArray implements CompressedLongArray<TB
     this.sortedFilteredIndices = sortedFilteredIndices;
     this.valueDelta = valueDelta;
 
-    isSameValue = LongStream.of(decompressedArray()).distinct().count() == 1;
+    // initialize lazily, as this takes some time.
+    isSameValue = null;
   }
 
   @Override
   public boolean isSameValue() {
+    if (isSameValue == null) {
+      synchronized (this) {
+        if (isSameValue == null)
+          isSameValue = LongStream.of(decompressedArray()).distinct().count() == 1;
+      }
+    }
     return isSameValue;
   }
 

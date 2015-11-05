@@ -38,7 +38,6 @@ import java.util.TreeSet;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
 import javax.inject.Inject;
@@ -72,7 +71,6 @@ import org.diqube.loader.LoaderColumnInfo;
 import org.diqube.loader.compression.CompressedDoubleDictionaryBuilder;
 import org.diqube.loader.compression.CompressedLongDictionaryBuilder;
 import org.diqube.loader.compression.CompressedStringDictionaryBuilder;
-import org.diqube.util.DiqubeCollectors;
 import org.diqube.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -383,7 +381,7 @@ public class FlattenUtil {
 
     // prepare information of single rows:
 
-    NavigableMap<Long, Integer> multiplicationFactor = new TreeMap<>();
+    Map<Long, Integer> multiplicationFactor = new HashMap<>();
     // map from input col prefix to rowIds that are not available for all cols starting with that prefix.
     NavigableMap<String, NavigableSet<Long>> rowIdsNotAvailableForInputCols = new TreeMap<>();
 
@@ -493,24 +491,26 @@ public class FlattenUtil {
             for (ColumnPage inputPage : inputTableShard.getColumns().get(inputColName).getPages().values()) {
               ColumnPage newPage;
               // create new page without the final dictionaries! We simply use the original Dicts first.
-              // newPage = factory.createFlattenedMultiplicatingColumnPage(newColName + "#" + nextFirstRowId,
-              // factory.createFlattenedDelegateLongDictionary(inputPage.getColumnPageDict()), inputPage,
-              // new HashMap<>(), nextFirstRowId);
-
-              Map<Long, Integer> curPageMultiplyingFactor = multiplicationFactor.subMap(inputPage.getFirstRowId(),
-                  inputPage.getFirstRowId() + inputPage.getValues().size());
 
               final int curMultiplicationNo = multiplication;
-              NavigableSet<Long> notAvailableRowIds = LongStream
-                  .range(inputPage.getFirstRowId(), inputPage.getFirstRowId() + inputPage.getValues().size()).filter( //
-                      rowId -> //
-                      (curPageMultiplyingFactor.containsKey(rowId) ? curPageMultiplyingFactor.get(rowId)
-                          : 1) <= curMultiplicationNo)
-                  .mapToObj(Long::valueOf).collect(DiqubeCollectors.toNavigableSet());
+              List<Long> sortedNotAvailableIndicesList = new ArrayList<>();
+              for (int i = 0; i < inputPage.getValues().size(); i++) {
+                Integer thisIndexMultiplicationFactor = multiplicationFactor.get(i);
+                if (thisIndexMultiplicationFactor == null)
+                  thisIndexMultiplicationFactor = 1;
+
+                if (thisIndexMultiplicationFactor <= curMultiplicationNo)
+                  // this index does not need to be multiplicated that often.
+                  sortedNotAvailableIndicesList.add((long) i);
+              }
+
+              long[] sortedNotAvailableIndices = new long[sortedNotAvailableIndicesList.size()];
+              for (int i = 0; i < sortedNotAvailableIndices.length; i++)
+                sortedNotAvailableIndices[i] = sortedNotAvailableIndicesList.get(i);
 
               newPage = flattenedColumnPageBuilderFactory.createFlattenedColumnPageBuilder().withColName(newColName)
-                  .withDelegate(inputPage).withFirstRowId(nextFirstRowId).withNotAvailableRowIds(notAvailableRowIds)
-                  .build();
+                  .withDelegate(inputPage).withFirstRowId(nextFirstRowId)
+                  .withNotAvailableIndices(sortedNotAvailableIndices).build();
 
               if (newPage != null) {
                 flattenedColPages.get(curColId).add(newPage);
@@ -521,17 +521,22 @@ public class FlattenUtil {
           for (ColumnPage inputPage : inputTableShard.getColumns().get(inputColName).getPages().values()) {
             ColumnPage newPage;
             // create new page without the final dictionaries! We simply use the original Dicts first.
-            SortedSet<Long> notAvailableRowIdsThisPage;
+            long[] sortedNotAvailableIndices;
             String interestingPrefix = rowIdsNotAvailableForInputCols.floorKey(inputColName);
-            if (interestingPrefix != null && inputColName.startsWith(interestingPrefix))
-              notAvailableRowIdsThisPage = rowIdsNotAvailableForInputCols.get(interestingPrefix)
+            if (interestingPrefix != null && inputColName.startsWith(interestingPrefix)) {
+              Set<Long> notAvailableSubSet = rowIdsNotAvailableForInputCols.get(interestingPrefix)
                   .subSet(inputPage.getFirstRowId(), inputPage.getFirstRowId() + inputPage.getValues().size());
-            else
-              notAvailableRowIdsThisPage = new TreeSet<>();
+              // TODO this call to size() might get pretty slow - change it?
+              sortedNotAvailableIndices = new long[notAvailableSubSet.size()];
+              int idx = 0;
+              for (Long i : notAvailableSubSet)
+                sortedNotAvailableIndices[idx++] = i - inputPage.getFirstRowId();
+            } else
+              sortedNotAvailableIndices = new long[0];
 
             newPage = flattenedColumnPageBuilderFactory.createFlattenedColumnPageBuilder().withColName(newColName)
                 .withDelegate(inputPage).withFirstRowId(nextFirstRowId)
-                .withNotAvailableRowIds(notAvailableRowIdsThisPage).build();
+                .withNotAvailableIndices(sortedNotAvailableIndices).build();
 
             if (newPage != null) {
               flattenedColPages.get(curColId).add(newPage);
@@ -707,7 +712,9 @@ public class FlattenUtil {
    */
   private LongDictionary<?> createValueMappedLongDict(LongDictionary<?> origDict, Map<Long, Long> valueMap)
       throws IllegalStateException {
-    Long[] ids = LongStream.rangeClosed(0, origDict.getMaxId()).mapToObj(Long::valueOf).toArray(l -> new Long[l]);
+    Long[] ids = new Long[(int) (origDict.getMaxId() + 1)];
+    for (int i = 0; i < ids.length; i++)
+      ids[i] = (long) i;
     Long[] values = origDict.decompressValues(ids);
     NavigableMap<Long, Long> valueToTempId = new TreeMap<>();
     for (int i = 0; i < values.length; i++) {

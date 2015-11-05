@@ -23,7 +23,6 @@ package org.diqube.flatten;
 import java.util.Arrays;
 import java.util.List;
 import java.util.NavigableMap;
-import java.util.NavigableSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.stream.LongStream;
@@ -35,7 +34,6 @@ import org.diqube.data.flatten.FlattenedColumnPage;
 import org.diqube.data.flatten.IndexFilteringCompressedLongArray;
 import org.diqube.data.flatten.IndexRemovingCompressedLongArray;
 import org.diqube.loader.columnshard.ColumnPageBuilder;
-import org.diqube.util.DiqubeCollectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
@@ -91,11 +89,11 @@ public class FlattenedColumnPageBuilderTest {
   @Test
   public void removeNone() {
     // GIVEN
-    NavigableSet<Long> notAvailableRowIds = new TreeSet<>();
+    long[] notAvailableRowIds = new long[0];
 
     // WHEN
     ColumnPage flattenedPage = factory.createFlattenedColumnPageBuilder().withColName("1").withDelegate(delegate)
-        .withFirstRowId(0L).withNotAvailableRowIds(notAvailableRowIds).build();
+        .withFirstRowId(0L).withNotAvailableIndices(notAvailableRowIds).build();
 
     // THEN
     Assert.assertNotNull(flattenedPage, "Expected to get a page returned.");
@@ -126,12 +124,11 @@ public class FlattenedColumnPageBuilderTest {
   @Test
   public void removeAll() {
     // GIVEN
-    NavigableSet<Long> notAvailableRowIds = LongStream.range(0L, decompressedValues.length).mapToObj(Long::valueOf)
-        .collect(DiqubeCollectors.toNavigableSet());
+    long[] notAvailableRowIds = LongStream.range(0L, decompressedValues.length).toArray();
 
     // WHEN
     ColumnPage flattenedPage = factory.createFlattenedColumnPageBuilder().withColName("1").withDelegate(delegate)
-        .withFirstRowId(0L).withNotAvailableRowIds(notAvailableRowIds).build();
+        .withFirstRowId(0L).withNotAvailableIndices(notAvailableRowIds).build();
 
     // THEN
     Assert.assertNull(flattenedPage, "Expected to NOT get a page returned.");
@@ -140,11 +137,12 @@ public class FlattenedColumnPageBuilderTest {
   @Test
   public void removeOne() {
     // GIVEN
-    NavigableSet<Long> notAvailableRowIds = new TreeSet<>(Arrays.asList(decompressedValues.length - 1L));
+    long[] notAvailableRowIds =
+        new TreeSet<>(Arrays.asList(decompressedValues.length - 1L)).stream().mapToLong(Long::longValue).toArray();
 
     // WHEN
     ColumnPage flattenedPage = factory.createFlattenedColumnPageBuilder().withColName("1").withDelegate(delegate)
-        .withFirstRowId(0L).withNotAvailableRowIds(notAvailableRowIds).build();
+        .withFirstRowId(0L).withNotAvailableIndices(notAvailableRowIds).build();
 
     // THEN
     // assert type of returned page to make sure we have a test for each type.
@@ -183,12 +181,11 @@ public class FlattenedColumnPageBuilderTest {
   public void removeTwoThird() {
     // GIVEN
     int removedCount = 1 + (int) (decompressedValues.length * 2. / 3.);
-    NavigableSet<Long> notAvailableRowIds =
-        LongStream.range(0L, removedCount).mapToObj(Long::valueOf).collect(DiqubeCollectors.toNavigableSet());
+    long[] notAvailableRowIds = LongStream.range(0L, removedCount).toArray();
 
     // WHEN
     ColumnPage flattenedPage = factory.createFlattenedColumnPageBuilder().withColName("1").withDelegate(delegate)
-        .withFirstRowId(0L).withNotAvailableRowIds(notAvailableRowIds).build();
+        .withFirstRowId(0L).withNotAvailableIndices(notAvailableRowIds).build();
 
     // THEN
     // assert type of returned page to make sure we have a test for each type.
@@ -225,12 +222,11 @@ public class FlattenedColumnPageBuilderTest {
   public void removeHalf() {
     // GIVEN
     int removedCount = decompressedValues.length / 2;
-    NavigableSet<Long> notAvailableRowIds =
-        LongStream.range(0L, removedCount).mapToObj(Long::valueOf).collect(DiqubeCollectors.toNavigableSet());
+    long[] notAvailableRowIds = LongStream.range(0L, removedCount).toArray();
 
     // WHEN
     ColumnPage flattenedPage = factory.createFlattenedColumnPageBuilder().withColName("1").withDelegate(delegate)
-        .withFirstRowId(0L).withNotAvailableRowIds(notAvailableRowIds).build();
+        .withFirstRowId(0L).withNotAvailableIndices(notAvailableRowIds).build();
 
     // THEN
     // assert type of returned page to make sure we have a test for each type.

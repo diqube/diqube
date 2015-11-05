@@ -46,7 +46,7 @@ import org.diqube.data.types.lng.array.CompressedLongArrayUtil;
 public class IndexRemovingCompressedLongArray implements CompressedLongArray<TBase<?, ?>> {
   private CompressedLongArray<?> delegate;
   private CompressedLongArray<?> sortedRemoveIndices;
-  private boolean isSameValue;
+  private volatile Boolean isSameValue;
   private long valueDelta;
 
   /**
@@ -60,11 +60,18 @@ public class IndexRemovingCompressedLongArray implements CompressedLongArray<TBa
     this.sortedRemoveIndices = sortedRemoveIndices;
     this.valueDelta = valueDelta;
 
-    isSameValue = LongStream.of(decompressedArray()).distinct().count() == 1;
+    // init lazily as the initialization takes some time.
+    isSameValue = null;
   }
 
   @Override
   public boolean isSameValue() {
+    if (isSameValue == null) {
+      synchronized (this) {
+        if (isSameValue == null)
+          isSameValue = LongStream.of(decompressedArray()).distinct().count() == 1;
+      }
+    }
     return isSameValue;
   }
 

@@ -21,10 +21,7 @@
 package org.diqube.flatten;
 
 import java.util.NavigableMap;
-import java.util.NavigableSet;
-import java.util.SortedSet;
 import java.util.TreeMap;
-import java.util.stream.LongStream;
 
 import org.diqube.data.column.ColumnPage;
 import org.diqube.data.column.ColumnPageFactory;
@@ -39,10 +36,6 @@ import org.diqube.loader.columnshard.ColumnPageBuilder;
 import org.diqube.loader.compression.CompressedLongArrayBuilder;
 import org.diqube.loader.compression.CompressedLongArrayBuilder.BitEfficientCompressionStrategy;
 import org.diqube.loader.compression.CompressedLongArrayBuilder.ReferenceAndBitEfficientCompressionStrategy;
-import org.diqube.util.DiqubeCollectors;
-
-import com.google.common.collect.Iterators;
-import com.google.common.collect.PeekingIterator;
 
 /**
  * Builds {@link ColumnPage}s that are used for flattened column shards.
@@ -56,7 +49,7 @@ public class FlattenedColumnPageBuilder {
   private String colName;
   private long firstRowId;
   private ColumnPage delegate;
-  private SortedSet<Long> notAvailableRowIds;
+  private long[] sortedNotAvailableIndices;
   private FlattenDataFactory flattenDataFactory;
   private ColumnPageFactory columnPageFactory;
 
@@ -93,12 +86,12 @@ public class FlattenedColumnPageBuilder {
   }
 
   /**
-   * @param notAvailableRowIds
-   *          Row IDs (in the scope of the delegate {@link ColumnPage}) which should not be contained by the returned
-   *          new {@link FlattenedColumnPage}.
+   * @param sortedNotAvailableIndices
+   *          Indices in the delegate {@link ColumnPage#getValues()} which should not be contained by the returned new
+   *          {@link FlattenedColumnPage}.
    */
-  public FlattenedColumnPageBuilder withNotAvailableRowIds(SortedSet<Long> notAvailableRowIds) {
-    this.notAvailableRowIds = notAvailableRowIds;
+  public FlattenedColumnPageBuilder withNotAvailableIndices(long[] sortedNotAvailableIndices) {
+    this.sortedNotAvailableIndices = sortedNotAvailableIndices;
     return this;
   }
 
@@ -116,34 +109,43 @@ public class FlattenedColumnPageBuilder {
    * @return Either a new {@link ColumnPage} or <code>null</code> if the returned colPage would be empty.
    */
   public ColumnPage build() {
-    if (delegate.getValues().size() == notAvailableRowIds.size())
+    if (delegate.getValues().size() == sortedNotAvailableIndices.length)
       // we'd remove all values from the delegate, so we actually do not need to build a page at all.
       return null;
 
     ColumnPage newPage;
 
     // We use some heuristic here to produce some well-compressed output.
-    if (notAvailableRowIds.size() <= (int) Math.ceil(delegate.getValues().size() / 3.)) {
+    if (sortedNotAvailableIndices.length <= (int) Math.ceil(delegate.getValues().size() / 3.)) {
       // we remove <= 1/3 of rows.
 
       // -> use delegate colPage that removes indices
       IndexRemovingCompressedLongArray values = flattenDataFactory.createIndexRemovingCompressedLongArray(
-          delegate.getValues(), compressRowIdIndicesToIndicesArray(notAvailableRowIds, delegate.getFirstRowId()), 0L);
+          delegate.getValues(), compressIndicesArray(sortedNotAvailableIndices), 0L);
 
       newPage = flattenDataFactory.createFlattenedColumnPage(colName + "#" + firstRowId,
           flattenDataFactory.createFlattenedDelegateLongDictionary(delegate.getColumnPageDict()), delegate, values,
           firstRowId);
-    } else if (notAvailableRowIds.size() >= 2 * (int) Math.ceil(delegate.getValues().size() / 3.)) {
+    } else if (sortedNotAvailableIndices.length >= 2 * (int) Math.ceil(delegate.getValues().size() / 3.)) {
       // we remove >= 2/3 of rows.
 
       // -> use delegate colPage that filters indices (= only returns those values at specific indices)
-      NavigableSet<Long> availableRowIds =
-          LongStream.range(delegate.getFirstRowId(), delegate.getFirstRowId() + delegate.getValues().size())
-              .mapToObj(Long::valueOf).filter(l -> !notAvailableRowIds.contains(l))
-              .collect(DiqubeCollectors.toNavigableSet());
+      long[] availableIndices = new long[delegate.getValues().size() - sortedNotAvailableIndices.length];
+      int nextNotAvailableIndex = 0;
+      int nextTargetIndex = 0;
+      for (int i = 0; i < delegate.getValues().size(); i++) {
+        if (nextNotAvailableIndex < sortedNotAvailableIndices.length
+            && sortedNotAvailableIndices[nextNotAvailableIndex] == i) {
+          nextNotAvailableIndex++;
+          continue;
+        }
 
-      IndexFilteringCompressedLongArray values = flattenDataFactory.createIndexFilteringCompressedLongArray(
-          delegate.getValues(), compressRowIdIndicesToIndicesArray(availableRowIds, delegate.getFirstRowId()), 0L);
+        availableIndices[nextTargetIndex] = i;
+        nextTargetIndex++;
+      }
+
+      IndexFilteringCompressedLongArray values = flattenDataFactory
+          .createIndexFilteringCompressedLongArray(delegate.getValues(), compressIndicesArray(availableIndices), 0L);
 
       newPage = flattenDataFactory.createFlattenedColumnPage(colName + "#" + firstRowId,
           flattenDataFactory.createFlattenedDelegateLongDictionary(delegate.getColumnPageDict()), delegate, values,
@@ -156,14 +158,14 @@ public class FlattenedColumnPageBuilder {
       ColumnPageBuilder colPageBuilder = new ColumnPageBuilder(columnPageFactory);
       colPageBuilder.withColumnPageName(colName + "#" + firstRowId).withFirstRowId(firstRowId);
 
-      long[] newValueIds = new long[delegate.getValues().size() - notAvailableRowIds.size()];
+      long[] newValueIds = new long[delegate.getValues().size() - sortedNotAvailableIndices.length];
       long[] oldValueIds = delegate.getValues().decompressedArray();
       NavigableMap<Long, Long> newValueMap = new TreeMap<>();
       int nextNewIdx = 0;
-      PeekingIterator<Long> notAvailIt = Iterators.peekingIterator(notAvailableRowIds.iterator());
+      int nextNotAvailIdx = 0;
       for (int i = 0; i < oldValueIds.length; i++) {
-        if (notAvailIt.hasNext() && notAvailIt.peek() == delegate.getFirstRowId() + i) {
-          notAvailIt.next();
+        if (nextNotAvailIdx < sortedNotAvailableIndices.length && sortedNotAvailableIndices[nextNotAvailIdx] == i) {
+          nextNotAvailIdx++;
           continue;
         }
 
@@ -187,21 +189,16 @@ public class FlattenedColumnPageBuilder {
    * {@link CompressedLongArray} of "indices" of the values array of that page, as that is needed to construct a
    * {@link FlattenedColumnPage}.
    * 
-   * @param rowIds
-   *          the rowIds which should be converted to indices and then stored in a {@link CompressedLongArray}.
-   * @param firstRowId
-   *          The value to subtract from each of the rowIds.
+   * @param sortedIndices
+   *          the indices which should be converted to indices and then stored in a {@link CompressedLongArray}.
    * @return
    */
-  private CompressedLongArray<?> compressRowIdIndicesToIndicesArray(SortedSet<Long> rowIds, long firstRowId) {
+  private CompressedLongArray<?> compressIndicesArray(long[] sortedIndices) {
     // do not use RunLengthLongArray strategy, as stated by FlattenedColumnPage
     @SuppressWarnings("unchecked")
     CompressedLongArrayBuilder builder = new CompressedLongArrayBuilder()
-        .withStrategies(BitEfficientCompressionStrategy.class, ReferenceAndBitEfficientCompressionStrategy.class);
-
-    long[] values = rowIds.stream().mapToLong(rowId -> rowId - firstRowId).toArray();
-
-    builder.withValues(values);
+        .withStrategies(BitEfficientCompressionStrategy.class, ReferenceAndBitEfficientCompressionStrategy.class)
+        .withValues(sortedIndices);
 
     return builder.build();
   }
