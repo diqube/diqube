@@ -58,8 +58,8 @@ import org.diqube.flatten.QueryMasterFlattenService;
 import org.diqube.remote.base.thrift.RNodeAddress;
 import org.diqube.remote.base.thrift.RUUID;
 import org.diqube.remote.base.util.RUuidUtil;
-import org.diqube.remote.cluster.ClusterFlatteningServiceConstants;
-import org.diqube.remote.cluster.thrift.ClusterFlatteningService;
+import org.diqube.remote.cluster.ClusterFlattenServiceConstants;
+import org.diqube.remote.cluster.thrift.ClusterFlattenService;
 import org.diqube.remote.cluster.thrift.RFlattenException;
 import org.diqube.remote.cluster.thrift.ROptionalUuid;
 import org.diqube.remote.cluster.thrift.RRetryLaterException;
@@ -74,8 +74,8 @@ import org.slf4j.LoggerFactory;
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
-public class ClusterFlatteningServiceHandler implements ClusterFlatteningService.Iface {
-  private static final Logger logger = LoggerFactory.getLogger(ClusterFlatteningServiceHandler.class);
+public class ClusterFlattenServiceHandler implements ClusterFlattenService.Iface {
+  private static final Logger logger = LoggerFactory.getLogger(ClusterFlattenServiceHandler.class);
 
   @Inject
   private TableRegistry tableRegistry;
@@ -127,11 +127,11 @@ public class ClusterFlatteningServiceHandler implements ClusterFlatteningService
 
           if (resultNode != null) {
             // try to send that our flattening failed.
-            try (ServiceProvider<ClusterFlatteningService.Iface> serviceProv = connectionOrLocalHelper.getService(
-                ClusterFlatteningService.Client.class, ClusterFlatteningService.Iface.class,
-                ClusterFlatteningServiceConstants.SERVICE_NAME, resultNode, null)) {
+            try (ServiceProvider<ClusterFlattenService.Iface> serviceProv =
+                connectionOrLocalHelper.getService(ClusterFlattenService.Client.class,
+                    ClusterFlattenService.Iface.class, ClusterFlattenServiceConstants.SERVICE_NAME, resultNode, null)) {
 
-              serviceProv.getService().flatteningFailed(RUuidUtil.toRUuid(requestUuid),
+              serviceProv.getService().flattenFailed(RUuidUtil.toRUuid(requestUuid),
                   new RFlattenException(e.getMessage()));
             } catch (Exception e2) {
               logger.error("Could not send 'flattening failed' for flattening request {} to result node {}. Ignoring.",
@@ -224,9 +224,9 @@ public class ClusterFlatteningServiceHandler implements ClusterFlatteningService
         int retryCountLeft = 10;
         while (retry) {
           retry = false;
-          try (ServiceProvider<ClusterFlatteningService.Iface> serviceProv = connectionOrLocalHelper.getService(
-              ClusterFlatteningService.Client.class, ClusterFlatteningService.Iface.class,
-              ClusterFlatteningServiceConstants.SERVICE_NAME, otherFlattener, null)) {
+          try (ServiceProvider<ClusterFlattenService.Iface> serviceProv =
+              connectionOrLocalHelper.getService(ClusterFlattenService.Client.class, ClusterFlattenService.Iface.class,
+                  ClusterFlattenServiceConstants.SERVICE_NAME, otherFlattener, null)) {
 
             serviceProv.getService().shardsFlattened(flattenRequestId, origShardFirstRowIdToFlattenedNumberOfRowsDelta,
                 clusterManager.getOurHostAddr().createRemote());
@@ -309,11 +309,11 @@ public class ClusterFlatteningServiceHandler implements ClusterFlatteningService
 
       logger.info("Finished flattening '{}' by '{}', request ID {}.", tableName, flattenBy, requestUuid);
 
-      try (ServiceProvider<ClusterFlatteningService.Iface> serviceProv = connectionOrLocalHelper.getService(
-          ClusterFlatteningService.Client.class, ClusterFlatteningService.Iface.class,
-          ClusterFlatteningServiceConstants.SERVICE_NAME, resultAddress, null)) {
+      try (ServiceProvider<ClusterFlattenService.Iface> serviceProv =
+          connectionOrLocalHelper.getService(ClusterFlattenService.Client.class, ClusterFlattenService.Iface.class,
+              ClusterFlattenServiceConstants.SERVICE_NAME, resultAddress, null)) {
 
-        serviceProv.getService().flatteningDone(flattenRequestId, RUuidUtil.toRUuid(flattenedTableId),
+        serviceProv.getService().flattenDone(flattenRequestId, RUuidUtil.toRUuid(flattenedTableId),
             clusterManager.getOurHostAddr().createRemote());
       } catch (Exception e) {
         logger.warn("Could not send flattening result {} to requesting machine at {}. Ignoring.", requestUuid,
@@ -341,14 +341,14 @@ public class ClusterFlatteningServiceHandler implements ClusterFlatteningService
   }
 
   @Override
-  public void flatteningDone(RUUID flattenRequestId, RUUID flattenedTableId, RNodeAddress flattener) throws TException {
+  public void flattenDone(RUUID flattenRequestId, RUUID flattenedTableId, RNodeAddress flattener) throws TException {
     // executed on query master node.
     queryMasterFlattenService.singleRemoteCompletedFlattening(RUuidUtil.toUuid(flattenRequestId),
         RUuidUtil.toUuid(flattenedTableId), flattener);
   }
 
   @Override
-  public void flatteningFailed(RUUID flattenRequestId, RFlattenException flattenException) throws TException {
+  public void flattenFailed(RUUID flattenRequestId, RFlattenException flattenException) throws TException {
     // executed on query master node.
     queryMasterFlattenService.singleRemoteFailedFlattening(RUuidUtil.toUuid(flattenRequestId),
         flattenException.getMessage());

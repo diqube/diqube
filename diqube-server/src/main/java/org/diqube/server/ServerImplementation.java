@@ -37,10 +37,10 @@ import org.diqube.config.ConfigKey;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.context.InjectOptional;
 import org.diqube.listeners.ServingListener;
-import org.diqube.remote.cluster.ClusterFlatteningServiceConstants;
+import org.diqube.remote.cluster.ClusterFlattenServiceConstants;
 import org.diqube.remote.cluster.ClusterManagementServiceConstants;
 import org.diqube.remote.cluster.ClusterQueryServiceConstants;
-import org.diqube.remote.cluster.thrift.ClusterFlatteningService;
+import org.diqube.remote.cluster.thrift.ClusterFlattenService;
 import org.diqube.remote.cluster.thrift.ClusterManagementService;
 import org.diqube.remote.cluster.thrift.ClusterQueryService;
 import org.diqube.remote.query.ClusterInformationServiceConstants;
@@ -83,7 +83,7 @@ public class ServerImplementation {
   private ClusterInformationService.Iface clusterInformationHandler;
 
   @Inject
-  private ClusterFlatteningService.Iface clusterFlatteningHandler;
+  private ClusterFlattenService.Iface clusterFlattenHandler;
 
   @Inject
   private QueryService.Iface queryHandler;
@@ -137,8 +137,8 @@ public class ServerImplementation {
         new KeepAliveService.Processor<KeepAliveService.Iface>(keepAliveHandler));
     multiProcessor.registerProcessor(ClusterInformationServiceConstants.SERVICE_NAME,
         new ClusterInformationService.Processor<ClusterInformationService.Iface>(clusterInformationHandler));
-    multiProcessor.registerProcessor(ClusterFlatteningServiceConstants.SERVICE_NAME,
-        new ClusterFlatteningService.Processor<ClusterFlatteningService.Iface>(clusterFlatteningHandler));
+    multiProcessor.registerProcessor(ClusterFlattenServiceConstants.SERVICE_NAME,
+        new ClusterFlattenService.Processor<ClusterFlattenService.Iface>(clusterFlattenHandler));
 
     TNonblockingServerTransport transport;
     try {

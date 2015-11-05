@@ -21,14 +21,14 @@
 package org.diqube.remote.cluster;
 
 import org.apache.thrift.protocol.TMultiplexedProtocol;
-import org.diqube.remote.cluster.thrift.ClusterFlatteningService;
+import org.diqube.remote.cluster.thrift.ClusterFlattenService;
 
 /**
- * Constants to be used when using {@link ClusterFlatteningService}.
+ * Constants to be used when using {@link ClusterFlattenService}.
  *
  * @author Bastian Gloeckle
  */
-public class ClusterFlatteningServiceConstants {
+public class ClusterFlattenServiceConstants {
   /** Name of the query service as set up in {@link TMultiplexedProtocol}. */
   public static final String SERVICE_NAME = "F";
 }

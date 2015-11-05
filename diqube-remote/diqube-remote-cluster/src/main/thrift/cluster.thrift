@@ -235,7 +235,7 @@ struct ROptionalUuid {
   1: optional base.RUUID uuid
 }
 
-service ClusterFlatteningService {
+service ClusterFlattenService {
   void flattenAllLocalShards(1: base.RUUID flattenRequestId, 2: string tableName, 3: string flattenBy, 
     4: list<base.RNodeAddress> otherFlatteners, 5: base.RNodeAddress resultAddress) throws (1: RFlattenException flattenException),
   
@@ -244,8 +244,8 @@ service ClusterFlatteningService {
     
   ROptionalUuid getLatestValidFlattening(1: string tableName, 2: string flattenBy) throws (1: RFlattenException flattenException)
     
-  oneway void flatteningDone(1: base.RUUID flattenRequestId, 2: base.RUUID flattenedTableId, 
+  oneway void flattenDone(1: base.RUUID flattenRequestId, 2: base.RUUID flattenedTableId, 
     3: base.RNodeAddress flattener)
     
-  oneway void flatteningFailed(1: base.RUUID flattenRequestId, 2: RFlattenException flattenException)
+  oneway void flattenFailed(1: base.RUUID flattenRequestId, 2: RFlattenException flattenException)
 }

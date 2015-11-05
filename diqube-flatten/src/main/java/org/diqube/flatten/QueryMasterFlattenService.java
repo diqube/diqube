@@ -46,8 +46,8 @@ import org.diqube.context.AutoInstatiate;
 import org.diqube.remote.base.thrift.RNodeAddress;
 import org.diqube.remote.base.thrift.RUUID;
 import org.diqube.remote.base.util.RUuidUtil;
-import org.diqube.remote.cluster.ClusterFlatteningServiceConstants;
-import org.diqube.remote.cluster.thrift.ClusterFlatteningService;
+import org.diqube.remote.cluster.ClusterFlattenServiceConstants;
+import org.diqube.remote.cluster.thrift.ClusterFlattenService;
 import org.diqube.remote.cluster.thrift.ROptionalUuid;
 import org.diqube.util.Pair;
 import org.slf4j.Logger;
@@ -113,9 +113,9 @@ public class QueryMasterFlattenService {
       Set<UUID> validFlattenUuids = new HashSet<>();
       boolean error = false;
       for (RNodeAddress node : nodesServingTable) {
-        try (ServiceProvider<ClusterFlatteningService.Iface> serviceProv =
-            connectionOrLocalHelper.getService(ClusterFlatteningService.Client.class,
-                ClusterFlatteningService.Iface.class, ClusterFlatteningServiceConstants.SERVICE_NAME, node, null)) {
+        try (ServiceProvider<ClusterFlattenService.Iface> serviceProv =
+            connectionOrLocalHelper.getService(ClusterFlattenService.Client.class, ClusterFlattenService.Iface.class,
+                ClusterFlattenServiceConstants.SERVICE_NAME, node, null)) {
 
           ROptionalUuid nodeRes = serviceProv.getService().getLatestValidFlattening(table, flattenBy);
           validFlattenUuids.add(nodeRes.isSetUuid() ? RUuidUtil.toUuid(nodeRes.getUuid()) : null);
@@ -146,9 +146,9 @@ public class QueryMasterFlattenService {
           for (RNodeAddress node : nodesServingTable) {
             List<RNodeAddress> otherFlatteners =
                 nodesServingTable.stream().filter(n -> n != node).collect(Collectors.toList());
-            try (ServiceProvider<ClusterFlatteningService.Iface> serviceProv =
-                connectionOrLocalHelper.getService(ClusterFlatteningService.Client.class,
-                    ClusterFlatteningService.Iface.class, ClusterFlatteningServiceConstants.SERVICE_NAME, node, null)) {
+            try (ServiceProvider<ClusterFlattenService.Iface> serviceProv =
+                connectionOrLocalHelper.getService(ClusterFlattenService.Client.class,
+                    ClusterFlattenService.Iface.class, ClusterFlattenServiceConstants.SERVICE_NAME, node, null)) {
 
               serviceProv.getService().flattenAllLocalShards(flattenRequestRuuid, table, flattenBy, otherFlatteners,
                   clusterManager.getOurHostAddr().createRemote());
