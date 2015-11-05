@@ -36,9 +36,13 @@ import java.util.UUID;
 import java.util.stream.LongStream;
 
 import org.diqube.context.Profiles;
+import org.diqube.data.column.ColumnPage;
 import org.diqube.data.column.ColumnShard;
 import org.diqube.data.column.ColumnType;
+import org.diqube.data.flatten.FlattenedColumnPage;
 import org.diqube.data.flatten.FlattenedTable;
+import org.diqube.data.flatten.IndexFilteringCompressedLongArray;
+import org.diqube.data.flatten.IndexRemovingCompressedLongArray;
 import org.diqube.data.table.Table;
 import org.diqube.data.table.TableFactory;
 import org.diqube.data.table.TableShard;
@@ -393,6 +397,236 @@ public class FlattenUtilTest {
     row.put("c[1]", LoaderColumnInfo.DEFAULT_LONG);
     row.put("c[length]", 1L);
     expectedRows.add(row);
+
+    Assert.assertEquals(getAllRows(tableShard), expectedRows, "Expected to have correct rows.");
+  }
+
+  @Test
+  public void simpleTestForceHalfRemoval() throws LoadException {
+    // Test which contains a specific repetition index in approx half of the rows -> should trigger a specific ColPage
+    // to be built.
+    // a[0] is contained in every row, a[1] only in 5 of 9.
+
+    String json = "[ { " //
+        + "\"a\": [ "//
+    /* */ + "{ \"b\": 1 }, "//
+    /* */ + "{ \"b\": 2 }"//
+        + "]}," //
+        + "{ \"a\": [ "//
+    /* */ + "{ \"b\": 3 }, "//
+    /* */ + "{ \"b\": 4 } "//
+        + "]}," //
+        + "{ \"a\": [ "//
+    /* */ + "{ \"b\": 5 }, "//
+    /* */ + "{ \"b\": 6 } "//
+        + "]}," //
+        + "{ \"a\": [ "//
+    /* */ + "{ \"b\": 7 }, "//
+    /* */ + "{ \"b\": 8 } "//
+        + "]}," //
+        + "{ \"a\": [ "//
+    /* */ + "{ \"b\": 9 }, "//
+    /* */ + "{ \"b\": 10 } "//
+        + "]}," //
+        + "{ \"a\": [ "//
+    /* */ + "{ \"b\": 11 } "//
+        + "]}," //
+        + "{ \"a\": [ "//
+    /* */ + "{ \"b\": 12 } "//
+        + "]}," //
+        + "{ \"a\": [ "//
+    /* */ + "{ \"b\": 13 } "//
+        + "]}," //
+        + "{ \"a\": [ "//
+    /* */ + "{ \"b\": 14 } "//
+        + "]}" //
+    //
+        + " ]";
+
+    // GIVEN
+    Table t = loadFromJson(100, json);
+
+    // WHEN
+    FlattenedTable flattenedTable = flattenUtil.flattenTable(t, null, "a[*]", UUID.randomUUID());
+
+    // THEN
+    Assert.assertEquals(flattenedTable.getShards().size(), 1, "Expected correct table shard count");
+    TableShard tableShard = flattenedTable.getShards().iterator().next();
+    Assert.assertEquals(tableShard.getLowestRowId(), 100L, "Expected correct lowest row ID"); /* same as source table */
+    Assert.assertEquals(tableShard.getNumberOfRowsInShard(), 14, "Expected correct number of rows.");
+
+    Assert.assertEquals(tableShard.getColumns().keySet(), new HashSet<>(Arrays.asList("a.b")),
+        "Expected correct columns.");
+
+    // assert that a native page has been built. This is solely to ensure that we have unit tests for all cases (see
+    // FlattenedColumnPageBuilder and its test).
+    boolean found = false;
+    for (ColumnPage page : tableShard.getColumns().get("a.b").getPages().values()) {
+      found |= !(page instanceof FlattenedColumnPage);
+    }
+    Assert.assertTrue(found, "Expected that there is a page which is not a FlattenedColumnPage.");
+
+    SortedSet<SortedMap<String, Long>> expectedRows = new TreeSet<>(MAP_COMPARATOR);
+
+    SortedMap<String, Long> row;
+    for (long l = 1L; l <= 14; l++) {
+      row = new TreeMap<>();
+      row.put("a.b", l);
+      expectedRows.add(row);
+    }
+
+    Assert.assertEquals(getAllRows(tableShard), expectedRows, "Expected to have correct rows.");
+  }
+
+  @Test
+  public void simpleTestForceLittleRemoval() throws LoadException {
+    // Test which contains a specific repetition index in most of the rows -> should trigger a specific ColPage
+    // to be built.
+    // a[0] is contained in every row, a[1] only in 1 of 9.
+
+    String json = "[ { " //
+        + "\"a\": [ "//
+    /* */ + "{ \"b\": 1 }, "//
+    /* */ + "{ \"b\": 2 }"//
+        + "]}," //
+        + "{ \"a\": [ "//
+    /* */ + "{ \"b\": 3 }, "//
+    /* */ + "{ \"b\": 4 } "//
+        + "]}," //
+        + "{ \"a\": [ "//
+    /* */ + "{ \"b\": 5 }, "//
+    /* */ + "{ \"b\": 6 } "//
+        + "]}," //
+        + "{ \"a\": [ "//
+    /* */ + "{ \"b\": 7 }, "//
+    /* */ + "{ \"b\": 8 } "//
+        + "]}," //
+        + "{ \"a\": [ "//
+    /* */ + "{ \"b\": 9 }, "//
+    /* */ + "{ \"b\": 10 } "//
+        + "]}," //
+        + "{ \"a\": [ "//
+    /* */ + "{ \"b\": 11 }, "//
+    /* */ + "{ \"b\": 12 } "//
+        + "]}," //
+        + "{ \"a\": [ "//
+    /* */ + "{ \"b\": 13 }, "//
+    /* */ + "{ \"b\": 14 } "//
+        + "]}," //
+        + "{ \"a\": [ "//
+    /* */ + "{ \"b\": 15 }, "//
+    /* */ + "{ \"b\": 16 } "//
+        + "]}," //
+        + "{ \"a\": [ "//
+    /* */ + "{ \"b\": 17 } "//
+        + "]}" //
+    //
+        + " ]";
+
+    // GIVEN
+    Table t = loadFromJson(100, json);
+
+    // WHEN
+    FlattenedTable flattenedTable = flattenUtil.flattenTable(t, null, "a[*]", UUID.randomUUID());
+
+    // THEN
+    Assert.assertEquals(flattenedTable.getShards().size(), 1, "Expected correct table shard count");
+    TableShard tableShard = flattenedTable.getShards().iterator().next();
+    Assert.assertEquals(tableShard.getLowestRowId(), 100L, "Expected correct lowest row ID"); /* same as source table */
+    Assert.assertEquals(tableShard.getNumberOfRowsInShard(), 17, "Expected correct number of rows.");
+
+    Assert.assertEquals(tableShard.getColumns().keySet(), new HashSet<>(Arrays.asList("a.b")),
+        "Expected correct columns.");
+
+    // assert that a native page has been built. This is solely to ensure that we have unit tests for all cases (see
+    // FlattenedColumnPageBuilder and its test).
+    boolean found = false;
+    for (ColumnPage page : tableShard.getColumns().get("a.b").getPages().values()) {
+      found |= (page instanceof FlattenedColumnPage) && (page.getValues() instanceof IndexRemovingCompressedLongArray);
+    }
+    Assert.assertTrue(found, "Expected that there is a page which is not a FlattenedColumnPage.");
+
+    SortedSet<SortedMap<String, Long>> expectedRows = new TreeSet<>(MAP_COMPARATOR);
+
+    SortedMap<String, Long> row;
+    for (long l = 1L; l <= 17; l++) {
+      row = new TreeMap<>();
+      row.put("a.b", l);
+      expectedRows.add(row);
+    }
+
+    Assert.assertEquals(getAllRows(tableShard), expectedRows, "Expected to have correct rows.");
+  }
+
+  @Test
+  public void simpleTestForceMostRemoval() throws LoadException {
+    // Test which contains a specific repetition index in only a small number of the rows -> should trigger a specific
+    // ColPage to be built.
+    // a[0] is contained in every row, a[1] only in 1 of 9.
+
+    String json = "[ { " //
+        + "\"a\": [ "//
+    /* */ + "{ \"b\": 1 }, "//
+    /* */ + "{ \"b\": 2 }"//
+        + "]}," //
+        + "{ \"a\": [ "//
+    /* */ + "{ \"b\": 3 } "//
+        + "]}," //
+        + "{ \"a\": [ "//
+    /* */ + "{ \"b\": 4 } "//
+        + "]}," //
+        + "{ \"a\": [ "//
+    /* */ + "{ \"b\": 5 } "//
+        + "]}," //
+        + "{ \"a\": [ "//
+    /* */ + "{ \"b\": 6 } "//
+        + "]}," //
+        + "{ \"a\": [ "//
+    /* */ + "{ \"b\": 7 } "//
+        + "]}," //
+        + "{ \"a\": [ "//
+    /* */ + "{ \"b\": 8 } "//
+        + "]}," //
+        + "{ \"a\": [ "//
+    /* */ + "{ \"b\": 9 } "//
+        + "]}," //
+        + "{ \"a\": [ "//
+    /* */ + "{ \"b\": 10 } "//
+        + "]}" //
+    //
+        + " ]";
+
+    // GIVEN
+    Table t = loadFromJson(100, json);
+
+    // WHEN
+    FlattenedTable flattenedTable = flattenUtil.flattenTable(t, null, "a[*]", UUID.randomUUID());
+
+    // THEN
+    Assert.assertEquals(flattenedTable.getShards().size(), 1, "Expected correct table shard count");
+    TableShard tableShard = flattenedTable.getShards().iterator().next();
+    Assert.assertEquals(tableShard.getLowestRowId(), 100L, "Expected correct lowest row ID"); /* same as source table */
+    Assert.assertEquals(tableShard.getNumberOfRowsInShard(), 10, "Expected correct number of rows.");
+
+    Assert.assertEquals(tableShard.getColumns().keySet(), new HashSet<>(Arrays.asList("a.b")),
+        "Expected correct columns.");
+
+    // assert that a native page has been built. This is solely to ensure that we have unit tests for all cases (see
+    // FlattenedColumnPageBuilder and its test).
+    boolean found = false;
+    for (ColumnPage page : tableShard.getColumns().get("a.b").getPages().values()) {
+      found |= (page instanceof FlattenedColumnPage) && (page.getValues() instanceof IndexFilteringCompressedLongArray);
+    }
+    Assert.assertTrue(found, "Expected that there is a page which is not a FlattenedColumnPage.");
+
+    SortedSet<SortedMap<String, Long>> expectedRows = new TreeSet<>(MAP_COMPARATOR);
+
+    SortedMap<String, Long> row;
+    for (long l = 1L; l <= 10; l++) {
+      row = new TreeMap<>();
+      row.put("a.b", l);
+      expectedRows.add(row);
+    }
 
     Assert.assertEquals(getAllRows(tableShard), expectedRows, "Expected to have correct rows.");
   }

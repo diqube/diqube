@@ -43,16 +43,15 @@ import com.google.common.collect.Iterators;
 @DataSerializable(thriftClass = SDoubleDictionaryConstant.class)
 public class ConstantDoubleDictionary implements DoubleDictionary<SDoubleDictionaryConstant> {
   private Double value;
-  private long id;
+  private long id = 0L;
 
   /** for deserialization */
   public ConstantDoubleDictionary() {
 
   }
 
-  public ConstantDoubleDictionary(Double value, long id) {
+  public ConstantDoubleDictionary(Double value) {
     this.value = value;
-    this.id = id;
   }
 
   @Override

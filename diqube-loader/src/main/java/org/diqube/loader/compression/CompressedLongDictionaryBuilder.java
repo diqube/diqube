@@ -96,8 +96,11 @@ public class CompressedLongDictionaryBuilder {
       return new Pair<>(new EmptyLongDictionary(), new HashMap<>());
     } else if (entityMap.size() == 1) {
       Entry<Long, Long> entry = entityMap.entrySet().iterator().next();
-      LongDictionary<?> dict = new ConstantLongDictionary(entry.getKey(), entry.getValue());
-      return new Pair<>(dict, new HashMap<>());
+      LongDictionary<?> dict = new ConstantLongDictionary(entry.getKey());
+      Map<Long, Long> valueMap = new HashMap<>();
+      if (entry.getValue() != 0L)
+        valueMap.put(entry.getValue(), 0L);
+      return new Pair<>(dict, valueMap);
     }
 
     Map<Long, Long> idMap = new HashMap<Long, Long>();

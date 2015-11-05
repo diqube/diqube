@@ -219,7 +219,7 @@ public class LongColumnSerializationTest {
   @Test
   public void testConstantDict() throws SerializationException, DeserializationException {
     // GIVEN
-    Pair<TableShard, Integer> p = createTableShard(2, new ConstantLongDictionary(25L, 0L));
+    Pair<TableShard, Integer> p = createTableShard(2, new ConstantLongDictionary(25L));
 
     // WHEN serialize & deserialze
     ByteArrayOutputStream outStream = new ByteArrayOutputStream();

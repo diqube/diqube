@@ -39,7 +39,7 @@ public class StringConstantColumnShard extends AbstractConstantColumnShard imple
 
   @Override
   protected StringDictionary<?> createColumnShardDictionary(Object value) {
-    return new ConstantStringDictionary((String) value, 0L);
+    return new ConstantStringDictionary((String) value);
   }
 
   @Override

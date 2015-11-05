@@ -909,7 +909,7 @@ public class ArrayCompressedLongDictionaryTest {
     CompressedLongArray<?> array = new BitEfficientLongArray(new long[] { 0, 3 }, true);
     ArrayCompressedLongDictionary compressedDict = new ArrayCompressedLongDictionary(array);
 
-    ConstantLongDictionary constantDict = new ConstantLongDictionary(2, 0);
+    ConstantLongDictionary constantDict = new ConstantLongDictionary(2);
 
     // WHEN
     Map<Long, Long> ltEq = compressedDict.findLtEqIds(constantDict);
@@ -932,7 +932,7 @@ public class ArrayCompressedLongDictionaryTest {
     CompressedLongArray<?> array = new BitEfficientLongArray(new long[] { 0, 3 }, true);
     ArrayCompressedLongDictionary compressedDict = new ArrayCompressedLongDictionary(array);
 
-    ConstantLongDictionary constantDict = new ConstantLongDictionary(2, 0);
+    ConstantLongDictionary constantDict = new ConstantLongDictionary(2);
 
     // WHEN
     Map<Long, Long> gtEq = compressedDict.findGtEqIds(constantDict);

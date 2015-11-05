@@ -1655,7 +1655,7 @@ public class TrieStringDictionaryTest {
 
     TrieStringDictionary trieDict = new TrieStringDictionary(root, "aaa", "aac", 1);
 
-    ConstantStringDictionary constantDict = new ConstantStringDictionary("aab", 0L);
+    ConstantStringDictionary constantDict = new ConstantStringDictionary("aab");
 
     // WHEN
     Map<Long, Long> gtEqIds = trieDict.findGtEqIds(constantDict);
@@ -1689,7 +1689,7 @@ public class TrieStringDictionaryTest {
 
     TrieStringDictionary trieDict = new TrieStringDictionary(root, "aaa", "aac", 1);
 
-    ConstantStringDictionary constantDict = new ConstantStringDictionary("aab", 0L);
+    ConstantStringDictionary constantDict = new ConstantStringDictionary("aab");
 
     // WHEN
     Map<Long, Long> ltEqIds = trieDict.findLtEqIds(constantDict);

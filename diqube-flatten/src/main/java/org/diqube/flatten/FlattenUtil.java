@@ -51,14 +51,12 @@ import org.diqube.data.dictionary.Dictionary;
 import org.diqube.data.flatten.AdjustableConstantLongDictionary;
 import org.diqube.data.flatten.FlattenDataFactory;
 import org.diqube.data.flatten.FlattenedDelegateLongDictionary;
-import org.diqube.data.flatten.FlattenedIndexRemovingColumnPage;
 import org.diqube.data.flatten.FlattenedTable;
 import org.diqube.data.flatten.FlattenedTableShard;
 import org.diqube.data.table.Table;
 import org.diqube.data.table.TableShard;
 import org.diqube.data.types.dbl.dict.ConstantDoubleDictionary;
 import org.diqube.data.types.dbl.dict.DoubleDictionary;
-import org.diqube.data.types.lng.array.CompressedLongArray;
 import org.diqube.data.types.lng.dict.ConstantLongDictionary;
 import org.diqube.data.types.lng.dict.LongDictionary;
 import org.diqube.data.types.str.dict.ConstantStringDictionary;
@@ -72,9 +70,6 @@ import org.diqube.executionenv.util.ColumnPatternUtil.LengthColumnMissingExcepti
 import org.diqube.executionenv.util.ColumnPatternUtil.PatternException;
 import org.diqube.loader.LoaderColumnInfo;
 import org.diqube.loader.compression.CompressedDoubleDictionaryBuilder;
-import org.diqube.loader.compression.CompressedLongArrayBuilder;
-import org.diqube.loader.compression.CompressedLongArrayBuilder.BitEfficientCompressionStrategy;
-import org.diqube.loader.compression.CompressedLongArrayBuilder.ReferenceAndBitEfficientCompressionStrategy;
 import org.diqube.loader.compression.CompressedLongDictionaryBuilder;
 import org.diqube.loader.compression.CompressedStringDictionaryBuilder;
 import org.diqube.util.DiqubeCollectors;
@@ -141,6 +136,9 @@ public class FlattenUtil {
 
   @Inject
   private ColumnPatternUtil colPatternUtil;
+
+  @Inject
+  private FlattenedColumnPageBuilderFactory flattenedColumnPageBuilderFactory;
 
   /**
    * Flatten the given table by the given flatten-by field, returning a premilinary flattened table (see below).
@@ -475,7 +473,7 @@ public class FlattenUtil {
           // created above.
           if (inputColName.endsWith(repeatedColNameGen.lengthIdentifyingSuffix()))
             // length cols get "0" as default.
-            origColDicts.put(curColId, new ConstantLongDictionary(0L, 0L));
+            origColDicts.put(curColId, new ConstantLongDictionary(0L));
           else
             origColDicts.put(curColId, createDictionaryWithOnlyDefaultValue(colType));
 
@@ -510,8 +508,9 @@ public class FlattenUtil {
                           : 1) <= curMultiplicationNo)
                   .mapToObj(Long::valueOf).collect(DiqubeCollectors.toNavigableSet());
 
-              newPage = createRowRemovedFlattenedColumnPage(newColName + "#" + nextFirstRowId, inputPage,
-                  notAvailableRowIds, nextFirstRowId);
+              newPage = flattenedColumnPageBuilderFactory.createFlattenedColumnPageBuilder().withColName(newColName)
+                  .withDelegate(inputPage).withFirstRowId(nextFirstRowId).withNotAvailableRowIds(notAvailableRowIds)
+                  .build();
 
               if (newPage != null) {
                 flattenedColPages.get(curColId).add(newPage);
@@ -530,8 +529,9 @@ public class FlattenUtil {
             else
               notAvailableRowIdsThisPage = new TreeSet<>();
 
-            newPage = createRowRemovedFlattenedColumnPage(newColName + "#" + nextFirstRowId, inputPage,
-                notAvailableRowIdsThisPage, nextFirstRowId);
+            newPage = flattenedColumnPageBuilderFactory.createFlattenedColumnPageBuilder().withColName(newColName)
+                .withDelegate(inputPage).withFirstRowId(nextFirstRowId)
+                .withNotAvailableRowIds(notAvailableRowIdsThisPage).build();
 
             if (newPage != null) {
               flattenedColPages.get(curColId).add(newPage);
@@ -595,36 +595,6 @@ public class FlattenUtil {
     logger.trace("Created flattened table shard " + resultTableName);
 
     return flattenedTableShard;
-  }
-
-  /**
-   * Creates a new ColumnPage the default way for a flattened col shard (= removes specific rows from the page).
-   * 
-   * @param colPageName
-   *          Name of the new page
-   * @param delegate
-   *          The delegate {@link ColumnPage} of the input col shard.
-   * @param notAvailableRowIds
-   *          The RowIds that should not be available in the result col page as compared to the input col page.
-   * @param newFirstRowId
-   *          firstRowId the new page would have
-   * @return The new {@link ColumnPage}. Can be <code>null</code> in case the new colPage should not be added (e.g. if
-   *         it would be empty).
-   */
-  private ColumnPage createRowRemovedFlattenedColumnPage(String colPageName, ColumnPage delegate,
-      SortedSet<Long> notAvailableRowIds, long newFirstRowId) {
-    if (delegate.getValues().size() == notAvailableRowIds.size())
-      // we'd remove all values from the delegate, so we actually do not need to build a page at all.
-      return null;
-
-    // TODO #27: Use heuristic to identify the least-memory-intensive way to store this.
-    // It could be that we remove that much indices here that it would be easier to (1) store the indices that are still
-    // enabled or (2) re-create the column completely.
-    ColumnPage newPage = factory.createFlattenedIndexRemovingColumnPage(colPageName,
-        factory.createFlattenedDelegateLongDictionary(delegate.getColumnPageDict()), delegate,
-        compressRemovedRowIdIndicesToRemovedIndicesArray(notAvailableRowIds, delegate.getFirstRowId()), newFirstRowId);
-
-    return newPage;
   }
 
   /**
@@ -769,36 +739,13 @@ public class FlattenUtil {
   private Dictionary<?> createDictionaryWithOnlyDefaultValue(ColumnType colType) {
     switch (colType) {
     case STRING:
-      return new ConstantStringDictionary(LoaderColumnInfo.DEFAULT_STRING, 0L);
+      return new ConstantStringDictionary(LoaderColumnInfo.DEFAULT_STRING);
     case LONG:
-      return new ConstantLongDictionary(LoaderColumnInfo.DEFAULT_LONG, 0L);
+      return new ConstantLongDictionary(LoaderColumnInfo.DEFAULT_LONG);
     case DOUBLE:
-      return new ConstantDoubleDictionary(LoaderColumnInfo.DEFAULT_DOUBLE, 0L);
+      return new ConstantDoubleDictionary(LoaderColumnInfo.DEFAULT_DOUBLE);
     }
     return null; // never happens
-  }
-
-  /**
-   * Transforms a set of rowIds which should not be accessible in {@link FlattenedIndexRemovingColumnPage} to the
-   * {@link CompressedLongArray} of "removed indices" of the values array of that page, as that is needed to construct a
-   * {@link FlattenedIndexRemovingColumnPage}.
-   * 
-   * @param removedRowIds
-   * @param firstRowId
-   * @return
-   */
-  private CompressedLongArray<?> compressRemovedRowIdIndicesToRemovedIndicesArray(SortedSet<Long> removedRowIds,
-      long firstRowId) {
-    // do not use RunLengthLongArray startegy, as stated by FlattenedIndexRemovingColumnPage
-    @SuppressWarnings("unchecked")
-    CompressedLongArrayBuilder builder = new CompressedLongArrayBuilder()
-        .withStrategies(BitEfficientCompressionStrategy.class, ReferenceAndBitEfficientCompressionStrategy.class);
-
-    long[] values = removedRowIds.stream().mapToLong(rowId -> rowId - firstRowId).toArray();
-
-    builder.withValues(values);
-
-    return builder.build();
   }
 
 }

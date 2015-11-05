@@ -22,6 +22,7 @@ package org.diqube.loader.columnshard;
 
 import java.util.Map;
 import java.util.NavigableMap;
+import java.util.function.Function;
 
 import org.diqube.data.column.ColumnPage;
 import org.diqube.data.column.ColumnPageFactory;
@@ -45,6 +46,7 @@ public class ColumnPageBuilder {
   private ColumnPageFactory columnPageFactory;
 
   private String name;
+  private Function<LongDictionary<?>, LongDictionary<?>> colPageDictFn;
 
   public ColumnPageBuilder(ColumnPageFactory columnPageFactory) {
     this.columnPageFactory = columnPageFactory;
@@ -84,6 +86,15 @@ public class ColumnPageBuilder {
   }
 
   /**
+   * @param fn
+   *          Optional function that receives the internally built colPageDict and can remove another dict.
+   */
+  public ColumnPageBuilder withColumnPageDictFunction(Function<LongDictionary<?>, LongDictionary<?>> colPageDictFn) {
+    this.colPageDictFn = colPageDictFn;
+    return this;
+  }
+
+  /**
    * Build a new {@link ColumnPage} and take care of compression.
    * 
    * @return The new {@link ColumnPage}
@@ -111,6 +122,9 @@ public class ColumnPageBuilder {
         .withStrategies(BitEfficientCompressionStrategy.class, RunLengthAndBitEfficientCompressionStrategy.class);
 
     CompressedLongArray<?> compressedValues = compressedBuilder.build();
+
+    if (colPageDictFn != null)
+      columnPageDict = colPageDictFn.apply(columnPageDict);
 
     // build final ColumnPage
     ColumnPage page = columnPageFactory.createDefaultColumnPage(columnPageDict, compressedValues, firstRowId, name);

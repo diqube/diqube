@@ -64,10 +64,9 @@ public class FlattenDataFactory {
     return new FlattenedTable(name, shards, originalFirstRowIdsOfShards);
   }
 
-  public FlattenedIndexRemovingColumnPage createFlattenedIndexRemovingColumnPage(String name,
-      LongDictionary<?> colPageDict, ColumnPage delegatePage, CompressedLongArray<?> sortedRemoveIndices,
-      long firstRowId) {
-    return new FlattenedIndexRemovingColumnPage(name, colPageDict, delegatePage, sortedRemoveIndices, firstRowId);
+  public FlattenedColumnPage createFlattenedColumnPage(String name, LongDictionary<?> colPageDict,
+      ColumnPage delegatePage, CompressedLongArray<?> sortedRemoveIndices, long firstRowId) {
+    return new FlattenedColumnPage(name, colPageDict, delegatePage, sortedRemoveIndices, firstRowId);
   }
 
   public FlattenedDoubleStandardColumnShard createFlattenedDoubleStandardColumnShard(String name,
@@ -99,6 +98,16 @@ public class FlattenDataFactory {
   }
 
   public AdjustableConstantLongDictionary<?> createAdjustableConstantLongDictionary(long value) {
-    return new ConstantLongDictionary(value, 0L);
+    return new ConstantLongDictionary(value);
+  }
+
+  public IndexFilteringCompressedLongArray createIndexFilteringCompressedLongArray(CompressedLongArray<?> delegate,
+      CompressedLongArray<?> sortedFilteredIndices, long valueDelta) {
+    return new IndexFilteringCompressedLongArray(delegate, sortedFilteredIndices, valueDelta);
+  }
+
+  public IndexRemovingCompressedLongArray createIndexRemovingCompressedLongArray(CompressedLongArray<?> delegate,
+      CompressedLongArray<?> sortedRemoveIndices, long valueDelta) {
+    return new IndexRemovingCompressedLongArray(delegate, sortedRemoveIndices, valueDelta);
   }
 }

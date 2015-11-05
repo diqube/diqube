@@ -44,16 +44,15 @@ import com.google.common.collect.Iterators;
 public class ConstantStringDictionary implements StringDictionary<SStringDictionaryConstant> {
 
   private String value;
-  private long id;
+  private long id = 0L;
 
   /** for deserialization */
   public ConstantStringDictionary() {
 
   }
 
-  public ConstantStringDictionary(String value, long id) {
+  public ConstantStringDictionary(String value) {
     this.value = value;
-    this.id = id;
   }
 
   @Override

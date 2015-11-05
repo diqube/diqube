@@ -47,16 +47,15 @@ public class ConstantLongDictionary
     implements LongDictionary<SLongDictionaryConstant>, AdjustableConstantLongDictionary<SLongDictionaryConstant> {
 
   private long decompressedValue;
-  private long id;
+  private long id = 0L;
 
   /** for deserialization */
   public ConstantLongDictionary() {
 
   }
 
-  public ConstantLongDictionary(long decompressedValue, long id) {
+  public ConstantLongDictionary(long decompressedValue) {
     this.decompressedValue = decompressedValue;
-    this.id = id;
   }
 
   @Override

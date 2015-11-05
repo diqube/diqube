@@ -179,7 +179,7 @@ public class DoubleColumnSerializationTest {
   @Test
   public void testConstantDoubleDict() throws SerializationException, DeserializationException {
     // GIVEN
-    Pair<TableShard, Integer> p = createTableShard(2, new ConstantDoubleDictionary(25.0, 0L));
+    Pair<TableShard, Integer> p = createTableShard(2, new ConstantDoubleDictionary(25.0));
 
     // WHEN serialize & deserialze
     ByteArrayOutputStream outStream = new ByteArrayOutputStream();

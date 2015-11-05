@@ -37,24 +37,23 @@ import org.diqube.data.types.lng.dict.LongDictionary;
  * @author Bastian Gloeckle
  */
 @DataSerializableIgnore
-public class FlattenedIndexRemovingColumnPage implements AdjustableColumnPage {
+public class FlattenedColumnPage implements AdjustableColumnPage {
 
   private String name;
   private LongDictionary<?> colPageDict;
   private long firstRowId;
-  private IndexRemovingCompressedLongArray values;
+  private CompressedLongArray<?> values;
 
   /**
    * @param sortedRemoveIndices
    *          Indices in delegatePages' value array that are to be "removed". No {@link RunLengthLongArray}.
    */
-  /* package */ FlattenedIndexRemovingColumnPage(String name, LongDictionary<?> colPageDict, ColumnPage delegatePage,
-      CompressedLongArray<?> sortedRemoveIndices, long firstRowId) {
+  FlattenedColumnPage(String name, LongDictionary<?> colPageDict, ColumnPage delegatePage,
+      CompressedLongArray<?> values, long firstRowId) {
     this.name = name;
     this.colPageDict = colPageDict;
+    this.values = values;
     this.firstRowId = firstRowId;
-
-    values = new IndexRemovingCompressedLongArray(delegatePage.getValues(), sortedRemoveIndices, 0L);
   }
 
   @Override

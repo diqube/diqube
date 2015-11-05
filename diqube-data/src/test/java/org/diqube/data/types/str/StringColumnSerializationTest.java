@@ -150,7 +150,7 @@ public class StringColumnSerializationTest {
   @Test
   public void testConstantDict() throws SerializationException, DeserializationException {
     // GIVEN
-    Pair<TableShard, Integer> p = createTableShard(2, new ConstantStringDictionary("hello", 0L));
+    Pair<TableShard, Integer> p = createTableShard(2, new ConstantStringDictionary("hello"));
 
     // WHEN serialize & deserialze
     ByteArrayOutputStream outStream = new ByteArrayOutputStream();

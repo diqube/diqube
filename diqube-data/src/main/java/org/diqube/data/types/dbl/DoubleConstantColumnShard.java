@@ -39,7 +39,7 @@ public class DoubleConstantColumnShard extends AbstractConstantColumnShard imple
 
   @Override
   protected DoubleDictionary<?> createColumnShardDictionary(Object value) {
-    return new ConstantDoubleDictionary((Double) value, 0L);
+    return new ConstantDoubleDictionary((Double) value);
   }
 
   @Override

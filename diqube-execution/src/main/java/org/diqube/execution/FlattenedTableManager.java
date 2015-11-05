@@ -34,7 +34,7 @@ import org.diqube.util.Pair;
 /**
  * Manages various {@link FlattenedTable}s that are available locally.
  *
- * TODO #27 remove unneeded flattened versions.
+ * TODO #27 remove unneeded flattened versions. Make sure to not remove a version that is still needed.
  *
  * @author Bastian Gloeckle
  */

@@ -39,7 +39,7 @@ public class LongConstantColumnShard extends AbstractConstantColumnShard impleme
 
   @Override
   protected LongDictionary<?> createColumnShardDictionary(Object value) {
-    return new ConstantLongDictionary((Long) value, 0L);
+    return new ConstantLongDictionary((Long) value);
   }
 
   @Override
