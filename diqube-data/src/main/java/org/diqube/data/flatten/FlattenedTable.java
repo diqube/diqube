@@ -57,6 +57,13 @@ public class FlattenedTable implements Table {
 
   /**
    * The values of {@link TableShard#getLowestRowId()} of those tableShards that this flattening was based upon.
+   * 
+   * <p>
+   * Use these values to identify if a flattening of a table is still "valid": As each (not-flattened) Table might
+   * grow/shrink (by un-/loading shards of it), the flattening might get outdated (because it is based on an od version
+   * of the base table). Use these values to check if the source table still has those table shards loaded that were
+   * loaded when the flattened version was created (this works, because a TableShard with a fixed firstRowId never
+   * changes).
    */
   public Set<Long> getOriginalFirstRowIdsOfShards() {
     return originalFirstRowIdsOfShards;

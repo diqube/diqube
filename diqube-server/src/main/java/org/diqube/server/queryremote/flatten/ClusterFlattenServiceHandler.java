@@ -74,6 +74,9 @@ import com.google.common.collect.Iterables;
 /**
  * Handler for {@link ClusterFlatteningService}, which handles flattening local tables.
  *
+ * <p>
+ * See JavaDoc on {@link FlattenRunnable}.
+ *
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
@@ -107,15 +110,13 @@ public class ClusterFlattenServiceHandler implements ClusterFlattenService.Iface
   @Config(ConfigKey.FLATTEN_TIMEOUT_SECONDS)
   private int flattenTimeoutSeconds;
 
-  private Map<Long, UUID> requestIdByThreadId = new ConcurrentHashMap<>();
-
   private ExecutorService flatteningExecutor;
 
-  private Map<UUID, Object> flattenRequestSync = new ConcurrentHashMap<>();
+  private Map<UUID, FlattenRequestDetails> requestDetails = new ConcurrentHashMap<>();
 
-  private Map<UUID, Deque<Map<Long, Long>>> flattenRequestOtherFlattenResults = new ConcurrentHashMap<>();
+  private Map<Long, UUID> requestIdByThreadId = new ConcurrentHashMap<>();
 
-  private Map<UUID, RNodeAddress> flattenRequestResultAddress = new ConcurrentHashMap<>();
+  private Map<Pair<String, String>, UUID> currentFlattenRequest = new ConcurrentHashMap<>();
 
   @PostConstruct
   public void initialize() {
@@ -127,21 +128,26 @@ public class ClusterFlattenServiceHandler implements ClusterFlattenService.Iface
         logger.warn("Uncaught exception while processing flatten request {}", requestUuid, e);
 
         if (requestUuid != null) {
-          flattenRequestOtherFlattenResults.remove(requestUuid);
-          flattenRequestSync.remove(requestUuid);
-          RNodeAddress resultNode = flattenRequestResultAddress.remove(requestUuid);
+          FlattenRequestDetails details = requestDetails.remove(requestUuid);
 
-          if (resultNode != null) {
+          if (details != null) {
+            synchronized (details.sync) {
+              currentFlattenRequest.remove(details.requestPair);
+            }
+
             // try to send that our flattening failed.
-            try (ServiceProvider<ClusterFlattenService.Iface> serviceProv =
-                connectionOrLocalHelper.getService(ClusterFlattenService.Client.class,
-                    ClusterFlattenService.Iface.class, ClusterFlattenServiceConstants.SERVICE_NAME, resultNode, null)) {
+            for (Pair<RNodeAddress, UUID> resultPair : details.resultAddresses) {
+              try (ServiceProvider<ClusterFlattenService.Iface> serviceProv = connectionOrLocalHelper.getService(
+                  ClusterFlattenService.Client.class, ClusterFlattenService.Iface.class,
+                  ClusterFlattenServiceConstants.SERVICE_NAME, resultPair.getLeft(), null)) {
 
-              serviceProv.getService().flattenFailed(RUuidUtil.toRUuid(requestUuid),
-                  new RFlattenException(e.getMessage()));
-            } catch (Exception e2) {
-              logger.error("Could not send 'flattening failed' for flattening request {} to result node {}. Ignoring.",
-                  requestUuid, resultNode, e2);
+                serviceProv.getService().flattenFailed(RUuidUtil.toRUuid(resultPair.getRight()),
+                    new RFlattenException(e.getMessage()));
+              } catch (Exception e2) {
+                logger.error(
+                    "Could not send 'flattening failed' for flattening request {} to result node {}. Ignoring.",
+                    resultPair.getRight(), resultPair.getLeft(), e2);
+              }
             }
           }
         }
@@ -183,6 +189,27 @@ public class ClusterFlattenServiceHandler implements ClusterFlattenService.Iface
     return res;
   }
 
+  /**
+   * Flattens a table locally and informs the {@link ClusterFlattenService} at the result address about the process.
+   * 
+   * <p>
+   * Note that the query master calls this method. If the execution fails, the query master should retry the process, as
+   * explained on {@link FlattenRunnable}.
+   * 
+   * @param flattenRequestId
+   *          A unique ID.
+   * @param tableName
+   *          Name of th etable to be flattened
+   * @param flattenBy
+   *          The field by which should be flattened. See {@link Flattener}.
+   * @param otherFlatteners
+   *          The other nodes that contain part of the source table and with which this node should communicate in order
+   *          to clean up and rowId overlaps of the flattened table.
+   * @param resultAddress
+   *          Address where there's a {@link ClusterFlattenService} that will receive the results.
+   * @throws RFlattenException
+   * @throws TException
+   */
   @Override
   public void flattenAllLocalShards(RUUID flattenRequestId, String tableName, String flattenBy,
       List<RNodeAddress> otherFlatteners, RNodeAddress resultAddress) throws RFlattenException, TException {
@@ -191,18 +218,152 @@ public class ClusterFlattenServiceHandler implements ClusterFlattenService.Iface
       throw new RFlattenException("Table '" + tableName + "' not available.");
 
     UUID requestUuid = RUuidUtil.toUuid(flattenRequestId);
-    UUID flattenedTableId = requestUuid; // result UUID for the flattened table if we succeed.
+
+    FlattenRequestDetails details = new FlattenRequestDetails();
+    details.sync = new Object();
+    details.otherFlattenResults = new ConcurrentLinkedDeque<>();
+    details.resultAddresses = new ConcurrentLinkedDeque<>();
+    details.resultAddresses.push(new Pair<>(resultAddress, requestUuid));
+    details.requestPair = new Pair<>(tableName, flattenBy);
+
+    requestDetails.put(requestUuid, details);
+
+    // try to identify another request that is currently running and processing the same table.
+    Pair<String, String> flattenRequestPair = new Pair<>(tableName, flattenBy);
+    UUID otherRequestUuid = currentFlattenRequest.putIfAbsent(flattenRequestPair, requestUuid);
+    if (otherRequestUuid != null && !requestUuid.equals(otherRequestUuid)) {
+      FlattenRequestDetails otherDetails = requestDetails.get(otherRequestUuid);
+      if (otherDetails != null) {
+        synchronized (otherDetails.sync) {
+          if (otherRequestUuid.equals(currentFlattenRequest.get(flattenRequestPair))) {
+            logger.info(
+                "Requested to flatten '{}' by '{}' in request id {}, but there is another flatten being "
+                    + "executed for the same combination currently in request ID {}. Telling the latter request to"
+                    + " inform the first request as soon as it is done.",
+                tableName, flattenBy, requestUuid, otherRequestUuid);
+
+            otherDetails.resultAddresses.push(new Pair<>(resultAddress, requestUuid));
+            requestDetails.remove(requestUuid); // clean up our stuff.
+            return;
+          }
+        }
+      }
+    }
 
     logger.info("Starting to flatten '{}' by '{}', request ID {}, result addr {}, other flatteners: {}", tableName,
         flattenBy, requestUuid, resultAddress, otherFlatteners);
 
-    flattenRequestSync.put(requestUuid, new Object());
-    flattenRequestOtherFlattenResults.put(requestUuid, new ConcurrentLinkedDeque<>());
-    flattenRequestResultAddress.put(requestUuid, resultAddress);
-
     // execute asynchronously.
-    flatteningExecutor.execute(() -> {
+    flatteningExecutor.execute(new FlattenRunnable(requestUuid, details, table, tableName, flattenBy, otherFlatteners));
+  }
+
+  @Override
+  public void shardsFlattened(RUUID flattenRequestId, Map<Long, Long> origShardFirstRowIdToFlattenedNumberOfRowsDelta,
+      RNodeAddress flattener) throws TException, RRetryLaterException {
+    UUID requestId = RUuidUtil.toUuid(flattenRequestId);
+    logger.trace("Received a shardsFlattened result for flatten request {} from {}.", requestId, flattener);
+    FlattenRequestDetails details = requestDetails.get(requestId);
+    if (details == null)
+      throw new RRetryLaterException("Local data not ready.");
+
+    synchronized (details.sync) {
+      details.otherFlattenResults.add(origShardFirstRowIdToFlattenedNumberOfRowsDelta);
+
+      details.sync.notifyAll();
+    }
+  }
+
+  @Override
+  public void flattenDone(RUUID flattenRequestId, RUUID flattenedTableId, RNodeAddress flattener) throws TException {
+    // executed on query master node.
+    queryMasterFlattenService.singleRemoteCompletedFlattening(RUuidUtil.toUuid(flattenRequestId),
+        RUuidUtil.toUuid(flattenedTableId), flattener);
+  }
+
+  @Override
+  public void flattenFailed(RUUID flattenRequestId, RFlattenException flattenException) throws TException {
+    // executed on query master node.
+    queryMasterFlattenService.singleRemoteFailedFlattening(RUuidUtil.toUuid(flattenRequestId),
+        flattenException.getMessage());
+  }
+
+  /**
+   * Helper class which holds information of one flatten request that is currently being executed.
+   */
+  private static class FlattenRequestDetails {
+    /** sync object used to sync access and inform the {@link FlattenRunnable} about new data received from remotes */
+    Object sync;
+
+    /** Addresses and their respective requestId which requested to execute this flatten process */
+    Deque<Pair<RNodeAddress, UUID>> resultAddresses;
+
+    /**
+     * Results from other flatteners currently processing the same request. Maps from
+     * "firstRowId of the unflattened tableShard which was flattened" to
+     * "delta of rows the flattened shard has compared to the original".
+     */
+    Deque<Map<Long, Long>> otherFlattenResults;
+
+    /** Pair of "tableName" and "flatten-by" */
+    Pair<String, String> requestPair;
+  }
+
+  /**
+   * Runnable that executes the flattening on this node, informs all other cluster nodes of our results and incorporates
+   * the changes of those other cluster nodes into our result.
+   * 
+   * <p>
+   * This process is a little bit more complex than it might seem at first. The Query Master triggers the flattening of
+   * the requested table on all query remotes simultaneously. This runnable is executed on each of those. To achieve a
+   * valid flattened version of the table, these query remotes have to talk to each other: When flattening, a table
+   * typically has more rows than before, whcih means each TableShard of that table has more rows. Each row though must
+   * have a unique rowId and to get these, the query remotes need to exchange information to not have overlapping
+   * rowIds.
+   * 
+   * <p>
+   * In addition to that, The {@link ClusterFlattenServiceHandler} merges multiple simultaneous requests to flatten the
+   * same table by the same flatten-by-field: When one request is being processed and a second, equal, request is
+   * received, that second request should be answered together with the first one - we do not want to calculate the very
+   * same flattening twice. <br/>
+   * This though contains even another small but important thing: If two query masters decide to flatten something at
+   * the same time, part of the query remotes would receive the request from the first master first and the other part
+   * of the query remotes would receive the request from the second master first. Therefore the query remotes would not
+   * work on the same "flatten request ID". As we do not have a consensus algorithm implemented yet, there is no simple
+   * solution to this problem, but to simply fail the flattening process. This happens when each query remote tries to
+   * inform the other flatteners about its results: It will retry for 10s and if after 10s not all flatteners did accept
+   * that information (which is bound to the request ID), the flatten will fail. It is required that each query master
+   * retries, though, and therefore the next request of the query master should succeed. TODO #86
+   * 
+   * <p>
+   * And even more: When one flattening is completed and a different query later requests the same flattening, we re-use
+   * most of the data of the old flattening (if that data is still valid, i.e. the flattened table was built based on
+   * the same TableShards the source table currently has) - nevertheless we might now need to adjust the rowIds
+   * differently than before (because any other query remote might flatten differently because it has more/less
+   * TableShards loaded e.g.). For the latter case we use FlattenedTableUtil.
+   */
+  private class FlattenRunnable implements Runnable {
+    private FlattenRequestDetails details;
+    private UUID requestUuid;
+    private Table table;
+    private String tableName;
+    private String flattenBy;
+    private List<RNodeAddress> otherFlatteners;
+
+    /* package */ FlattenRunnable(UUID requestUuid, FlattenRequestDetails details, Table table, String tableName,
+        String flattenBy, List<RNodeAddress> otherFlatteners) {
+      this.requestUuid = requestUuid;
+      this.details = details;
+      this.table = table;
+      this.tableName = tableName;
+      this.flattenBy = flattenBy;
+      this.otherFlatteners = otherFlatteners;
+    }
+
+    @Override
+    public void run() {
+      long timeoutTime = System.nanoTime() + flattenTimeoutSeconds * 1_000_000_000L;
       requestIdByThreadId.put(Thread.currentThread().getId(), requestUuid);
+      UUID flattenedTableId = requestUuid; // result UUID for the flattened table if we succeed.
 
       // fetch table shards in one go - otherwise they might change inside the table while we're processing them!
       List<TableShard> inputShardsSorted = table.getShards().stream()
@@ -251,6 +412,10 @@ public class ClusterFlattenServiceHandler implements ClusterFlattenService.Iface
 
       for (RNodeAddress otherFlattener : otherFlatteners) {
         boolean retry = true;
+        // retry for 10s. This is crucial to the overall algorithm, as the cluster computing the flattening might be
+        // divided and processing different requestIds. This needs therefore to fail comparably quickly. And it will
+        // fail if after some retries our request ID is still not accepted by the otherFlatteners. See comment of
+        // runnable class.
         int retryCountLeft = 10;
         while (retry) {
           retry = false;
@@ -258,8 +423,8 @@ public class ClusterFlattenServiceHandler implements ClusterFlattenService.Iface
               connectionOrLocalHelper.getService(ClusterFlattenService.Client.class, ClusterFlattenService.Iface.class,
                   ClusterFlattenServiceConstants.SERVICE_NAME, otherFlattener, null)) {
 
-            serviceProv.getService().shardsFlattened(flattenRequestId, origShardFirstRowIdToFlattenedNumberOfRowsDelta,
-                clusterManager.getOurHostAddr().createRemote());
+            serviceProv.getService().shardsFlattened(RUuidUtil.toRUuid(requestUuid),
+                origShardFirstRowIdToFlattenedNumberOfRowsDelta, clusterManager.getOurHostAddr().createRemote());
           } catch (RRetryLaterException e) {
             if (retryCountLeft == 0)
               // let the uncaughtExceptionHandler handle this...
@@ -282,25 +447,24 @@ public class ClusterFlattenServiceHandler implements ClusterFlattenService.Iface
         }
       }
 
-      // We now flattened our shard. Before we can use it, though, we need to adjust the rowIds of it, since the
+      // We flattened our shard. Before we can use it, though, we need to adjust the rowIds of it, since the
       // flattened table now still has the firstRowIds of the original table set, but the new table will (typically)
       // have more rows -> we have overlapping rowIds between tableShards. And this includes both local and remote table
       // shards -> we need to adjust the rowIds accordingly!
 
       // be sure to work on our local results, too.
-      flattenRequestOtherFlattenResults.get(requestUuid).add(origShardFirstRowIdToFlattenedNumberOfRowsDelta);
+      details.otherFlattenResults.add(origShardFirstRowIdToFlattenedNumberOfRowsDelta);
 
       int numberOfOtherFlattenersResponded = -1; // -1 because we put our own result in the deque in the line above.
-      long timeoutTime = System.nanoTime() + flattenTimeoutSeconds * 1_000_000_000L;
 
       logger.trace("Flattening '{}' by '{}', request ID {}, waiting for results from other flatteners", tableName,
           flattenBy, requestUuid);
 
       while (numberOfOtherFlattenersResponded < otherFlatteners.size()) {
-        synchronized (flattenRequestSync.get(requestUuid)) {
-          if (flattenRequestOtherFlattenResults.get(requestUuid).isEmpty())
+        synchronized (details.sync) {
+          if (details.otherFlattenResults.isEmpty())
             try {
-              flattenRequestSync.get(requestUuid).wait(1000); // 1s
+              details.sync.wait(1000); // 1s
             } catch (InterruptedException e) {
               // let the uncaughtExceptionHandler handle this...
               throw new RuntimeException("Interrupted while waiting for results of other nodes: " + e.getMessage(), e);
@@ -311,7 +475,7 @@ public class ClusterFlattenServiceHandler implements ClusterFlattenService.Iface
           throw new RuntimeException("Timed out waiting for other flatteners to calculate their result.");
 
         Map<Long, Long> otherFlattenerResult;
-        while ((otherFlattenerResult = flattenRequestOtherFlattenResults.get(requestUuid).poll()) != null) {
+        while ((otherFlattenerResult = details.otherFlattenResults.poll()) != null) {
           logger.trace("Working on flattener result (limit): {}",
               Iterables.limit(otherFlattenerResult.entrySet(), 100));
 
@@ -334,62 +498,35 @@ public class ClusterFlattenServiceHandler implements ClusterFlattenService.Iface
         }
       }
 
-      // Okay, all results from other flatteners received, we're done!
+      // Okay, all results from other flatteners received and incorporated, we're done!
       flattenedTableManager.registerFlattenedTableVersion(flattenedTableId, flattenedTable, tableName, flattenBy);
 
       // not in "finally", since we do not want to clear this here if we have an exception -> the
       // uncaughtExceptionHandler will handle that case!
-      requestIdByThreadId.remove(Thread.currentThread().getId());
-      flattenRequestOtherFlattenResults.remove(requestUuid);
-      flattenRequestSync.remove(requestUuid);
-      flattenRequestResultAddress.remove(requestUuid);
+      synchronized (details.sync) {
+        requestIdByThreadId.remove(Thread.currentThread().getId());
+        requestDetails.remove(requestUuid);
+        currentFlattenRequest.remove(new Pair<>(tableName, flattenBy));
+      }
 
       logger.info("Finished flattening '{}' by '{}', request ID {}.", tableName, flattenBy, requestUuid);
 
-      try (ServiceProvider<ClusterFlattenService.Iface> serviceProv =
-          connectionOrLocalHelper.getService(ClusterFlattenService.Client.class, ClusterFlattenService.Iface.class,
-              ClusterFlattenServiceConstants.SERVICE_NAME, resultAddress, null)) {
+      for (Pair<RNodeAddress, UUID> resultPair : details.resultAddresses) {
+        try (ServiceProvider<ClusterFlattenService.Iface> serviceProv =
+            connectionOrLocalHelper.getService(ClusterFlattenService.Client.class, ClusterFlattenService.Iface.class,
+                ClusterFlattenServiceConstants.SERVICE_NAME, resultPair.getLeft(), null)) {
 
-        serviceProv.getService().flattenDone(flattenRequestId, RUuidUtil.toRUuid(flattenedTableId),
-            clusterManager.getOurHostAddr().createRemote());
-      } catch (Exception e) {
-        logger.warn("Could not send flattening result {} to requesting machine at {}. Ignoring.", requestUuid,
-            resultAddress, e);
+          logger.trace("Sending result of flatten '{}' by '{}' to {} (its request ID was {})", tableName, flattenBy,
+              resultPair.getLeft(), resultPair.getRight());
+
+          serviceProv.getService().flattenDone(RUuidUtil.toRUuid(resultPair.getRight()),
+              RUuidUtil.toRUuid(flattenedTableId), clusterManager.getOurHostAddr().createRemote());
+        } catch (Exception e) {
+          logger.warn("Could not send flattening result {}/{} to requesting machine at {}. Ignoring.", requestUuid,
+              resultPair.getRight(), resultPair.getLeft(), e);
+        }
       }
-    });
-  }
-
-  @Override
-  public void shardsFlattened(RUUID flattenRequestId, Map<Long, Long> origShardFirstRowIdToFlattenedNumberOfRowsDelta,
-      RNodeAddress flattener) throws TException, RRetryLaterException {
-    UUID requestId = RUuidUtil.toUuid(flattenRequestId);
-    logger.trace("Received a shardsFlattened result for flatten request {} from {}.", requestId, flattener);
-    Object sync = flattenRequestSync.get(requestId);
-    if (sync == null)
-      throw new RRetryLaterException("Local sync object not ready.");
-
-    synchronized (sync) {
-      Deque<Map<Long, Long>> deque = flattenRequestOtherFlattenResults.get(requestId);
-      if (deque == null)
-        throw new RRetryLaterException("Local queue not ready.");
-      deque.add(origShardFirstRowIdToFlattenedNumberOfRowsDelta);
-
-      sync.notifyAll();
     }
-  }
-
-  @Override
-  public void flattenDone(RUUID flattenRequestId, RUUID flattenedTableId, RNodeAddress flattener) throws TException {
-    // executed on query master node.
-    queryMasterFlattenService.singleRemoteCompletedFlattening(RUuidUtil.toUuid(flattenRequestId),
-        RUuidUtil.toUuid(flattenedTableId), flattener);
-  }
-
-  @Override
-  public void flattenFailed(RUUID flattenRequestId, RFlattenException flattenException) throws TException {
-    // executed on query master node.
-    queryMasterFlattenService.singleRemoteFailedFlattening(RUuidUtil.toUuid(flattenRequestId),
-        flattenException.getMessage());
   }
 
 }
