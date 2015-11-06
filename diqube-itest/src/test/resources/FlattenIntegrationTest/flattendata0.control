@@ -1,0 +1,4 @@
+table=flattendata
+file=flattendata0.json
+type=json
+firstRowId=0

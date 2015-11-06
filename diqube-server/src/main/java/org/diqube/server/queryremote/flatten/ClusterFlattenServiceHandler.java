@@ -69,6 +69,8 @@ import org.diqube.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Iterables;
+
 /**
  * Handler for {@link ClusterFlatteningService}, which handles flattening local tables.
  *
@@ -203,14 +205,14 @@ public class ClusterFlattenServiceHandler implements ClusterFlattenService.Iface
       requestIdByThreadId.put(Thread.currentThread().getId(), requestUuid);
 
       // fetch table shards in one go - otherwise they might change inside the table while we're processing them!
-      List<TableShard> inputShards = table.getShards().stream()
+      List<TableShard> inputShardsSorted = table.getShards().stream()
           .sorted((s1, s2) -> Long.compare(s1.getLowestRowId(), s2.getLowestRowId())).collect(Collectors.toList());
 
       FlattenedTable flattenedTable = null;
 
       Pair<UUID, FlattenedTable> newest = flattenedTableManager.getNewestFlattenedTableVersion(tableName, flattenBy);
       if (newest != null) {
-        if (inputShards.stream().map(shard -> shard.getLowestRowId()).collect(Collectors.toSet())
+        if (inputShardsSorted.stream().map(shard -> shard.getLowestRowId()).collect(Collectors.toSet())
             .equals(newest.getRight().getOriginalFirstRowIdsOfShards())) {
           // the newest flattened table is still valid, as it flattened the same shards as the current live table
           // contains. We will therefore re-use that flattenedTable! But use a different instance of FlattenedTable so
@@ -227,10 +229,10 @@ public class ClusterFlattenServiceHandler implements ClusterFlattenService.Iface
         // no flattenedTable to be re-used, we therefore need to re-flatten.
         logger.info("No valid flattened table for '{}' by '{}' available, will therefore flatten table now.", tableName,
             flattenBy);
-        flattenedTable = flattener.flattenTable(table, inputShards, flattenBy, flattenedTableId);
+        flattenedTable = flattener.flattenTable(table, inputShardsSorted, flattenBy, flattenedTableId);
       }
 
-      List<TableShard> flattenedShards = flattenedTable.getShards().stream()
+      List<TableShard> flattenedShardsSorted = flattenedTable.getShards().stream()
           .sorted((s1, s2) -> Long.compare(s1.getLowestRowId(), s2.getLowestRowId())).collect(Collectors.toList());
 
       logger.trace(
@@ -240,14 +242,15 @@ public class ClusterFlattenServiceHandler implements ClusterFlattenService.Iface
       // calculate the deltas in row-count that we need to distribute to other flatteners.
       Map<Long, Long> origShardFirstRowIdToFlattenedNumberOfRowsDelta = new HashMap<>();
       NavigableMap<Long, TableShard> origShardFirstRowIdToFlattenedShard = new TreeMap<>();
-      for (int i = 0; i < inputShards.size(); i++) {
-        origShardFirstRowIdToFlattenedNumberOfRowsDelta.put(inputShards.get(i).getLowestRowId(),
-            flattenedShards.get(i).getNumberOfRowsInShard() - inputShards.get(i).getNumberOfRowsInShard());
-        origShardFirstRowIdToFlattenedShard.put(inputShards.get(i).getLowestRowId(), flattenedShards.get(i));
+      for (int i = 0; i < inputShardsSorted.size(); i++) {
+        origShardFirstRowIdToFlattenedNumberOfRowsDelta.put(inputShardsSorted.get(i).getLowestRowId(),
+            flattenedShardsSorted.get(i).getNumberOfRowsInShard() - inputShardsSorted.get(i).getNumberOfRowsInShard());
+        origShardFirstRowIdToFlattenedShard.put(inputShardsSorted.get(i).getLowestRowId(),
+            flattenedShardsSorted.get(i));
       }
 
       for (RNodeAddress otherFlattener : otherFlatteners) {
-        boolean retry = false;
+        boolean retry = true;
         int retryCountLeft = 10;
         while (retry) {
           retry = false;
@@ -262,6 +265,7 @@ public class ClusterFlattenServiceHandler implements ClusterFlattenService.Iface
               // let the uncaughtExceptionHandler handle this...
               throw new RuntimeException("Exception while communicating with other flatteners: " + e.getMessage(), e);
 
+            logger.trace("Received a retry exception from {}: {}. Will retry.", otherFlattener, e.getMessage());
             // we retry sending our results since the other flatteners might not have initialized for this request yet.
             try {
               Thread.sleep(1000); // 1s
@@ -278,10 +282,15 @@ public class ClusterFlattenServiceHandler implements ClusterFlattenService.Iface
         }
       }
 
-      // We now flattened our shard. Before we can use it, though, we need to wait for the results of all other
-      // flatteners, as we need to adjust our rowIds accordingly.
+      // We now flattened our shard. Before we can use it, though, we need to adjust the rowIds of it, since the
+      // flattened table now still has the firstRowIds of the original table set, but the new table will (typically)
+      // have more rows -> we have overlapping rowIds between tableShards. And this includes both local and remote table
+      // shards -> we need to adjust the rowIds accordingly!
 
-      int numberOfOtherFlattenersResponded = 0;
+      // be sure to work on our local results, too.
+      flattenRequestOtherFlattenResults.get(requestUuid).add(origShardFirstRowIdToFlattenedNumberOfRowsDelta);
+
+      int numberOfOtherFlattenersResponded = -1; // -1 because we put our own result in the deque in the line above.
       long timeoutTime = System.nanoTime() + flattenTimeoutSeconds * 1_000_000_000L;
 
       logger.trace("Flattening '{}' by '{}', request ID {}, waiting for results from other flatteners", tableName,
@@ -303,21 +312,22 @@ public class ClusterFlattenServiceHandler implements ClusterFlattenService.Iface
 
         Map<Long, Long> otherFlattenerResult;
         while ((otherFlattenerResult = flattenRequestOtherFlattenResults.get(requestUuid).poll()) != null) {
+          logger.trace("Working on flattener result (limit): {}",
+              Iterables.limit(otherFlattenerResult.entrySet(), 100));
+
           numberOfOtherFlattenersResponded++;
           for (Entry<Long, Long> otherEntry : otherFlattenerResult.entrySet()) {
             long otherOrigFirstRowId = otherEntry.getKey();
             long otherFlattenedNumerOfRowsDelta = otherEntry.getValue();
 
-            if (otherOrigFirstRowId < flattenedShards.get(flattenedShards.size() - 1).getLowestRowId()) {
-              // another shard which is based on a shard before ours was flattened: We need to adjust our rowIds!
+            Map<Long, TableShard> affectedShards =
+                origShardFirstRowIdToFlattenedShard.tailMap(otherOrigFirstRowId, false);
+            for (Entry<Long, TableShard> tableShardEntry : affectedShards.entrySet()) {
+              logger.trace("Adjusting tableShard which was originally at rowId {}", tableShardEntry.getKey());
 
-              Map<Long, TableShard> affectedShards =
-                  origShardFirstRowIdToFlattenedShard.headMap(otherOrigFirstRowId, false);
-              for (TableShard tableShard : affectedShards.values()) {
-                for (StandardColumnShard colShard : tableShard.getColumns().values()) {
-                  ((AdjustableStandardColumnShard) colShard)
-                      .adjustToFirstRowId(colShard.getFirstRowId() + otherFlattenedNumerOfRowsDelta);
-                }
+              for (StandardColumnShard colShard : tableShardEntry.getValue().getColumns().values()) {
+                ((AdjustableStandardColumnShard) colShard)
+                    .adjustToFirstRowId(colShard.getFirstRowId() + otherFlattenedNumerOfRowsDelta);
               }
             }
           }
@@ -353,6 +363,7 @@ public class ClusterFlattenServiceHandler implements ClusterFlattenService.Iface
   public void shardsFlattened(RUUID flattenRequestId, Map<Long, Long> origShardFirstRowIdToFlattenedNumberOfRowsDelta,
       RNodeAddress flattener) throws TException, RRetryLaterException {
     UUID requestId = RUuidUtil.toUuid(flattenRequestId);
+    logger.trace("Received a shardsFlattened result for flatten request {} from {}.", requestId, flattener);
     Object sync = flattenRequestSync.get(requestId);
     if (sync == null)
       throw new RRetryLaterException("Local sync object not ready.");

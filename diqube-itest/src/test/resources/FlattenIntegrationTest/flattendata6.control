@@ -1,0 +1,4 @@
+table=flattendata
+file=flattendata6.json
+type=json
+firstRowId=6
