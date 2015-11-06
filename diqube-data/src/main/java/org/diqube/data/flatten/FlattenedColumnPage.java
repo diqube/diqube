@@ -20,84 +20,26 @@
  */
 package org.diqube.data.flatten;
 
-import org.diqube.data.column.AdjustableColumnPage;
 import org.diqube.data.column.ColumnPage;
+import org.diqube.data.column.DefaultColumnPage;
 import org.diqube.data.serialize.DataSerializableIgnore;
 import org.diqube.data.serialize.DeserializationException;
 import org.diqube.data.serialize.SerializationException;
 import org.diqube.data.serialize.thrift.v1.SColumnPage;
 import org.diqube.data.types.lng.array.CompressedLongArray;
-import org.diqube.data.types.lng.array.RunLengthLongArray;
 import org.diqube.data.types.lng.dict.LongDictionary;
 
 /**
- * A {@link ColumnPage} which is based on a delegatePage, but will "remove" multiple rowIds of that delegate in its
- * outside view.
+ * A {@link ColumnPage} of a flattened table shard.
  *
  * @author Bastian Gloeckle
  */
 @DataSerializableIgnore
-public class FlattenedColumnPage implements AdjustableColumnPage {
+public class FlattenedColumnPage extends DefaultColumnPage {
 
-  private String name;
-  private LongDictionary<?> colPageDict;
-  private long firstRowId;
-  private CompressedLongArray<?> values;
-
-  /**
-   * @param sortedRemoveIndices
-   *          Indices in delegatePages' value array that are to be "removed". No {@link RunLengthLongArray}.
-   */
-  FlattenedColumnPage(String name, LongDictionary<?> colPageDict, CompressedLongArray<?> values,
-      long firstRowId) {
-    this.name = name;
-    this.colPageDict = colPageDict;
-    this.values = values;
-    this.firstRowId = firstRowId;
-  }
-
-  @Override
-  public LongDictionary<?> getColumnPageDict() {
-    return colPageDict;
-  }
-
-  @Override
-  public CompressedLongArray<?> getValues() {
-    return values;
-  }
-
-  @Override
-  public long getFirstRowId() {
-    return firstRowId;
-  }
-
-  @Override
-  public int size() {
-    return values.size();
-  }
-
-  @Override
-  public String getName() {
-    return name;
-  }
-
-  @Override
-  public long calculateApproximateSizeInBytes() {
-    return 16 + // object header this
-        colPageDict.calculateApproximateSizeInBytes() + //
-        values.calculateApproximateSizeInBytes() + //
-        name.length() + //
-        8;
-  }
-
-  @Override
-  public void setFirstRowId(long firstRowId) {
-    this.firstRowId = firstRowId;
-  }
-
-  @Override
-  public void setName(String name) {
-    this.name = name;
+  /* package */ FlattenedColumnPage(LongDictionary<?> columnPageDict, CompressedLongArray<?> values, long firstRowId,
+      String name) {
+    super(columnPageDict, values, firstRowId, name);
   }
 
   @Override

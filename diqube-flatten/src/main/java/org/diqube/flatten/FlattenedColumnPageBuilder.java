@@ -100,7 +100,10 @@ public class FlattenedColumnPageBuilder {
    * 
    * <p>
    * The returned {@link ColumnPage} can be a {@link FlattenedColumnPage} or even a "normal" {@link DefaultColumnPage}
-   * built by an internal {@link ColumnPageBuilder} - at the discretion of this builder.
+   * built by an internal {@link ColumnPageBuilder} at the discretion of this builder. If a {@link DefaultColumnPage} is
+   * returned, the whole col page was re-calculated (values, colPage Ids and the dictionary), if a
+   * {@link FlattenedColumnPage} is returned, values and dictionaries of the original colPage are facaded (and therefore
+   * re-used).
    * 
    * <p>
    * Nevertheless what kind of {@link ColumnPage} is returned, the col page dict will definitely be a

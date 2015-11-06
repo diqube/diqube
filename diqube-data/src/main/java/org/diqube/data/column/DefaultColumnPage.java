@@ -49,7 +49,7 @@ public class DefaultColumnPage implements AdjustableColumnPage {
 
   }
 
-  /* package */ DefaultColumnPage(LongDictionary<?> columnPageDict, CompressedLongArray<?> values, long firstRowId,
+  protected DefaultColumnPage(LongDictionary<?> columnPageDict, CompressedLongArray<?> values, long firstRowId,
       String name) {
     this.columnPageDict = columnPageDict;
     this.values = values;
