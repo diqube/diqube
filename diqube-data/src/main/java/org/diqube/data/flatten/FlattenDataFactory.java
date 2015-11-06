@@ -65,8 +65,8 @@ public class FlattenDataFactory {
   }
 
   public FlattenedColumnPage createFlattenedColumnPage(String name, LongDictionary<?> colPageDict,
-      ColumnPage delegatePage, CompressedLongArray<?> sortedRemoveIndices, long firstRowId) {
-    return new FlattenedColumnPage(name, colPageDict, delegatePage, sortedRemoveIndices, firstRowId);
+      CompressedLongArray<?> values, long firstRowId) {
+    return new FlattenedColumnPage(name, colPageDict, values, firstRowId);
   }
 
   public FlattenedDoubleStandardColumnShard createFlattenedDoubleStandardColumnShard(String name,

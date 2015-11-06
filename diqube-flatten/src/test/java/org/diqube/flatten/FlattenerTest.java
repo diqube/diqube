@@ -61,12 +61,12 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 /**
- * Tests {@link FlattenUtil}.
+ * Tests {@link Flattener}.
  *
  * @author Bastian Gloeckle
  */
-public class FlattenUtilTest {
-  private static final Logger logger = LoggerFactory.getLogger(FlattenUtilTest.class);
+public class FlattenerTest {
+  private static final Logger logger = LoggerFactory.getLogger(FlattenerTest.class);
 
   private static final String TABLE = "table";
   private static final Comparator<SortedMap<String, Long>> MAP_COMPARATOR = new Comparator<SortedMap<String, Long>>() {
@@ -98,7 +98,7 @@ public class FlattenUtilTest {
   private JsonLoader loader;
   private TableFactory tableFactory;
 
-  private FlattenUtil flattenUtil;
+  private Flattener flattener;
 
   @BeforeMethod
   public void before() {
@@ -109,7 +109,7 @@ public class FlattenUtilTest {
 
     loader = dataContext.getBean(JsonLoader.class);
     tableFactory = dataContext.getBean(TableFactory.class);
-    flattenUtil = dataContext.getBean(FlattenUtil.class);
+    flattener = dataContext.getBean(Flattener.class);
   }
 
   @AfterMethod
@@ -137,7 +137,7 @@ public class FlattenUtilTest {
     Table t = loadFromJson(json);
 
     // WHEN
-    FlattenedTable flattenedTable = flattenUtil.flattenTable(t, null, "a[*]", UUID.randomUUID());
+    FlattenedTable flattenedTable = flattener.flattenTable(t, null, "a[*]", UUID.randomUUID());
 
     // THEN
     Assert.assertEquals(flattenedTable.getShards().size(), 1, "Expected correct table shard count");
@@ -243,7 +243,7 @@ public class FlattenUtilTest {
         "}" + " ]");
 
     // WHEN
-    FlattenedTable flattenedTable = flattenUtil.flattenTable(t, null, "a[*].b[*]", UUID.randomUUID());
+    FlattenedTable flattenedTable = flattener.flattenTable(t, null, "a[*].b[*]", UUID.randomUUID());
 
     // THEN
     Assert.assertEquals(flattenedTable.getShards().size(), 1, "Expected correct table shard count");
@@ -329,7 +329,7 @@ public class FlattenUtilTest {
     Table t = loadFromJson(100, json);
 
     // WHEN
-    FlattenedTable flattenedTable = flattenUtil.flattenTable(t, null, "a[*]", UUID.randomUUID());
+    FlattenedTable flattenedTable = flattener.flattenTable(t, null, "a[*]", UUID.randomUUID());
 
     // THEN
     Assert.assertEquals(flattenedTable.getShards().size(), 1, "Expected correct table shard count");
@@ -447,7 +447,7 @@ public class FlattenUtilTest {
     Table t = loadFromJson(100, json);
 
     // WHEN
-    FlattenedTable flattenedTable = flattenUtil.flattenTable(t, null, "a[*]", UUID.randomUUID());
+    FlattenedTable flattenedTable = flattener.flattenTable(t, null, "a[*]", UUID.randomUUID());
 
     // THEN
     Assert.assertEquals(flattenedTable.getShards().size(), 1, "Expected correct table shard count");
@@ -527,7 +527,7 @@ public class FlattenUtilTest {
     Table t = loadFromJson(100, json);
 
     // WHEN
-    FlattenedTable flattenedTable = flattenUtil.flattenTable(t, null, "a[*]", UUID.randomUUID());
+    FlattenedTable flattenedTable = flattener.flattenTable(t, null, "a[*]", UUID.randomUUID());
 
     // THEN
     Assert.assertEquals(flattenedTable.getShards().size(), 1, "Expected correct table shard count");
@@ -600,7 +600,7 @@ public class FlattenUtilTest {
     Table t = loadFromJson(100, json);
 
     // WHEN
-    FlattenedTable flattenedTable = flattenUtil.flattenTable(t, null, "a[*]", UUID.randomUUID());
+    FlattenedTable flattenedTable = flattener.flattenTable(t, null, "a[*]", UUID.randomUUID());
 
     // THEN
     Assert.assertEquals(flattenedTable.getShards().size(), 1, "Expected correct table shard count");

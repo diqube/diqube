@@ -81,7 +81,7 @@ public class QueryMasterFlattenService {
    * @param table
    *          The name of the table to be flattened.
    * @param flattenBy
-   *          The "flatten by" field, see {@link FlattenUtil} for details.
+   *          The "flatten by" field, see {@link Flattener} for details.
    * @return Pair of UUID and list. List is list of nodes that have the flattened table upon return of this method. The
    *         UUID is the flatten ID to be used. If <code>null</code> is returned, the corresponding table does not have
    *         any nodes serving it.

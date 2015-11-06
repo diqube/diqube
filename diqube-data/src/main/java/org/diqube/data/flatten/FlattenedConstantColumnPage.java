@@ -160,4 +160,8 @@ public class FlattenedConstantColumnPage implements AdjustableColumnPage {
     throw new DeserializationException("Cannot deserialize flattened ColPage.");
   }
 
+  public int getRows() {
+    return rows;
+  }
+
 }

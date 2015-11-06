@@ -124,8 +124,7 @@ public class FlattenedColumnPageBuilder {
           delegate.getValues(), compressIndicesArray(sortedNotAvailableIndices), 0L);
 
       newPage = flattenDataFactory.createFlattenedColumnPage(colName + "#" + firstRowId,
-          flattenDataFactory.createFlattenedDelegateLongDictionary(delegate.getColumnPageDict()), delegate, values,
-          firstRowId);
+          flattenDataFactory.createFlattenedDelegateLongDictionary(delegate.getColumnPageDict()), values, firstRowId);
     } else if (sortedNotAvailableIndices.length >= 2 * (int) Math.ceil(delegate.getValues().size() / 3.)) {
       // we remove >= 2/3 of rows.
 
@@ -148,8 +147,7 @@ public class FlattenedColumnPageBuilder {
           .createIndexFilteringCompressedLongArray(delegate.getValues(), compressIndicesArray(availableIndices), 0L);
 
       newPage = flattenDataFactory.createFlattenedColumnPage(colName + "#" + firstRowId,
-          flattenDataFactory.createFlattenedDelegateLongDictionary(delegate.getColumnPageDict()), delegate, values,
-          firstRowId);
+          flattenDataFactory.createFlattenedDelegateLongDictionary(delegate.getColumnPageDict()), values, firstRowId);
     } else {
       // we remove x rows where 1/3 < x < 2/3. Let's re-encode the whole ColPage - as we assume that the values in the
       // col are better compressable than the index arrays in the other cases (those arrays may contain consecutive

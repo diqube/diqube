@@ -48,8 +48,8 @@ public class FlattenedColumnPage implements AdjustableColumnPage {
    * @param sortedRemoveIndices
    *          Indices in delegatePages' value array that are to be "removed". No {@link RunLengthLongArray}.
    */
-  FlattenedColumnPage(String name, LongDictionary<?> colPageDict, ColumnPage delegatePage,
-      CompressedLongArray<?> values, long firstRowId) {
+  FlattenedColumnPage(String name, LongDictionary<?> colPageDict, CompressedLongArray<?> values,
+      long firstRowId) {
     this.name = name;
     this.colPageDict = colPageDict;
     this.values = values;

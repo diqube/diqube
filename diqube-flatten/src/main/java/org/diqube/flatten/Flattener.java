@@ -118,8 +118,8 @@ import com.google.common.collect.Sets;
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
-public class FlattenUtil {
-  private static final Logger logger = LoggerFactory.getLogger(FlattenUtil.class);
+public class Flattener {
+  private static final Logger logger = LoggerFactory.getLogger(Flattener.class);
 
   private static final long CONSTANT_PAGE_DICT_INTERMEDIARY_VALUE = 0L;
 
