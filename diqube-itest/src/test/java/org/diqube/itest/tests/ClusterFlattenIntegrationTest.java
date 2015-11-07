@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.diqube.config.ConfigKey;
 import org.diqube.itest.AbstractDiqubeIntegrationTest;
 import org.diqube.itest.annotations.NeedsServer;
 import org.diqube.itest.util.ClusterFlattenServiceTestUtil;
@@ -152,8 +153,8 @@ public class ClusterFlattenIntegrationTest extends AbstractDiqubeIntegrationTest
     // GIVEN
 
     // override the timeout to actually receive an exception from the remotes.
-    serverControl.get(0).start(prop -> prop.setProperty("flattenTimeoutSeconds", "60"));
-    serverControl.get(1).start(prop -> prop.setProperty("flattenTimeoutSeconds", "60"));
+    serverControl.get(0).start(prop -> prop.setProperty(ConfigKey.FLATTEN_TIMEOUT_SECONDS, "60"));
+    serverControl.get(1).start(prop -> prop.setProperty(ConfigKey.FLATTEN_TIMEOUT_SECONDS, "60"));
 
     TestDataGenerator.generateJsonTestData(work(BIG_DATA_FILE_WORK), 10, 2, new String[] { "a", "b" }, 10);
     serverControl.get(0).deploy(cp(BIG0_CONTROL_FILE), work(BIG_DATA_FILE_WORK));
