@@ -22,7 +22,6 @@ package org.diqube.itest.tests;
 
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
@@ -36,6 +35,7 @@ import org.diqube.itest.control.ServerControl;
 import org.diqube.itest.util.QueryResultServiceTestUtil;
 import org.diqube.itest.util.QueryResultServiceTestUtil.TestQueryResultService;
 import org.diqube.itest.util.ServiceTestUtil;
+import org.diqube.itest.util.TestDataGenerator;
 import org.diqube.itest.util.Waiter;
 import org.diqube.remote.base.thrift.RUUID;
 import org.diqube.remote.base.util.RUuidUtil;
@@ -63,17 +63,7 @@ public class QueryTimeoutIntegrationTest extends AbstractDiqubeIntegrationTest {
   public void queryProjectedWhereEmptyResult() throws InterruptedException, FileNotFoundException, IOException {
     // GIVEN
     // a table which has enough data that the first queries on it might time out
-    logger.info("Generating test data...");
-    try (FileOutputStream dataFOS = new FileOutputStream(work(BIG_DATA_FILE_WORK))) {
-      dataFOS.write("[".getBytes("UTF-8"));
-      for (int i = 0; i < 10; i++) {
-        if (i > 0)
-          dataFOS.write(",".getBytes("UTF-8"));
-        generateJson(2, new String[] { "a", "b" }, 30, dataFOS);
-      }
-      dataFOS.write("]".getBytes("UTF-8"));
-    }
-    logger.info("Test data generated.");
+    TestDataGenerator.generateJsonTestData(work(BIG_DATA_FILE_WORK), 10, 2, new String[] { "a", "b" }, 30);
 
     // WHEN
     // start server with a very low timeout

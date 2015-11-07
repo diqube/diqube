@@ -161,7 +161,7 @@ public class QueryResultServiceTestUtil {
   }
 
   /**
-   * Internal implementation of {@link QueryResultService} which forwards all data to {@link TestQueryResultService}.
+   * Internal implementation of {@link QueryResultService} which forwards all data to {@link TestClusterFlattenService}.
    */
   private static class QueryResultServiceImpl implements QueryResultService.Iface {
     private TestQueryResultService res;

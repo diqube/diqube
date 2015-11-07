@@ -26,7 +26,9 @@ import org.apache.thrift.TException;
 import org.diqube.itest.control.ServerControl;
 import org.diqube.itest.util.TestThriftConnectionFactory.TestConnection;
 import org.diqube.itest.util.TestThriftConnectionFactory.TestConnectionException;
+import org.diqube.remote.cluster.ClusterFlattenServiceConstants;
 import org.diqube.remote.cluster.ClusterManagementServiceConstants;
+import org.diqube.remote.cluster.thrift.ClusterFlattenService;
 import org.diqube.remote.cluster.thrift.ClusterManagementService;
 import org.diqube.remote.query.QueryServiceConstants;
 import org.diqube.remote.query.thrift.QueryService;
@@ -68,6 +70,23 @@ public class ServiceTestUtil {
 
     } catch (IOException | TestConnectionException | TException e) {
       throw new RuntimeException("Exception while accessing QueryService of " + server.getAddr(), e);
+    }
+  }
+
+  /**
+   * Open a connection to the {@link ClusterFlattenService} of a specific node and then execute something.
+   * 
+   * @throws RuntimeException
+   *           if anything goes wrong.
+   */
+  public static void clusterFlattenService(ServerControl server, RemoteConsumer<ClusterFlattenService.Iface> execute) {
+    try (TestConnection<ClusterFlattenService.Client> con = TestThriftConnectionFactory.open(server.getAddr(),
+        ClusterFlattenService.Client.class, ClusterFlattenServiceConstants.SERVICE_NAME)) {
+
+      execute.accept(con.getService());
+
+    } catch (IOException | TestConnectionException | TException e) {
+      throw new RuntimeException("Exception while accessing ClusterFlattenService of " + server.getAddr(), e);
     }
   }
 
