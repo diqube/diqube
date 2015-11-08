@@ -61,6 +61,7 @@
     <module>diqube-context</module>
     <module>diqube-config</module>
     <module>diqube-cluster</module>
+    <module>diqube-cache</module>
     <module>diqube-data</module>
     <module>diqube-data-serialize</module>
     <module>diqube-file</module>

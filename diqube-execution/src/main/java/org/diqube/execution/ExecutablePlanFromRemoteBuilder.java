@@ -140,7 +140,7 @@ public class ExecutablePlanFromRemoteBuilder {
       table = flattenedTableManager.getFlattenedTable(flattenId, tableName, flattenBy);
       if (table == null)
         throw new ExecutablePlanBuildException(
-            "Flattened table " + tableName + "/" + flattenBy + "/" + flattenId + " is not available.");
+            "Table '" + tableName + "' flattend by '" + flattenBy + "' with id " + flattenId + " is not available.");
     }
 
     List<ExecutablePlan> res = new ArrayList<>(table.getShards().size());

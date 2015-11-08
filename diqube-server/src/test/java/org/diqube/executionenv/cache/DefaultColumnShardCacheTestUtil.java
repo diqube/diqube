@@ -20,8 +20,6 @@
  */
 package org.diqube.executionenv.cache;
 
-import org.diqube.executionenv.cache.DefaultColumnShardCache;
-
 /**
  * Util for accessing package-visible fields on {@link DefaultColumnShardCache} in tests.
  *
@@ -34,6 +32,6 @@ public class DefaultColumnShardCacheTestUtil {
   }
 
   public static void removeFromCache(DefaultColumnShardCache cache, long firstRowIdInTableShard, String colName) {
-    cache.removeColumnShardFromCache(firstRowIdInTableShard, colName);
+    cache.removeFromCache(firstRowIdInTableShard, colName);
   }
 }

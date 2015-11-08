@@ -218,20 +218,19 @@ public class LongRepeatedProjectionCacheExecutionTest extends AbstractDiqlExecut
 
       // assert that the result columns of the repeated project were put in the cache, otherwise the rest of the
       // test does not make sense.
-      Assert.assertNotNull(cache.getCachedColumnShard(0L, projectedColName1), "Expected [0] to be inside cache.");
-      Assert.assertNotNull(cache.getCachedColumnShard(0L, projectedColName2), "Expected [1] to be inside cache.");
-      Assert.assertNotNull(cache.getCachedColumnShard(0L, projectedColNameLength),
-          "Expected [length] to be inside cache.");
+      Assert.assertNotNull(cache.get(0L, projectedColName1), "Expected [0] to be inside cache.");
+      Assert.assertNotNull(cache.get(0L, projectedColName2), "Expected [1] to be inside cache.");
+      Assert.assertNotNull(cache.get(0L, projectedColNameLength), "Expected [length] to be inside cache.");
 
       // Now we take care of keeping only those columns in the cache that were requested to be kept in it!
 
       Set<String> columnShardNamesToRemoveFromCache =
-          cache.getAllCachedColumnShards(0L).stream().map(c -> c.getName()).collect(Collectors.toSet());
+          cache.getAll(0L).stream().map(c -> c.getName()).collect(Collectors.toSet());
       columnShardNamesToRemoveFromCache.removeAll(columnNamesOfColumnsToKeepInCache);
 
-      Set<ColumnShard> cachedColumnShards = cache.getAllCachedColumnShards(0L).stream()
-          .filter(colShard -> columnNamesOfColumnsToKeepInCache.contains(colShard.getName()))
-          .collect(Collectors.toSet());
+      Set<ColumnShard> cachedColumnShards =
+          cache.getAll(0L).stream().filter(colShard -> columnNamesOfColumnsToKeepInCache.contains(colShard.getName()))
+              .collect(Collectors.toSet());
 
       // remove not-wanted cols from cache.
       for (String shardName : columnShardNamesToRemoveFromCache)
@@ -240,11 +239,10 @@ public class LongRepeatedProjectionCacheExecutionTest extends AbstractDiqlExecut
       // -> expected: the other column shards that was cached is now evicted from the cache.
       for (String colNameNotLongerInCache : Sets.difference(allInterestingColumnnames,
           columnNamesOfColumnsToKeepInCache))
-        Assert.assertNull(cache.getCachedColumnShard(0L, colNameNotLongerInCache),
+        Assert.assertNull(cache.get(0L, colNameNotLongerInCache),
             "Expected " + colNameNotLongerInCache + " to NOT be inside cache.");
       for (String colNameInCache : columnNamesOfColumnsToKeepInCache)
-        Assert.assertNotNull(cache.getCachedColumnShard(0L, colNameInCache),
-            "Expected " + colNameInCache + " to be in cache.");
+        Assert.assertNotNull(cache.get(0L, colNameInCache), "Expected " + colNameInCache + " to be in cache.");
 
       // Ok, now only those columns that were requested are in the cache (and the mocked one, but we ignore that).
       createAndExecutePlan.get().get(); // execute and wait
@@ -252,8 +250,8 @@ public class LongRepeatedProjectionCacheExecutionTest extends AbstractDiqlExecut
       // assert result is good.
       assertCorrectResult.get();
 
-      Set<ColumnShard> afterCachedColShards = columnNamesOfColumnsToKeepInCache.stream()
-          .map(colName -> cache.getCachedColumnShard(0L, colName)).collect(Collectors.toSet());
+      Set<ColumnShard> afterCachedColShards =
+          columnNamesOfColumnsToKeepInCache.stream().map(colName -> cache.get(0L, colName)).collect(Collectors.toSet());
       // the following assert basically compares using ==
       Assert.assertEquals(afterCachedColShards, cachedColumnShards,
           "Expected that cached col shards were not re-created.");

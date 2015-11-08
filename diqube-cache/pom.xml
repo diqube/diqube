@@ -29,52 +29,10 @@
     <artifactId>diqube</artifactId>
     <version>1-SNAPSHOT</version>
   </parent>
-  <artifactId>diqube-executionenv</artifactId>
+  <artifactId>diqube-cache</artifactId>
   <packaging>jar</packaging>
-  <name>diqube - Execution Environment</name>
+  <name>diqube - Cache</name>
   <url>http://www.diqube.org</url>
-
-  <dependencies>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>diqube-util</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>diqube-queries</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>diqube-loader</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>diqube-cache</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    
-    <!-- Test dependencies -->
-
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>diqube-diql</artifactId>
-      <version>${project.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.mockito</groupId>
-      <artifactId>mockito-all</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>diqube-test-util</artifactId>
-      <version>${project.version}</version>
-      <scope>test</scope>
-    </dependency>
-  </dependencies>
 
   <build>
     <plugins>
@@ -84,13 +42,34 @@
         <executions>
           <execution>
             <id>update-license-headers</id>
-          <configuration>
-            <skip>true</skip>
-          </configuration>
+            <configuration>
+              <skip>true</skip>
+            </configuration>
           </execution>
         </executions>
       </plugin>
     </plugins>
   </build>
 
+  <dependencies>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>diqube-util</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+    </dependency>
+    
+    
+    <!-- TEST -->
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>diqube-test-util</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
 </project>

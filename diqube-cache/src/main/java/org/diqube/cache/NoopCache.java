@@ -18,19 +18,35 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.executionenv.cache;
+package org.diqube.cache;
 
-import org.diqube.cache.WritableCache;
-import org.diqube.data.column.ColumnShard;
+import java.util.ArrayList;
+import java.util.Collection;
 
 /**
- * Writable cache for {@link ColumnShard}s of a single table.
- * 
- * <p>
- * Keys: K1 = firstRowId of table Shard, K2 = column name.
- * 
+ * Cache doing nothing.
+ *
  * @author Bastian Gloeckle
  */
-public interface WritableColumnShardCache extends ColumnShardCache, WritableCache<Long, String, ColumnShard> {
+public class NoopCache<K1, K2, V> implements WritableCache<K1, K2, V> {
 
+  @Override
+  public V get(K1 key1, K2 key2) {
+    return null;
+  }
+
+  @Override
+  public Collection<V> getAll(K1 key1) {
+    return new ArrayList<>();
+  }
+
+  @Override
+  public int size() {
+    return 0;
+  }
+
+  @Override
+  public boolean offer(K1 key1, K2 key2, V value) {
+    return false;
+  }
 }

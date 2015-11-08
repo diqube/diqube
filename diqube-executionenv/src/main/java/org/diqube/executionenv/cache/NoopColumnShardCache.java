@@ -20,9 +20,7 @@
  */
 package org.diqube.executionenv.cache;
 
-import java.util.ArrayList;
-import java.util.Collection;
-
+import org.diqube.cache.NoopCache;
 import org.diqube.data.column.ColumnShard;
 
 /**
@@ -30,26 +28,6 @@ import org.diqube.data.column.ColumnShard;
  *
  * @author Bastian Gloeckle
  */
-public class NoopColumnShardCache implements WritableColumnShardCache {
-
-  @Override
-  public ColumnShard getCachedColumnShard(long firstRowIdTableShard, String colName) {
-    return null;
-  }
-
-  @Override
-  public Collection<ColumnShard> getAllCachedColumnShards(long firstRowIdInTableShard) {
-    return new ArrayList<>();
-  }
-
-  @Override
-  public void registerUsageOfColumnShardPossiblyCache(long firstRowIdInTableShard, ColumnShard createdColumnShard) {
-    // noop.
-  }
-
-  @Override
-  public int getNumberOfColumnShardsCached() {
-    return 0;
-  }
+public class NoopColumnShardCache extends NoopCache<Long, String, ColumnShard> implements WritableColumnShardCache {
 
 }

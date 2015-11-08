@@ -821,7 +821,7 @@ public class LongColumnAggregationAndRepeatedProjectionDiqlExecutionTest
     ColumnShardCacheRegistry cacheReg = dataContext.getBean(ColumnShardCacheRegistry.class);
     DefaultColumnShardCache cache = (DefaultColumnShardCache) cacheReg.getColumnShardCache(TABLE);
     Collection<String> cachedShards =
-        cache.getAllCachedColumnShards(0L).stream().map(shard -> shard.getName()).collect(Collectors.toList());
+        cache.getAll(0L).stream().map(shard -> shard.getName()).collect(Collectors.toList());
 
     String innerColName = functionBasedColumnNameBuilderFactory.create().withFunctionName("add")
         .addParameterColumnName("b").addParameterLiteralLong(1).build();
@@ -866,7 +866,7 @@ public class LongColumnAggregationAndRepeatedProjectionDiqlExecutionTest
 
       // we expect to NOT have something in the cache for the innerColumn, as we (1) removed it and (2) the second
       // execution should not have executed that step.
-      Assert.assertNull(cache.getCachedColumnShard(0L, innerColName),
+      Assert.assertNull(cache.get(0L, innerColName),
           "Expected to have NOT have executed the calculation of the unneeded column");
     } finally {
       executor.shutdownNow();

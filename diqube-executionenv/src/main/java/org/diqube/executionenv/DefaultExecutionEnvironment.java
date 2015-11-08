@@ -112,7 +112,7 @@ public class DefaultExecutionEnvironment extends AbstractExecutionEnvironment {
       sourceColumnShard = tableShard.getLongColumns().get(name);
 
     if (sourceColumnShard == null && columnShardCache != null) {
-      ColumnShard cachedShard = columnShardCache.getCachedColumnShard(tableShard.getLowestRowId(), name);
+      ColumnShard cachedShard = columnShardCache.get(tableShard.getLowestRowId(), name);
       if (cachedShard != null && cachedShard instanceof LongColumnShard) {
         sourceColumnShard = (LongColumnShard) cachedShard;
         // store col shard directly in our "temporary columns". see class comment.
@@ -133,7 +133,7 @@ public class DefaultExecutionEnvironment extends AbstractExecutionEnvironment {
       sourceColumnShard = tableShard.getStringColumns().get(name);
 
     if (sourceColumnShard == null && columnShardCache != null) {
-      ColumnShard cachedShard = columnShardCache.getCachedColumnShard(tableShard.getLowestRowId(), name);
+      ColumnShard cachedShard = columnShardCache.get(tableShard.getLowestRowId(), name);
       if (cachedShard != null && cachedShard instanceof StringColumnShard) {
         sourceColumnShard = (StringColumnShard) cachedShard;
         // store col shard directly in our "temporary columns". see class comment.
@@ -154,7 +154,7 @@ public class DefaultExecutionEnvironment extends AbstractExecutionEnvironment {
       sourceColumnShard = tableShard.getDoubleColumns().get(name);
 
     if (sourceColumnShard == null && columnShardCache != null) {
-      ColumnShard cachedShard = columnShardCache.getCachedColumnShard(tableShard.getLowestRowId(), name);
+      ColumnShard cachedShard = columnShardCache.get(tableShard.getLowestRowId(), name);
       if (cachedShard != null && cachedShard instanceof DoubleColumnShard) {
         sourceColumnShard = (DoubleColumnShard) cachedShard;
         // store col shard directly in our "temporary columns". see class comment.

@@ -278,7 +278,7 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
                 Map<String, List<QueryableColumnShard>> tempColShards = env.getAllTemporaryColumnShards();
                 for (String colName : tempColShards.keySet()) {
                   ColumnShard tempCol = Iterables.getLast(tempColShards.get(colName)).getDelegate();
-                  tableCache.registerUsageOfColumnShardPossiblyCache(env.getFirstRowIdInShard(), tempCol);
+                  tableCache.offer(env.getFirstRowIdInShard(), tempCol.getName(), tempCol);
                 }
               }
             }

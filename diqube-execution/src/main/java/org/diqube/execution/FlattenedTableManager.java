@@ -29,6 +29,7 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 
 import org.diqube.context.AutoInstatiate;
 import org.diqube.data.flatten.FlattenedTable;
+import org.diqube.flatten.Flattener;
 import org.diqube.util.Pair;
 
 /**
@@ -40,51 +41,141 @@ import org.diqube.util.Pair;
  */
 @AutoInstatiate
 public class FlattenedTableManager {
-  private Map<Pair<String, String>, Deque<Pair<UUID, FlattenedTable>>> tables = new ConcurrentHashMap<>();
+  /**
+   * Number of seconds a flattened table gets marked by {@link #getNewestFlattenedTableVersionAndMarkIt(String, String)}
+   * and therefore saves it from being evicted.
+   */
+  public static final int FLATTENED_TABLE_MARK_SECONDS = 300;
 
+  private Map<Pair<String, String>, Deque<FlattenedTableInfo>> tables = new ConcurrentHashMap<>();
+
+  /**
+   * Register a newly created {@link FlattenedTable} from {@link Flattener}.
+   * 
+   * <p>
+   * This version will automatically be the newest version available, so it is likely that
+   * {@link #getNewestFlattenedTableVersion(String, String)} will return this flattened table version if called right
+   * after registering the new version.
+   * 
+   * @param versionId
+   *          The version ID of the flattened table.
+   * @param flattenedTable
+   *          The flattened table itself.
+   * @param origTableName
+   *          The table the flattened table was based on.
+   * @param flattenBy
+   *          The field which the table was flattened by.
+   */
   public void registerFlattenedTableVersion(UUID versionId, FlattenedTable flattenedTable, String origTableName,
       String flattenBy) {
     Pair<String, String> keyPair = new Pair<>(origTableName, flattenBy);
-    Deque<Pair<UUID, FlattenedTable>> deque = tables.get(keyPair);
+    Deque<FlattenedTableInfo> deque = tables.get(keyPair);
 
-    Pair<UUID, FlattenedTable> newEntryPair = new Pair<>(versionId, flattenedTable);
+    FlattenedTableInfo newInfo = new FlattenedTableInfo(versionId, flattenedTable);
 
     if (deque == null) {
       deque = new ConcurrentLinkedDeque<>();
-      deque.addFirst(newEntryPair);
-      Deque<Pair<UUID, FlattenedTable>> finalDeque = deque;
+      deque.addFirst(newInfo);
+      Deque<FlattenedTableInfo> finalDeque = deque;
 
       tables.merge(keyPair, deque, (oldDeque, newDeque) -> {
         oldDeque.addAll(finalDeque);
         return oldDeque;
       });
     } else
-      deque.addFirst(newEntryPair);
+      deque.addFirst(newInfo);
   }
 
+  /**
+   * Fetches the newest version of a flattened table.
+   * 
+   * @param origTableName
+   *          Name of the original table.
+   * @param flattenBy
+   *          Field by which the orig table was flattened.
+   * @return Pair of version ID and flattened table, or <code>null</code> in case there is no flattened version of that
+   *         table.
+   */
   public Pair<UUID, FlattenedTable> getNewestFlattenedTableVersion(String origTableName, String flattenBy) {
     Pair<String, String> keyPair = new Pair<>(origTableName, flattenBy);
-    Deque<Pair<UUID, FlattenedTable>> deque = tables.get(keyPair);
+    Deque<FlattenedTableInfo> deque = tables.get(keyPair);
     if (deque == null)
       return null;
 
     try {
-      return deque.getFirst();
+      FlattenedTableInfo info = deque.getFirst();
+      return new Pair<>(info.getVersionId(), info.getFlattenedTable());
     } catch (NoSuchElementException e) {
       return null;
     }
   }
 
-  public FlattenedTable getFlattenedTable(UUID versionId, String origTableName, String flattenBy) {
+  /**
+   * Fetches the newest version of a flattened table and marks that version to not be evicted by
+   * {@link #FLATTENED_TABLE_MARK_SECONDS} seconds.
+   * 
+   * @param origTableName
+   *          Name of the original table.
+   * @param flattenBy
+   *          Field by which the orig table was flattened.
+   * @return Pair of version ID and flattened table, or <code>null</code> in case there is no flattened version of that
+   *         table.
+   */
+  public Pair<UUID, FlattenedTable> getNewestFlattenedTableVersionAndMarkIt(String origTableName, String flattenBy) {
+    // TODO #27
+
     Pair<String, String> keyPair = new Pair<>(origTableName, flattenBy);
-    Deque<Pair<UUID, FlattenedTable>> deque = tables.get(keyPair);
+    Deque<FlattenedTableInfo> deque = tables.get(keyPair);
     if (deque == null)
       return null;
 
-    for (Pair<UUID, FlattenedTable> p : deque) {
-      if (p.getLeft().equals(versionId))
-        return p.getRight();
+    try {
+      FlattenedTableInfo info = deque.getFirst();
+      return new Pair<>(info.getVersionId(), info.getFlattenedTable());
+    } catch (NoSuchElementException e) {
+      return null;
+    }
+  }
+
+  /**
+   * Get a specific version of a flattened table.
+   * 
+   * @param versionId
+   *          The version of the flattened table.
+   * @param origTableName
+   *          The table name the flattening was based on.
+   * @param flattenBy
+   *          The field by which the original table was flattened.
+   * @return The {@link FlattenedTable} or <code>null</code> if it is not available.
+   */
+  public FlattenedTable getFlattenedTable(UUID versionId, String origTableName, String flattenBy) {
+    Pair<String, String> keyPair = new Pair<>(origTableName, flattenBy);
+    Deque<FlattenedTableInfo> deque = tables.get(keyPair);
+    if (deque == null)
+      return null;
+
+    for (FlattenedTableInfo info : deque) {
+      if (info.getVersionId().equals(versionId))
+        return info.getFlattenedTable();
     }
     return null;
+  }
+
+  private class FlattenedTableInfo {
+    private UUID versionId;
+    private FlattenedTable flattenedTable;
+
+    public FlattenedTableInfo(UUID versionId, FlattenedTable flattenedTable) {
+      this.versionId = versionId;
+      this.flattenedTable = flattenedTable;
+    }
+
+    public UUID getVersionId() {
+      return versionId;
+    }
+
+    public FlattenedTable getFlattenedTable() {
+      return flattenedTable;
+    }
   }
 }
