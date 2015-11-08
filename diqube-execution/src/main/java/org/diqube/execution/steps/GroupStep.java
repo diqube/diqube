@@ -191,7 +191,7 @@ public class GroupStep extends AbstractThreadedExecutablePlanStep {
 
       for (Long groupId : changesGroups.keySet()) {
         if (!groups.containsKey(groupId))
-          groups.put(groupId, changesGroups.get(groupId));
+          groups.put(groupId, new ArrayList<>(changesGroups.get(groupId)));
         else
           groups.get(groupId).addAll(changesGroups.get(groupId));
       }
