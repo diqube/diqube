@@ -197,8 +197,9 @@ public class ClusterFlattenIntegrationTest extends AbstractDiqubeIntegrationTest
       });
 
       // wait double the time of the flattentimeout we set for the servers!
+      // we will receive the exception for each remote and for each requestId on the remote -> 4 times.
       new Waiter().waitUntil("Both remotes reported an exception", 120, 500,
-          () -> localCfs.getExceptions().size() == 2);
+          () -> localCfs.getExceptions().size() == 2 * 2);
     }
   }
 

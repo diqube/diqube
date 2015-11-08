@@ -428,7 +428,8 @@ public class ClusterFlattenServiceHandler implements ClusterFlattenService.Iface
           } catch (RRetryLaterException e) {
             if (retryCountLeft == 0)
               // let the uncaughtExceptionHandler handle this...
-              throw new RuntimeException("Exception while communicating with other flatteners: " + e.getMessage(), e);
+              throw new RuntimeException(
+                  "Exception while communicating with other flatteners (retry exhausted): " + e.getMessage(), e);
 
             logger.trace("Received a retry exception from {}: {}. Will retry.", otherFlattener, e.getMessage());
             // we retry sending our results since the other flatteners might not have initialized for this request yet.

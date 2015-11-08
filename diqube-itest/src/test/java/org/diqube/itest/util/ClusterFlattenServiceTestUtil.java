@@ -204,7 +204,8 @@ public class ClusterFlattenServiceTestUtil {
 
     @Override
     public void flattenFailed(RUUID flattenRequestId, RFlattenException flattenException) throws TException {
-      logger.info("Received exception: request {}, exception {}", flattenRequestId, flattenException);
+      logger.info("Received exception: request {}, exception {}", flattenRequestId, flattenException.getMessage(),
+          flattenException);
       res.exceptions.add(flattenException);
     }
   }
