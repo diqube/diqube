@@ -52,9 +52,9 @@ public class CountingCacheTest {
     CountingCache<Integer, String, CachedValue> cache = new CountingCache<>(100, () -> cleanupAlways, MEM_PROV);
 
     // WHEN
-    cache.offer(0, "1", shard("1", 50));
-    cache.offer(1, "2", shard("2", 50));
-    cache.offer(1, "2", shard("2", 50));
+    cache.offer(0, "1", value("1", 50));
+    cache.offer(1, "2", value("2", 50));
+    cache.offer(1, "2", value("2", 50));
 
     // THEN
     Assert.assertEquals(getNames(cache.getAll(0)), Arrays.asList("1"), "Expected to get correct cache entrie(s)");
@@ -79,10 +79,10 @@ public class CountingCacheTest {
     CountingCache<Integer, String, CachedValue> cache = new CountingCache<>(100, () -> cleanupAlways, MEM_PROV);
 
     // WHEN
-    cache.offer(0, "1", shard("1", 50));
+    cache.offer(0, "1", value("1", 50));
     // count "2" = 2
-    cache.offer(1, "2", shard("2", 51));
-    cache.offer(1, "2", shard("2", 51));
+    cache.offer(1, "2", value("2", 51));
+    cache.offer(1, "2", value("2", 51));
 
     // THEN
     Assert.assertEquals(getNames(cache.getAll(0)), Arrays.asList(), "Expected to get correct cache entrie(s)");
@@ -107,8 +107,8 @@ public class CountingCacheTest {
     CountingCache<Integer, String, CachedValue> cache = new CountingCache<>(100, () -> cleanupAlways, MEM_PROV);
 
     // WHEN
-    cache.offer(0, "1", shard("1", 101));
-    cache.offer(0, "2", shard("2", 99));
+    cache.offer(0, "1", value("1", 101));
+    cache.offer(0, "2", value("2", 99));
 
     // THEN
     // expected: nothing cached. Because both entries have the same count - the first one is too big, the second is
@@ -135,9 +135,9 @@ public class CountingCacheTest {
     CountingCache<Integer, String, CachedValue> cache = new CountingCache<>(100, () -> cleanupAlways, MEM_PROV);
 
     // WHEN
-    cache.offer(0, "1", shard("1", 101));
-    cache.offer(1, "2", shard("2", 99));
-    cache.offer(1, "2", shard("2", 99));
+    cache.offer(0, "1", value("1", 101));
+    cache.offer(1, "2", value("2", 99));
+    cache.offer(1, "2", value("2", 99));
 
     // THEN
     Assert.assertEquals(getNames(cache.getAll(0)), Arrays.asList(), "Expected to get correct cache entrie(s)");
@@ -162,9 +162,9 @@ public class CountingCacheTest {
     CountingCache<Integer, String, CachedValue> cache = new CountingCache<>(100, () -> cleanupAlways, MEM_PROV);
 
     // WHEN
-    cache.offer(0, "1", shard("1", 101));
-    cache.offer(0, "2", shard("2", 99));
-    cache.offer(0, "2", shard("2", 99));
+    cache.offer(0, "1", value("1", 101));
+    cache.offer(0, "2", value("2", 99));
+    cache.offer(0, "2", value("2", 99));
 
     // THEN
     Assert.assertEquals(getNames(cache.getAll(0)), Arrays.asList("2"), "Expected to get correct cache entrie(s)");
@@ -173,7 +173,31 @@ public class CountingCacheTest {
     Assert.assertEquals(cache.size(), 1);
   }
 
-  private CachedValue shard(String name, long memorySize) {
+  @Test
+  public void countsDoNotGetLost() {
+    // GIVEN
+    CountingCache<Integer, String, CachedValue> cache = new CountingCache<>(100, () -> true, MEM_PROV);
+
+    // cleanup each time, internal cleanup should NOT remove counts when adding "3".
+
+    // WHEN
+    cache.offer(0, "1", value("1", 99));
+    cache.offer(0, "1", value("1", 99));
+    cache.offer(0, "2", value("2", 99));
+    cache.offer(0, "2", value("2", 99));
+    cache.offer(0, "3", value("3", 99));
+    cache.offer(0, "3", value("3", 99));
+    cache.offer(0, "3", value("3", 99));
+
+    // THEN
+    Assert.assertEquals(getNames(cache.getAll(0)), Arrays.asList("3"), "Expected to get correct cache entrie(s)");
+    Assert.assertNull(cache.get(0, "1"), "Expected to get cached result");
+    Assert.assertNull(cache.get(0, "2"), "Expected to get cached result");
+    Assert.assertNotNull(cache.get(0, "3"), "Expected to get cached result");
+    Assert.assertEquals(cache.size(), 1);
+  }
+
+  private CachedValue value(String name, long memorySize) {
     CachedValue res = new CachedValue();
     res.name = name;
     res.memorySize = memorySize;

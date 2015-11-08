@@ -34,7 +34,7 @@ import java.util.Collection;
  *          Value type.
  * @author Bastian Gloeckle
  */
-public interface Cache<K1, K2, V> {
+public interface Cache<K1 extends Comparable<K1>, K2 extends Comparable<K2>, V> {
   /**
    * Get a specific cached element for the given key pair.
    * 

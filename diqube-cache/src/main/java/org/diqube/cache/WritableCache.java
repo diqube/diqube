@@ -25,7 +25,7 @@ package org.diqube.cache;
  *
  * @author Bastian Gloeckle
  */
-public interface WritableCache<K1, K2, V> extends Cache<K1, K2, V> {
+public interface WritableCache<K1 extends Comparable<K1>, K2 extends Comparable<K2>, V> extends Cache<K1, K2, V> {
   /**
    * Offer a new element to be stored in the cache.
    * 

@@ -28,7 +28,7 @@ import java.util.Collection;
  *
  * @author Bastian Gloeckle
  */
-public class NoopCache<K1, K2, V> implements WritableCache<K1, K2, V> {
+public class NoopCache<K1 extends Comparable<K1>, K2 extends Comparable<K2>, V> implements WritableCache<K1, K2, V> {
 
   @Override
   public V get(K1 key1, K2 key2) {

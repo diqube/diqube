@@ -27,6 +27,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentSkipListSet;
@@ -50,6 +51,11 @@ import com.google.common.collect.Sets;
  * Assumes that values identified by a key pair (K1,K2) do not change, not even when re-inserted into the cache.
  * 
  * <p>
+ * As this implementation counts the offers, these counts are not internally cleared ever. This means that the memory
+ * used by this cache will increase statically over time if the keys keep changing. <b>Take therefore special care of
+ * what to use as keys! Do NOT use any randomly generated IDs etc (e.g. {@link UUID#randomUUID()})!</b>
+ * 
+ * <p>
  * It caches those values that were used the most often times - it therefore counts the usages of these on calls to
  * {@link #offer(Object, Object, Object)}. This cache caches up to a maximum memory size, which is calculated using a
  * {@link MemoryConsumptionProvider}. If there are multiple values used the same amount of times and they are at the
@@ -62,7 +68,8 @@ import com.google.common.collect.Sets;
  *
  * @author Bastian Gloeckle
  */
-public class CountingCache<K1, K2, V> implements WritableCache<K1, K2, V> {
+public class CountingCache<K1 extends Comparable<K1>, K2 extends Comparable<K2>, V>
+    implements WritableCache<K1, K2, V> {
   private static final Logger logger = LoggerFactory.getLogger(CountingCache.class);
 
   /**
@@ -90,14 +97,14 @@ public class CountingCache<K1, K2, V> implements WritableCache<K1, K2, V> {
 
   private MemoryConsumptionProvider<V> memoryConsumptionProvider;
 
-  protected CountingCache(long maxMemoryBytes, MemoryConsumptionProvider<V> memoryConsumptionProvider) {
+  public CountingCache(long maxMemoryBytes, MemoryConsumptionProvider<V> memoryConsumptionProvider) {
     this(maxMemoryBytes, DEFAULT_CLEANUP_STRATEGY, memoryConsumptionProvider);
   }
 
   /**
    * Constructor mainly for tests to customize the cleanup strategy.
    */
-  protected CountingCache(long maxMemoryBytes, InternalCleanupStrategy cleanupStrategy,
+  public CountingCache(long maxMemoryBytes, InternalCleanupStrategy cleanupStrategy,
       MemoryConsumptionProvider<V> memoryConsumptionProvider) {
     this.maxMemoryBytes = maxMemoryBytes;
     this.cleanupStrategy = cleanupStrategy;
@@ -262,6 +269,9 @@ public class CountingCache<K1, K2, V> implements WritableCache<K1, K2, V> {
         retainCacheIds =
             Sets.newHashSet(Iterables.concat(currentlyCachedCacheIds, Arrays.asList(notCachedInterestingCacheId)));
       memoryConsumption.keySet().retainAll(retainCacheIds);
+
+      // Note: do not clean up "counts" field, as we obviously need to keep track of all counts and should not evict
+      // that ever.
     } finally {
       cleanupLock.writeLock().unlock();
     }
