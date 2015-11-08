@@ -26,12 +26,15 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -65,11 +68,17 @@ import com.google.common.collect.Sets;
  * <p>
  * This cache maintains itself and does execute cleanup actions on internally used data structures at its own
  * discretion.
+ * 
+ * <p>
+ * This cache is a {@link FlaggingCache}, which means that is capable of prohibiting specific elements from being
+ * evicted from the cache for a certain amount of time. This cache implements this behavior without an additional
+ * thread. Therefore it might take a while to actually evict values that have been flagged: This will happen on calls to
+ * {@link #offer(Comparable, Comparable, Object)}.
  *
  * @author Bastian Gloeckle
  */
 public class CountingCache<K1 extends Comparable<K1>, K2 extends Comparable<K2>, V>
-    implements WritableCache<K1, K2, V> {
+    implements WritableCache<K1, K2, V>, FlaggingCache<K1, K2, V> {
   private static final Logger logger = LoggerFactory.getLogger(CountingCache.class);
 
   /**
@@ -86,6 +95,18 @@ public class CountingCache<K1 extends Comparable<K1>, K2 extends Comparable<K2>,
   private ConcurrentSkipListSet<CacheIdCount> topCounts = new ConcurrentSkipListSet<>();
   private ConcurrentMap<CacheId, Long> memoryConsumption = new ConcurrentHashMap<>();
   private ConcurrentSkipListSet<CacheId> currentlyCachedCacheIds = new ConcurrentSkipListSet<>();
+
+  /**
+   * CacheIds which are flagged currently to the current information about the flag.
+   * 
+   * Items are removed from here by {@link #removeOldFlaggedCacheIds()}. Note to sync on the {@link FlagInfo} object if
+   * changing anything of interest for {@link #removeOldFlaggedCacheIds()} in the {@link FlagInfo}.
+   */
+  private ConcurrentMap<CacheId, FlagInfo> flaggedChacheIds = new ConcurrentHashMap<>();
+  /**
+   * Timeout time in nanos to the CacheId that was flagged.
+   */
+  private ConcurrentSkipListMap<Long, CacheId> flaggedTimes = new ConcurrentSkipListMap<>();
 
   private Object updateCacheSync = new Object();
 
@@ -121,6 +142,45 @@ public class CountingCache<K1 extends Comparable<K1>, K2 extends Comparable<K2>,
   }
 
   @Override
+  public V flagAndGet(K1 key1, K2 key2, long flagUntilNanos) {
+    CacheId cacheId = new CacheId(key1, key2);
+    while (true) {
+      V res = get(key1, key2);
+      if (res == null)
+        return null;
+
+      while (flaggedTimes.putIfAbsent(flagUntilNanos, cacheId) != null)
+        flagUntilNanos++;
+
+      flaggedChacheIds.merge(cacheId, new FlagInfo(flagUntilNanos), (oldValue, newValue) -> {
+        synchronized (oldValue) { // sync to stay valid according to #removeOldFlaggedCacheIds
+          newValue.getFlagCount().addAndGet(oldValue.getFlagCount().get());
+          newValue.getNewestTimeoutNanos().getAndAccumulate(oldValue.getNewestTimeoutNanos().get(), Long::max);
+          return newValue;
+        }
+      });
+
+      // re-check that the element we got is still in cache.
+      if (res == get(key1, key2))
+        return res;
+
+      // Here: If an offer of the same CacheId than this method happens exactly here, we might keep something in the
+      // cache although we would remove the flaggedCacheId right away again. But that is not as bad, since in the next
+      // call to #offer this mistake will be corrected.
+
+      // element changed, remove flag and retry.
+      flaggedChacheIds.compute(cacheId, (k, v) -> {
+        // no need to sync here: If the following if is "true", we added that cacheId to flaggedCacheIds just a few
+        // lines above, therefore we're of no interest to #removeOldFlaggedCacheIds yet. If the "if" is "false", we do
+        // not care anyway, since then this method does not change anything of interest to #removeOldFlaggedCacheIds.
+        if (v.getFlagCount().decrementAndGet() == 0)
+          return null;
+        return v;
+      });
+    }
+  }
+
+  @Override
   public Collection<V> getAll(K1 key1) {
     ConcurrentMap<K2, V> cache2 = caches.get(key1);
     if (cache2 == null)
@@ -130,6 +190,8 @@ public class CountingCache<K1 extends Comparable<K1>, K2 extends Comparable<K2>,
 
   @Override
   public boolean offer(K1 key1, K2 key2, V value) {
+    removeOldFlaggedCacheIds();
+
     boolean addedToCache = false;
 
     cleanupLock.readLock().lock(); // do not execute cleanup while we're inside this block!
@@ -185,8 +247,8 @@ public class CountingCache<K1 extends Comparable<K1>, K2 extends Comparable<K2>,
 
         // decide what we have to do
         Set<CacheId> curCurrentlyCachedCacheIds = new HashSet<>(currentlyCachedCacheIds);
-        Collection<CacheId> cacheIdsToBeRemovedFromCache =
-            new ArrayList<>(Sets.difference(curCurrentlyCachedCacheIds, cacheIdsThatShouldBeCached));
+        Set<CacheId> cacheIdsToBeRemovedFromCache =
+            new HashSet<>(Sets.difference(curCurrentlyCachedCacheIds, cacheIdsThatShouldBeCached));
 
         boolean shouldAddNewCacheIdToCache =
             !curCurrentlyCachedCacheIds.contains(cacheId) && cacheIdsThatShouldBeCached.contains(cacheId);
@@ -198,7 +260,8 @@ public class CountingCache<K1 extends Comparable<K1>, K2 extends Comparable<K2>,
               // retry as the data structures we based our decisions on have changed.
               continue;
 
-            cacheIdsToBeRemovedFromCache.forEach(id -> removeFromCache(id));
+            // do not remove flagged cache Ids.
+            Sets.difference(cacheIdsToBeRemovedFromCache, flaggedChacheIds.keySet()).forEach(id -> removeFromCache(id));
 
             if (shouldAddNewCacheIdToCache) {
               addToCache(cacheId, value);
@@ -305,6 +368,38 @@ public class CountingCache<K1 extends Comparable<K1>, K2 extends Comparable<K2>,
     return currentlyCachedCacheIds.size();
   }
 
+  /**
+   * Internal method to check for flagged elements whose timeout has passed - will remove those elements from
+   * {@link #flaggedChacheIds} and will cleanup {@link #flaggedTimes}.
+   */
+  private void removeOldFlaggedCacheIds() {
+    Iterator<Entry<Long, CacheId>> cacheIdEntryIt = flaggedTimes.headMap(System.nanoTime()).entrySet().iterator();
+    while (cacheIdEntryIt.hasNext()) {
+      Entry<Long, CacheId> cacheIdEntry = cacheIdEntryIt.next();
+
+      CacheId cacheId = cacheIdEntry.getValue();
+      long timeoutTime = cacheIdEntry.getKey();
+
+      cacheIdEntryIt.remove();
+
+      FlagInfo flagInfo = flaggedChacheIds.get(cacheId);
+      // validate that there is a flagInfo and the flagInfo was not updated in the meantime.
+      if (flagInfo != null && flagInfo.getNewestTimeoutNanos().get() == timeoutTime) {
+        synchronized (flagInfo) {
+          // synched on flagInfo itself and re-check that there is not another thread that currently tries to flag this
+          // chacheId!
+          // If not synced, we could succeed the "if", but before removing the element from flaggedCacheIds, someone
+          // changes the newestTimeoutNanos. And then we'd remove the object -> object is not actually flagged!
+          if (flagInfo.getNewestTimeoutNanos().get() == timeoutTime) {
+            // remove the flaggedCacheId, but do not directly remove the cached value itself - it might still be in the
+            // regular topCounts! Let #offer(..) do the cleanup as soon as it is called.
+            flaggedChacheIds.remove(cacheId);
+          }
+        }
+      }
+    }
+  }
+
   /** for testing only! */
   protected long getMaxMemoryBytes() {
     return maxMemoryBytes;
@@ -363,6 +458,24 @@ public class CountingCache<K1 extends Comparable<K1>, K2 extends Comparable<K2>,
      * @return true if cleanup should be execued, false otherwise.
      */
     public boolean executeCleanup();
+  }
+
+  private static class FlagInfo {
+    private AtomicInteger flagCount;
+    private AtomicLong newestTimeoutNanos;
+
+    FlagInfo(long timeoutNanos) {
+      flagCount = new AtomicInteger(1);
+      newestTimeoutNanos = new AtomicLong(timeoutNanos);
+    }
+
+    public AtomicInteger getFlagCount() {
+      return flagCount;
+    }
+
+    public AtomicLong getNewestTimeoutNanos() {
+      return newestTimeoutNanos;
+    }
   }
 
   public static interface MemoryConsumptionProvider<V> {

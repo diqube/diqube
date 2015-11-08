@@ -22,6 +22,7 @@ package org.diqube.cache;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.stream.Collectors;
 
 import org.diqube.cache.CountingCache.MemoryConsumptionProvider;
@@ -197,6 +198,41 @@ public class CountingCacheTest {
     Assert.assertEquals(cache.size(), 1);
   }
 
+  @Test
+  public void flaggedNotEvicted() throws InterruptedException {
+    // GIVEN
+    CountingCache<Integer, String, CachedValue> cache = new CountingCache<>(100, () -> true, MEM_PROV);
+
+    // cleanup each time, internal cleanup should NOT remove counts when adding "3".
+
+    // WHEN
+    cache.offer(0, "1", value("1", 99));
+    cache.flagAndGet(0, "1", System.nanoTime() + 5 * 1_000_000_000L); // 5s
+    cache.offer(0, "2", value("2", 99));
+    cache.offer(0, "2", value("2", 99));
+
+    // THEN
+    Assert.assertEquals(getNames(cache.getAll(0)), new HashSet<>(Arrays.asList("1", "2")),
+        "Expected to get correct cache entrie(s)");
+    Assert.assertNotNull(cache.get(0, "1"), "Expected to get cached result");
+    Assert.assertNotNull(cache.get(0, "2"), "Expected to get cached result");
+    Assert.assertEquals(cache.size(), 2);
+
+    Thread.sleep(6000); // sleep 6s
+
+    // WHEN
+    // execute "offer" so the cache executes un-flagging
+    cache.offer(0, "3", value("3", 99));
+
+    // THEN
+    Assert.assertEquals(getNames(cache.getAll(0)), new HashSet<>(Arrays.asList("2")),
+        "Expected to get correct cache entrie(s)");
+    Assert.assertNull(cache.get(0, "1"), "Expected to get cached result");
+    Assert.assertNotNull(cache.get(0, "2"), "Expected to get cached result");
+    Assert.assertEquals(cache.size(), 1);
+
+  }
+
   private CachedValue value(String name, long memorySize) {
     CachedValue res = new CachedValue();
     res.name = name;
@@ -205,7 +241,7 @@ public class CountingCacheTest {
   }
 
   private Collection<String> getNames(Collection<CachedValue> shards) {
-    return shards.stream().map(shard -> shard.name).collect(Collectors.toList());
+    return shards.stream().map(shard -> shard.name).collect(Collectors.toSet());
   }
 
   private static class CachedValue {
