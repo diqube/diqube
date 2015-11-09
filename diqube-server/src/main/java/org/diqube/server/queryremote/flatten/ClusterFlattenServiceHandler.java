@@ -167,7 +167,10 @@ public class ClusterFlattenServiceHandler implements ClusterFlattenService.Iface
     if (table == null)
       throw new RFlattenException("Table '" + tableName + "' unknown.");
 
-    Pair<UUID, FlattenedTable> newest = flattenedTableManager.getNewestFlattenedTableVersion(tableName, flattenBy);
+    // flag it to not be removed from FlattenTableManager for some time (should be enough until our caller has received
+    // answers from all remotes and can issue his query).
+    Pair<UUID, FlattenedTable> newest =
+        flattenedTableManager.getNewestFlattenedTableVersionAndFlagIt(tableName, flattenBy);
     if (newest == null)
       return new ROptionalUuid();
 

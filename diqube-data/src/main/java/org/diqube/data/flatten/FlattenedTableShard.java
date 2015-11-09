@@ -53,4 +53,9 @@ public class FlattenedTableShard extends DefaultTableShard {
     throw new DeserializationException("Cannot deserialize a flattened table shard.");
   }
 
+  @Override
+  public long calculateApproximateSizeInBytes() {
+    return super.calculateApproximateSizeInBytes();
+  }
+
 }

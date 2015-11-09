@@ -30,7 +30,8 @@ import org.diqube.data.types.lng.array.CompressedLongArray;
 import org.diqube.data.types.lng.dict.LongDictionary;
 
 /**
- * A {@link ColumnPage} of a flattened table shard.
+ * A {@link ColumnPage} of a flattened table shard, which typically (indirectly) references the data of the original
+ * table.
  *
  * @author Bastian Gloeckle
  */
@@ -52,6 +53,11 @@ public class FlattenedColumnPage extends DefaultColumnPage {
   public void deserialize(org.diqube.data.serialize.DataSerialization.DataSerializationHelper helper,
       SColumnPage source) throws DeserializationException {
     throw new DeserializationException("Cannot deserialize flattened ColPage.");
+  }
+
+  @Override
+  public long calculateApproximateSizeInBytes() {
+    return super.calculateApproximateSizeInBytes();
   }
 
 }

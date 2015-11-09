@@ -49,4 +49,5 @@ public interface FlaggingCache<K1 extends Comparable<K1>, K2 extends Comparable<
    * @return The cached element or <code>null</code>.
    */
   public V flagAndGet(K1 key1, K2 key2, long flagUntilNanos);
+
 }

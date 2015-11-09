@@ -68,4 +68,15 @@ public class FlattenedTable implements Table {
   public Set<Long> getOriginalFirstRowIdsOfShards() {
     return originalFirstRowIdsOfShards;
   }
+
+  @Override
+  public long calculateApproximateSizeInBytes() {
+    long shardsSize = 0L;
+    for (TableShard shard : shards)
+      shardsSize += shard.calculateApproximateSizeInBytes();
+
+    return 16 + //
+        shardsSize + //
+        originalFirstRowIdsOfShards.size() * 16;
+  }
 }

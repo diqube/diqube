@@ -112,7 +112,8 @@ public class DefaultColumnPage implements AdjustableColumnPage {
   @Override
   public long calculateApproximateSizeInBytes() {
     return 16 + // object header of this.
-        columnPageDict.calculateApproximateSizeInBytes() + values.calculateApproximateSizeInBytes();
+        columnPageDict.calculateApproximateSizeInBytes() + //
+        values.calculateApproximateSizeInBytes();
   }
 
 }

@@ -74,4 +74,10 @@ public interface TableShard extends DataSerialization<STableShard> {
    * @return Name of the table this TableShard belongs to.
    */
   public String getTableName();
+
+  /**
+   * @return An approximate number of bytes taken up by this {@link ColumnShard}. Note that this is only an
+   *         approximation!
+   */
+  public long calculateApproximateSizeInBytes();
 }

@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.diqube.data.column.ColumnShard;
 import org.diqube.data.column.StandardColumnShard;
@@ -154,5 +155,28 @@ public class DefaultTableShard implements TableShard {
   @Override
   public String getTableName() {
     return tableName;
+  }
+
+  @Override
+  public long calculateApproximateSizeInBytes() {
+    long sumColNameLen = 0L;
+    long colSizes = 0L;
+    for (Entry<String, StringStandardColumnShard> shardEntry : stringColumns.entrySet()) {
+      sumColNameLen += shardEntry.getKey().length();
+      colSizes += shardEntry.getValue().calculateApproximateSizeInBytes();
+    }
+    for (Entry<String, DoubleStandardColumnShard> shardEntry : doubleColumns.entrySet()) {
+      sumColNameLen += shardEntry.getKey().length();
+      colSizes += shardEntry.getValue().calculateApproximateSizeInBytes();
+    }
+    for (Entry<String, LongStandardColumnShard> shardEntry : longColumns.entrySet()) {
+      sumColNameLen += shardEntry.getKey().length();
+      colSizes += shardEntry.getValue().calculateApproximateSizeInBytes();
+    }
+
+    return 16 + //
+        tableName.length() + //
+        colSizes + //
+        sumColNameLen;
   }
 }

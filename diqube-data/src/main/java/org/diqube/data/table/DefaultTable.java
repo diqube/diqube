@@ -101,4 +101,15 @@ public class DefaultTable implements AdjustableTable {
     }
   }
 
+  @Override
+  public long calculateApproximateSizeInBytes() {
+    long shardsSize = 0L;
+    for (TableShard shard : shards)
+      shardsSize += shard.calculateApproximateSizeInBytes();
+
+    return 16 + //
+        name.length() + //
+        shardsSize;
+  }
+
 }

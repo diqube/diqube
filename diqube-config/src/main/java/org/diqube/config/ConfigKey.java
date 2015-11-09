@@ -147,4 +147,25 @@ public class ConfigKey {
    * Timeout of how long cluster nodes should wait for other nodes to finish flattening a table.
    */
   public static final String FLATTEN_TIMEOUT_SECONDS = "flattenTimeoutSeconds";
+
+  /**
+   * Size of the cache storing flattened tables that have been calculated from the original tables. This cache is a
+   * "global" cache and not a specific one for a single source-table (as {@link #TABLE_CACHE_APPROX_MAX_PER_TABLE_MB}).
+   * 
+   * <p>
+   * Value is in Megabyte.
+   * 
+   * <p>
+   * Note that there is no possibility to generically predict the size of the flattened version of a table. Nevertheless
+   * it is usual that the flattened table will be approximately as big as the original table.
+   * 
+   * <p>
+   * Flattening a table takes up pretty much time, so it's usually good to have a high value here.
+   * 
+   * <p>
+   * Note that there might be even more memory used up for flattened tables - if they are needed for executing a query
+   * they definitely need to be available. This value just controls the cache which caches the flattened tables between
+   * queries, so new queries do not have to re-flatten a table.
+   */
+  public static final String FLATTEN_CACHE_SIZE_MB = "flattenCacheSizeMb";
 }

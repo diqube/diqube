@@ -145,7 +145,9 @@ public class FlattenedConstantColumnPage implements AdjustableColumnPage {
   @Override
   public long calculateApproximateSizeInBytes() {
     return 16 + // object header of this.
-        colPageDict.calculateApproximateSizeInBytes() + 12 + name.length();
+        colPageDict.calculateApproximateSizeInBytes() + //
+        12 + //
+        name.length();
   }
 
   @Override

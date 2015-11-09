@@ -56,7 +56,8 @@ import com.google.common.collect.Sets;
  * <p>
  * As this implementation counts the offers, these counts are not internally cleared ever. This means that the memory
  * used by this cache will increase statically over time if the keys keep changing. <b>Take therefore special care of
- * what to use as keys! Do NOT use any randomly generated IDs etc (e.g. {@link UUID#randomUUID()})!</b>
+ * what to use as keys! Do NOT use any randomly generated IDs etc (e.g. {@link UUID#randomUUID()}) without specifying a
+ * meaningful {@link CountCleanupStrategy}!</b> By default counts will never be cleaned up.
  * 
  * <p>
  * It caches those values that were used the most often times - it therefore counts the usages of these on calls to
@@ -73,12 +74,21 @@ import com.google.common.collect.Sets;
  * This cache is a {@link FlaggingCache}, which means that is capable of prohibiting specific elements from being
  * evicted from the cache for a certain amount of time. This cache implements this behavior without an additional
  * thread. Therefore it might take a while to actually evict values that have been flagged: This will happen on calls to
- * {@link #offer(Comparable, Comparable, Object)}.
+ * {@link #offer(Comparable, Comparable, Object)} and {@link #offerAndFlag(Comparable, Comparable, Object, long)};
+ * additionally one can trigger it using {@link #consolidate()}.
+ * 
+ * <p>
+ * The flagged elements memory size does <b>NOT</b> count towards the memory cap! This means that this cache might
+ * actually take up "maxMemory + x" memory, where x is the sum of sizes of all flagged entries. On the other hand, if
+ * there is free memory (up to the cap), but there are not-longer-flagged entries, these are not evicted from the cache
+ * until the cap is reached (this is obviously true, because since we're under the cap, all entries have an entry in
+ * {@link #topCounts} and are therefore regular entries in the cache, although that flagged entry was just additionally
+ * flagged).
  *
  * @author Bastian Gloeckle
  */
 public class CountingCache<K1 extends Comparable<K1>, K2 extends Comparable<K2>, V>
-    implements WritableCache<K1, K2, V>, FlaggingCache<K1, K2, V> {
+    implements WritableFlaggingCache<K1, K2, V> {
   private static final Logger logger = LoggerFactory.getLogger(CountingCache.class);
 
   /**
@@ -118,18 +128,30 @@ public class CountingCache<K1 extends Comparable<K1>, K2 extends Comparable<K2>,
 
   private MemoryConsumptionProvider<V> memoryConsumptionProvider;
 
+  private CountCleanupStrategy<K1, K2> countCleanupStrategy;
+
   public CountingCache(long maxMemoryBytes, MemoryConsumptionProvider<V> memoryConsumptionProvider) {
     this(maxMemoryBytes, DEFAULT_CLEANUP_STRATEGY, memoryConsumptionProvider);
   }
 
-  /**
-   * Constructor mainly for tests to customize the cleanup strategy.
-   */
+  public CountingCache(long maxMemoryBytes, MemoryConsumptionProvider<V> memoryConsumptionProvider,
+      CountCleanupStrategy<K1, K2> countCleanupStrategy) {
+    this(maxMemoryBytes, DEFAULT_CLEANUP_STRATEGY, memoryConsumptionProvider, countCleanupStrategy);
+  }
+
   public CountingCache(long maxMemoryBytes, InternalCleanupStrategy cleanupStrategy,
       MemoryConsumptionProvider<V> memoryConsumptionProvider) {
+    this(maxMemoryBytes, cleanupStrategy, memoryConsumptionProvider,
+        /* never to count cleanups! */
+        (countsUpForCleanup, allCounts) -> null);
+  }
+
+  public CountingCache(long maxMemoryBytes, InternalCleanupStrategy cleanupStrategy,
+      MemoryConsumptionProvider<V> memoryConsumptionProvider, CountCleanupStrategy<K1, K2> countCleanupStrategy) {
     this.maxMemoryBytes = maxMemoryBytes;
     this.cleanupStrategy = cleanupStrategy;
     this.memoryConsumptionProvider = memoryConsumptionProvider;
+    this.countCleanupStrategy = countCleanupStrategy;
   }
 
   @Override
@@ -149,16 +171,7 @@ public class CountingCache<K1 extends Comparable<K1>, K2 extends Comparable<K2>,
       if (res == null)
         return null;
 
-      while (flaggedTimes.putIfAbsent(flagUntilNanos, cacheId) != null)
-        flagUntilNanos++;
-
-      flaggedChacheIds.merge(cacheId, new FlagInfo(flagUntilNanos), (oldValue, newValue) -> {
-        synchronized (oldValue) { // sync to stay valid according to #removeOldFlaggedCacheIds
-          newValue.getFlagCount().addAndGet(oldValue.getFlagCount().get());
-          newValue.getNewestTimeoutNanos().getAndAccumulate(oldValue.getNewestTimeoutNanos().get(), Long::max);
-          return newValue;
-        }
-      });
+      flag(cacheId, flagUntilNanos);
 
       // re-check that the element we got is still in cache.
       if (res == get(key1, key2))
@@ -166,7 +179,7 @@ public class CountingCache<K1 extends Comparable<K1>, K2 extends Comparable<K2>,
 
       // Here: If an offer of the same CacheId than this method happens exactly here, we might keep something in the
       // cache although we would remove the flaggedCacheId right away again. But that is not as bad, since in the next
-      // call to #offer this mistake will be corrected.
+      // call to #consolidate this mistake will be corrected.
 
       // element changed, remove flag and retry.
       flaggedChacheIds.compute(cacheId, (k, v) -> {
@@ -180,6 +193,27 @@ public class CountingCache<K1 extends Comparable<K1>, K2 extends Comparable<K2>,
     }
   }
 
+  /**
+   * Add a given cacheId to {@link #flaggedTimes} and {@link #flaggedChacheIds}.
+   * 
+   * Will adjust the given flagUntilNanos so we do not get collisions in {@link #flaggedTimes}.
+   * 
+   * @return The flagUntilNanos value actually used.
+   */
+  private long flag(CacheId cacheId, long flagUntilNanos) {
+    while (flaggedTimes.putIfAbsent(flagUntilNanos, cacheId) != null)
+      flagUntilNanos++;
+
+    flaggedChacheIds.merge(cacheId, new FlagInfo(flagUntilNanos), (oldValue, newValue) -> {
+      synchronized (oldValue) { // sync to stay valid according to #removeOldFlaggedCacheIds
+        newValue.getFlagCount().addAndGet(oldValue.getFlagCount().get());
+        newValue.getNewestTimeoutNanos().getAndAccumulate(oldValue.getNewestTimeoutNanos().get(), Long::max);
+        return newValue;
+      }
+    });
+    return flagUntilNanos;
+  }
+
   @Override
   public Collection<V> getAll(K1 key1) {
     ConcurrentMap<K2, V> cache2 = caches.get(key1);
@@ -189,7 +223,39 @@ public class CountingCache<K1 extends Comparable<K1>, K2 extends Comparable<K2>,
   }
 
   @Override
+  public V offerAndFlag(K1 key1, K2 key2, V value, long flagUntilNanos) {
+    return offerAndFlag(key1, key2, value, flagUntilNanos, 1);
+  }
+
+  /**
+   * Just like {@link #offerAndFlag(Comparable, Comparable, Object, long)}, but specify the number of times this element
+   * has been "used".
+   * 
+   * @param countDelta
+   *          Number of times the offered element has been "used".
+   */
+  public V offerAndFlag(K1 key1, K2 key2, V value, long flagUntilNanos, long countDelta) {
+    flag(new CacheId(key1, key2), flagUntilNanos);
+    offer(key1, key2, value, countDelta);
+    return get(key1, key2);
+  }
+
+  @Override
   public boolean offer(K1 key1, K2 key2, V value) {
+    return offer(key1, key2, value, 1);
+  }
+
+  /**
+   * Just like {@link #offer(Comparable, Comparable, Object)}, but specify the number of times this element has been
+   * "used".
+   * 
+   * @param countDelta
+   *          Number of times the offered element has been "used".
+   */
+  public boolean offer(K1 key1, K2 key2, V value, long countDelta) {
+    // Implementation details: We adjust internal data structures here, but leave #cache unchanged. Based on this, this
+    // method then calls #consolidate to consolidate the caches, too.
+
     removeOldFlaggedCacheIds();
 
     boolean addedToCache = false;
@@ -198,11 +264,11 @@ public class CountingCache<K1 extends Comparable<K1>, K2 extends Comparable<K2>,
     try {
       CacheId cacheId = new CacheId(key1, key2);
 
-      AtomicLong count = counts.computeIfAbsent(cacheId, id -> new AtomicLong(Long.MIN_VALUE));
-      long oldCount = count.getAndIncrement();
-      long newCount = oldCount + 1;
+      AtomicLong count = counts.computeIfAbsent(cacheId, id -> new AtomicLong(0L));
+      long oldCount = count.getAndAdd(countDelta);
+      long newCount = oldCount + countDelta;
 
-      memoryConsumption.computeIfAbsent(cacheId, ci -> memoryConsumptionProvider.getMemoryConsumption(value));
+      memoryConsumption.computeIfAbsent(cacheId, ci -> memoryConsumptionProvider.getMemoryConsumptionBytes(value));
 
       // we add our value with its count to "topCounts". Note: If this value now is used often enough to get into the
       // cache,
@@ -213,68 +279,7 @@ public class CountingCache<K1 extends Comparable<K1>, K2 extends Comparable<K2>,
       topCounts.add(newColIdCount);
       topCounts.remove(new CacheIdCount(cacheId, oldCount));
 
-      // we retry to identify if we have to add the new value/what other values to remove to/from the cache. This is
-      // because
-      // while inspecting the situation we might have multiple threads doing the same simultaneously, even with the same
-      // CacheId! There we find a decision what we'd like to do, then enter a sync-block and validate if the data we
-      // based
-      // our decision on is still valid and only if it is, we execute our decision.
-      boolean retry = true;
-      while (retry) {
-        // we collect the colIds that we inspected in "counts" in the right order.
-        List<CacheIdCount> curInspectedCountCacheIds = new ArrayList<>();
-
-        Set<CacheId> cacheIdsVisited = new HashSet<>();
-        Set<CacheId> cacheIdsThatShouldBeCached = new HashSet<>();
-        long memory = 0L;
-        for (CacheIdCount cacheIdCount : topCounts) {
-          curInspectedCountCacheIds.add(cacheIdCount);
-
-          if (cacheIdsVisited.contains(cacheIdCount.getLeft()))
-            // CacheIds might be available multiple times in "count" (they are first added, then removed, see above).
-            // Therefore make sure we just take the maximum "count" into account of a CacheId.
-            continue;
-          cacheIdsVisited.add(cacheIdCount.getLeft());
-
-          // memory consumption is definitely available, since it cannot have been cleaned up, as the internal cleanup
-          // cannot run simultaneously!
-          long nextMemory = memoryConsumption.get(cacheIdCount.getLeft());
-          if (memory + nextMemory > maxMemoryBytes)
-            break;
-          memory += nextMemory;
-          cacheIdsThatShouldBeCached.add(cacheIdCount.getLeft());
-        }
-
-        // decide what we have to do
-        Set<CacheId> curCurrentlyCachedCacheIds = new HashSet<>(currentlyCachedCacheIds);
-        Set<CacheId> cacheIdsToBeRemovedFromCache =
-            new HashSet<>(Sets.difference(curCurrentlyCachedCacheIds, cacheIdsThatShouldBeCached));
-
-        boolean shouldAddNewCacheIdToCache =
-            !curCurrentlyCachedCacheIds.contains(cacheId) && cacheIdsThatShouldBeCached.contains(cacheId);
-
-        if (!cacheIdsToBeRemovedFromCache.isEmpty() || cacheIdsThatShouldBeCached.contains(cacheId)) {
-          synchronized (updateCacheSync) {
-            if (!curCurrentlyCachedCacheIds.equals(currentlyCachedCacheIds)
-                || !DiqubeIterables.startsWith(topCounts, curInspectedCountCacheIds))
-              // retry as the data structures we based our decisions on have changed.
-              continue;
-
-            // do not remove flagged cache Ids.
-            Sets.difference(cacheIdsToBeRemovedFromCache, flaggedChacheIds.keySet()).forEach(id -> removeFromCache(id));
-
-            if (shouldAddNewCacheIdToCache) {
-              addToCache(cacheId, value);
-              addedToCache = true;
-            }
-
-            // we succeeded!
-            retry = false;
-          }
-        } else
-          // we do not need to take any action, so we're done!
-          retry = false;
-      }
+      addedToCache = consolidate(cacheId, value);
     } finally {
       cleanupLock.readLock().unlock();
     }
@@ -283,6 +288,112 @@ public class CountingCache<K1 extends Comparable<K1>, K2 extends Comparable<K2>,
       intermediaryCleanup();
 
     return addedToCache;
+  }
+
+  /**
+   * Consolidates the {@link #caches} based on current values of {@link #topCounts}, {@link #memoryConsumption},
+   * {@link #flaggedChacheIds} and {@link #currentlyCachedCacheIds}. {@link #memoryConsumption} needs to contain values
+   * for all elements in {@link #topCounts}.
+   * 
+   * <p>
+   * This method optionally adds a new element to the cache if eligible.
+   * 
+   * <p>
+   * This method must only be called, if {@link #cleanupLock}s readLock is acquired already!
+   * 
+   * @param addCacheId
+   *          The ID of the element to add or <code>null</code> if nothing should be added.
+   * @param addValue
+   *          The value of the element to add or <code>null</code> if nothing should be added.
+   * @return <code>true</code> in case the value was added successfully.
+   */
+  private boolean consolidate(CacheId addCacheId, V addValue) {
+    boolean addedToCache = false;
+
+    // we retry to identify if we have to add the new value/what other values to remove to/from the cache. This is
+    // because while inspecting the situation we might have multiple threads doing the same simultaneously, even with
+    // the same CacheId! There we find a decision what we'd like to do, then enter a sync-block and validate if the data
+    // we based our decision on is still valid and only if it is, we execute our decision.
+    boolean retry = true;
+    while (retry) {
+      // we collect the colIds that we inspected in "counts" in the right order.
+      List<CacheIdCount> curInspectedCountCacheIds = new ArrayList<>();
+
+      Set<CacheId> cacheIdsVisited = new HashSet<>();
+      Set<CacheId> cacheIdsThatShouldBeCached = new HashSet<>();
+      long memory = 0L;
+      for (CacheIdCount cacheIdCount : topCounts) {
+        curInspectedCountCacheIds.add(cacheIdCount);
+
+        if (cacheIdsVisited.contains(cacheIdCount.getLeft()))
+          // CacheIds might be available multiple times in "count" (they are first added, then removed, see above).
+          // Therefore make sure we just take the maximum "count" into account of a CacheId.
+          continue;
+        cacheIdsVisited.add(cacheIdCount.getLeft());
+
+        // memory consumption is definitely available, since it cannot have been cleaned up, as the internal cleanup
+        // cannot run simultaneously!
+        long nextMemory = memoryConsumption.get(cacheIdCount.getLeft());
+        if (memory + nextMemory > maxMemoryBytes)
+          break;
+        memory += nextMemory;
+        cacheIdsThatShouldBeCached.add(cacheIdCount.getLeft());
+      }
+
+      // decide what we have to do
+      Set<CacheId> curCurrentlyCachedCacheIds = new HashSet<>(currentlyCachedCacheIds);
+      Set<CacheId> cacheIdsToBeRemovedFromCache =
+          new HashSet<>(Sets.difference(curCurrentlyCachedCacheIds, cacheIdsThatShouldBeCached));
+
+      boolean shouldAddNewCacheIdToCache = addCacheId != null && !curCurrentlyCachedCacheIds.contains(addCacheId)
+          && (cacheIdsThatShouldBeCached.contains(addCacheId) || flaggedChacheIds.containsKey(addCacheId));
+
+      if (!cacheIdsToBeRemovedFromCache.isEmpty()
+          || (addCacheId != null && cacheIdsThatShouldBeCached.contains(addCacheId))) {
+        synchronized (updateCacheSync) {
+          if (!curCurrentlyCachedCacheIds.equals(currentlyCachedCacheIds)
+              || !DiqubeIterables.startsWith(topCounts, curInspectedCountCacheIds))
+            // retry as the data structures we based our decisions on have changed.
+            continue;
+
+          // do not remove flagged cache Ids.
+          Sets.difference(cacheIdsToBeRemovedFromCache, flaggedChacheIds.keySet()).forEach(id -> removeFromCache(id));
+
+          if (addCacheId != null && shouldAddNewCacheIdToCache) {
+            addToCache(addCacheId, addValue);
+            addedToCache = true;
+          }
+
+          // we succeeded!
+          retry = false;
+        }
+      } else
+        // we do not need to take any action, so we're done!
+        retry = false;
+    }
+
+    return addedToCache;
+  }
+
+  /**
+   * Consolidate the cache.
+   * 
+   * <p>
+   * This will evict all elements that are not flagged any more and perhaps execute internal cleanup (at the discretion
+   * of the cache).
+   */
+  public void consolidate() {
+    removeOldFlaggedCacheIds();
+
+    cleanupLock.readLock().lock();
+    try {
+      consolidate(null, null);
+    } finally {
+      cleanupLock.readLock().unlock();
+    }
+
+    if (cleanupStrategy.executeCleanup())
+      intermediaryCleanup();
   }
 
   /**
@@ -333,8 +444,13 @@ public class CountingCache<K1 extends Comparable<K1>, K2 extends Comparable<K2>,
             Sets.newHashSet(Iterables.concat(currentlyCachedCacheIds, Arrays.asList(notCachedInterestingCacheId)));
       memoryConsumption.keySet().retainAll(retainCacheIds);
 
-      // Note: do not clean up "counts" field, as we obviously need to keep track of all counts and should not evict
-      // that ever.
+      // check if we should clean up any "counts"
+      Set<? extends Pair<K1, K2>> countCleanups = countCleanupStrategy
+          .getCountsForCleanup(Sets.difference(counts.keySet(), currentlyCachedCacheIds), counts.keySet());
+      if (countCleanups != null && !countCleanups.isEmpty()) {
+        for (Pair<K1, K2> p : countCleanups)
+          counts.remove(new CacheId(p.getLeft(), p.getRight()));
+      }
     } finally {
       cleanupLock.writeLock().unlock();
     }
@@ -366,6 +482,13 @@ public class CountingCache<K1 extends Comparable<K1>, K2 extends Comparable<K2>,
   @Override
   public int size() {
     return currentlyCachedCacheIds.size();
+  }
+
+  public Long getCount(K1 key1, K2 key2) {
+    AtomicLong l = counts.get(new CacheId(key1, key2));
+    if (l == null)
+      return null;
+    return l.get();
   }
 
   /**
@@ -415,6 +538,11 @@ public class CountingCache<K1 extends Comparable<K1>, K2 extends Comparable<K2>,
     } finally {
       cleanupLock.writeLock().unlock();
     }
+  }
+
+  /** for tests */
+  /* pcakage */ void setCleanupStrategy(InternalCleanupStrategy cleanupStrategy) {
+    this.cleanupStrategy = cleanupStrategy;
   }
 
   /**
@@ -478,7 +606,44 @@ public class CountingCache<K1 extends Comparable<K1>, K2 extends Comparable<K2>,
     }
   }
 
+  /**
+   * Provider of the size of memory a value takes up.
+   */
   public static interface MemoryConsumptionProvider<V> {
-    public long getMemoryConsumption(V value);
+    /**
+     * @return Number of bytes the given value takes up.
+     */
+    public long getMemoryConsumptionBytes(V value);
   }
+
+  /**
+   * Strategy to decide which collected "count" values should be cleaned up.
+   * 
+   * <p>
+   * This is called once-and-then by {@link CountingCache}.
+   */
+  public static interface CountCleanupStrategy<K1 extends Comparable<K1>, K2 extends Comparable<K2>> {
+    /**
+     * Identifies which "count" values to be cleaned up.
+     * 
+     * <p>
+     * Note that only "count" values of cache entries which will never again be "offered" to the cache should be cleaned
+     * up, otherwise the counting of such cache elements will re-start at 0 (and therefore probably always lose when
+     * compared against the currently-cached elements).
+     * 
+     * @param countsUpForCleanup
+     *          A set of (K1,K2) pairs of cache entries which are currently not cached, but of which a "count" is
+     *          available.
+     * @param allCounts
+     *          A set of (K1, K2) pairs of all counts available. Not that if (K1, K2)s that are only available in this
+     *          set (and not in countsUpForCleanup), you might remove the counts of currently cached elements which will
+     *          lead to these entries being most probably removed from the cache in the next call to
+     *          {@link CountingCache#offer(Comparable, Comparable, Object)} etc.
+     * @return Those (K1,K2) pairs which should be cleaned up or <code>null</code> if nothing should be cleaned up and
+     *         all counts should be kept.
+     */
+    public Set<? extends Pair<K1, K2>> getCountsForCleanup(Set<? extends Pair<K1, K2>> countsUpForCleanup,
+        Set<? extends Pair<K1, K2>> allCounts);
+  }
+
 }

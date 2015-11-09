@@ -20,23 +20,14 @@
  */
 package org.diqube.cache;
 
+import java.util.function.Supplier;
+
 /**
- * A {@link Cache} that can be written to.
  *
  * @author Bastian Gloeckle
  */
-public interface WritableCache<K1 extends Comparable<K1>, K2 extends Comparable<K2>, V> extends Cache<K1, K2, V> {
-  /**
-   * Offer a new element to be stored in the cache.
-   * 
-   * @param key1
-   *          key part one.
-   * @param key2
-   *          key part two.
-   * @param value
-   *          The value to be cached.
-   * @return If the value was actually cached.
-   */
-  public boolean offer(K1 key1, K2 key2, V value);
-
+public class CountingCacheTestUtil {
+  public static void setCleanupStrategy(CountingCache<?, ?, ?> cache, Supplier<Boolean> strategy) {
+    cache.setCleanupStrategy(() -> strategy.get());
+  }
 }
