@@ -244,7 +244,7 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
           service.getService().executeOnAllLocalShards(remoteExecutionPlan,
               RUuidUtil.toRUuid(QueryUuid.getCurrentQueryUuid()), ourRemoteAddr);
 
-          if (service.isLocal())
+          if (!service.isLocal())
             remotesActive.add(remoteAddr);
         } catch (IOException | ConnectionException | TException e) {
           if (ourRemoteAddr.equals(remoteAddr)) {

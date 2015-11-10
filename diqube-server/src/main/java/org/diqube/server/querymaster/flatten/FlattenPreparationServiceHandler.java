@@ -18,7 +18,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.flatten;
+package org.diqube.server.querymaster.flatten;
 
 import java.util.List;
 import java.util.UUID;
@@ -27,6 +27,7 @@ import javax.inject.Inject;
 
 import org.apache.thrift.TException;
 import org.diqube.context.AutoInstatiate;
+import org.diqube.flatten.QueryMasterFlattenService;
 import org.diqube.flatten.QueryMasterFlattenService.QueryMasterFlattenCallback;
 import org.diqube.remote.base.thrift.RNodeAddress;
 import org.diqube.remote.query.thrift.FlattenPreparationService;

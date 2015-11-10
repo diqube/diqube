@@ -23,8 +23,6 @@ package org.diqube.itest.tests;
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
 import java.util.UUID;
 
 import org.diqube.config.ConfigKey;
@@ -110,26 +108,4 @@ public class QueryTimeoutIntegrationTest extends AbstractDiqubeIntegrationTest {
     return s.contains(queryUuid.toString());
   }
 
-  private void generateJson(int depth, String[] fieldsOnEachLevel, int repetitionCountEachLevel, OutputStream outStream)
-      throws UnsupportedEncodingException, IOException {
-    outStream.write("{".getBytes("UTF-8"));
-    boolean first = true;
-    for (String fieldName : fieldsOnEachLevel) {
-      if (!first)
-        outStream.write(",".getBytes("UTF-8"));
-      first = false;
-
-      outStream.write(("\"" + fieldName + "\" : [").getBytes("UTF-8"));
-      for (int i = 0; i < repetitionCountEachLevel; i++) {
-        if (i > 0)
-          outStream.write(",".getBytes("UTF-8"));
-        if (depth == 1) {
-          outStream.write(Integer.toString(i).getBytes("UTF-8"));
-        } else
-          generateJson(depth - 1, fieldsOnEachLevel, repetitionCountEachLevel, outStream);
-      }
-      outStream.write("]".getBytes("UTF-8"));
-    }
-    outStream.write("}\n".getBytes("UTF-8"));
-  }
 }

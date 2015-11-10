@@ -22,12 +22,17 @@ package org.diqube.itest.util;
 
 import java.util.function.Supplier;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Helper class capable of waiting until a specific circumstance is true.
  *
  * @author Bastian Gloeckle
  */
 public class Waiter {
+  private static final Logger logger = LoggerFactory.getLogger(Waiter.class);
+
   /**
    * Block this thread until the checkFn returns true.
    * 
@@ -59,6 +64,8 @@ public class Waiter {
           throw new RuntimeException("Interrupted while waiting for: " + waitFor);
         }
       }
+
+      logger.trace("Retry {} for '{}'.", i, waitFor);
 
       if (checkFn.get())
         return;

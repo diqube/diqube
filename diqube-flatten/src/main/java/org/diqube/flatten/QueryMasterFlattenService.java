@@ -319,6 +319,7 @@ public class QueryMasterFlattenService {
       public void noNodesServingOriginalTable() {
         synchronized (sync) {
           exceptionMsg.setValue("No nodes serving table " + table);
+          exceptionCause.setValue(null);
           sync.notifyAll();
         }
       }
@@ -326,7 +327,7 @@ public class QueryMasterFlattenService {
       @Override
       public void flattenException(String msg, Throwable cause) {
         synchronized (sync) {
-          exceptionMsg.setValue("No nodes serving table " + table);
+          exceptionMsg.setValue("Exception while flattening " + table);
           exceptionCause.setValue(cause);
           sync.notifyAll();
         }

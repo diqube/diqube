@@ -94,6 +94,8 @@ public class ServerControl implements LogfileSaver {
   /** Control over this server was manually overridden, this class cannot start/stop this server! */
   private boolean manualOverride;
 
+  private ProcessOutputReadThread processOutputReadThread;
+
   public ServerControl(File serverJarFile, File workDir, ServerAddressProvider addressProvider,
       ServerClusterNodesProvider clusterNodesProvider, boolean manualOverride) {
     this.serverJarFile = serverJarFile;
@@ -141,6 +143,8 @@ public class ServerControl implements LogfileSaver {
           "-D" + ConfigurationManager.CUSTOM_PROPERTIES_SYSTEM_PROPERTY + "=" + serverPropertiesFile.getAbsolutePath(),
           "-Dlogback.configurationFile=" + logbackConfig.getAbsolutePath(), "-jar", serverJarFile.getAbsolutePath());
 
+      processBuilder.redirectErrorStream(true);
+
       serverDied.set(false);
 
       logger.info("Starting server at {}", ourAddr);
@@ -153,6 +157,9 @@ public class ServerControl implements LogfileSaver {
 
       checkLivelinessThread = new CheckLivelinessThread(serverProcess, ourAddr);
       checkLivelinessThread.start();
+
+      processOutputReadThread = new ProcessOutputReadThread(serverProcess.getInputStream());
+      processOutputReadThread.start();
 
       waitUntilServerIsRunning(ourAddr);
     }
@@ -171,8 +178,10 @@ public class ServerControl implements LogfileSaver {
 
     if (!manualOverride) {
       checkLivelinessThread.interrupt();
+      processOutputReadThread.interrupt();
       try {
         checkLivelinessThread.join();
+        processOutputReadThread.join();
       } catch (InterruptedException e1) {
         // swallow.
       }
@@ -236,6 +245,13 @@ public class ServerControl implements LogfileSaver {
     } catch (IOException e) {
       throw new RuntimeException("IOException while interacting with jstack.", e);
     }
+  }
+
+  /**
+   * All the output of the server process.
+   */
+  public String getServerLogOutput() {
+    return new String(processOutputReadThread.getCurrentBytes(), Charset.forName("UTF-8"));
   }
 
   public boolean isStarted() {
@@ -388,6 +404,49 @@ public class ServerControl implements LogfileSaver {
           return;
         }
       }
+    }
+  }
+
+  /**
+   * Thread that continuously reads from an {@link InputStream} and provides all the read bytes.
+   */
+  private class ProcessOutputReadThread extends Thread {
+
+    private InputStream streamToReadFrom;
+    private ByteArrayOutputStream bytesReadStream = new ByteArrayOutputStream();
+
+    public ProcessOutputReadThread(InputStream streamToReadFrom) {
+      this.streamToReadFrom = streamToReadFrom;
+    }
+
+    @Override
+    public void run() {
+      Object sync = new Object();
+      while (true) {
+        synchronized (sync) {
+          try {
+            sync.wait(150);
+          } catch (InterruptedException e) {
+            // quiet exit
+            return;
+          }
+        }
+
+        int read;
+        byte[] buf = new byte[4096];
+        try {
+          while ((read = streamToReadFrom.read(buf)) > 0) {
+            bytesReadStream.write(buf, 0, read);
+          }
+        } catch (IOException e) {
+          logger.error("IOException while reading from server process", e);
+          throw new RuntimeException("IOException while reading from server process", e);
+        }
+      }
+    }
+
+    public byte[] getCurrentBytes() {
+      return bytesReadStream.toByteArray();
     }
   }
 

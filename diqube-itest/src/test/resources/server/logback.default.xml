@@ -31,7 +31,7 @@
   
   <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
     <encoder>
-      <pattern>%msg%n</pattern>
+      <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} [%file:%line] - %msg%n</pattern>
     </encoder>
   </appender>
 
@@ -43,7 +43,6 @@
 
   <root level="info">
     <appender-ref ref="FILE" />
-    <!-- Do not log to STDOUT in server process, as ServerControl does not consume the output stream and the process might block therefore. -->
-     <!-- <appender-ref ref="STDOUT" />-->
+    <appender-ref ref="STDOUT" />
   </root>
 </configuration>

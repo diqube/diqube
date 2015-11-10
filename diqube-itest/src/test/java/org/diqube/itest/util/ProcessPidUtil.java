@@ -22,6 +22,7 @@ package org.diqube.itest.util;
 
 import java.lang.reflect.Field;
 
+import org.diqube.itest.annotations.NeedsProcessPid;
 import org.springframework.util.ReflectionUtils;
 
 /**
@@ -35,6 +36,9 @@ public class ProcessPidUtil {
 
   /**
    * Try to find the process ID (PID) of the given process.
+   * 
+   * <p>
+   * Use {@link NeedsProcessPid} annotation on test method.
    * 
    * @throws IllegalStateException
    *           If the PID cannot be identified.

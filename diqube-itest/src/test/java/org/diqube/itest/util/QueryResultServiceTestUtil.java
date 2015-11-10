@@ -35,6 +35,7 @@ import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TNonblockingServerSocket;
 import org.apache.thrift.transport.TTransportException;
 import org.diqube.itest.control.ServerControl.ServerAddr;
+import org.diqube.itest.util.ClusterFlattenServiceTestUtil.TestClusterFlattenService;
 import org.diqube.remote.base.thrift.RUUID;
 import org.diqube.remote.query.KeepAliveServiceConstants;
 import org.diqube.remote.query.QueryResultServiceConstants;
@@ -184,7 +185,7 @@ public class QueryResultServiceTestUtil {
 
     @Override
     public void queryException(RUUID queryRUuid, RQueryException exceptionThrown) throws TException {
-      logger.trace("Received exception: {}", exceptionThrown);
+      logger.trace("Received exception: {}", exceptionThrown.getMessage(), exceptionThrown);
       res.exception = exceptionThrown;
     }
 

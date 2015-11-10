@@ -18,9 +18,10 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.server.querymaster;
+package org.diqube.server.querymaster.query;
 
 import java.io.IOException;
+import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
@@ -29,7 +30,10 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 
 import org.apache.thrift.TException;
@@ -97,7 +101,25 @@ public class QueryServiceHandler implements Iface {
   @Inject
   private ConnectionOrLocalHelper connectionOrLocalHelper;
 
+  private ExecutorService cancelExecutors;
+
   private Set<UUID> toCancelQueries = new ConcurrentSkipListSet<>();
+
+  @PostConstruct
+  public void initialize() {
+    cancelExecutors =
+        executorManager.newCachedThreadPoolWithMax("master-query-cancel-%d", new UncaughtExceptionHandler() {
+          @Override
+          public void uncaughtException(Thread t, Throwable e) {
+            logger.error("Uncaught exception in a thread that was meant to cancel a currently executing query", e);
+          }
+        }, 10);
+  }
+
+  @PreDestroy
+  public void cleanup() {
+    cancelExecutors.shutdownNow();
+  }
 
   /**
    * Cancels the execution of a query that was started with
@@ -122,7 +144,9 @@ public class QueryServiceHandler implements Iface {
       // query right inside the #asyncExecuteQuery method.
       return;
 
-    queryRegistry.handleException(queryUuid, queryMasterExecutionUuid, new RuntimeException("Cancelled by user"));
+    // handle "exception" in a different thread, so we make sure the call to this method returns quickly.
+    cancelExecutors.execute(() -> queryRegistry.handleException(queryUuid, queryMasterExecutionUuid,
+        new RuntimeException("Cancelled by user")));
 
     toCancelQueries.remove(queryUuid);
   }

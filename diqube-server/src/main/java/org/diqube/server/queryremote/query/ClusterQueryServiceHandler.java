@@ -70,7 +70,7 @@ import org.diqube.remote.cluster.thrift.RExecutionException;
 import org.diqube.remote.cluster.thrift.RExecutionPlan;
 import org.diqube.remote.cluster.thrift.ROldNewIntermediateAggregationResult;
 import org.diqube.remote.query.thrift.QueryService;
-import org.diqube.server.querymaster.QueryServiceHandler;
+import org.diqube.server.querymaster.query.QueryServiceHandler;
 import org.diqube.server.queryremote.query.RemoteExecutionPlanExecutor.RemoteExecutionPlanExecutionCallback;
 import org.diqube.server.util.ExecutablePlanQueryStatsUtil;
 import org.diqube.threads.ExecutorManager;
