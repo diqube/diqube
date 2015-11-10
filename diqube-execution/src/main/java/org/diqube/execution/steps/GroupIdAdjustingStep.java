@@ -85,10 +85,13 @@ public class GroupIdAdjustingStep extends AbstractThreadedExecutablePlanStep {
     }
   };
 
+  /** sync additions/removals by value of {@link #incomingGroupIntermediariesSync}. */
   private volatile ConcurrentMap<Long, Deque<Triple<String, IntermediaryResult<Object, Object, Object>, IntermediaryResult<Object, Object, Object>>>> incomingGroupIntermediaries =
       new ConcurrentHashMap<>();
 
   private AtomicBoolean groupInputIsDone = new AtomicBoolean(false);
+
+  private ConcurrentMap<Long, Object> incomingGroupIntermediariesSync = new ConcurrentHashMap<>();
 
   private AbstractThreadedGroupIntermediaryAggregationConsumer groupIntermediateAggregateConsumer =
       new AbstractThreadedGroupIntermediaryAggregationConsumer(this) {
@@ -101,19 +104,17 @@ public class GroupIdAdjustingStep extends AbstractThreadedExecutablePlanStep {
         protected void doConsumeIntermediaryAggregationResult(long groupId, String colName,
             IntermediaryResult<Object, Object, Object> oldIntermediaryResult,
             IntermediaryResult<Object, Object, Object> newIntermediaryResult) {
-          Deque<Triple<String, IntermediaryResult<Object, Object, Object>, IntermediaryResult<Object, Object, Object>>> deque =
-              incomingGroupIntermediaries.computeIfAbsent(groupId, g -> new ConcurrentLinkedDeque<>());
+          incomingGroupIntermediariesSync.putIfAbsent(groupId, new Object());
 
-          deque.addLast(new Triple<>(colName, oldIntermediaryResult, newIntermediaryResult));
-
-          // value might have been removed again already, and even another new Deque might have been installed. Make
-          // sure our values are not lost.
-          incomingGroupIntermediaries.merge(groupId, deque, (oldDeque, ourDeque) -> {
-            if (oldDeque == ourDeque)
-              return ourDeque;
-            oldDeque.addAll(deque);
-            return oldDeque;
-          });
+          synchronized (incomingGroupIntermediariesSync.get(groupId)) {
+            incomingGroupIntermediaries.compute(groupId, (key, value) -> {
+              if (value == null)
+                value =
+                    new ConcurrentLinkedDeque<Triple<String, IntermediaryResult<Object, Object, Object>, IntermediaryResult<Object, Object, Object>>>();
+              value.addLast(new Triple<>(colName, oldIntermediaryResult, newIntermediaryResult));
+              return value;
+            });
+          }
         }
       };
 
@@ -206,19 +207,29 @@ public class GroupIdAdjustingStep extends AbstractThreadedExecutablePlanStep {
             incomingGroupIntermediaries.get(inputGroupId);
 
         if (intermediaries.isEmpty()) {
-          incomingGroupIntermediaries.remove(inputGroupId);
-          continue;
+          synchronized (incomingGroupIntermediariesSync.get(inputGroupId)) {
+            // double-checked locking since there might have been something added to the deque in the meantime.
+            if (intermediaries.isEmpty()) {
+              incomingGroupIntermediaries.remove(inputGroupId);
+              continue;
+            }
+          }
         }
 
         logger.trace("Processing collected changes for group {}", newGroupId);
-        while (!incomingGroupIntermediaries.get(inputGroupId).isEmpty()) {
+        List<String> colNamesProcessed = new ArrayList<>();
+        while (!intermediaries.isEmpty()) {
           Triple<String, IntermediaryResult<Object, Object, Object>, IntermediaryResult<Object, Object, Object>> update =
-              incomingGroupIntermediaries.get(inputGroupId).poll();
+              intermediaries.poll();
+
+          colNamesProcessed.add(update.getLeft());
 
           forEachOutputConsumerOfType(GroupIntermediaryAggregationConsumer.class,
               c -> c.consumeIntermediaryAggregationResult(newGroupId, update.getLeft(), update.getMiddle(),
                   update.getRight()));
         }
+        logger.trace("Processed collected changes for group {}, there were updates for cols {}", newGroupId,
+            colNamesProcessed);
       }
     }
   }

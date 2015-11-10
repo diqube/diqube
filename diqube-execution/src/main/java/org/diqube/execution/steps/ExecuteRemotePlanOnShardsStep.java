@@ -141,7 +141,7 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
     public void newIntermediaryAggregationResult(long groupId, String colName,
         IntermediaryResult<Object, Object, Object> oldIntermediaryResult,
         IntermediaryResult<Object, Object, Object> newIntermediaryResult) {
-      logger.trace("Received intermediary results for group {} from remote", groupId);
+      logger.trace("Received intermediary results for group {} col {} from remote", groupId, colName);
       forEachOutputConsumerOfType(GroupIntermediaryAggregationConsumer.class,
           c -> c.consumeIntermediaryAggregationResult(groupId, colName, oldIntermediaryResult, newIntermediaryResult));
     }
