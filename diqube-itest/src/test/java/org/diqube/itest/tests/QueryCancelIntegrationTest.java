@@ -113,7 +113,7 @@ public class QueryCancelIntegrationTest extends AbstractDiqubeIntegrationTest {
       int numberOfRemoteSteps = calculateNumberOfRemoteSteps(diqlQuery);
       logger.info("Found that there are {} remote steps in the execution plan", numberOfRemoteSteps);
 
-      String stepDoneRegex = AbstractThreadedExecutablePlanStep.STEP_IS_DONE_PROCESSING_LOG_PATERN.replace("{}", ".*");
+      String stepDoneRegex = AbstractThreadedExecutablePlanStep.STEP_IS_DONE_PROCESSING_LOG_PATTERN.replace("{}", ".*");
       Pattern workerDonePattern =
           Pattern.compile(".*query-remote-worker-" + queryUuid.toString() + ".*" + stepDoneRegex);
 

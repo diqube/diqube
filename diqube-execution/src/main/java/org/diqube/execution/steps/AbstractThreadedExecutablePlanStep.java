@@ -63,7 +63,7 @@ import org.slf4j.LoggerFactory;
  */
 public abstract class AbstractThreadedExecutablePlanStep implements ExecutablePlanStep {
   /** used for itests */
-  public static final String STEP_IS_DONE_PROCESSING_LOG_PATERN = "Step {} ({}) is done processing";
+  public static final String STEP_IS_DONE_PROCESSING_LOG_PATTERN = "Step {} ({}) is done processing";
 
   private static final Logger logger = LoggerFactory.getLogger(AbstractThreadedExecutablePlanStep.class);
 
@@ -158,7 +158,7 @@ public abstract class AbstractThreadedExecutablePlanStep implements ExecutablePl
   }
 
   protected void doneProcessing() {
-    logger.trace(STEP_IS_DONE_PROCESSING_LOG_PATERN, this.getStepId(), this.getClass().getSimpleName());
+    logger.trace(STEP_IS_DONE_PROCESSING_LOG_PATTERN, this.getStepId(), this.getClass().getSimpleName());
     doneProcessing.set(true);
     continueProcessing();
   }
