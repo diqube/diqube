@@ -103,7 +103,7 @@ public class QueryCancelIntegrationTest extends AbstractDiqubeIntegrationTest {
 
       // now /all/ threads should be cancelled within a short amount of time, both the ones of query master and the ones
       // of query remotes.
-      new Waiter().waitUntil("There are no more query threads", 10, 500,
+      new Waiter().waitUntil("There are no more query threads", 20, 500,
           () -> !threadDumpContainsString(serverControl.get(0), queryUuid.toString())
               && !threadDumpContainsString(serverControl.get(1), queryUuid.toString()));
 

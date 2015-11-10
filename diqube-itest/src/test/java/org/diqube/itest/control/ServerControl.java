@@ -158,8 +158,15 @@ public class ServerControl implements LogfileSaver {
       checkLivelinessThread = new CheckLivelinessThread(serverProcess, ourAddr);
       checkLivelinessThread.start();
 
-      processOutputReadThread = new ProcessOutputReadThread(serverProcess.getInputStream());
+      processOutputReadThread = new ProcessOutputReadThread(serverProcess.getInputStream(), ourAddr);
       processOutputReadThread.start();
+
+      try {
+        // seems to be a good idea to close the input of the process right away as we'll never send any data to it.
+        serverProcess.getOutputStream().close();
+      } catch (IOException e) {
+        logger.debug("Could not close input pipe of server process", e);
+      }
 
       waitUntilServerIsRunning(ourAddr);
     }
@@ -415,7 +422,8 @@ public class ServerControl implements LogfileSaver {
     private InputStream streamToReadFrom;
     private ByteArrayOutputStream bytesReadStream = new ByteArrayOutputStream();
 
-    public ProcessOutputReadThread(InputStream streamToReadFrom) {
+    public ProcessOutputReadThread(InputStream streamToReadFrom, ServerAddr server) {
+      super("server-output-read-" + server.getHost() + "-" + server.getPort());
       this.streamToReadFrom = streamToReadFrom;
     }
 
@@ -425,7 +433,7 @@ public class ServerControl implements LogfileSaver {
       while (true) {
         synchronized (sync) {
           try {
-            sync.wait(150);
+            sync.wait(10);
           } catch (InterruptedException e) {
             // quiet exit
             return;
@@ -433,10 +441,12 @@ public class ServerControl implements LogfileSaver {
         }
 
         int read;
-        byte[] buf = new byte[4096];
         try {
-          while ((read = streamToReadFrom.read(buf)) > 0) {
-            bytesReadStream.write(buf, 0, read);
+          if (streamToReadFrom.available() > 0) {
+            byte[] buf = new byte[streamToReadFrom.available()];
+            if ((read = streamToReadFrom.read(buf)) > 0) {
+              bytesReadStream.write(buf, 0, read);
+            }
           }
         } catch (IOException e) {
           logger.error("IOException while reading from server process", e);
