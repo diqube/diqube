@@ -44,9 +44,11 @@ import org.diqube.remote.cluster.thrift.ClusterFlattenService;
 import org.diqube.remote.cluster.thrift.ClusterManagementService;
 import org.diqube.remote.cluster.thrift.ClusterQueryService;
 import org.diqube.remote.query.ClusterInformationServiceConstants;
+import org.diqube.remote.query.FlattenPreparationServiceConstants;
 import org.diqube.remote.query.KeepAliveServiceConstants;
 import org.diqube.remote.query.QueryServiceConstants;
 import org.diqube.remote.query.thrift.ClusterInformationService;
+import org.diqube.remote.query.thrift.FlattenPreparationService;
 import org.diqube.remote.query.thrift.KeepAliveService;
 import org.diqube.remote.query.thrift.QueryService;
 import org.diqube.server.thrift.ThriftServer;
@@ -90,6 +92,9 @@ public class ServerImplementation {
 
   @Inject
   private KeepAliveService.Iface keepAliveHandler;
+
+  @Inject
+  private FlattenPreparationService.Iface flattenPreparationHandler;
 
   @Inject
   private ExecutorManager executorManager;
@@ -139,6 +144,8 @@ public class ServerImplementation {
         new ClusterInformationService.Processor<ClusterInformationService.Iface>(clusterInformationHandler));
     multiProcessor.registerProcessor(ClusterFlattenServiceConstants.SERVICE_NAME,
         new ClusterFlattenService.Processor<ClusterFlattenService.Iface>(clusterFlattenHandler));
+    multiProcessor.registerProcessor(FlattenPreparationServiceConstants.SERVICE_NAME,
+        new FlattenPreparationService.Processor<FlattenPreparationService.Iface>(flattenPreparationHandler));
 
     TNonblockingServerTransport transport;
     try {
