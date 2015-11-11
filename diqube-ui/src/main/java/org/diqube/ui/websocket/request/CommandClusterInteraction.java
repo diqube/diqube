@@ -21,6 +21,7 @@
 package org.diqube.ui.websocket.request;
 
 import org.diqube.remote.query.thrift.ClusterInformationService;
+import org.diqube.remote.query.thrift.FlattenPreparationService;
 import org.diqube.remote.query.thrift.QueryResultService;
 
 /**
@@ -47,4 +48,10 @@ public interface CommandClusterInteraction {
    *         the cluster.
    */
   public ClusterInformationService.Iface getClusterInformationService();
+
+  /**
+   * @return An instance of {@link FlattenPreparationService} that can be used to warm up the cluster with a flattened
+   *         table.
+   */
+  public FlattenPreparationService.Iface getFlattenPreparationService();
 }

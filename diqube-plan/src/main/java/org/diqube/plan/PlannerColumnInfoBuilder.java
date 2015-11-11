@@ -31,10 +31,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.diqube.plan.request.ComparisonRequest.Leaf;
-import org.diqube.plan.request.ExecutionRequest;
-import org.diqube.plan.request.FunctionRequest;
-import org.diqube.plan.request.FunctionRequest.Type;
+import org.diqube.diql.request.ExecutionRequest;
+import org.diqube.diql.request.FunctionRequest;
+import org.diqube.diql.request.ComparisonRequest.Leaf;
+import org.diqube.diql.request.FunctionRequest.Type;
 import org.diqube.util.ColumnOrValue;
 
 /**

@@ -174,8 +174,12 @@ keyword
  ;
 
 tableName 
- : F_FLATTEN anyName ',' columnName ')'
+ : flattenedTableName
  | anyName                                         
+ ;
+
+flattenedTableName
+ : F_FLATTEN anyName ',' columnName ')'
  ;
 
 columnName 

@@ -66,7 +66,9 @@
     <module>diqube-data-serialize</module>
     <module>diqube-file</module>
     <module>diqube-tool</module>
+    <module>diqube-name</module>
     <module>diqube-diql</module>
+    <module>diqube-optimize</module>
     <module>diqube-loader</module>
     <module>diqube-hadoop</module>
     <module>diqube-function</module>

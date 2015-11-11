@@ -24,12 +24,12 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.diqube.context.AutoInstatiate;
-import org.diqube.plan.request.ComparisonRequest;
-import org.diqube.plan.request.ExecutionRequest;
-import org.diqube.plan.request.FromRequest;
-import org.diqube.plan.request.FunctionRequest;
-import org.diqube.plan.request.GroupRequest;
-import org.diqube.plan.request.OrderRequest;
+import org.diqube.diql.request.ComparisonRequest;
+import org.diqube.diql.request.ExecutionRequest;
+import org.diqube.diql.request.FromRequest;
+import org.diqube.diql.request.FunctionRequest;
+import org.diqube.diql.request.GroupRequest;
+import org.diqube.diql.request.OrderRequest;
 import org.diqube.remote.base.thrift.RValue;
 import org.diqube.remote.cluster.thrift.RCol;
 import org.diqube.remote.cluster.thrift.RColOrValue;

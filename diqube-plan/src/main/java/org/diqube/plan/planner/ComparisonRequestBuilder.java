@@ -22,7 +22,7 @@ package org.diqube.plan.planner;
 
 import java.util.List;
 
-import org.diqube.plan.request.ComparisonRequest;
+import org.diqube.diql.request.ComparisonRequest;
 import org.diqube.util.Pair;
 
 /**

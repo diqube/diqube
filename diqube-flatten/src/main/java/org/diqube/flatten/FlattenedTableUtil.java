@@ -42,7 +42,7 @@ import org.diqube.data.table.TableShard;
 import org.diqube.data.types.dbl.DoubleStandardColumnShard;
 import org.diqube.data.types.lng.LongStandardColumnShard;
 import org.diqube.data.types.str.StringStandardColumnShard;
-import org.diqube.data.util.FlattenedTableNameGenerator;
+import org.diqube.name.FlattenedTableNameGenerator;
 
 /**
  * Util for {@link FlattenedTable}s.

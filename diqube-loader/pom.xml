@@ -55,6 +55,12 @@
       <artifactId>diqube-file</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>diqube-name</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
     
     <dependency>
       <groupId>com.opencsv</groupId>

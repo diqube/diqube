@@ -23,13 +23,13 @@ package org.diqube.ui.analysis;
 import java.util.Arrays;
 import java.util.List;
 
-import org.diqube.data.util.RepeatedColumnNameGenerator;
 import org.diqube.diql.DiqlParseUtil;
 import org.diqube.diql.antlr.DiqlParser.DiqlStmtContext;
-import org.diqube.plan.request.ComparisonRequest;
-import org.diqube.plan.request.ExecutionRequest;
-import org.diqube.plan.util.FunctionBasedColumnNameBuilderFactory;
-import org.diqube.plan.visitors.SelectStmtVisitor;
+import org.diqube.diql.request.ComparisonRequest;
+import org.diqube.diql.request.ExecutionRequest;
+import org.diqube.diql.visitors.SelectStmtVisitor;
+import org.diqube.name.FunctionBasedColumnNameBuilderFactory;
+import org.diqube.name.RepeatedColumnNameGenerator;
 import org.diqube.ui.analysis.QueryBuilder.QueryBuilderException;
 import org.testng.Assert;
 import org.testng.annotations.Test;

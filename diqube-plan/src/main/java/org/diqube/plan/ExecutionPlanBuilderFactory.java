@@ -23,9 +23,9 @@ package org.diqube.plan;
 import javax.inject.Inject;
 
 import org.diqube.context.AutoInstatiate;
-import org.diqube.data.util.RepeatedColumnNameGenerator;
 import org.diqube.executionenv.ExecutionEnvironmentFactory;
-import org.diqube.plan.util.FunctionBasedColumnNameBuilderFactory;
+import org.diqube.name.FunctionBasedColumnNameBuilderFactory;
+import org.diqube.name.RepeatedColumnNameGenerator;
 
 /**
  * Factory for {@link ExecutionPlanBuilder}

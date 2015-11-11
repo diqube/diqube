@@ -20,7 +20,7 @@
  */
 package org.diqube.plan.planner;
 
-import org.diqube.plan.request.OrderRequest;
+import org.diqube.diql.request.OrderRequest;
 
 /**
  * Builds any steps needed for an {@link OrderRequest}.

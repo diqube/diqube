@@ -26,7 +26,7 @@ import java.util.concurrent.ConcurrentMap;
 import org.diqube.config.Config;
 import org.diqube.config.ConfigKey;
 import org.diqube.context.AutoInstatiate;
-import org.diqube.data.util.FlattenedTableNameGenerator;
+import org.diqube.name.FlattenedTableNameGenerator;
 
 /**
  * Manages {@link WritableColumnShardCache} instances.

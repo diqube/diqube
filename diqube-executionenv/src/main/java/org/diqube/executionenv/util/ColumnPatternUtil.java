@@ -35,10 +35,10 @@ import java.util.stream.Stream;
 import javax.inject.Inject;
 
 import org.diqube.context.AutoInstatiate;
-import org.diqube.data.util.RepeatedColumnNameGenerator;
 import org.diqube.executionenv.ExecutionEnvironment;
 import org.diqube.executionenv.querystats.QueryableLongColumnShard;
 import org.diqube.executionenv.resolver.QueryableLongColumnShardResolver;
+import org.diqube.name.RepeatedColumnNameGenerator;
 
 import com.google.common.collect.Iterables;
 

@@ -25,6 +25,14 @@ import java.util.UUID;
 import javax.inject.Inject;
 import javax.validation.constraints.NotNull;
 
+import org.apache.thrift.TException;
+import org.diqube.diql.DiqlParseUtil;
+import org.diqube.diql.ParseException;
+import org.diqube.diql.antlr.DiqlParser.DiqlStmtContext;
+import org.diqube.diql.request.ExecutionRequest;
+import org.diqube.diql.visitors.SelectStmtVisitor;
+import org.diqube.name.FunctionBasedColumnNameBuilderFactory;
+import org.diqube.name.RepeatedColumnNameGenerator;
 import org.diqube.ui.AnalysisRegistry;
 import org.diqube.ui.analysis.AnalysisFactory;
 import org.diqube.ui.analysis.UiAnalysis;
@@ -33,6 +41,8 @@ import org.diqube.ui.websocket.request.CommandResultHandler;
 import org.diqube.ui.websocket.request.commands.CommandInformation;
 import org.diqube.ui.websocket.request.commands.JsonCommand;
 import org.diqube.ui.websocket.result.analysis.AnalysisJsonResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -50,6 +60,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 @CommandInformation(name = CreateAnalysisJsonCommand.NAME)
 public class CreateAnalysisJsonCommand implements JsonCommand {
+  private static final Logger logger = LoggerFactory.getLogger(CreateAnalysisJsonCommand.class);
 
   public static final String NAME = "createAnalysis";
 
@@ -69,12 +80,40 @@ public class CreateAnalysisJsonCommand implements JsonCommand {
   @Inject
   private AnalysisRegistry registry;
 
+  @JsonIgnore
+  @Inject
+  private RepeatedColumnNameGenerator repeatedColumnNameGenerator;
+
+  @JsonIgnore
+  @Inject
+  private FunctionBasedColumnNameBuilderFactory functionBasedColumnNameBuilderFactory;
+
   @Override
   public void execute(CommandResultHandler resultHandler, CommandClusterInteraction clusterInteraction)
       throws RuntimeException {
     UiAnalysis res = factory.createAnalysis(UUID.randomUUID().toString(), name, table);
 
     registry.registerUiAnalysis(res);
+
+    try {
+      // check if "table" is a flattened table and if, ask the cluster to start flattening right away.
+      DiqlStmtContext stmtCtx = DiqlParseUtil.parseWithAntlr("select a from " + table);
+      ExecutionRequest executionRequest =
+          stmtCtx.accept(new SelectStmtVisitor(repeatedColumnNameGenerator, functionBasedColumnNameBuilderFactory));
+
+      if (executionRequest.getFromRequest().isFlattened()) {
+        String origTableName = executionRequest.getFromRequest().getTable();
+        String flattenBy = executionRequest.getFromRequest().getFlattenByField();
+        try {
+          clusterInteraction.getFlattenPreparationService().prepareForQueriesOnFlattenedTable(origTableName, flattenBy);
+        } catch (TException e) {
+          logger.warn("Could not prepare flattening of '{}' by '{}' for new analysis {}", origTableName, flattenBy,
+              res.getId());
+        }
+      }
+    } catch (ParseException e) {
+      // swallow.
+    }
 
     resultHandler.sendData(new AnalysisJsonResult(res));
   }

@@ -98,7 +98,7 @@ public class WebSocketEndpoint {
 
   @OnError
   public void onError(Session session, Throwable throwable) {
-    logger.trace("Received ERROR ({})", session, throwable.toString());
+    logger.trace("Received ERROR ({})", session, throwable);
   }
 
   private ApplicationContext getBeanCtx(Session session) {

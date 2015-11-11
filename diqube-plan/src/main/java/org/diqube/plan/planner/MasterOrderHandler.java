@@ -22,10 +22,10 @@ package org.diqube.plan.planner;
 
 import java.util.function.Supplier;
 
+import org.diqube.diql.request.OrderRequest;
 import org.diqube.execution.ExecutablePlanFactory;
 import org.diqube.execution.ExecutablePlanStep;
 import org.diqube.executionenv.ExecutionEnvironment;
-import org.diqube.plan.request.OrderRequest;
 import org.diqube.util.Pair;
 
 /**

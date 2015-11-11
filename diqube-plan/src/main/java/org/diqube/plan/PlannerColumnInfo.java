@@ -23,9 +23,9 @@ package org.diqube.plan;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.diqube.plan.request.ExecutionRequest;
-import org.diqube.plan.request.FunctionRequest;
-import org.diqube.plan.request.FunctionRequest.Type;
+import org.diqube.diql.request.ExecutionRequest;
+import org.diqube.diql.request.FunctionRequest;
+import org.diqube.diql.request.FunctionRequest.Type;
 
 /**
  * Information about a column that is needed while planning the execution of a {@link ExecutionRequest}.

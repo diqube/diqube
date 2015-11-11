@@ -30,11 +30,11 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import org.diqube.diql.request.FunctionRequest;
 import org.diqube.execution.consumers.ColumnBuiltConsumer;
 import org.diqube.execution.consumers.GroupDeltaConsumer;
 import org.diqube.plan.PlannerColumnInfo;
 import org.diqube.plan.RemoteExecutionPlanFactory;
-import org.diqube.plan.request.FunctionRequest;
 import org.diqube.remote.cluster.thrift.RExecutionPlanStep;
 import org.diqube.remote.cluster.thrift.RExecutionPlanStepType;
 

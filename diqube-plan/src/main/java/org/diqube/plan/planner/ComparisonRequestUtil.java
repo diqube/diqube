@@ -22,11 +22,11 @@ package org.diqube.plan.planner;
 
 import java.util.function.Function;
 
+import org.diqube.diql.request.ComparisonRequest;
+import org.diqube.diql.request.ComparisonRequest.DelegateComparisonRequest;
+import org.diqube.diql.request.ComparisonRequest.Leaf;
+import org.diqube.diql.request.ComparisonRequest.Not;
 import org.diqube.execution.ExecutablePlanStep;
-import org.diqube.plan.request.ComparisonRequest;
-import org.diqube.plan.request.ComparisonRequest.DelegateComparisonRequest;
-import org.diqube.plan.request.ComparisonRequest.Leaf;
-import org.diqube.plan.request.ComparisonRequest.Not;
 import org.diqube.util.Triple;
 
 /**

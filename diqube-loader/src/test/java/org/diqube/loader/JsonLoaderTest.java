@@ -31,7 +31,7 @@ import org.diqube.data.column.ColumnPage;
 import org.diqube.data.column.ColumnType;
 import org.diqube.data.table.TableShard;
 import org.diqube.data.types.lng.LongStandardColumnShard;
-import org.diqube.data.util.RepeatedColumnNameGenerator;
+import org.diqube.name.RepeatedColumnNameGenerator;
 import org.diqube.util.BigByteBuffer;
 import org.diqube.util.Pair;
 import org.diqube.util.Triple;

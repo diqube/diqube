@@ -26,11 +26,11 @@ import java.util.List;
 import java.util.Set;
 
 import org.diqube.data.types.lng.dict.LongDictionary;
-import org.diqube.data.util.RepeatedColumnNameGenerator;
 import org.diqube.executionenv.ExecutionEnvironment;
 import org.diqube.executionenv.querystats.QueryableLongColumnShard;
 import org.diqube.executionenv.util.ColumnPatternUtil.ColumnPatternContainer;
 import org.diqube.executionenv.util.ColumnPatternUtil.PatternException;
+import org.diqube.name.RepeatedColumnNameGenerator;
 import org.diqube.util.Triple;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;

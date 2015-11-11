@@ -119,7 +119,7 @@ public class JsonRequestDeserializer {
       wireInjectFieldsAndCallPostConstruct(request);
 
       return request;
-    } catch (IOException e) {
+    } catch (Exception e) {
       throw new JsonPayloadDeserializerException("Invalid JSON", e);
     }
   }

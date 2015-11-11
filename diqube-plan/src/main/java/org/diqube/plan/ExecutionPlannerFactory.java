@@ -23,9 +23,9 @@ package org.diqube.plan;
 import javax.inject.Inject;
 
 import org.diqube.context.AutoInstatiate;
-import org.diqube.data.util.FlattenedTableNameGenerator;
 import org.diqube.execution.ColumnVersionManagerFactory;
 import org.diqube.execution.ExecutablePlanFactory;
+import org.diqube.name.FlattenedTableNameGenerator;
 import org.diqube.plan.planner.ExecutionPlanner;
 
 /**

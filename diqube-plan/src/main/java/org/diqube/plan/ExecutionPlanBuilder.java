@@ -22,10 +22,11 @@ package org.diqube.plan;
 
 import java.util.Map;
 
-import org.diqube.data.util.RepeatedColumnNameGenerator;
 import org.diqube.diql.DiqlParseUtil;
 import org.diqube.diql.ParseException;
 import org.diqube.diql.antlr.DiqlParser.DiqlStmtContext;
+import org.diqube.diql.request.ExecutionRequest;
+import org.diqube.diql.visitors.SelectStmtVisitor;
 import org.diqube.execution.ExecutablePlan;
 import org.diqube.execution.ExecutablePlanStep;
 import org.diqube.execution.RemotesTriggeredListener;
@@ -38,11 +39,10 @@ import org.diqube.execution.steps.HavingResultStep;
 import org.diqube.execution.steps.OrderStep;
 import org.diqube.executionenv.ExecutionEnvironment;
 import org.diqube.executionenv.ExecutionEnvironmentFactory;
+import org.diqube.name.FunctionBasedColumnNameBuilderFactory;
+import org.diqube.name.RepeatedColumnNameGenerator;
+import org.diqube.optimize.ExecutionRequestOptimizer;
 import org.diqube.plan.exception.ValidationException;
-import org.diqube.plan.optimizer.ExecutionRequestOptimizer;
-import org.diqube.plan.request.ExecutionRequest;
-import org.diqube.plan.util.FunctionBasedColumnNameBuilderFactory;
-import org.diqube.plan.visitors.SelectStmtVisitor;
 
 /**
  * Build an {@link ExecutablePlan} from diql.
@@ -115,7 +115,7 @@ public class ExecutionPlanBuilder {
     Map<String, PlannerColumnInfo> colInfo =
         new PlannerColumnInfoBuilder().withExecutionRequest(executionRequest).build();
 
-    new ExecutionPlanValidator().validate(executionRequest, colInfo);
+    new ExecutionRequestValidator().validate(executionRequest, colInfo);
 
     ExecutionEnvironment queryMasterDefaultExecutionEnvironment =
         executionEnvironmentFactory.createQueryMasterExecutionEnvironment();

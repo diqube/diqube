@@ -23,10 +23,10 @@ package org.diqube.plan.planner;
 import java.util.Map;
 import java.util.function.Supplier;
 
+import org.diqube.diql.request.FunctionRequest;
+import org.diqube.diql.request.OrderRequest;
 import org.diqube.plan.PlannerColumnInfo;
 import org.diqube.plan.RemoteExecutionPlanFactory;
-import org.diqube.plan.request.FunctionRequest;
-import org.diqube.plan.request.OrderRequest;
 import org.diqube.remote.cluster.thrift.RExecutionPlanStep;
 import org.diqube.util.Pair;
 

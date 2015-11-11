@@ -32,6 +32,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import org.diqube.diql.request.FunctionRequest;
 import org.diqube.execution.ColumnVersionManager;
 import org.diqube.execution.ExecutablePlanFactory;
 import org.diqube.execution.ExecutablePlanStep;
@@ -44,7 +45,6 @@ import org.diqube.execution.steps.GroupFinalAggregationStep;
 import org.diqube.execution.steps.ProjectStep;
 import org.diqube.executionenv.ExecutionEnvironment;
 import org.diqube.plan.PlannerColumnInfo;
-import org.diqube.plan.request.FunctionRequest;
 import org.diqube.util.ColumnOrValue;
 
 import com.google.common.collect.Iterables;

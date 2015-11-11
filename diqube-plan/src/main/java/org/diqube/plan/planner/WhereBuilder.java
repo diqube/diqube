@@ -25,13 +25,13 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import org.diqube.diql.request.ComparisonRequest;
+import org.diqube.diql.request.ComparisonRequest.And;
+import org.diqube.diql.request.ComparisonRequest.Leaf;
+import org.diqube.diql.request.ComparisonRequest.Not;
+import org.diqube.diql.request.ComparisonRequest.Or;
 import org.diqube.execution.consumers.RowIdConsumer;
 import org.diqube.plan.RemoteExecutionPlanFactory;
-import org.diqube.plan.request.ComparisonRequest;
-import org.diqube.plan.request.ComparisonRequest.And;
-import org.diqube.plan.request.ComparisonRequest.Leaf;
-import org.diqube.plan.request.ComparisonRequest.Not;
-import org.diqube.plan.request.ComparisonRequest.Or;
 import org.diqube.remote.cluster.thrift.RExecutionPlanStep;
 import org.diqube.remote.cluster.thrift.RExecutionPlanStepType;
 import org.diqube.util.ColumnOrValue;
