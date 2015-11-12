@@ -68,7 +68,7 @@ public class ClusterFlattenIntegrationTest extends AbstractDiqubeIntegrationTest
   @NeedsServer(servers = 2)
   public void mergeTest() throws IOException, InterruptedException {
     // GIVEN
-    TestDataGenerator.generateJsonTestData(work(BIG_DATA_FILE_WORK), 10, 2, new String[] { "a", "b" }, 10);
+    TestDataGenerator.generateJsonTestData(work(BIG_DATA_FILE_WORK), 20, 2, new String[] { "a", "b" }, 30);
     serverControl.get(0).deploy(cp(BIG0_CONTROL_FILE), work(BIG_DATA_FILE_WORK));
     serverControl.get(1).deploy(cp(BIG10_CONTROL_FILE), work(BIG_DATA_FILE_WORK));
 
@@ -89,7 +89,7 @@ public class ClusterFlattenIntegrationTest extends AbstractDiqubeIntegrationTest
       });
 
       // sleep for a second, both servers should get started to process the first request
-      Thread.sleep(1000);
+      Thread.sleep(200);
 
       // second: start second flattenign request. As the first one should still be running, this request should be
       // "merged" with the first one.
