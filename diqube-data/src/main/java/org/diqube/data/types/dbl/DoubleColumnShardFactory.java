@@ -20,7 +20,6 @@
  */
 package org.diqube.data.types.dbl;
 
-import java.util.List;
 import java.util.NavigableMap;
 
 import org.diqube.context.AutoInstatiate;
@@ -47,8 +46,4 @@ public class DoubleColumnShardFactory {
     return new DoubleConstantColumnShard(colName, value, firstRowId);
   }
 
-  public FlattenedDoubleStandardColumnShard createFlattenedDoubleStandardColumnShard(String name,
-      DoubleDictionary<?> columnShardDict, long firstRowId, List<ColumnPage> pages) {
-    return new FlattenedDoubleStandardColumnShard(name, columnShardDict, firstRowId, pages);
-  }
 }

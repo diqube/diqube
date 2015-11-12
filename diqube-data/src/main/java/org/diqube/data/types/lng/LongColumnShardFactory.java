@@ -20,7 +20,6 @@
  */
 package org.diqube.data.types.lng;
 
-import java.util.List;
 import java.util.NavigableMap;
 
 import org.diqube.context.AutoInstatiate;
@@ -45,11 +44,6 @@ public class LongColumnShardFactory {
 
   public LongConstantColumnShard createConstantLongColumnShard(String colName, Long value, long firstRowId) {
     return new LongConstantColumnShard(colName, value, firstRowId);
-  }
-
-  public FlattenedLongStandardColumnShard createFlattenedLongStandardColumnShard(String name,
-      LongDictionary<?> columnShardDict, long firstRowId, List<ColumnPage> pages) {
-    return new FlattenedLongStandardColumnShard(name, columnShardDict, firstRowId, pages);
   }
 
 }

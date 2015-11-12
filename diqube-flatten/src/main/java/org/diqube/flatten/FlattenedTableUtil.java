@@ -24,6 +24,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.NavigableMap;
+import java.util.TreeMap;
 import java.util.UUID;
 
 import javax.inject.Inject;
@@ -31,13 +33,12 @@ import javax.inject.Inject;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.data.column.AdjustableStandardColumnShard;
 import org.diqube.data.column.ColumnPage;
+import org.diqube.data.column.ColumnPageFactory;
+import org.diqube.data.column.ColumnShardFactory;
 import org.diqube.data.column.StandardColumnShard;
-import org.diqube.data.flatten.AbstractFlattenedStandardColumnShard;
-import org.diqube.data.flatten.AdjustableConstantLongDictionary;
 import org.diqube.data.flatten.FlattenDataFactory;
-import org.diqube.data.flatten.FlattenedConstantColumnPage;
 import org.diqube.data.flatten.FlattenedTable;
-import org.diqube.data.flatten.FlattenedTableShard;
+import org.diqube.data.table.TableFactory;
 import org.diqube.data.table.TableShard;
 import org.diqube.data.types.dbl.DoubleStandardColumnShard;
 import org.diqube.data.types.lng.LongStandardColumnShard;
@@ -57,6 +58,15 @@ public class FlattenedTableUtil {
 
   @Inject
   private FlattenedTableNameGenerator flattenedTableNameGenerator;
+
+  @Inject
+  private ColumnPageFactory columnPageFactory;
+
+  @Inject
+  private ColumnShardFactory columnShardFactory;
+
+  @Inject
+  private TableFactory tableFactory;
 
   /**
    * Will facade the given table, so in the returned table, the
@@ -92,52 +102,44 @@ public class FlattenedTableUtil {
     Iterator<Long> origTableShardFirstRowIdIt =
         inputTable.getOriginalFirstRowIdsOfShards().stream().sorted().iterator();
 
-    for (TableShard inputTableShardOrig : inputTableShardsSorted) {
-      FlattenedTableShard inputTableShard = (FlattenedTableShard) inputTableShardOrig;
+    for (TableShard inputTableShard : inputTableShardsSorted) {
       long origFirstRowId = origTableShardFirstRowIdIt.next();
       Collection<StandardColumnShard> newColShards = new ArrayList<>();
 
       for (StandardColumnShard inputColumnShard : inputTableShard.getColumns().values()) {
 
-        List<ColumnPage> newPages = new ArrayList<>();
+        NavigableMap<Long, ColumnPage> newPages = new TreeMap<>();
 
         long nextFirstRowId = origFirstRowId;
 
         for (ColumnPage inputPage : inputColumnShard.getPages().values()) {
           ColumnPage newPage;
-          if (inputPage instanceof FlattenedConstantColumnPage) {
-            // was a constant page, simply create a new one with an adjusted firstRowId.
-            newPage = factory.createFlattenedConstantColumnPage(inputColumnShard.getName() + "#" + nextFirstRowId,
-                (AdjustableConstantLongDictionary<?>) ((FlattenedConstantColumnPage) inputPage).getColumnPageDict(),
-                nextFirstRowId, ((FlattenedConstantColumnPage) inputPage).getRows());
-          } else {
-            // Use the original dict and values, but provide a different firstRowId.
-            newPage = factory.createFlattenedColumnPage(inputColumnShard.getName() + "#" + nextFirstRowId,
-                inputPage.getColumnPageDict(), inputPage.getValues(), nextFirstRowId);
-          }
+          // Use the original dict and values, but provide a different firstRowId.
+          newPage = columnPageFactory.createDefaultColumnPage(inputPage.getColumnPageDict(), inputPage.getValues(),
+              nextFirstRowId, inputColumnShard.getName() + "#" + nextFirstRowId);
           nextFirstRowId += newPage.size();
-          newPages.add(newPage);
+          newPages.put(newPage.getFirstRowId(), newPage);
         }
 
-        AbstractFlattenedStandardColumnShard newColShard = null;
+        StandardColumnShard newColShard = null;
         switch (inputColumnShard.getColumnType()) {
         case STRING:
-          newColShard = factory.createFlattenedStringStandardColumnShard(inputColumnShard.getName(),
-              ((StringStandardColumnShard) inputColumnShard).getColumnShardDictionary(), origFirstRowId, newPages);
+          newColShard = columnShardFactory.createStandardStringColumnShard(inputColumnShard.getName(), newPages,
+              ((StringStandardColumnShard) inputColumnShard).getColumnShardDictionary());
           break;
         case LONG:
-          newColShard = factory.createFlattenedLongStandardColumnShard(inputColumnShard.getName(),
-              ((LongStandardColumnShard) inputColumnShard).getColumnShardDictionary(), origFirstRowId, newPages);
+          newColShard = columnShardFactory.createStandardLongColumnShard(inputColumnShard.getName(), newPages,
+              ((LongStandardColumnShard) inputColumnShard).getColumnShardDictionary());
           break;
         case DOUBLE:
-          newColShard = factory.createFlattenedDoubleStandardColumnShard(inputColumnShard.getName(),
-              ((DoubleStandardColumnShard) inputColumnShard).getColumnShardDictionary(), origFirstRowId, newPages);
+          newColShard = columnShardFactory.createStandardDoubleColumnShard(inputColumnShard.getName(), newPages,
+              ((DoubleStandardColumnShard) inputColumnShard).getColumnShardDictionary());
           break;
         }
         newColShards.add(newColShard);
       }
 
-      newTableShards.add(factory.createFlattenedTableShard(newTableName, newColShards));
+      newTableShards.add(tableFactory.createDefaultTableShard(newTableName, newColShards));
     }
 
     return factory.createFlattenedTable(newTableName, newTableShards, inputTable.getOriginalFirstRowIdsOfShards());

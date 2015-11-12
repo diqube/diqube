@@ -20,7 +20,6 @@
  */
 package org.diqube.data.types.str;
 
-import java.util.List;
 import java.util.NavigableMap;
 
 import org.diqube.context.AutoInstatiate;
@@ -45,11 +44,6 @@ public class StringColumnShardFactory {
 
   public StringConstantColumnShard createConstantStringColumnShard(String colName, String value, long firstRowId) {
     return new StringConstantColumnShard(colName, value, firstRowId);
-  }
-
-  public FlattenedStringStandardColumnShard createFlattenedStringStandardColumnShard(String name,
-      StringDictionary<?> columnShardDict, long firstRowId, List<ColumnPage> pages) {
-    return new FlattenedStringStandardColumnShard(name, columnShardDict, firstRowId, pages);
   }
 
 }

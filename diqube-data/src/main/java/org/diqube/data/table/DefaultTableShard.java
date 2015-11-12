@@ -51,6 +51,9 @@ public class DefaultTableShard implements TableShard {
   private Map<String, DoubleStandardColumnShard> doubleColumns = new HashMap<>();
   private Map<String, LongStandardColumnShard> longColumns = new HashMap<>();
 
+  private volatile Map<String, StandardColumnShard> allColumnsCache;
+  private Object allColumnsCacheSync = new Object();
+
   private String tableName;
 
   /** for deserialization only */
@@ -91,12 +94,19 @@ public class DefaultTableShard implements TableShard {
 
   @Override
   public Map<String, StandardColumnShard> getColumns() {
-    Map<String, StandardColumnShard> res = new HashMap<>();
-    res.putAll(stringColumns);
-    res.putAll(longColumns);
-    res.putAll(doubleColumns);
+    if (allColumnsCache == null) {
+      synchronized (allColumnsCacheSync) {
+        if (allColumnsCache == null) {
+          Map<String, StandardColumnShard> res = new HashMap<>();
+          res.putAll(stringColumns);
+          res.putAll(longColumns);
+          res.putAll(doubleColumns);
+          allColumnsCache = res;
+        }
+      }
+    }
 
-    return res;
+    return allColumnsCache;
   }
 
   @Override

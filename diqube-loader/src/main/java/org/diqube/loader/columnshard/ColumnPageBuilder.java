@@ -87,7 +87,7 @@ public class ColumnPageBuilder {
 
   /**
    * @param fn
-   *          Optional function that receives the internally built colPageDict and can remove another dict.
+   *          Optional function that receives the internally built colPageDict and can return another dict.
    */
   public ColumnPageBuilder withColumnPageDictFunction(Function<LongDictionary<?>, LongDictionary<?>> colPageDictFn) {
     this.colPageDictFn = colPageDictFn;

@@ -36,13 +36,9 @@ import java.util.UUID;
 import java.util.stream.LongStream;
 
 import org.diqube.context.Profiles;
-import org.diqube.data.column.ColumnPage;
 import org.diqube.data.column.ColumnShard;
 import org.diqube.data.column.ColumnType;
-import org.diqube.data.flatten.FlattenedColumnPage;
 import org.diqube.data.flatten.FlattenedTable;
-import org.diqube.data.flatten.IndexFilteringCompressedLongArray;
-import org.diqube.data.flatten.IndexRemovingCompressedLongArray;
 import org.diqube.data.table.Table;
 import org.diqube.data.table.TableFactory;
 import org.diqube.data.table.TableShard;
@@ -458,14 +454,6 @@ public class FlattenerTest {
     Assert.assertEquals(tableShard.getColumns().keySet(), new HashSet<>(Arrays.asList("a.b")),
         "Expected correct columns.");
 
-    // assert that a native page has been built. This is solely to ensure that we have unit tests for all cases (see
-    // FlattenedColumnPageBuilder and its test).
-    boolean found = false;
-    for (ColumnPage page : tableShard.getColumns().get("a.b").getPages().values()) {
-      found |= !(page instanceof FlattenedColumnPage);
-    }
-    Assert.assertTrue(found, "Expected that there is a page which is not a FlattenedColumnPage.");
-
     SortedSet<SortedMap<String, Long>> expectedRows = new TreeSet<>(MAP_COMPARATOR);
 
     SortedMap<String, Long> row;
@@ -538,14 +526,6 @@ public class FlattenerTest {
     Assert.assertEquals(tableShard.getColumns().keySet(), new HashSet<>(Arrays.asList("a.b")),
         "Expected correct columns.");
 
-    // assert that a native page has been built. This is solely to ensure that we have unit tests for all cases (see
-    // FlattenedColumnPageBuilder and its test).
-    boolean found = false;
-    for (ColumnPage page : tableShard.getColumns().get("a.b").getPages().values()) {
-      found |= (page instanceof FlattenedColumnPage) && (page.getValues() instanceof IndexRemovingCompressedLongArray);
-    }
-    Assert.assertTrue(found, "Expected that there is a page which is not a FlattenedColumnPage.");
-
     SortedSet<SortedMap<String, Long>> expectedRows = new TreeSet<>(MAP_COMPARATOR);
 
     SortedMap<String, Long> row;
@@ -610,14 +590,6 @@ public class FlattenerTest {
 
     Assert.assertEquals(tableShard.getColumns().keySet(), new HashSet<>(Arrays.asList("a.b")),
         "Expected correct columns.");
-
-    // assert that a native page has been built. This is solely to ensure that we have unit tests for all cases (see
-    // FlattenedColumnPageBuilder and its test).
-    boolean found = false;
-    for (ColumnPage page : tableShard.getColumns().get("a.b").getPages().values()) {
-      found |= (page instanceof FlattenedColumnPage) && (page.getValues() instanceof IndexFilteringCompressedLongArray);
-    }
-    Assert.assertTrue(found, "Expected that there is a page which is not a FlattenedColumnPage.");
 
     SortedSet<SortedMap<String, Long>> expectedRows = new TreeSet<>(MAP_COMPARATOR);
 

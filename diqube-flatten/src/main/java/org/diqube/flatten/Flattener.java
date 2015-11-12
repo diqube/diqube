@@ -21,7 +21,6 @@
 package org.diqube.flatten;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -38,21 +37,22 @@ import java.util.TreeSet;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
 import javax.inject.Inject;
 
 import org.diqube.context.AutoInstatiate;
 import org.diqube.data.column.ColumnPage;
+import org.diqube.data.column.ColumnPageFactory;
+import org.diqube.data.column.ColumnShardFactory;
 import org.diqube.data.column.ColumnType;
 import org.diqube.data.column.StandardColumnShard;
 import org.diqube.data.dictionary.Dictionary;
-import org.diqube.data.flatten.AdjustableConstantLongDictionary;
 import org.diqube.data.flatten.FlattenDataFactory;
-import org.diqube.data.flatten.FlattenedDelegateLongDictionary;
 import org.diqube.data.flatten.FlattenedTable;
-import org.diqube.data.flatten.FlattenedTableShard;
 import org.diqube.data.table.Table;
+import org.diqube.data.table.TableFactory;
 import org.diqube.data.table.TableShard;
 import org.diqube.data.types.dbl.dict.ConstantDoubleDictionary;
 import org.diqube.data.types.dbl.dict.DoubleDictionary;
@@ -66,6 +66,8 @@ import org.diqube.executionenv.util.ColumnPatternUtil.ColumnPatternContainer;
 import org.diqube.executionenv.util.ColumnPatternUtil.LengthColumnMissingException;
 import org.diqube.executionenv.util.ColumnPatternUtil.PatternException;
 import org.diqube.loader.LoaderColumnInfo;
+import org.diqube.loader.columnshard.ColumnPageBuilder;
+import org.diqube.loader.columnshard.ColumnShardBuilder;
 import org.diqube.loader.compression.CompressedDoubleDictionaryBuilder;
 import org.diqube.loader.compression.CompressedLongDictionaryBuilder;
 import org.diqube.loader.compression.CompressedStringDictionaryBuilder;
@@ -121,8 +123,6 @@ import com.google.common.collect.Sets;
 public class Flattener {
   private static final Logger logger = LoggerFactory.getLogger(Flattener.class);
 
-  private static final long CONSTANT_PAGE_DICT_INTERMEDIARY_VALUE = 0L;
-
   @Inject
   private FlattenDataFactory factory;
 
@@ -136,7 +136,13 @@ public class Flattener {
   private ColumnPatternUtil colPatternUtil;
 
   @Inject
-  private FlattenedColumnPageBuilderFactory flattenedColumnPageBuilderFactory;
+  private ColumnPageFactory columnPageFactory;
+
+  @Inject
+  private ColumnShardFactory columnShardFactory;
+
+  @Inject
+  private TableFactory tableFactory;
 
   /**
    * Flatten the given table by the given flatten-by field, returning a premilinary flattened table (see below).
@@ -422,6 +428,12 @@ public class Flattener {
     for (String newColName : newColumns.keySet()) {
       long nextFirstRowId = inputTableShard.getLowestRowId();
 
+      // find colType by searching an input col that exists and taking the coltype of that one.
+      ColumnType colType = newColumns.get(newColName).stream()
+          .filter(inputColName -> inputTableShard.getColumns().containsKey(inputColName))
+          .map(inputColName -> inputTableShard.getColumns().get(inputColName).getColumnType()).findAny().get();
+
+      // Collect all the col dictionaries of the input columns:
       // map from an artificial ID to the dictionary of an input column. The artificial ID is built the following way:
       // The first dict has artificial ID 0.
       // The second dict has artificial ID = number of entries in first dict
@@ -431,19 +443,41 @@ public class Flattener {
       // The artificial ID is defined in a way so it can be fed to #mergeDicts(.)
       Map<Long, Dictionary<?>> origColDicts = new HashMap<>();
       long nextColAndColDictId = 0L;
+      for (String inputColName : newColumns.get(newColName)) {
+        Dictionary<?> dict;
+        if (inputTableShard.getColumns().containsKey(inputColName))
+          dict = inputTableShard.getColumns().get(inputColName).getColumnShardDictionary();
+        else {
+          // assume we had an input col dict for this non-existing col.
+          if (inputColName.endsWith(repeatedColNameGen.lengthIdentifyingSuffix()))
+            // length cols get "0" as default.
+            dict = new ConstantLongDictionary(0L);
+          else
+            dict = createDictionaryWithOnlyDefaultValue(colType);
+        }
 
-      // map from "artificial" column ID to list of flattened col pages.
-      Map<Long, List<ColumnPage>> flattenedColPages = new HashMap<>();
+        origColDicts.put(nextColAndColDictId, dict);
+        nextColAndColDictId += dict.getMaxId() + 1;
+      }
 
-      // find colType by searching an input col that exists and taking the coltype of that one.
-      ColumnType colType = newColumns.get(newColName).stream()
-          .filter(inputColName -> inputTableShard.getColumns().containsKey(inputColName))
-          .map(inputColName -> inputTableShard.getColumns().get(inputColName).getColumnType()).findAny().get();
+      // merge the input column dicts into the new column dict.
+      Pair<Dictionary<?>, Map<Long, Map<Long, Long>>> mergeDictInfo = mergeDicts(newColName, colType, origColDicts);
+      Dictionary<?> colDict = mergeDictInfo.getLeft();
 
-      // Build for each input colpage in each input col a separate new colPage. This is far from optimal, but we can
-      // merge those pages later on. TODO #27.
+      // new col pages.
+      List<ColumnPage> flattenedColPages = new ArrayList<>();
+
+      // we'll use the same counting mechanism that we used fot origColDicts.
+      nextColAndColDictId = 0L;
+
+      long[] nextPageValues = new long[ColumnShardBuilder.PROPOSAL_ROWS];
+      int nextPageValueNextIdx = 0;
+
+      // build col pages
       for (String inputColName : newColumns.get(newColName)) {
         long curColId = nextColAndColDictId;
+
+        Map<Long, Long> columnValueIdChangeMap = mergeDictInfo.getRight().get(curColId);
 
         if (!inputTableShard.getColumns().containsKey(inputColName)) {
           // This col does not exist, therefore we add an "empty" colPage, which resolves statically to the colTypes'
@@ -458,23 +492,16 @@ public class Flattener {
             }
           }
           if (noOfRows == -1)
-            throw new IllegalStateException("Could not find number of rows for empty ColPage.");
+            throw new IllegalStateException("Could not find number of rows for empty values.");
 
-          ColumnPage newPage = factory.createFlattenedConstantColumnPage(newColName + "#" + nextFirstRowId,
-              // create a dict whose value we will change later on.
-              factory.createAdjustableConstantLongDictionary(CONSTANT_PAGE_DICT_INTERMEDIARY_VALUE), //
-              nextFirstRowId, noOfRows);
-          flattenedColPages.put(nextColAndColDictId, new ArrayList<>(Arrays.asList(newPage)));
-          nextFirstRowId += noOfRows;
-
-          // assume we had an input col dict for this non-existing col. These dicts will later be merged to one single
-          // dict - we need to make sure that that merged dict contains the default value returned from the page dict we
-          // created above.
-          if (inputColName.endsWith(repeatedColNameGen.lengthIdentifyingSuffix()))
-            // length cols get "0" as default.
-            origColDicts.put(curColId, new ConstantLongDictionary(0L));
-          else
-            origColDicts.put(curColId, createDictionaryWithOnlyDefaultValue(colType));
+          for (int i = 0; i < noOfRows; i++) {
+            if (nextPageValueNextIdx == nextPageValues.length) {
+              flattenedColPages.add(buildColPageFromValueArray(nextPageValues, -1, nextFirstRowId, newColName));
+              nextPageValueNextIdx = 0;
+              nextFirstRowId += nextPageValues.length;
+            }
+            nextPageValues[nextPageValueNextIdx++] = columnValueIdChangeMap.get(0L); // constant dict -> always id 0L.
+          }
 
           nextColAndColDictId++; // single entry dict!
 
@@ -482,112 +509,101 @@ public class Flattener {
         }
 
         Dictionary<?> colShardDict = inputTableShard.getColumns().get(inputColName).getColumnShardDictionary();
-        origColDicts.put(curColId, colShardDict);
         nextColAndColDictId += colShardDict.getMaxId() + 1;
 
-        flattenedColPages.put(curColId, new ArrayList<>());
-
         if (multiplicatingOutputCols.contains(newColName)) {
+          // decompress whole column at once, so we can access it quickly later on.
+          StandardColumnShard inputCol = inputTableShard.getColumns().get(inputColName);
+          Map<Long, Long[]> colValueIds = new HashMap<>();
+          for (ColumnPage inputPage : inputCol.getPages().values()) {
+            long[] pageValueIds = inputPage.getValues().decompressedArray();
+            Long[] colValueIdsByRow = inputPage.getColumnPageDict()
+                .decompressValues(LongStream.of(pageValueIds).boxed().toArray(l -> new Long[l]));
+            colValueIds.put(inputPage.getFirstRowId(), colValueIdsByRow);
+          }
+
           for (int multiplication = 0; multiplication < maxMultiplicationFactor; multiplication++)
             for (ColumnPage inputPage : inputTableShard.getColumns().get(inputColName).getPages().values()) {
-              ColumnPage newPage;
-              // create new page without the final dictionaries! We simply use the original Dicts first.
-
               final int curMultiplicationNo = multiplication;
-              List<Long> sortedNotAvailableIndicesList = new ArrayList<>();
               for (int i = 0; i < inputPage.getValues().size(); i++) {
                 Integer thisIndexMultiplicationFactor = multiplicationFactorByRowId.get(inputPage.getFirstRowId() + i);
                 if (thisIndexMultiplicationFactor == null)
                   thisIndexMultiplicationFactor = 1;
 
-                if (thisIndexMultiplicationFactor <= curMultiplicationNo)
-                  // this index does not need to be multiplicated that often.
-                  sortedNotAvailableIndicesList.add((long) i);
-              }
-
-              long[] sortedNotAvailableIndices = new long[sortedNotAvailableIndicesList.size()];
-              for (int i = 0; i < sortedNotAvailableIndices.length; i++)
-                sortedNotAvailableIndices[i] = sortedNotAvailableIndicesList.get(i);
-
-              newPage = flattenedColumnPageBuilderFactory.createFlattenedColumnPageBuilder().withColName(newColName)
-                  .withDelegate(inputPage).withFirstRowId(nextFirstRowId)
-                  .withNotAvailableIndices(sortedNotAvailableIndices).build();
-
-              if (newPage != null) {
-                flattenedColPages.get(curColId).add(newPage);
-                nextFirstRowId += newPage.size();
+                if (thisIndexMultiplicationFactor > curMultiplicationNo) {
+                  // we need to multiplicate this row!
+                  if (nextPageValueNextIdx == nextPageValues.length) {
+                    flattenedColPages.add(buildColPageFromValueArray(nextPageValues, -1, nextFirstRowId, newColName));
+                    nextPageValueNextIdx = 0;
+                    nextFirstRowId += nextPageValues.length;
+                  }
+                  long origColValueId = colValueIds.get(inputPage.getFirstRowId())[i];
+                  nextPageValues[nextPageValueNextIdx++] =
+                      (columnValueIdChangeMap != null) ? columnValueIdChangeMap.get(origColValueId) : origColValueId;
+                }
               }
             }
         } else {
           for (ColumnPage inputPage : inputTableShard.getColumns().get(inputColName).getPages().values()) {
-            ColumnPage newPage;
-            // create new page without the final dictionaries! We simply use the original Dicts first.
-            long[] sortedNotAvailableIndices;
+            // decompress whole column page at once, so we can access it quickly later on.
+            long[] pageValueIds = inputPage.getValues().decompressedArray();
+            Long[] colValueIdsByRow = inputPage.getColumnPageDict()
+                .decompressValues(LongStream.of(pageValueIds).boxed().toArray(l -> new Long[l]));
+
+            Set<Long> sortedNotAvailableIndices;
             String interestingPrefix = rowIdsNotAvailableForInputCols.floorKey(inputColName);
             if (interestingPrefix != null && inputColName.startsWith(interestingPrefix)) {
-              Set<Long> notAvailableSubSet = rowIdsNotAvailableForInputCols.get(interestingPrefix)
+              sortedNotAvailableIndices = rowIdsNotAvailableForInputCols.get(interestingPrefix)
                   .subSet(inputPage.getFirstRowId(), inputPage.getFirstRowId() + inputPage.getValues().size());
-              // TODO this call to size() might get pretty slow - change it?
-              sortedNotAvailableIndices = new long[notAvailableSubSet.size()];
-              int idx = 0;
-              for (Long i : notAvailableSubSet)
-                sortedNotAvailableIndices[idx++] = i - inputPage.getFirstRowId();
             } else
-              sortedNotAvailableIndices = new long[0];
+              sortedNotAvailableIndices = new HashSet<>();
 
-            newPage = flattenedColumnPageBuilderFactory.createFlattenedColumnPageBuilder().withColName(newColName)
-                .withDelegate(inputPage).withFirstRowId(nextFirstRowId)
-                .withNotAvailableIndices(sortedNotAvailableIndices).build();
+            // peek next unavailable index, works because indices are sorted.
+            PeekingIterator<Long> notAvailableIndicesIt =
+                Iterators.peekingIterator(sortedNotAvailableIndices.iterator());
+            for (int i = 0; i < inputPage.getValues().size(); i++) {
+              if (notAvailableIndicesIt.hasNext() && notAvailableIndicesIt.peek() == inputPage.getFirstRowId() + i) {
+                notAvailableIndicesIt.next();
+                continue;
+              }
 
-            if (newPage != null) {
-              flattenedColPages.get(curColId).add(newPage);
-              nextFirstRowId += newPage.size();
+              if (nextPageValueNextIdx == nextPageValues.length) {
+                flattenedColPages.add(buildColPageFromValueArray(nextPageValues, -1, nextFirstRowId, newColName));
+                nextPageValueNextIdx = 0;
+                nextFirstRowId += nextPageValues.length;
+              }
+              long origColValueId = colValueIdsByRow[i];
+              nextPageValues[nextPageValueNextIdx++] =
+                  (columnValueIdChangeMap != null) ? columnValueIdChangeMap.get(origColValueId) : origColValueId;
             }
           }
         }
       }
 
-      Pair<Dictionary<?>, Map<Long, Map<Long, Long>>> mergeDictInfo = mergeDicts(newColName, colType, origColDicts);
-      Dictionary<?> colDict = mergeDictInfo.getLeft();
-
-      // after merging the col dict, we need to adjust the colPage dicts to map to the new col value IDs!
-      for (Entry<Long, Map<Long, Long>> mapInfoEntry : mergeDictInfo.getRight().entrySet()) {
-        long colId = mapInfoEntry.getKey();
-        Map<Long, Long> mapInfo = mapInfoEntry.getValue();
-
-        if (mapInfo != null && !mapInfo.isEmpty()) {
-          for (ColumnPage page : flattenedColPages.get(colId)) {
-            if (page.getColumnPageDict() instanceof FlattenedDelegateLongDictionary) {
-              FlattenedDelegateLongDictionary delegateDict = (FlattenedDelegateLongDictionary) page.getColumnPageDict();
-              LongDictionary<?> origDict = delegateDict.getDelegate();
-
-              LongDictionary<?> mappedDict = createValueMappedLongDict(origDict, mapInfo);
-
-              delegateDict.setDelegate(mappedDict);
-            } else if (page.getColumnPageDict() instanceof AdjustableConstantLongDictionary) {
-              AdjustableConstantLongDictionary<?> dict = (AdjustableConstantLongDictionary<?>) page.getColumnPageDict();
-              dict.setValue(mapInfo.get(CONSTANT_PAGE_DICT_INTERMEDIARY_VALUE));
-            } else
-              throw new IllegalStateException("Cannot adjust IDs in unknown page dict: " + page.getColumnPageDict());
-          }
-        }
+      if (nextPageValueNextIdx > 0) {
+        flattenedColPages
+            .add(buildColPageFromValueArray(nextPageValues, nextPageValueNextIdx, nextFirstRowId, newColName));
+        nextFirstRowId += nextPageValueNextIdx;
+        nextPageValueNextIdx = 0;
       }
 
-      List<ColumnPage> flatFlattenedColPages =
-          flattenedColPages.values().stream().flatMap(l -> l.stream()).collect(Collectors.toList());
+      NavigableMap<Long, ColumnPage> navigableFlattenedColPages = new TreeMap<>();
+      for (ColumnPage flattendColPage : flattenedColPages)
+        navigableFlattenedColPages.put(flattendColPage.getFirstRowId(), flattendColPage);
+
       StandardColumnShard flattenedColShard = null;
       switch (colType) {
       case STRING:
-        flattenedColShard = factory.createFlattenedStringStandardColumnShard(newColName, (StringDictionary<?>) colDict,
-            inputTableShard.getLowestRowId(), flatFlattenedColPages);
+        flattenedColShard = columnShardFactory.createStandardStringColumnShard(newColName, navigableFlattenedColPages,
+            (StringDictionary<?>) colDict);
         break;
       case LONG:
-        flattenedColShard = factory.createFlattenedLongStandardColumnShard(newColName, (LongDictionary<?>) colDict,
-            inputTableShard.getLowestRowId(), flatFlattenedColPages);
+        flattenedColShard = columnShardFactory.createStandardLongColumnShard(newColName, navigableFlattenedColPages,
+            (LongDictionary<?>) colDict);
         break;
       case DOUBLE:
-        flattenedColShard = factory.createFlattenedDoubleStandardColumnShard(newColName, (DoubleDictionary<?>) colDict,
-            inputTableShard.getLowestRowId(), flatFlattenedColPages);
+        flattenedColShard = columnShardFactory.createStandardDoubleColumnShard(newColName, navigableFlattenedColPages,
+            (DoubleDictionary<?>) colDict);
         break;
       }
 
@@ -596,7 +612,7 @@ public class Flattener {
       logger.trace("Created flattened column {}", newColName);
     }
 
-    FlattenedTableShard flattenedTableShard = factory.createFlattenedTableShard(resultTableName, flattenedColShards);
+    TableShard flattenedTableShard = tableFactory.createDefaultTableShard(resultTableName, flattenedColShards);
 
     logger.trace("Created flattened table shard " + resultTableName);
 
@@ -611,10 +627,9 @@ public class Flattener {
    * our values of String, Long, Double).
    * 
    * @param inputDicts
-   *          The col dicts of the input cols, indexed by an artificial "dictionary id", which for one dict basically is
-   *          the number of entries of all previous dicts. First ID is 0L.
-   * @return Pair of merged dictionary and for each input dict ID a mapping map. That map maps from old dict ID of a
-   *         value to the new dict ID in the merged dict. Map can be empty.
+   *          The col dicts of the input cols, indexed by an artificial "dictionary id" which can be chosen arbitrarily.
+   * @return Pair of merged dictionary and for each input dict ID a mapping map. That map maps from old col dict ID of a
+   *         value to the new col dict ID in the merged dict. Map can be empty.
    */
   @SuppressWarnings("unchecked")
   private <T extends Comparable<T>> Pair<Dictionary<?>, Map<Long, Map<Long, Long>>> mergeDicts(String colName,
@@ -705,42 +720,6 @@ public class Flattener {
   }
 
   /**
-   * Creates and returns a new {@link LongDictionary} based on a different {@link LongDictionary}, but the values
-   * returned by the original dict are mapped to new values.
-   * 
-   * @param valueMap
-   *          Map from old value returned from origDict to the new value it should have
-   */
-  private LongDictionary<?> createValueMappedLongDict(LongDictionary<?> origDict, Map<Long, Long> valueMap)
-      throws IllegalStateException {
-    Long[] ids = new Long[(int) (origDict.getMaxId() + 1)];
-    for (int i = 0; i < ids.length; i++)
-      ids[i] = (long) i;
-    Long[] values = origDict.decompressValues(ids);
-    NavigableMap<Long, Long> valueToTempId = new TreeMap<>();
-    for (int i = 0; i < values.length; i++) {
-      Long val;
-      if (valueMap.containsKey(values[i]))
-        val = valueMap.get(values[i]);
-      else
-        val = values[i];
-      valueToTempId.put(val, ids[i]);
-    }
-
-    CompressedLongDictionaryBuilder builder = new CompressedLongDictionaryBuilder().fromEntityMap(valueToTempId);
-
-    Pair<LongDictionary<?>, Map<Long, Long>> buildRes = builder.build();
-
-    if (!buildRes.getRight().isEmpty())
-      // The builder should not have changed the IDs, because the mappings from old value to new value should have
-      // retained the same ordering of the values (see mergeDicts!). If there would be something returned here, we would
-      // need to adjust the values in the "getValues()" array of the col pages (=not implemented).
-      throw new IllegalStateException("Creating new ColPage dict changed IDs!");
-
-    return buildRes.getLeft();
-  }
-
-  /**
    * Create a new dictionary of the correct type, which will have a single entry at ID 0: the default value for the
    * given type.
    */
@@ -754,6 +733,45 @@ public class Flattener {
       return new ConstantDoubleDictionary(LoaderColumnInfo.DEFAULT_DOUBLE);
     }
     return null; // never happens
+  }
+
+  /**
+   * Builds a new {@link ColumnPage} from a simple values array.
+   * 
+   * @param colPageValues
+   *          Contains the actual value the colPage should have for each row. This long array might be changed by this
+   *          method and its values are not valid any more upon return of this method.
+   * @param colPageValuesLength
+   *          The number of entries in colPageValues array that should actually be used. Use -1 for this param to use
+   *          whole colPageValues array.
+   * @param firstRowId
+   *          first row ID of resulting {@link ColumnPage}.
+   * @param colName
+   *          The name of the column that the new col page will be part of.
+   * @return The new {@link ColumnPage}.
+   */
+  private ColumnPage buildColPageFromValueArray(long[] colPageValues, int colPageValuesLength, long firstRowId,
+      String colName) {
+    if (colPageValuesLength != -1) {
+      long[] newColPageValues = new long[colPageValuesLength];
+      System.arraycopy(colPageValues, 0, newColPageValues, 0, colPageValuesLength);
+      colPageValues = newColPageValues;
+    }
+
+    // create needed "valueMap" from actual value to a temp ID and replace colPageValues with those temp IDs.
+    NavigableMap<Long, Long> valueMap = new TreeMap<>();
+    long nextFreeTempId = 0L;
+    for (int i = 0; i < colPageValues.length; i++) {
+      if (!valueMap.containsKey(colPageValues[i]))
+        valueMap.put(colPageValues[i], nextFreeTempId++);
+      colPageValues[i] = valueMap.get(colPageValues[i]);
+    }
+
+    ColumnPageBuilder builder = new ColumnPageBuilder(columnPageFactory);
+    builder.withColumnPageName(colName + "#" + firstRowId).withFirstRowId(firstRowId).withValueMap(valueMap)
+        .withValues(colPageValues); // use same array here, builder will change this array again.
+
+    return builder.build();
   }
 
 }

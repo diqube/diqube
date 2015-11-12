@@ -21,26 +21,10 @@
 package org.diqube.data.flatten;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Set;
 
-import javax.inject.Inject;
-
 import org.diqube.context.AutoInstatiate;
-import org.diqube.data.column.ColumnPage;
-import org.diqube.data.column.StandardColumnShard;
 import org.diqube.data.table.TableShard;
-import org.diqube.data.types.dbl.DoubleColumnShardFactory;
-import org.diqube.data.types.dbl.FlattenedDoubleStandardColumnShard;
-import org.diqube.data.types.dbl.dict.DoubleDictionary;
-import org.diqube.data.types.lng.FlattenedLongStandardColumnShard;
-import org.diqube.data.types.lng.LongColumnShardFactory;
-import org.diqube.data.types.lng.array.CompressedLongArray;
-import org.diqube.data.types.lng.dict.ConstantLongDictionary;
-import org.diqube.data.types.lng.dict.LongDictionary;
-import org.diqube.data.types.str.FlattenedStringStandardColumnShard;
-import org.diqube.data.types.str.StringColumnShardFactory;
-import org.diqube.data.types.str.dict.StringDictionary;
 
 /**
  * Factory for data classes that are used in conjunction with flattenning tables.
@@ -50,64 +34,9 @@ import org.diqube.data.types.str.dict.StringDictionary;
 @AutoInstatiate
 public class FlattenDataFactory {
 
-  @Inject
-  private DoubleColumnShardFactory doubleFactory;
-
-  @Inject
-  private LongColumnShardFactory longFactory;
-
-  @Inject
-  private StringColumnShardFactory stringFactory;
-
   public FlattenedTable createFlattenedTable(String name, Collection<TableShard> shards,
       Set<Long> originalFirstRowIdsOfShards) {
     return new FlattenedTable(name, shards, originalFirstRowIdsOfShards);
   }
 
-  public FlattenedColumnPage createFlattenedColumnPage(String name, LongDictionary<?> colPageDict,
-      CompressedLongArray<?> values, long firstRowId) {
-    return new FlattenedColumnPage(colPageDict, values, firstRowId, name);
-  }
-
-  public FlattenedDoubleStandardColumnShard createFlattenedDoubleStandardColumnShard(String name,
-      DoubleDictionary<?> columnShardDict, long firstRowId, List<ColumnPage> pages) {
-    return doubleFactory.createFlattenedDoubleStandardColumnShard(name, columnShardDict, firstRowId, pages);
-  }
-
-  public FlattenedLongStandardColumnShard createFlattenedLongStandardColumnShard(String name,
-      LongDictionary<?> columnShardDict, long firstRowId, List<ColumnPage> pages) {
-    return longFactory.createFlattenedLongStandardColumnShard(name, columnShardDict, firstRowId, pages);
-  }
-
-  public FlattenedStringStandardColumnShard createFlattenedStringStandardColumnShard(String name,
-      StringDictionary<?> columnShardDict, long firstRowId, List<ColumnPage> pages) {
-    return stringFactory.createFlattenedStringStandardColumnShard(name, columnShardDict, firstRowId, pages);
-  }
-
-  public FlattenedTableShard createFlattenedTableShard(String tableName, Collection<StandardColumnShard> colShards) {
-    return new FlattenedTableShard(tableName, colShards);
-  }
-
-  public FlattenedConstantColumnPage createFlattenedConstantColumnPage(String name,
-      AdjustableConstantLongDictionary<?> colPageDict, long firstRowId, int rows) {
-    return new FlattenedConstantColumnPage(name, colPageDict, firstRowId, rows);
-  }
-
-  public FlattenedDelegateLongDictionary createFlattenedDelegateLongDictionary(LongDictionary<?> delegate) {
-    return new FlattenedDelegateLongDictionary(delegate);
-  }
-
-  public AdjustableConstantLongDictionary<?> createAdjustableConstantLongDictionary(long value) {
-    return new ConstantLongDictionary(value);
-  }
-
-  public IndexFilteringCompressedLongArray createIndexFilteringCompressedLongArray(CompressedLongArray<?> delegate,
-      CompressedLongArray<?> sortedFilteredIndices, long valueDelta) {
-    return new IndexFilteringCompressedLongArray(delegate, sortedFilteredIndices, valueDelta);
-  }
-
-  public IndexRemovingCompressedLongArray createIndexRemovingCompressedLongArray(CompressedLongArray<?> delegate,
-      CompressedLongArray<?> sortedRemoveIndices, long valueDelta) {
-    return new IndexRemovingCompressedLongArray(delegate, sortedRemoveIndices, valueDelta);
-  }
 }
