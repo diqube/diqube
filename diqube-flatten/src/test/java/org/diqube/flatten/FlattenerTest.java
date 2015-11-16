@@ -99,7 +99,7 @@ public class FlattenerTest {
   @BeforeMethod
   public void before() {
     dataContext = new AnnotationConfigApplicationContext();
-    dataContext.getEnvironment().setActiveProfiles(Profiles.ALL_BUT_NEW_DATA_WATCHER);
+    dataContext.getEnvironment().setActiveProfiles(Profiles.TEST_ALL_BUT_NEW_DATA_WATCHER);
     dataContext.scan("org.diqube");
     dataContext.refresh();
 
@@ -633,11 +633,4 @@ public class FlattenerTest {
     res.addAll(rows.values());
     return res;
   }
-
-  // private List<Long> resolveValues(TableShard tableShard, String colName, List<Long> rowIds) {
-  // QueryableLongColumnShardFacade col =
-  // new QueryableLongColumnShardFacade((LongColumnShard) tableShard.getColumns().get(colName));
-  // Long[] colValueIds = col.resolveColumnValueIdsForRowsFlat(rowIds);
-  // return Arrays.asList(col.getColumnShardDictionary().decompressValues(colValueIds));
-  // }
 }

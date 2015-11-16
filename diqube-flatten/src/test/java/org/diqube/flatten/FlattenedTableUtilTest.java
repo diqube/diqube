@@ -61,7 +61,7 @@ public class FlattenedTableUtilTest {
   @BeforeMethod
   public void before() {
     dataContext = new AnnotationConfigApplicationContext();
-    dataContext.getEnvironment().setActiveProfiles(Profiles.ALL_BUT_NEW_DATA_WATCHER);
+    dataContext.getEnvironment().setActiveProfiles(Profiles.TEST_ALL_BUT_NEW_DATA_WATCHER);
     dataContext.scan("org.diqube");
     dataContext.refresh();
 

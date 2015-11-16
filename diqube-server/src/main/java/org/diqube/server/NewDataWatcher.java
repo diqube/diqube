@@ -50,7 +50,7 @@ import org.diqube.data.table.AdjustableTable;
 import org.diqube.data.table.Table;
 import org.diqube.data.table.TableFactory;
 import org.diqube.data.table.TableShard;
-import org.diqube.execution.TableRegistry;
+import org.diqube.executionenv.TableRegistry;
 import org.diqube.listeners.ClusterManagerListener;
 import org.diqube.loader.CsvLoader;
 import org.diqube.loader.DiqubeLoader;

@@ -45,6 +45,8 @@ import org.diqube.execution.steps.GroupIntermediaryAggregationStep;
 import org.diqube.execution.steps.ResolveValuesStep;
 import org.diqube.executionenv.ExecutionEnvironment;
 import org.diqube.executionenv.ExecutionEnvironmentFactory;
+import org.diqube.executionenv.FlattenedTableInstanceManager;
+import org.diqube.executionenv.TableRegistry;
 import org.diqube.queries.QueryUuid.QueryUuidThreadState;
 import org.diqube.remote.base.util.RUuidUtil;
 import org.diqube.remote.cluster.thrift.RExecutionPlan;
@@ -79,12 +81,12 @@ public class ExecutablePlanFromRemoteBuilder {
 
   private ExecutablePlanFactory executablePlanFactory;
 
-  private FlattenedTableManager flattenedTableManager;
+  private FlattenedTableInstanceManager flattenedTableManager;
 
   /* package */ ExecutablePlanFromRemoteBuilder(TableRegistry tableRegistry,
       ExecutionEnvironmentFactory executionEnvironmentFactory,
       ExecutablePlanStepFromRemoteFactory executablePlanStepFactory, ExecutablePlanFactory executablePlanFactory,
-      FlattenedTableManager flattenedTableManager) {
+      FlattenedTableInstanceManager flattenedTableManager) {
     this.tableRegistry = tableRegistry;
     this.executionEnvironmentFactory = executionEnvironmentFactory;
     this.executablePlanStepFactory = executablePlanStepFactory;

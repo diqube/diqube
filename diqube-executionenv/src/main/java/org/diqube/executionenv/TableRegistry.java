@@ -18,7 +18,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.execution;
+package org.diqube.executionenv;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -36,7 +36,7 @@ import org.diqube.listeners.TableLoadListener;
  * All {@link Table} objects that are available on the current cluster node are registered here.
  * 
  * <p>
- * Note that this does <b>NOT</b> include {@link FlattenedTable}s, as they are managed in {@link FlattenedTableManager}.
+ * Note that this does <b>NOT</b> include {@link FlattenedTable}s, as they are managed in {@link FlattenedTableInstanceManager}.
  *
  * @author Bastian Gloeckle
  */
@@ -57,13 +57,13 @@ public class TableRegistry {
     tables.put(name, table);
 
     if (tableLoadListeners != null)
-      tableLoadListeners.forEach(l -> l.tableShardLoaded(name));
+      tableLoadListeners.forEach(l -> l.tableLoaded(name));
   }
 
   public synchronized void removeTable(String name) {
     tables.remove(name);
 
-    tableLoadListeners.forEach(l -> l.tableShardUnloaded(name, false));
+    tableLoadListeners.forEach(l -> l.tableUnloaded(name));
   }
 
   public synchronized Collection<String> getAllTableNames() {

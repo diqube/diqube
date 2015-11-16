@@ -51,9 +51,9 @@ import org.diqube.data.column.StandardColumnShard;
 import org.diqube.data.flatten.FlattenedTable;
 import org.diqube.data.table.Table;
 import org.diqube.data.table.TableShard;
-import org.diqube.execution.FlattenedTableManager;
-import org.diqube.execution.TableRegistry;
-import org.diqube.flatten.FlattenedTableUtil;
+import org.diqube.executionenv.FlattenedTableInstanceManager;
+import org.diqube.executionenv.TableRegistry;
+import org.diqube.flatten.FlattenManager;
 import org.diqube.flatten.Flattener;
 import org.diqube.flatten.QueryMasterFlattenService;
 import org.diqube.remote.base.thrift.RNodeAddress;
@@ -93,19 +93,16 @@ public class ClusterFlattenServiceHandler implements ClusterFlattenService.Iface
   private ExecutorManager executorManager;
 
   @Inject
-  private Flattener flattener;
-
-  @Inject
   private ConnectionOrLocalHelper connectionOrLocalHelper;
 
   @Inject
   private ClusterManager clusterManager;
 
   @Inject
-  private FlattenedTableManager flattenedTableManager;
+  private FlattenedTableInstanceManager flattenedTableManager;
 
   @Inject
-  private FlattenedTableUtil flattenedTableUtil;
+  private FlattenManager flattenManager;
 
   @Config(ConfigKey.FLATTEN_TIMEOUT_SECONDS)
   private int flattenTimeoutSeconds;
@@ -372,29 +369,8 @@ public class ClusterFlattenServiceHandler implements ClusterFlattenService.Iface
       List<TableShard> inputShardsSorted = table.getShards().stream()
           .sorted((s1, s2) -> Long.compare(s1.getLowestRowId(), s2.getLowestRowId())).collect(Collectors.toList());
 
-      FlattenedTable flattenedTable = null;
-
-      Pair<UUID, FlattenedTable> newest = flattenedTableManager.getNewestFlattenedTableVersion(tableName, flattenBy);
-      if (newest != null) {
-        if (inputShardsSorted.stream().map(shard -> shard.getLowestRowId()).collect(Collectors.toSet())
-            .equals(newest.getRight().getOriginalFirstRowIdsOfShards())) {
-          // the newest flattened table is still valid, as it flattened the same shards as the current live table
-          // contains. We will therefore re-use that flattenedTable! But use a different instance of FlattenedTable so
-          // we can later adjust the rowIds without changing the original one (because that original one might still be
-          // in use).
-          flattenedTable =
-              flattenedTableUtil.facadeWithDefaultRowIds(newest.getRight(), tableName, flattenBy, flattenedTableId);
-          logger.info("Will re-use the flattening for '{}' by '{}' from ID {} for new ID {}", tableName, flattenBy,
-              newest.getLeft(), flattenedTableId);
-        }
-      }
-
-      if (flattenedTable == null) {
-        // no flattenedTable to be re-used, we therefore need to re-flatten.
-        logger.info("No valid flattened table for '{}' by '{}' available, will therefore flatten table now.", tableName,
-            flattenBy);
-        flattenedTable = flattener.flattenTable(table, inputShardsSorted, flattenBy, flattenedTableId);
-      }
+      FlattenedTable flattenedTable =
+          flattenManager.createFlattenedTable(table, inputShardsSorted, flattenBy, flattenedTableId);
 
       List<TableShard> flattenedShardsSorted = flattenedTable.getShards().stream()
           .sorted((s1, s2) -> Long.compare(s1.getLowestRowId(), s2.getLowestRowId())).collect(Collectors.toList());

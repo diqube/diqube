@@ -149,8 +149,9 @@ public class ConfigKey {
   public static final String FLATTEN_TIMEOUT_SECONDS = "flattenTimeoutSeconds";
 
   /**
-   * Size of the cache storing flattened tables that have been calculated from the original tables. This cache is a
-   * "global" cache and not a specific one for a single source-table (as {@link #TABLE_CACHE_APPROX_MAX_PER_TABLE_MB}).
+   * Size of the in-memory-cache storing flattened tables that have been calculated from the original tables. This cache
+   * is a "global" cache and not a specific one for a single source-table (as
+   * {@link #TABLE_CACHE_APPROX_MAX_PER_TABLE_MB}).
    * 
    * <p>
    * Value is in Megabyte.
@@ -167,5 +168,16 @@ public class ConfigKey {
    * they definitely need to be available. This value just controls the cache which caches the flattened tables between
    * queries, so new queries do not have to re-flatten a table.
    */
-  public static final String FLATTEN_CACHE_SIZE_MB = "flattenCacheSizeMb";
+  public static final String FLATTEN_MEMORY_CACHE_SIZE_MB = "flattenMemoryCacheSizeMb";
+
+  /**
+   * Folder on local disk to be used to write caches of flattened tables to.
+   * 
+   * <p>
+   * If this path is relative, it will be resolved relative to {@link #DATA_DIR}.
+   * 
+   * <p>
+   * Use a value of "none" to disable caching of flattened tables to disk.
+   */
+  public static final String FLATTEN_DISK_CACHE_LOCATION = "flattenDiskCacheLocation";
 }

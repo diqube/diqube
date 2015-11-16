@@ -49,4 +49,22 @@ public class Profiles {
    * All profiles.
    */
   public static final String[] ALL = new String[] { NEW_DATA_WATCHER, CONFIG };
+
+  /**
+   * Profile which will instantiate a noop implementation of FlattenedTableDiskCache. Not included in any of the other
+   * profiles, must not be used when the classpath contains an actual implementation of FLattenedTableDiskCache.
+   */
+  public static final String TEST_NOOP_FLATTENED_DISK_CACHE = "TestNoopFlattenedDiskCache";
+
+  /**
+   * All profiles, but not including {@link #NEW_DATA_WATCHER}.
+   */
+  public static final String[] TEST_ALL_BUT_NEW_DATA_WATCHER;
+
+  static {
+    TEST_ALL_BUT_NEW_DATA_WATCHER = new String[ALL_BUT_NEW_DATA_WATCHER.length + 1];
+    for (int i = 0; i < ALL_BUT_NEW_DATA_WATCHER.length; i++)
+      TEST_ALL_BUT_NEW_DATA_WATCHER[i] = ALL_BUT_NEW_DATA_WATCHER[i];
+    TEST_ALL_BUT_NEW_DATA_WATCHER[TEST_ALL_BUT_NEW_DATA_WATCHER.length - 1] = TEST_NOOP_FLATTENED_DISK_CACHE;
+  }
 }

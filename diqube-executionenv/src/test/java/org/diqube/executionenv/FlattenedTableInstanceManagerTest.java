@@ -18,7 +18,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.execution;
+package org.diqube.executionenv;
 
 import java.util.UUID;
 
@@ -34,18 +34,18 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 /**
- * Tests for {@link FlattenedTableManager}.
+ * Tests for {@link FlattenedTableInstanceManager}.
  *
  * @author Bastian Gloeckle
  */
-public class FlattenedTableManagerTest {
+public class FlattenedTableInstanceManagerTest {
   private static final int MEMORY_CAP_CACHE_MB = 5;
   private static final String TABLE = "tab";
   private static final String FLATTEN_BY = "a[*]";
 
   private AnnotationConfigApplicationContext dataContext;
 
-  private FlattenedTableManager flattenedTableManager;
+  private FlattenedTableInstanceManager flattenedTableManager;
 
   @BeforeMethod
   public void before() {
@@ -54,7 +54,7 @@ public class FlattenedTableManagerTest {
     dataContext.scan("org.diqube");
     dataContext.refresh();
 
-    flattenedTableManager = dataContext.getBean(FlattenedTableManager.class);
+    flattenedTableManager = dataContext.getBean(FlattenedTableInstanceManager.class);
     flattenedTableManager.setFlattenedTableCacheSizeMb(MEMORY_CAP_CACHE_MB);
     flattenedTableManager.initialize();
 

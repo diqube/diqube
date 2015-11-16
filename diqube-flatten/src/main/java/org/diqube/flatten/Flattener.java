@@ -179,8 +179,8 @@ public class Flattener {
    * @throws IllegalStateException
    *           If the table cannot be flattened for any reason.
    */
-  public FlattenedTable flattenTable(Table inputTable, Collection<TableShard> inputTableShards, String flattenByField,
-      UUID flattenId)
+  public FlattenedTable flattenTable(Table inputTable, Collection<TableShard> inputTableShards,
+      String flattenByField, UUID flattenId)
           throws IllegalArgumentException, IllegalStateException, PatternException, LengthColumnMissingException {
     if (inputTable instanceof FlattenedTable)
       throw new IllegalArgumentException("Cannot flatten an already flattened table.");

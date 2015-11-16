@@ -24,6 +24,8 @@ import javax.inject.Inject;
 
 import org.diqube.context.AutoInstatiate;
 import org.diqube.executionenv.ExecutionEnvironmentFactory;
+import org.diqube.executionenv.FlattenedTableInstanceManager;
+import org.diqube.executionenv.TableRegistry;
 
 /**
  * Factory for {@link ExecutablePlanFromRemoteBuilder}.
@@ -45,7 +47,7 @@ public class ExecutablePlanFromRemoteBuilderFactory {
   private ExecutablePlanFactory executablePlanFactory;
 
   @Inject
-  private FlattenedTableManager flattenedTableManager;
+  private FlattenedTableInstanceManager flattenedTableManager;
 
   public ExecutablePlanFromRemoteBuilder createExecutablePlanFromRemoteBuilder() {
     return new ExecutablePlanFromRemoteBuilder(tableRegistry, executionEnvironmentFactory, executablePlanStepFactory,

@@ -18,32 +18,18 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.listeners;
+package org.diqube.cache;
 
-import org.diqube.context.AutoInstatiate;
+import java.util.function.Supplier;
+
+import org.diqube.cache.CountingCache;
 
 /**
- * Listener that gets informed when tables are un-/loaded.
- * 
- * All implementing classes need to have a bean inside the context (= need to have the {@link AutoInstatiate}
- * annotation).
  *
  * @author Bastian Gloeckle
  */
-public interface TableLoadListener {
-  /**
-   * A new Table has been loaded and is available in the TableRegistry.
-   * 
-   * @param tableName
-   *          Name of the table the new shard belongs to.
-   */
-  public void tableLoaded(String tableName);
-
-  /**
-   * A Table has been unloaded and is no longer available in the TableRegistry.
-   * 
-   * @param tableName
-   *          Name of the table the shard belonged to.
-   */
-  public void tableUnloaded(String tableName);
+public class CountingCacheTestUtil {
+  public static void setCleanupStrategy(CountingCache<?, ?, ?> cache, Supplier<Boolean> strategy) {
+    cache.setCleanupStrategy(() -> strategy.get());
+  }
 }

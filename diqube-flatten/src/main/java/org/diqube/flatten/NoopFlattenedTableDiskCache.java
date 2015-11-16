@@ -18,16 +18,31 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.cache;
+package org.diqube.flatten;
 
-import java.util.function.Supplier;
+import java.util.Set;
+
+import org.diqube.context.AutoInstatiate;
+import org.diqube.context.Profiles;
+import org.diqube.data.flatten.FlattenedTable;
+import org.springframework.context.annotation.Profile;
 
 /**
+ * A noop implementation of {@link FlattenedTableDiskCache} which is only used in tests (see
  *
  * @author Bastian Gloeckle
  */
-public class CountingCacheTestUtil {
-  public static void setCleanupStrategy(CountingCache<?, ?, ?> cache, Supplier<Boolean> strategy) {
-    cache.setCleanupStrategy(() -> strategy.get());
+@AutoInstatiate
+@Profile(Profiles.TEST_NOOP_FLATTENED_DISK_CACHE)
+public class NoopFlattenedTableDiskCache implements FlattenedTableDiskCache {
+
+  @Override
+  public FlattenedTable load(String sourceTableName, String flattenBy, Set<Long> originalFirstRowIdsOfShards) {
+    return null;
   }
+
+  @Override
+  public void offer(FlattenedTable flattenedTable, String sourceTableName, String flattenBy) {
+  }
+
 }

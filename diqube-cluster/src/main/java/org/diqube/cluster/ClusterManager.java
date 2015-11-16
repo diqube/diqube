@@ -327,7 +327,7 @@ public class ClusterManager implements ServingListener, TableLoadListener, OurNo
   }
 
   @Override
-  public synchronized void tableShardLoaded(String tableName) {
+  public synchronized void tableLoaded(String tableName) {
     boolean isNewTable = clusterLayout.addTable(ourHostAddr, tableName) != null;
 
     if (isNewTable) {
@@ -356,29 +356,27 @@ public class ClusterManager implements ServingListener, TableLoadListener, OurNo
   }
 
   @Override
-  public void tableShardUnloaded(String tableName, boolean nodeStillContainsOtherShard) {
-    if (!nodeStillContainsOtherShard) {
-      boolean tableWasRemoved = clusterLayout.removeTable(ourHostAddr, tableName) != null;
-      if (tableWasRemoved) {
-        RNodeAddress ourRemoteAddr = ourHostAddr.createRemote();
-        Pair<Long, List<String>> versionedTableList = clusterLayout.getVersionedTableList(ourHostAddr);
+  public void tableUnloaded(String tableName) {
+    boolean tableWasRemoved = clusterLayout.removeTable(ourHostAddr, tableName) != null;
+    if (tableWasRemoved) {
+      RNodeAddress ourRemoteAddr = ourHostAddr.createRemote();
+      Pair<Long, List<String>> versionedTableList = clusterLayout.getVersionedTableList(ourHostAddr);
 
-        if (clusterLayout.getNodes().size() > 1)
-          logger.info("Informing other cluster nodes about updated list of tables served by this node.");
+      if (clusterLayout.getNodes().size() > 1)
+        logger.info("Informing other cluster nodes about updated list of tables served by this node.");
 
-        for (NodeAddress addr : clusterLayout.getNodes()) {
-          if (addr.equals(ourHostAddr))
-            continue;
+      for (NodeAddress addr : clusterLayout.getNodes()) {
+        if (addr.equals(ourHostAddr))
+          continue;
 
-          try (Connection<ClusterManagementService.Client> conn = reserveConnection(addr)) {
-            conn.getService().newNodeData(ourRemoteAddr, versionedTableList.getLeft(), versionedTableList.getRight());
-          } catch (ConnectionException | IOException | TException e) {
-            // swallow, in case an exception happens, this will be handled automatically by the default listeners in
-            // ConnectionPool.
-          } catch (InterruptedException e) {
-            logger.error("Interrupted while informing cluster about our new table list", e);
-            return;
-          }
+        try (Connection<ClusterManagementService.Client> conn = reserveConnection(addr)) {
+          conn.getService().newNodeData(ourRemoteAddr, versionedTableList.getLeft(), versionedTableList.getRight());
+        } catch (ConnectionException | IOException | TException e) {
+          // swallow, in case an exception happens, this will be handled automatically by the default listeners in
+          // ConnectionPool.
+        } catch (InterruptedException e) {
+          logger.error("Interrupted while informing cluster about our new table list", e);
+          return;
         }
       }
     }

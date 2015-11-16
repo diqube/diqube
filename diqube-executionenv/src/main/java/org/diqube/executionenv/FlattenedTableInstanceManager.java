@@ -18,7 +18,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.execution;
+package org.diqube.executionenv;
 
 import java.util.Deque;
 import java.util.HashSet;
@@ -42,7 +42,6 @@ import org.diqube.config.Config;
 import org.diqube.config.ConfigKey;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.data.flatten.FlattenedTable;
-import org.diqube.flatten.Flattener;
 import org.diqube.util.Holder;
 import org.diqube.util.Pair;
 import org.slf4j.Logger;
@@ -52,8 +51,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 /**
- * Manages various {@link FlattenedTable}s that are available locally.
- * 
+ * Manages various {@link FlattenedTable}s that are available in main memory (=instances) locally.
  * <p>
  * Flattened tables that are not needed any more/are not used often enough/exceed a memory cap will be evicted . The
  * implementation is based on a {@link CountingCache}.
@@ -64,8 +62,8 @@ import com.google.common.collect.Sets;
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
-public class FlattenedTableManager {
-  private static final Logger logger = LoggerFactory.getLogger(FlattenedTableManager.class);
+public class FlattenedTableInstanceManager {
+  private static final Logger logger = LoggerFactory.getLogger(FlattenedTableInstanceManager.class);
 
   /**
    * Number of seconds a flattened table gets flagged by
@@ -80,7 +78,7 @@ public class FlattenedTableManager {
    */
   private CacheConsolidateStrategy cacheConsolidateStrategy = () -> ThreadLocalRandom.current().nextInt(128) < 13;
 
-  @Config(ConfigKey.FLATTEN_CACHE_SIZE_MB)
+  @Config(ConfigKey.FLATTEN_MEMORY_CACHE_SIZE_MB)
   private int flattenedTableCacheSizeMb;
 
   /**
@@ -147,7 +145,7 @@ public class FlattenedTableManager {
   }
 
   /**
-   * Register a newly created {@link FlattenedTable} from {@link Flattener}.
+   * Register a newly created {@link FlattenedTable} from a Flattener.
    * 
    * <p>
    * This version will automatically be the newest version available, so it is likely that
