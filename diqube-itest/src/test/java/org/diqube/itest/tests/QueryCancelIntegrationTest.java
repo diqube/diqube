@@ -98,7 +98,8 @@ public class QueryCancelIntegrationTest extends AbstractDiqubeIntegrationTest {
           () -> threadDumpContainsString(serverControl.get(0), "query-remote-worker-" + queryUuid.toString()) && //
               threadDumpContainsString(serverControl.get(1), "query-remote-worker-" + queryUuid.toString()));
 
-      // now remotes are running. Cancel execution
+      // now remotes are running. Cancel execution.
+      logger.info("Canceling query {}", queryUuid);
       ServiceTestUtil.queryService(serverControl.get(0), queryService -> queryService.cancelQueryExecution(queryRUuid));
 
       // now /all/ threads should be cancelled within a short amount of time, both the ones of query master and the ones
@@ -107,7 +108,7 @@ public class QueryCancelIntegrationTest extends AbstractDiqubeIntegrationTest {
           () -> !threadDumpContainsString(serverControl.get(0), queryUuid.toString())
               && !threadDumpContainsString(serverControl.get(1), queryUuid.toString()));
 
-      // now check that the remotes did not actually complete processing the plan (in whcih casae the threads would be
+      // now check that the remotes did not actually complete processing the plan (in which case the threads would be
       // gone, too).
 
       int numberOfRemoteSteps = calculateNumberOfRemoteSteps(diqlQuery);

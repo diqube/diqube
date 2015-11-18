@@ -32,6 +32,8 @@ import org.diqube.remote.cluster.thrift.ClusterFlattenService;
 import org.diqube.remote.cluster.thrift.ClusterManagementService;
 import org.diqube.remote.query.QueryServiceConstants;
 import org.diqube.remote.query.thrift.QueryService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Utiltiy class to simply access the services of cluster servers in tests.
@@ -39,6 +41,8 @@ import org.diqube.remote.query.thrift.QueryService;
  * @author Bastian Gloeckle
  */
 public class ServiceTestUtil {
+  private static final Logger logger = LoggerFactory.getLogger(ServiceTestUtil.class);
+
   /**
    * Open a connection to the {@link ClusterManagementService} of a specific node and then execute something.
    * 
@@ -49,9 +53,12 @@ public class ServiceTestUtil {
     try (TestConnection<ClusterManagementService.Client> con = TestThriftConnectionFactory.open(server.getAddr(),
         ClusterManagementService.Client.class, ClusterManagementServiceConstants.SERVICE_NAME)) {
 
+      logger.info("Opened connection to ClusterManagementService at {}.", server.getAddr());
       execute.accept(con.getService());
+      logger.info("Closing connection to ClusterManagementService at {}.", server.getAddr());
 
     } catch (IOException | TestConnectionException | TException e) {
+      logger.error("Exception while accessing ClusterManagementService of {}", server.getAddr(), e);
       throw new RuntimeException("Exception while accessing ClusterManagementService of " + server.getAddr(), e);
     }
   }
@@ -66,9 +73,12 @@ public class ServiceTestUtil {
     try (TestConnection<QueryService.Client> con = TestThriftConnectionFactory.open(server.getAddr(),
         QueryService.Client.class, QueryServiceConstants.SERVICE_NAME)) {
 
+      logger.info("Opened connection to QueryService at {}.", server.getAddr());
       execute.accept(con.getService());
+      logger.info("Closing connection to QueryService at {}.", server.getAddr());
 
     } catch (IOException | TestConnectionException | TException e) {
+      logger.error("Exception while accessing QueryService of {}", server.getAddr(), e);
       throw new RuntimeException("Exception while accessing QueryService of " + server.getAddr(), e);
     }
   }
@@ -83,9 +93,12 @@ public class ServiceTestUtil {
     try (TestConnection<ClusterFlattenService.Client> con = TestThriftConnectionFactory.open(server.getAddr(),
         ClusterFlattenService.Client.class, ClusterFlattenServiceConstants.SERVICE_NAME)) {
 
+      logger.info("Opened connection to ClusterFlattenService at {}.", server.getAddr());
       execute.accept(con.getService());
+      logger.info("Closing connection to ClusterFlattenService at {}.", server.getAddr());
 
     } catch (IOException | TestConnectionException | TException e) {
+      logger.error("Exception while accessing ClusterFlattenService of {}", server.getAddr(), e);
       throw new RuntimeException("Exception while accessing ClusterFlattenService of " + server.getAddr(), e);
     }
   }
