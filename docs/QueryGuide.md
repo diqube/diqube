@@ -263,6 +263,85 @@ columnA | columB[length]
 --------|---------------
 1       | 2
 
+##Flatten##
+
+When loading a table into diqube, each row contains a complex object, with potentially repeated fields. If you now want to select not that whole complex object in a single row, but one of the repeated elements, you can **flatten** the table by the corresponding field. An example illustrates this, imagine you have a table **TAB** with the following two rows:
+
+```
+{
+  "columnA" : "1",
+  "columnB" : [ {
+                  "x" : 0,
+                  "y" : 0
+                },
+                {
+                  "x" : 2,
+                  "y" : 3
+                } ]
+}
+{
+  "columnA" : "2",
+  "columnB" : [ {
+                  "x" : 0,
+                  "y" : 10
+                },
+                {
+                  "x" : 2,
+                  "y" : 17
+                } ]
+}
+```
+
+Imagine you now want to group on all values of columnB[*].x and compute the average of columnB[*].y. You can do this using the following diql statement:
+
+```
+select columnB.x, avg(columnB.y)
+from flatten(TAB, columnB[*])
+group by columnB.x
+```
+
+This will give you following result:
+
+columnB.x | avg(columnB.y)
+----------|---------------
+0         | 5            
+2         | 10
+
+What happens internally, is that the source table **TAB** is flattened by `columnB[*]` which means that each element of the repeated field `columnB` of each row in the source table will become a row on its own in the flattened table. The flattened table looks like the following, with 4 rows:
+
+```
+{
+  "columnA" : "1",
+  "columnB" : {
+                  "x" : 0,
+                  "y" : 0
+                }
+}
+{
+  "columnA" : "1",
+  "columnB" : {
+                  "x" : 2,
+                  "y" : 3
+                }
+}
+{
+  "columnA" : "2",
+  "columnB" : {
+                  "x" : 0,
+                  "y" : 10
+                }
+}
+{
+  "columnA" : "2",
+  "columnB" : {
+                  "x" : 2,
+                  "y" : 17
+                }
+}
+```
+
+Note that `columnB` is no repeated field any more, but alls its repetitions have been extracted in its own row.
+
 ##Data types##
 
 diqube internally supports 3 data types: `STRING`, `LONG`, `DOUBLE`. Each column in the table has a data type and each function (both projection/aggregation) executed on it has an input data type and an output data type. 

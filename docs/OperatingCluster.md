@@ -125,6 +125,13 @@ After doing this, there should be some information in the server log that new da
 
 To load the sample data in a cluster environment, you need to specify a different `firstRowId` on each diqube server. The sample data currently contains 100 rows - that means that one server should specify `firstRowId=0`, the next should specify `firstRowId=100` etc. in their respective .control files: Row id 0 and 100 will then contain the same data etc. (because both .control files point to the same JSON file).
 
+##Advanced configuration properties##
+
+###Flatten###
+diql supports selections on flattened tables, as can be read in the Query Guide. The flattened versions of tables will be created on demand and will be cached in both main memory and on disk. Using the server.properties key `flattenMemoryCacheSizeMb` you can specify how much main memory should be used by that cache maximum and using the key `flattenDiskCacheLocation` you can specify where to put the cached data on disk. 
+
+As the flatten process might take a while, one can ask diqube to flatten the data of a new table directly after loading that data. Use the property `autoFlatten` in the tables control files for this. The value is a comma-separated list of fields to automatically flatten by. Using this will make executing queries on the flattened table faster for the first time.
+
 ##Overriding loglevels##
 
 This can be done by providing a different logging configuration. diqube uses [logback](http://logback.qos.ch/manual/configuration.html), therefore the system property `logback.configurationFile` can be used to point to an alternative logging configuration.
