@@ -56,6 +56,7 @@ import org.diqube.loader.CsvLoader;
 import org.diqube.loader.DiqubeLoader;
 import org.diqube.loader.JsonLoader;
 import org.diqube.loader.LoadException;
+import org.diqube.server.queryremote.flatten.ClusterFlattenServiceHandler;
 import org.diqube.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -100,6 +101,9 @@ public class NewDataWatcher implements ClusterManagerListener {
 
   @Inject
   private JsonLoader jsonLoader;
+
+  @Inject
+  private ClusterFlattenServiceHandler clusterFlattenServiceHandler;
 
   private NewDataWatchThread thread;
 
@@ -154,8 +158,8 @@ public class NewDataWatcher implements ClusterManagerListener {
 
     logger.info("Found new control file {}. Starting to load new table shard.", controlFile.getAbsolutePath());
     try {
-      Pair<String, List<Long>> tableInfo =
-          new ControlFileLoader(tableRegistry, tableFactory, csvLoader, jsonLoader, diqubeLoader, controlFile).load();
+      Pair<String, List<Long>> tableInfo = new ControlFileLoader(tableRegistry, tableFactory, csvLoader, jsonLoader,
+          diqubeLoader, clusterFlattenServiceHandler, controlFile).load();
       tableInfoByControlFilePath.put(controlFile.getAbsolutePath(), tableInfo);
       logger.info("Data for table '{}' (with starting rowIds {}) loaded successfully from {}'", tableInfo.getLeft(),
           tableInfo.getRight(), controlFile.getAbsolutePath());

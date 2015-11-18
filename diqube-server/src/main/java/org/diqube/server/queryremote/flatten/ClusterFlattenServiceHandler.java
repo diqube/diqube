@@ -196,6 +196,10 @@ public class ClusterFlattenServiceHandler implements ClusterFlattenService.Iface
    * Note that the query master calls this method. If the execution fails, the query master should retry the process, as
    * explained on {@link FlattenRunnable}.
    * 
+   * <p>
+   * Note that requests might be merged and therefore different cluster nodes might actually return different
+   * flattenedIds in the end - the master should take care of that by retrying the flatten process.
+   * 
    * @param flattenRequestId
    *          A unique ID.
    * @param tableName
@@ -206,7 +210,8 @@ public class ClusterFlattenServiceHandler implements ClusterFlattenService.Iface
    *          The other nodes that contain part of the source table and with which this node should communicate in order
    *          to clean up and rowId overlaps of the flattened table.
    * @param resultAddress
-   *          Address where there's a {@link ClusterFlattenService} that will receive the results.
+   *          Address where there's a {@link ClusterFlattenService} that will receive the results. Can be
+   *          <code>null</code> to not send any results (only valid locally, since Thrift does not support null values).
    * @throws RFlattenException
    * @throws TException
    */
@@ -223,7 +228,8 @@ public class ClusterFlattenServiceHandler implements ClusterFlattenService.Iface
     details.sync = new Object();
     details.otherFlattenResults = new ConcurrentLinkedDeque<>();
     details.resultAddresses = new ConcurrentLinkedDeque<>();
-    details.resultAddresses.push(new Pair<>(resultAddress, requestUuid));
+    if (resultAddress != null)
+      details.resultAddresses.push(new Pair<>(resultAddress, requestUuid));
     details.requestPair = new Pair<>(tableName, flattenBy);
 
     requestDetails.put(requestUuid, details);
@@ -242,7 +248,8 @@ public class ClusterFlattenServiceHandler implements ClusterFlattenService.Iface
                     + " inform the first request as soon as it is done.",
                 tableName, flattenBy, requestUuid, otherRequestUuid);
 
-            otherDetails.resultAddresses.push(new Pair<>(resultAddress, requestUuid));
+            if (resultAddress != null)
+              otherDetails.resultAddresses.push(new Pair<>(resultAddress, requestUuid));
             requestDetails.remove(requestUuid); // clean up our stuff.
             return;
           }

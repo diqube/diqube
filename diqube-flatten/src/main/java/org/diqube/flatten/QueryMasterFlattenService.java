@@ -234,7 +234,7 @@ public class QueryMasterFlattenService {
                   finalFlattenedTableId = flattenedTableId;
 
                 if (!finalFlattenedTableId.equals(flattenedTableId)) {
-                  // remotes responded with different flattened table IDs. Should never happen, but to be sure...
+                  // remotes responded with different flattened table IDs.
                   threadIdToRequestUuidAndCallback.remove(Thread.currentThread().getId());
                   scheduleRetry();
                   return;

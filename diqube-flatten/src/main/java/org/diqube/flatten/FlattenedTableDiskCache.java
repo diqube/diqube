@@ -63,4 +63,5 @@ public interface FlattenedTableDiskCache {
    *          The field the source table was flattened by.
    */
   public void offer(FlattenedTable flattenedTable, String sourceTableName, String flattenBy);
+
 }

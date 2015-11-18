@@ -24,24 +24,29 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.apache.thrift.TException;
 import org.diqube.data.column.ColumnType;
 import org.diqube.data.table.AdjustableTable;
 import org.diqube.data.table.AdjustableTable.TableShardsOverlappingException;
-import org.diqube.executionenv.TableRegistry;
 import org.diqube.data.table.Table;
 import org.diqube.data.table.TableFactory;
 import org.diqube.data.table.TableShard;
+import org.diqube.executionenv.TableRegistry;
 import org.diqube.loader.CsvLoader;
 import org.diqube.loader.DiqubeLoader;
 import org.diqube.loader.JsonLoader;
 import org.diqube.loader.LoadException;
 import org.diqube.loader.Loader;
 import org.diqube.loader.LoaderColumnInfo;
+import org.diqube.remote.base.util.RUuidUtil;
+import org.diqube.server.queryremote.flatten.ClusterFlattenServiceHandler;
 import org.diqube.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,6 +65,7 @@ public class ControlFileLoader {
   public static final String KEY_FIRST_ROWID = "firstRowId";
   public static final String KEY_COLTYPE_PREFIX = "columnType.";
   public static final String KEY_DEFAULT_COLTYPE = "defaultColumnType";
+  public static final String KEY_AUTO_FLATTEN = "autoFlatten";
 
   public static final String TYPE_CSV = "csv";
   public static final String TYPE_JSON = "json";
@@ -71,16 +77,19 @@ public class ControlFileLoader {
   private CsvLoader csvLoader;
   private JsonLoader jsonLoader;
   private DiqubeLoader diqubeLoader;
+  private ClusterFlattenServiceHandler clusterFlattenServiceHandler;
 
   private Object tableRegistrySync = new Object();
 
   public ControlFileLoader(TableRegistry tableRegistry, TableFactory tableFactory, CsvLoader csvLoader,
-      JsonLoader jsonLoader, DiqubeLoader diqubeLoader, File controlFile) {
+      JsonLoader jsonLoader, DiqubeLoader diqubeLoader, ClusterFlattenServiceHandler clusterFlattenServiceHandler,
+      File controlFile) {
     this.tableRegistry = tableRegistry;
     this.tableFactory = tableFactory;
     this.csvLoader = csvLoader;
     this.jsonLoader = jsonLoader;
     this.diqubeLoader = diqubeLoader;
+    this.clusterFlattenServiceHandler = clusterFlattenServiceHandler;
     this.controlFile = controlFile;
   }
 
@@ -108,6 +117,7 @@ public class ControlFileLoader {
     String fileName;
     String tableName;
     String type;
+    String[] autoFlatten;
     long firstRowId;
     LoaderColumnInfo columnInfo;
     File file;
@@ -158,6 +168,14 @@ public class ControlFileLoader {
             columnInfo.registerColumnType(keyString, resolveColumnType(val));
           }
         }
+
+        String autoFlattenUnsplit = controlProperties.getProperty(KEY_AUTO_FLATTEN, "");
+        if (!"".equals(autoFlattenUnsplit)) {
+          autoFlatten = autoFlattenUnsplit.split(",");
+          for (int i = 0; i < autoFlatten.length; i++)
+            autoFlatten[i] = autoFlatten[i].trim();
+        } else
+          autoFlatten = new String[0];
 
         file = controlFile.toPath().resolveSibling(fileName).toFile();
         if (!file.exists() || !file.isFile())
@@ -214,6 +232,27 @@ public class ControlFileLoader {
         table = tableFactory.createDefaultTable(tableName, newTableShardCollection);
 
         tableRegistry.addTable(tableName, table);
+      }
+    }
+
+    // For "auto-flattening" we use the clusterFlattenServiceHandler directly with an empty list of "other flatteners"
+    // and a null-resultAddress. Using this, this node will merge new flatten requests on that table to the one we start
+    // now, although these might fail (as other requests probably include multiple flatteners; our node will though only
+    // flatten on ourselves; but query masters that issued the flattening should be able to cope with that).
+    for (String autoFlattenField : autoFlatten) {
+      UUID flattenId = UUID.randomUUID();
+      logger.info("Starting to flatten new table '{}' by '{}' locally. Flatten ID is {}.", tableName, autoFlattenField,
+          flattenId);
+      try {
+        // these calls start the flattening asynchronously, therefore we just trigger computation here. If there is a
+        // flattened version avauilable in the flattenedDiskCache already, that will be used.
+        clusterFlattenServiceHandler.flattenAllLocalShards(RUuidUtil.toRUuid(flattenId), tableName, autoFlattenField,
+            new ArrayList<>(), null);
+        logger.info("Finished flattening new table '{}' by '{}' locally with flatten ID {}.", tableName,
+            autoFlattenField, flattenId);
+      } catch (TException e) {
+        logger.error("Failed to flatten new table '{}' by '{}' locally with flatten ID {}.", tableName,
+            autoFlattenField, flattenId, e);
       }
     }
 

@@ -41,6 +41,7 @@ import org.diqube.loader.JsonLoader;
 import org.diqube.loader.LoadException;
 import org.diqube.server.ControlFileLoader;
 import org.diqube.server.NewDataWatcher;
+import org.diqube.server.queryremote.flatten.ClusterFlattenServiceHandler;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
@@ -105,6 +106,7 @@ public class ControlFileLoaderTest {
             dataContext.getBean(CsvLoader.class), //
             dataContext.getBean(JsonLoader.class), //
             dataContext.getBean(DiqubeLoader.class), //
+            dataContext.getBean(ClusterFlattenServiceHandler.class), //
             controlFile);
       }
     };

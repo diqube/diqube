@@ -37,7 +37,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -139,7 +139,7 @@ public class ExecutorManager {
     threadFactoryBuilder.setNameFormat(nameFormat);
     threadFactoryBuilder.setUncaughtExceptionHandler(uncaughtExceptionHandler);
 
-    return new ThreadPoolExecutor(0, maxPoolSize, 10, TimeUnit.SECONDS, new SynchronousQueue<>(),
+    return new ThreadPoolExecutor(0, maxPoolSize, 10, TimeUnit.SECONDS, new LinkedBlockingQueue<>(),
         threadFactoryBuilder.build());
   }
 

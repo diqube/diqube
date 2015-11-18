@@ -21,7 +21,9 @@
 package org.diqube.itest.tests;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -37,6 +39,7 @@ import org.diqube.itest.util.Waiter;
 import org.diqube.remote.base.util.RUuidUtil;
 import org.diqube.remote.cluster.thrift.ClusterFlattenService;
 import org.diqube.server.NewDataWatcher;
+import org.diqube.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
@@ -144,6 +147,7 @@ public class ClusterFlattenIntegrationTest extends AbstractDiqubeIntegrationTest
    * expected that none of the query remotes returns successfully, but all fail. The query master then usually needs to
    * retry its request - we though don't do this in the test here.
    * 
+   * 
    * @throws IOException
    * @throws InterruptedException
    */
@@ -203,4 +207,62 @@ public class ClusterFlattenIntegrationTest extends AbstractDiqubeIntegrationTest
     }
   }
 
+  /**
+   * Tests what happens when two equal flatten requests are issued at the same time with different request IDs and with
+   * different "remoteFlatteners" - one of the requests having no remote request at all. In contrast to
+   * {@link #dividedClusterTest()} this will NOT fail, but the query master will receive one result (from the node which
+   * succeeds because there are no other flatteners).
+   */
+  @Test
+  @NeedsServer(servers = 2, manualStart = true)
+  public void dividedClusterOneNoRemotesTest() throws IOException, InterruptedException {
+    // GIVEN
+
+    // override the timeout to actually receive an exception from the remotes.
+    serverControl.get(0).start(prop -> prop.setProperty(ConfigKey.FLATTEN_TIMEOUT_SECONDS, "60"));
+    serverControl.get(1).start(prop -> prop.setProperty(ConfigKey.FLATTEN_TIMEOUT_SECONDS, "60"));
+
+    TestDataGenerator.generateJsonTestData(work(BIG_DATA_FILE_WORK), 10, 2, new String[] { "a", "b" }, 10);
+    serverControl.get(0).deploy(cp(BIG0_CONTROL_FILE), work(BIG_DATA_FILE_WORK));
+    serverControl.get(1).deploy(cp(BIG10_CONTROL_FILE), work(BIG_DATA_FILE_WORK));
+
+    try (TestClusterFlattenService localCfs = ClusterFlattenServiceTestUtil.createClusterFlattenService()) {
+
+      // first request is sent to first server
+      UUID firstRequestId = UUID.randomUUID();
+      logger.info("Sending first request to flatten the table (request ID {}) to first server", firstRequestId);
+      ServiceTestUtil.clusterFlattenService(serverControl.get(0), clusterFlattenService -> {
+        clusterFlattenService.flattenAllLocalShards(RUuidUtil.toRUuid(firstRequestId), BIG_TABLE, "a[*].a[*]",
+            new ArrayList<>(), // no "other flatteners"
+            localCfs.getThisServicesAddr().toRNodeAddress());
+      });
+      // second request to second server
+      UUID secondRequestId = UUID.randomUUID();
+      logger.info("Sending second request to flatten the table (request ID {}) to second server", secondRequestId);
+      ServiceTestUtil.clusterFlattenService(serverControl.get(1), clusterFlattenService -> {
+        clusterFlattenService.flattenAllLocalShards(RUuidUtil.toRUuid(secondRequestId), BIG_TABLE, "a[*].a[*]",
+            Arrays.asList(serverControl.get(0).getAddr().toRNodeAddress()),
+            localCfs.getThisServicesAddr().toRNodeAddress());
+      });
+      // second request to first server
+      logger.info("Sending second request to flatten the table (request ID {}) to first server", secondRequestId);
+      ServiceTestUtil.clusterFlattenService(serverControl.get(0), clusterFlattenService -> {
+        clusterFlattenService.flattenAllLocalShards(RUuidUtil.toRUuid(secondRequestId), BIG_TABLE, "a[*].a[*]",
+            Arrays.asList(serverControl.get(1).getAddr().toRNodeAddress()),
+            localCfs.getThisServicesAddr().toRNodeAddress());
+      });
+
+      // wait double the time of the flattentimeout we set for the servers!
+      // we will receive the exception from server "1" for each requestId on the remote -> 1 time.
+      new Waiter().waitUntil("One remote is exception, the other has a result.", 120, 500,
+          () -> localCfs.getExceptions().size() == 1
+              && localCfs.getNodeResults().containsKey(serverControl.get(0).getAddr().toRNodeAddress())
+              && localCfs.getNodeResults().get(serverControl.get(0).getAddr().toRNodeAddress()).size() == 2);
+
+      Assert.assertEquals(new HashSet<>(localCfs.getNodeResults().get(serverControl.get(0).getAddr().toRNodeAddress())),
+          new HashSet<Pair<UUID, UUID>>(
+              Arrays.asList(new Pair<>(firstRequestId, firstRequestId), new Pair<>(secondRequestId, firstRequestId))),
+          "Expected to receive correct request/flattenId pair.");
+    }
+  }
 }

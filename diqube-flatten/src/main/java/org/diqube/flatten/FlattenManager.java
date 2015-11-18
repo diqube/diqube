@@ -99,6 +99,11 @@ public class FlattenManager {
    * counterpart in the not-flattened one. See also result of
    * {@link Flattener#flattenTable(Table, Collection, String, UUID)}.
    * 
+   * <p>
+   * This method will NOT call
+   * {@link FlattenedTableInstanceManager#registerFlattenedTableVersion(UUID, FlattenedTable, String, String)}, as this
+   * should be called after the rowIds are adjusted!
+   * 
    * @param sourceTable
    *          The table to get a flattened version of
    * @param sourceTableShards
@@ -147,4 +152,5 @@ public class FlattenManager {
     flattenedTableDiskCache.offer(res, sourceTable.getName(), flattenBy);
     return res;
   }
+
 }
