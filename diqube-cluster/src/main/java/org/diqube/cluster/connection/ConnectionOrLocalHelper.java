@@ -26,6 +26,10 @@ import javax.inject.Inject;
 
 import org.apache.thrift.TServiceClient;
 import org.diqube.cluster.ClusterManager;
+import org.diqube.connection.ConnectionException;
+import org.diqube.connection.ConnectionPool;
+import org.diqube.connection.ServiceProvider;
+import org.diqube.connection.SocketListener;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.remote.base.thrift.RNodeAddress;
 import org.springframework.context.ApplicationContext;

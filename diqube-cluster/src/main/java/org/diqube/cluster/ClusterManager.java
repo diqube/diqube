@@ -34,11 +34,12 @@ import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 
 import org.apache.thrift.TException;
-import org.diqube.cluster.connection.Connection;
-import org.diqube.cluster.connection.ConnectionException;
-import org.diqube.cluster.connection.ConnectionPool;
 import org.diqube.config.Config;
 import org.diqube.config.ConfigKey;
+import org.diqube.connection.ClusterNodeDiedListener;
+import org.diqube.connection.Connection;
+import org.diqube.connection.ConnectionException;
+import org.diqube.connection.ConnectionPool;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.context.InjectOptional;
 import org.diqube.listeners.ClusterManagerListener;
@@ -56,11 +57,17 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Manages knowledge of other nodes in the diqube cluster.
+ * 
+ * <p>
+ * This registers a {@link ClusterNodeDiedListener} automatically to be informed if anyone identified a specific node to
+ * be "down". If this class itself identifies a node to be down, it will inform all {@link ClusterNodeDiedListener}s,
+ * too!
  *
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
-public class ClusterManager implements ServingListener, TableLoadListener, OurNodeAddressProvider {
+public class ClusterManager
+    implements ServingListener, TableLoadListener, OurNodeAddressProvider, ClusterNodeDiedListener {
   private static final Logger logger = LoggerFactory.getLogger(ClusterManager.class);
 
   private static final String OUR_HOST_AUTOMATIC = "*";
@@ -82,6 +89,7 @@ public class ClusterManager implements ServingListener, TableLoadListener, OurNo
   @InjectOptional
   private List<ClusterManagerListener> clusterManagerListeners;
 
+  /** will contain "this", too! */
   @InjectOptional
   private List<ClusterNodeDiedListener> clusterNodeDiedListeners;
 
@@ -305,10 +313,10 @@ public class ClusterManager implements ServingListener, TableLoadListener, OurNo
   }
 
   /**
-   * We are informed that a specific node died. Thi9s happens either if our node itself identified another node to not
-   * be available any more (e.g. when a connection fails), or when the dying node had the chance to inform us that it
-   * died.
+   * We are informed that a specific node died. This happens either if our node itself identified another node to not be
+   * available any more (e.g. when a connection fails), or when the dying node had the chance to inform us that it died.
    */
+  @Override
   public void nodeDied(RNodeAddress diedAddr) {
     NodeAddress addr = new NodeAddress(diedAddr);
     if (clusterLayout.removeNode(addr) && !addr.equals(ourHostAddr)) {
@@ -318,7 +326,7 @@ public class ClusterManager implements ServingListener, TableLoadListener, OurNo
         // to the third node, although that node might be up and running for us (if there are network segment failures
         // etc.). But as this scenario cannot happen currently (see JavaDoc of this method), we're fine to fire the
         // event and ConnectionPool to listen to it.
-        clusterNodeDiedListeners.forEach(l -> l.nodeDied(diedAddr));
+        clusterNodeDiedListeners.stream().filter(l -> l != this).forEach(l -> l.nodeDied(diedAddr));
     }
   }
 

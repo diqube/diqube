@@ -18,25 +18,18 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.cluster.connection;
+package org.diqube.connection;
+
+import org.diqube.connection.DiqubeClientSocket;
+import org.diqube.connection.SocketListener;
 
 /**
- * Exception when connecting to a remote machine.
+ * Factory for {@link DiqubeClientSocket} (needs to be in same package as {@link DiqubeClientSocket}).
  *
  * @author Bastian Gloeckle
  */
-public class ConnectionException extends RuntimeException {
-  private static final long serialVersionUID = 1L;
-
-  public ConnectionException() {
-    super();
-  }
-
-  public ConnectionException(String msg) {
-    super(msg);
-  }
-
-  public ConnectionException(String msg, Throwable cause) {
-    super(msg, cause);
+public class DiqubeClientSocketTestFactory {
+  public static DiqubeClientSocket createSocket(String host, int port, int timeout, SocketListener listener) {
+    return new DiqubeClientSocket(host, port, timeout, listener);
   }
 }

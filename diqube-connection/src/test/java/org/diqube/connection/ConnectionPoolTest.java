@@ -18,7 +18,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.cluster.connection;
+package org.diqube.connection;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -30,15 +30,17 @@ import java.util.function.Consumer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransport;
-import org.diqube.cluster.ClusterManager;
-import org.diqube.cluster.NodeAddress;
+import org.diqube.connection.Connection;
+import org.diqube.connection.ConnectionException;
+import org.diqube.connection.ConnectionFactory;
+import org.diqube.connection.ConnectionPool;
+import org.diqube.connection.SocketListener;
 import org.diqube.queries.QueryUuid;
 import org.diqube.remote.base.thrift.RNodeAddress;
+import org.diqube.remote.base.thrift.RNodeDefaultAddress;
 import org.diqube.remote.cluster.thrift.ClusterManagementService;
 import org.diqube.remote.query.thrift.KeepAliveService;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
@@ -50,9 +52,8 @@ import org.testng.annotations.Test;
  * @author Bastian Gloeckle
  */
 public class ConnectionPoolTest {
-  private static final RNodeAddress ADDR1 = new NodeAddress("localhost", (short) 5101).createRemote();
-  private static final RNodeAddress ADDR2 = new NodeAddress("localhost", (short) 5102).createRemote();
-  private static final RNodeAddress ADDR3 = new NodeAddress("localhost", (short) 5103).createRemote();
+  private static final RNodeAddress ADDR1 = createDefaultRNodeAddress("localhost", (short) 5101);
+  private static final RNodeAddress ADDR2 = createDefaultRNodeAddress("localhost", (short) 5102);
 
   private ConnectionPool pool;
 
@@ -63,17 +64,6 @@ public class ConnectionPoolTest {
     conFac = new TestConnectionFactory();
 
     pool = new ConnectionPool();
-    ClusterManager cmMock = Mockito.mock(ClusterManager.class, Mockito.RETURNS_MOCKS);
-    // be sure to forward "nodeDied" calls
-    Mockito.doAnswer(new Answer<Void>() {
-      @Override
-      public Void answer(InvocationOnMock invocation) throws Throwable {
-        RNodeAddress nodeDied = (RNodeAddress) invocation.getArguments()[0];
-        pool.nodeDied(nodeDied);
-        return null;
-      }
-    }).when(cmMock).nodeDied(Mockito.any());
-    pool.setClusterManager(cmMock);
   }
 
   @AfterMethod
@@ -390,5 +380,13 @@ public class ConnectionPoolTest {
       return id;
     }
 
+  }
+
+  private static RNodeAddress createDefaultRNodeAddress(String host, short port) {
+    RNodeAddress res = new RNodeAddress();
+    res.setDefaultAddr(new RNodeDefaultAddress());
+    res.getDefaultAddr().setHost(host);
+    res.getDefaultAddr().setPort(port);
+    return res;
   }
 }

@@ -35,10 +35,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.thrift.TException;
 import org.diqube.cluster.ClusterManager;
-import org.diqube.cluster.connection.ConnectionException;
 import org.diqube.cluster.connection.ConnectionOrLocalHelper;
-import org.diqube.cluster.connection.ServiceProvider;
-import org.diqube.cluster.connection.SocketListener;
+import org.diqube.connection.ConnectionException;
+import org.diqube.connection.ServiceProvider;
+import org.diqube.connection.SocketListener;
 import org.diqube.execution.RemotesTriggeredListener;
 import org.diqube.execution.consumers.AbstractThreadedTableFlattenedConsumer;
 import org.diqube.execution.consumers.ColumnValueConsumer;

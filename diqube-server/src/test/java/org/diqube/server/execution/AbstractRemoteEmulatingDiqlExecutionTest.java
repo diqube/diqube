@@ -27,12 +27,12 @@ import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
 import org.apache.thrift.TServiceClient;
-import org.diqube.cluster.connection.Connection;
-import org.diqube.cluster.connection.ConnectionException;
-import org.diqube.cluster.connection.ConnectionFactory;
-import org.diqube.cluster.connection.ConnectionPool;
-import org.diqube.cluster.connection.ConnectionPoolTestUtil;
-import org.diqube.cluster.connection.SocketListener;
+import org.diqube.connection.Connection;
+import org.diqube.connection.ConnectionException;
+import org.diqube.connection.ConnectionFactory;
+import org.diqube.connection.ConnectionPool;
+import org.diqube.connection.ConnectionPoolTestUtil;
+import org.diqube.connection.SocketListener;
 import org.diqube.data.column.ColumnType;
 import org.diqube.queries.QueryRegistry;
 import org.diqube.remote.base.thrift.RNodeAddress;

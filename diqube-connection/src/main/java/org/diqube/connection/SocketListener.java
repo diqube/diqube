@@ -18,18 +18,16 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.cluster;
-
-import org.diqube.remote.base.thrift.RNodeAddress;
+package org.diqube.connection;
 
 /**
- * Listener that is informed as soon as the {@link ClusterManager} identified that a node died.
+ * A Listener on events that happen on a socket that was opened by {@link ConnectionPool}.
  *
  * @author Bastian Gloeckle
  */
-public interface ClusterNodeDiedListener {
+public interface SocketListener {
   /**
-   * A specific node in the cluster died.
+   * The connection to the server died unexpectedly.
    */
-  public void nodeDied(RNodeAddress nodeAddr);
+  public void connectionDied();
 }

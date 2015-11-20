@@ -18,15 +18,18 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.cluster.connection;
+package org.diqube.connection;
+
+import org.diqube.remote.base.thrift.RNodeAddress;
 
 /**
- * Factory for {@link DiqubeClientSocket} (needs to be in same package as {@link DiqubeClientSocket}).
+ * Listener that is informed as soon as someone found that a specific cluster node died.
  *
  * @author Bastian Gloeckle
  */
-public class DiqubeClientSocketTestFactory {
-  public static DiqubeClientSocket createSocket(String host, int port, int timeout, SocketListener listener) {
-    return new DiqubeClientSocket(host, port, timeout, listener);
-  }
+public interface ClusterNodeDiedListener {
+  /**
+   * A specific node in the cluster died.
+   */
+  public void nodeDied(RNodeAddress nodeAddr);
 }

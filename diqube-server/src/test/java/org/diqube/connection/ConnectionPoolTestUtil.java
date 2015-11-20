@@ -18,9 +18,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.cluster.connection;
+package org.diqube.connection;
 
 import org.apache.thrift.transport.TTransport;
+import org.diqube.connection.Connection;
+import org.diqube.connection.ConnectionFactory;
+import org.diqube.connection.ConnectionPool;
 import org.mockito.Mockito;
 
 /**

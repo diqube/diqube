@@ -18,16 +18,25 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.cluster.connection;
+package org.diqube.connection;
 
 /**
- * A Listener on events that happen on a socket that was opened by {@link ConnectionPool}.
+ * Exception when connecting to a remote machine.
  *
  * @author Bastian Gloeckle
  */
-public interface SocketListener {
-  /**
-   * The connection to the server died unexpectedly.
-   */
-  public void connectionDied();
+public class ConnectionException extends RuntimeException {
+  private static final long serialVersionUID = 1L;
+
+  public ConnectionException() {
+    super();
+  }
+
+  public ConnectionException(String msg) {
+    super(msg);
+  }
+
+  public ConnectionException(String msg, Throwable cause) {
+    super(msg, cause);
+  }
 }

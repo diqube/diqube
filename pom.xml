@@ -60,6 +60,8 @@
     <module>diqube-threads</module>
     <module>diqube-context</module>
     <module>diqube-config</module>
+    <module>diqube-connection</module>
+    <module>diqube-consensus</module>
     <module>diqube-cluster</module>
     <module>diqube-cache</module>
     <module>diqube-data</module>

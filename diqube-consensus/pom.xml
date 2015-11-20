@@ -29,22 +29,13 @@
     <artifactId>diqube</artifactId>
     <version>1-SNAPSHOT</version>
   </parent>
-  <artifactId>diqube-cluster</artifactId>
+  <artifactId>diqube-consensus</artifactId>
   <packaging>jar</packaging>
-  <name>diqube - Cluster</name>
+  <name>diqube - Consensus</name>
   <url>http://www.diqube.org</url>
 
   <build>
     <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-surefire-plugin</artifactId>
-        <configuration>
-          <systemPropertyVariables>
-            <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
-          </systemPropertyVariables>
-        </configuration>
-      </plugin>
       <plugin>
         <groupId>com.mycila</groupId>
         <artifactId>license-maven-plugin</artifactId>
@@ -63,48 +54,22 @@
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>diqube-context</artifactId>
+      <artifactId>diqube-util</artifactId>
       <version>${project.version}</version>
     </dependency>
+
     <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>diqube-listeners</artifactId>
-      <version>${project.version}</version>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
     </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>diqube-config</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>diqube-remote-cluster</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>diqube-remote-query</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>diqube-queries</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>diqube-connection</artifactId>
-      <version>${project.version}</version>
-    </dependency>
+    
+    
+    <!-- TEST -->
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>diqube-test-util</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.mockito</groupId>
-      <artifactId>mockito-all</artifactId>
     </dependency>
   </dependencies>
 </project>

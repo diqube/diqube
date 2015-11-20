@@ -32,12 +32,12 @@ import java.util.concurrent.Executor;
 import javax.inject.Inject;
 
 import org.apache.thrift.TException;
-import org.diqube.cluster.connection.ConnectionException;
 import org.diqube.cluster.connection.ConnectionOrLocalHelper;
-import org.diqube.cluster.connection.ServiceProvider;
-import org.diqube.cluster.connection.SocketListener;
 import org.diqube.config.Config;
 import org.diqube.config.ConfigKey;
+import org.diqube.connection.ConnectionException;
+import org.diqube.connection.ServiceProvider;
+import org.diqube.connection.SocketListener;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.data.column.ColumnShard;
 import org.diqube.data.table.TableShard;

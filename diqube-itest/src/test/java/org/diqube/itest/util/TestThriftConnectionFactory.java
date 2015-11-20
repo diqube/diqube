@@ -30,7 +30,7 @@ import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
-import org.diqube.cluster.connection.DiqubeClientSocketTestFactory;
+import org.diqube.connection.DiqubeClientSocketTestFactory;
 import org.diqube.itest.control.ServerControl.ServerAddr;
 
 /**
