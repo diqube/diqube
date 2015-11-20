@@ -52,7 +52,7 @@ public class ClusterManagementServiceHandler implements ClusterManagementService
   @Override
   public long hello(RNodeAddress newNode) throws TException {
     clusterManager.newNode(newNode);
-    return clusterManager.getClusterLayout().getVersionedTableList(clusterManager.getOurHostAddr()).getLeft();
+    return clusterManager.getClusterLayout().getVersionedTableList(clusterManager.getOurNodeAddress()).getLeft();
   }
 
   /**
@@ -85,7 +85,7 @@ public class ClusterManagementServiceHandler implements ClusterManagementService
   @Override
   public Map<Long, List<String>> fetchCurrentTablesServed() throws TException {
     Pair<Long, List<String>> p =
-        clusterManager.getClusterLayout().getVersionedTableList(clusterManager.getOurHostAddr());
+        clusterManager.getClusterLayout().getVersionedTableList(clusterManager.getOurNodeAddress());
     Map<Long, List<String>> res = new HashMap<>();
     res.put(p.getLeft(), p.getRight());
     return res;

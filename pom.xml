@@ -93,6 +93,7 @@
     <!-- string the thrift compiler (executable) outputs when called with param "- -version" -->
     <thrift.version.executable.string>Thrift version 0.9.2</thrift.version.executable.string>
     <hadoop.version>2.7.1</hadoop.version>
+    <copycat.version>1.0.0-beta4</copycat.version>
   </properties>
 
   <build>
@@ -431,6 +432,16 @@
         <groupId>net.bytebuddy</groupId>
         <artifactId>byte-buddy-dep</artifactId>
         <version>0.6.15</version>
+      </dependency>
+      <dependency>
+        <groupId>io.atomix.copycat</groupId>
+        <artifactId>copycat-server</artifactId>
+        <version>${copycat.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.atomix.copycat</groupId>
+        <artifactId>copycat-client</artifactId>
+        <version>${copycat.version}</version>
       </dependency>
       
       <!-- JSR-349 Validator -->

@@ -40,12 +40,14 @@ import org.diqube.connection.ClusterNodeDiedListener;
 import org.diqube.connection.Connection;
 import org.diqube.connection.ConnectionException;
 import org.diqube.connection.ConnectionPool;
+import org.diqube.connection.NodeAddress;
+import org.diqube.connection.OurNodeAddressProvider;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.context.InjectOptional;
 import org.diqube.listeners.ClusterManagerListener;
 import org.diqube.listeners.ServingListener;
 import org.diqube.listeners.TableLoadListener;
-import org.diqube.listeners.providers.OurNodeAddressProvider;
+import org.diqube.listeners.providers.OurNodeAddressStringProvider;
 import org.diqube.remote.base.thrift.RNodeAddress;
 import org.diqube.remote.base.util.RNodeAddressUtil;
 import org.diqube.remote.cluster.ClusterManagementServiceConstants;
@@ -66,8 +68,8 @@ import org.slf4j.LoggerFactory;
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
-public class ClusterManager
-    implements ServingListener, TableLoadListener, OurNodeAddressProvider, ClusterNodeDiedListener {
+public class ClusterManager implements ServingListener, TableLoadListener, OurNodeAddressStringProvider,
+    ClusterNodeDiedListener, OurNodeAddressProvider {
   private static final Logger logger = LoggerFactory.getLogger(ClusterManager.class);
 
   private static final String OUR_HOST_AUTOMATIC = "*";
@@ -390,12 +392,14 @@ public class ClusterManager
     }
   }
 
-  public NodeAddress getOurHostAddr() {
+  @Override
+  public NodeAddress getOurNodeAddress() {
     return ourHostAddr;
   }
 
   @Override
-  public String getOurNodeAddress() {
+  public String getOurNodeAddressAsString() {
     return ourHostAddr.toString();
   }
+
 }

@@ -18,18 +18,13 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.cluster.connection;
+package org.diqube.connection;
 
 import java.io.IOException;
 
 import javax.inject.Inject;
 
 import org.apache.thrift.TServiceClient;
-import org.diqube.cluster.ClusterManager;
-import org.diqube.connection.ConnectionException;
-import org.diqube.connection.ConnectionPool;
-import org.diqube.connection.ServiceProvider;
-import org.diqube.connection.SocketListener;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.remote.base.thrift.RNodeAddress;
 import org.springframework.context.ApplicationContext;
@@ -45,7 +40,7 @@ public class ConnectionOrLocalHelper {
   private ConnectionPool connectionPool;
 
   @Inject
-  private ClusterManager clusterManager;
+  private OurNodeAddressProvider ourNodeAddressProvider;
 
   @Inject
   private ApplicationContext beanContext;
@@ -77,7 +72,7 @@ public class ConnectionOrLocalHelper {
   public <T extends TServiceClient, U> ServiceProvider<U> getService(Class<T> thriftClientClass,
       Class<U> thriftServiceInterfaceClass, String thriftServiceName, RNodeAddress addr, SocketListener socketListener)
           throws ConnectionException, InterruptedException {
-    if (clusterManager.getOurHostAddr().createRemote().equals(addr)) {
+    if (ourNodeAddressProvider.getOurNodeAddress().createRemote().equals(addr)) {
       // Thrift client class implements the service interface.
       U bean = beanContext.getBean(thriftServiceInterfaceClass);
 

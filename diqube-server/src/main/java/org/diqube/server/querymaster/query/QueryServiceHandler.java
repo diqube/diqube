@@ -37,9 +37,9 @@ import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 
 import org.apache.thrift.TException;
-import org.diqube.cluster.connection.ConnectionOrLocalHelper;
 import org.diqube.connection.Connection;
 import org.diqube.connection.ConnectionException;
+import org.diqube.connection.ConnectionOrLocalHelper;
 import org.diqube.connection.ConnectionPool;
 import org.diqube.connection.SocketListener;
 import org.diqube.context.AutoInstatiate;

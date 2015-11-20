@@ -63,6 +63,15 @@
       <artifactId>guava</artifactId>
     </dependency>
     
+    <dependency>
+      <groupId>io.atomix.copycat</groupId>
+      <artifactId>copycat-server</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.atomix.copycat</groupId>
+      <artifactId>copycat-client</artifactId>
+    </dependency>
+    
     
     <!-- TEST -->
     <dependency>

@@ -26,7 +26,7 @@ import java.util.Set;
 import javax.inject.Inject;
 
 import org.diqube.cluster.ClusterManager;
-import org.diqube.cluster.connection.ConnectionOrLocalHelper;
+import org.diqube.connection.ConnectionOrLocalHelper;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.data.column.ColumnShardFactory;
 import org.diqube.execution.steps.BuildColumnFromValuesStep;

@@ -41,9 +41,9 @@ import javax.inject.Inject;
 
 import org.apache.thrift.TException;
 import org.diqube.cluster.ClusterManager;
-import org.diqube.cluster.connection.ConnectionOrLocalHelper;
 import org.diqube.config.Config;
 import org.diqube.config.ConfigKey;
+import org.diqube.connection.ConnectionOrLocalHelper;
 import org.diqube.connection.ServiceProvider;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.data.column.AdjustableStandardColumnShard;
@@ -410,7 +410,7 @@ public class ClusterFlattenServiceHandler implements ClusterFlattenService.Iface
                   ClusterFlattenServiceConstants.SERVICE_NAME, otherFlattener, null)) {
 
             serviceProv.getService().shardsFlattened(RUuidUtil.toRUuid(requestUuid),
-                origShardFirstRowIdToFlattenedNumberOfRowsDelta, clusterManager.getOurHostAddr().createRemote());
+                origShardFirstRowIdToFlattenedNumberOfRowsDelta, clusterManager.getOurNodeAddress().createRemote());
           } catch (RRetryLaterException e) {
             if (retryCountLeft == 0)
               // let the uncaughtExceptionHandler handle this...
@@ -507,7 +507,7 @@ public class ClusterFlattenServiceHandler implements ClusterFlattenService.Iface
               resultPair.getLeft(), resultPair.getRight());
 
           serviceProv.getService().flattenDone(RUuidUtil.toRUuid(resultPair.getRight()),
-              RUuidUtil.toRUuid(flattenedTableId), clusterManager.getOurHostAddr().createRemote());
+              RUuidUtil.toRUuid(flattenedTableId), clusterManager.getOurNodeAddress().createRemote());
         } catch (Exception e) {
           logger.warn("Could not send flattening result {}/{} to requesting machine at {}. Ignoring.", requestUuid,
               resultPair.getRight(), resultPair.getLeft(), e);

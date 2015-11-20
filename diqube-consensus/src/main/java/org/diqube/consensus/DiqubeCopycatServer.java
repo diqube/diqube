@@ -18,20 +18,19 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.listeners.providers;
+package org.diqube.consensus;
 
 /**
- * A {@link OurNodeAddressProvider} provides a string representing the address of our cluster node with which other
- * cluster nodes can reach us.
- * 
- * The implementing class is part of the bean context.
  *
  * @author Bastian Gloeckle
  */
-public interface OurNodeAddressProvider {
-  /**
-   * @return A string representing the address of our cluster node. The format of the string is not defined further and
-   *         could be arbitrary.
-   */
-  public String getOurNodeAddress();
+public class DiqubeCopycatServer {
+  // private ONA
+
+  // TODO #86
+
+  //
+  // public void start() {
+  // ServerContext serverContext = new ServerContext(address, members, stateMachine, transport, storage, serializer);
+  // }
 }

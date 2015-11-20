@@ -45,7 +45,7 @@ import org.diqube.config.ConfigKey;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.context.InjectOptional;
 import org.diqube.function.IntermediaryResult;
-import org.diqube.listeners.providers.OurNodeAddressProvider;
+import org.diqube.listeners.providers.OurNodeAddressStringProvider;
 import org.diqube.queries.QueryUuid.QueryUuidThreadState;
 import org.diqube.util.Pair;
 import org.slf4j.Logger;
@@ -85,7 +85,7 @@ public class QueryRegistry {
   private int ourPort;
 
   @InjectOptional
-  private OurNodeAddressProvider ourNodeAddressProvider;
+  private OurNodeAddressStringProvider ourNodeAddressProvider;
 
   /**
    * Register a query, its execution and its exception handler. Note that for the query
@@ -324,7 +324,7 @@ public class QueryRegistry {
         if (!queryStats.containsKey(executionUuid)) {
           String ourAddr;
           if (ourNodeAddressProvider != null)
-            ourAddr = ourNodeAddressProvider.getOurNodeAddress();
+            ourAddr = ourNodeAddressProvider.getOurNodeAddressAsString();
           else
             ourAddr = ourHost + ":" + ourPort;
 

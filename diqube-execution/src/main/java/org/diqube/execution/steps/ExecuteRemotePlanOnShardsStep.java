@@ -35,8 +35,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.thrift.TException;
 import org.diqube.cluster.ClusterManager;
-import org.diqube.cluster.connection.ConnectionOrLocalHelper;
 import org.diqube.connection.ConnectionException;
+import org.diqube.connection.ConnectionOrLocalHelper;
 import org.diqube.connection.ServiceProvider;
 import org.diqube.connection.SocketListener;
 import org.diqube.execution.RemotesTriggeredListener;
@@ -236,7 +236,7 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
     queryRegistry.addQueryResultHandler(QueryUuid.getCurrentQueryUuid(), resultHandler);
     try {
       // distribute query execution
-      RNodeAddress ourRemoteAddr = clusterManager.getOurHostAddr().createRemote();
+      RNodeAddress ourRemoteAddr = clusterManager.getOurNodeAddress().createRemote();
       for (RNodeAddress remoteAddr : remoteNodes) {
         try (ServiceProvider<ClusterQueryService.Iface> service =
             connectionOrLocalHelper.getService(ClusterQueryService.Client.class, ClusterQueryService.Iface.class,

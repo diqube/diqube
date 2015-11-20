@@ -33,6 +33,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.stream.Collectors;
 
+import org.diqube.connection.NodeAddress;
 import org.diqube.remote.base.thrift.RNodeAddress;
 import org.diqube.util.Pair;
 import org.slf4j.Logger;
