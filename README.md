@@ -56,7 +56,8 @@ After everything is prepared, execute the build using
 Execute the following after building:
 
     $ cd diqube-server
-    $ java -jar target/diqube-server-1-SNAPSHOT.jar
+    $ echo "messageIntegritySecret=CHANGE_THIS_IN_PRODUCTION" > server.properties
+    $ java -Ddiqube.properties=server.properties -jar target/diqube-server-1-SNAPSHOT.jar
 
 The server will then start and watch the 'data' directory inside diqube-server for any new data to be loaded (.control
 files). There is some sample data already provided. For more information see [Operating a cluster](/docs/OperatingCluster.md).
