@@ -56,7 +56,6 @@ import org.diqube.queries.QueryRegistry.QueryResultHandler;
 import org.diqube.queries.QueryUuid;
 import org.diqube.remote.base.thrift.RNodeAddress;
 import org.diqube.remote.base.util.RUuidUtil;
-import org.diqube.remote.cluster.ClusterQueryServiceConstants;
 import org.diqube.remote.cluster.thrift.ClusterQueryService;
 import org.diqube.remote.cluster.thrift.RExecutionPlan;
 import org.diqube.util.Pair;
@@ -239,8 +238,7 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
       RNodeAddress ourRemoteAddr = clusterManager.getOurNodeAddress().createRemote();
       for (RNodeAddress remoteAddr : remoteNodes) {
         try (ServiceProvider<ClusterQueryService.Iface> service =
-            connectionOrLocalHelper.getService(ClusterQueryService.Client.class, ClusterQueryService.Iface.class,
-                ClusterQueryServiceConstants.SERVICE_NAME, remoteAddr, socketListener)) {
+            connectionOrLocalHelper.getService(ClusterQueryService.Iface.class, remoteAddr, socketListener)) {
           service.getService().executeOnAllLocalShards(remoteExecutionPlan,
               RUuidUtil.toRUuid(QueryUuid.getCurrentQueryUuid()), ourRemoteAddr);
 
@@ -266,6 +264,8 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
           return;
         }
       }
+
+      // TODO #89: Ensure completion of query even if a node dies.
 
       // wait until done
       while (remotesDone.get() < numberOfRemotesInformed && exceptionMessage == null) {

@@ -59,7 +59,6 @@ import org.diqube.flatten.QueryMasterFlattenService;
 import org.diqube.remote.base.thrift.RNodeAddress;
 import org.diqube.remote.base.thrift.RUUID;
 import org.diqube.remote.base.util.RUuidUtil;
-import org.diqube.remote.cluster.ClusterFlattenServiceConstants;
 import org.diqube.remote.cluster.thrift.ClusterFlattenService;
 import org.diqube.remote.cluster.thrift.RFlattenException;
 import org.diqube.remote.cluster.thrift.ROptionalUuid;
@@ -134,9 +133,8 @@ public class ClusterFlattenServiceHandler implements ClusterFlattenService.Iface
 
             // try to send that our flattening failed.
             for (Pair<RNodeAddress, UUID> resultPair : details.resultAddresses) {
-              try (ServiceProvider<ClusterFlattenService.Iface> serviceProv = connectionOrLocalHelper.getService(
-                  ClusterFlattenService.Client.class, ClusterFlattenService.Iface.class,
-                  ClusterFlattenServiceConstants.SERVICE_NAME, resultPair.getLeft(), null)) {
+              try (ServiceProvider<ClusterFlattenService.Iface> serviceProv =
+                  connectionOrLocalHelper.getService(ClusterFlattenService.Iface.class, resultPair.getLeft(), null)) {
 
                 serviceProv.getService().flattenFailed(RUuidUtil.toRUuid(resultPair.getRight()),
                     new RFlattenException(e.getMessage()));
@@ -406,8 +404,7 @@ public class ClusterFlattenServiceHandler implements ClusterFlattenService.Iface
         while (retry) {
           retry = false;
           try (ServiceProvider<ClusterFlattenService.Iface> serviceProv =
-              connectionOrLocalHelper.getService(ClusterFlattenService.Client.class, ClusterFlattenService.Iface.class,
-                  ClusterFlattenServiceConstants.SERVICE_NAME, otherFlattener, null)) {
+              connectionOrLocalHelper.getService(ClusterFlattenService.Iface.class, otherFlattener, null)) {
 
             serviceProv.getService().shardsFlattened(RUuidUtil.toRUuid(requestUuid),
                 origShardFirstRowIdToFlattenedNumberOfRowsDelta, clusterManager.getOurNodeAddress().createRemote());
@@ -500,8 +497,7 @@ public class ClusterFlattenServiceHandler implements ClusterFlattenService.Iface
 
       for (Pair<RNodeAddress, UUID> resultPair : details.resultAddresses) {
         try (ServiceProvider<ClusterFlattenService.Iface> serviceProv =
-            connectionOrLocalHelper.getService(ClusterFlattenService.Client.class, ClusterFlattenService.Iface.class,
-                ClusterFlattenServiceConstants.SERVICE_NAME, resultPair.getLeft(), null)) {
+            connectionOrLocalHelper.getService(ClusterFlattenService.Iface.class, resultPair.getLeft(), null)) {
 
           logger.trace("Sending result of flatten '{}' by '{}' to {} (its request ID was {})", tableName, flattenBy,
               resultPair.getLeft(), resultPair.getRight());

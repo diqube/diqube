@@ -38,7 +38,6 @@ import org.diqube.itest.annotations.NeedsServer;
 import org.diqube.itest.control.ServerControl;
 import org.diqube.itest.util.QueryResultServiceTestUtil;
 import org.diqube.itest.util.QueryResultServiceTestUtil.TestQueryResultService;
-import org.diqube.itest.util.ServiceTestUtil;
 import org.diqube.itest.util.TestDataGenerator;
 import org.diqube.itest.util.Waiter;
 import org.diqube.plan.ExecutionPlanBuilder;
@@ -91,8 +90,8 @@ public class QueryCancelIntegrationTest extends AbstractDiqubeIntegrationTest {
       RUUID queryRUuid = RUuidUtil.toRUuid(queryUuid);
       logger.info("Executing query {}", RUuidUtil.toUuid(queryRUuid));
       // execute a long-running query. It should just take longer than the timeout we set above...
-      ServiceTestUtil.queryService(serverControl.get(0), (queryService) -> queryService.asyncExecuteQuery(queryRUuid,
-          diqlQuery, true, queryRes.getThisServicesAddr().toRNodeAddress()));
+      serverControl.get(0).getSerivceTestUtil().queryService((queryService) -> queryService
+          .asyncExecuteQuery(queryRUuid, diqlQuery, true, queryRes.getThisServicesAddr().toRNodeAddress()));
 
       new Waiter().waitUntil("Remote worker threads start showing up", 2, 300,
           () -> threadDumpContainsString(serverControl.get(0), "query-remote-worker-" + queryUuid.toString()) && //
@@ -100,7 +99,8 @@ public class QueryCancelIntegrationTest extends AbstractDiqubeIntegrationTest {
 
       // now remotes are running. Cancel execution.
       logger.info("Canceling query {}", queryUuid);
-      ServiceTestUtil.queryService(serverControl.get(0), queryService -> queryService.cancelQueryExecution(queryRUuid));
+      serverControl.get(0).getSerivceTestUtil()
+          .queryService(queryService -> queryService.cancelQueryExecution(queryRUuid));
 
       // now /all/ threads should be cancelled within a short amount of time, both the ones of query master and the ones
       // of query remotes.

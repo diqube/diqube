@@ -23,14 +23,15 @@ package org.diqube.itest.util;
 import java.io.IOException;
 
 import org.apache.thrift.TException;
+import org.diqube.connection.Connection;
+import org.diqube.connection.ConnectionException;
+import org.diqube.connection.ConnectionFactory;
+import org.diqube.connection.SocketListener;
 import org.diqube.itest.control.ServerControl;
-import org.diqube.itest.util.TestThriftConnectionFactory.TestConnection;
-import org.diqube.itest.util.TestThriftConnectionFactory.TestConnectionException;
-import org.diqube.remote.cluster.ClusterFlattenServiceConstants;
-import org.diqube.remote.cluster.ClusterManagementServiceConstants;
+import org.diqube.remote.base.services.DiqubeThriftServiceInfoManager;
 import org.diqube.remote.cluster.thrift.ClusterFlattenService;
 import org.diqube.remote.cluster.thrift.ClusterManagementService;
-import org.diqube.remote.query.QueryServiceConstants;
+import org.diqube.remote.query.thrift.KeepAliveService;
 import org.diqube.remote.query.thrift.QueryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +43,23 @@ import org.slf4j.LoggerFactory;
  */
 public class ServiceTestUtil {
   private static final Logger logger = LoggerFactory.getLogger(ServiceTestUtil.class);
+  private ServerControl server;
+  private ConnectionFactory connectionFactory;
+  private DiqubeThriftServiceInfoManager diqubeThriftServiceInfoManager;
+
+  private static final SocketListener SOCKET_LISTENER = new SocketListener() {
+    @Override
+    public void connectionDied() {
+      throw new RuntimeException("Connection died.");
+    }
+  };
+
+  public ServiceTestUtil(ServerControl server, ConnectionFactory connectionFactory,
+      DiqubeThriftServiceInfoManager diqubeThriftServiceInfoManager) {
+    this.server = server;
+    this.connectionFactory = connectionFactory;
+    this.diqubeThriftServiceInfoManager = diqubeThriftServiceInfoManager;
+  }
 
   /**
    * Open a connection to the {@link ClusterManagementService} of a specific node and then execute something.
@@ -49,15 +67,16 @@ public class ServiceTestUtil {
    * @throws RuntimeException
    *           if anything goes wrong.
    */
-  public static void clusterMgmtService(ServerControl server, RemoteConsumer<ClusterManagementService.Iface> execute) {
-    try (TestConnection<ClusterManagementService.Client> con = TestThriftConnectionFactory.open(server.getAddr(),
-        ClusterManagementService.Client.class, ClusterManagementServiceConstants.SERVICE_NAME)) {
+  public void clusterMgmtService(RemoteConsumer<ClusterManagementService.Iface> execute) {
+    try (Connection<ClusterManagementService.Iface> con = connectionFactory.createConnection(
+        diqubeThriftServiceInfoManager.getServiceInfo(ClusterManagementService.Iface.class),
+        server.getAddr().toRNodeAddress(), SOCKET_LISTENER)) {
 
       logger.info("Opened connection to ClusterManagementService at {}.", server.getAddr());
       execute.accept(con.getService());
       logger.info("Closing connection to ClusterManagementService at {}.", server.getAddr());
 
-    } catch (IOException | TestConnectionException | TException e) {
+    } catch (TException | ConnectionException | IOException e) {
       logger.error("Exception while accessing ClusterManagementService of {}", server.getAddr(), e);
       throw new RuntimeException("Exception while accessing ClusterManagementService of " + server.getAddr(), e);
     }
@@ -69,15 +88,16 @@ public class ServiceTestUtil {
    * @throws RuntimeException
    *           if anything goes wrong.
    */
-  public static void queryService(ServerControl server, RemoteConsumer<QueryService.Iface> execute) {
-    try (TestConnection<QueryService.Client> con = TestThriftConnectionFactory.open(server.getAddr(),
-        QueryService.Client.class, QueryServiceConstants.SERVICE_NAME)) {
+  public void queryService(RemoteConsumer<QueryService.Iface> execute) {
+    try (Connection<QueryService.Iface> con =
+        connectionFactory.createConnection(diqubeThriftServiceInfoManager.getServiceInfo(QueryService.Iface.class),
+            server.getAddr().toRNodeAddress(), SOCKET_LISTENER)) {
 
       logger.info("Opened connection to QueryService at {}.", server.getAddr());
       execute.accept(con.getService());
       logger.info("Closing connection to QueryService at {}.", server.getAddr());
 
-    } catch (IOException | TestConnectionException | TException e) {
+    } catch (TException | ConnectionException | IOException e) {
       logger.error("Exception while accessing QueryService of {}", server.getAddr(), e);
       throw new RuntimeException("Exception while accessing QueryService of " + server.getAddr(), e);
     }
@@ -89,17 +109,40 @@ public class ServiceTestUtil {
    * @throws RuntimeException
    *           if anything goes wrong.
    */
-  public static void clusterFlattenService(ServerControl server, RemoteConsumer<ClusterFlattenService.Iface> execute) {
-    try (TestConnection<ClusterFlattenService.Client> con = TestThriftConnectionFactory.open(server.getAddr(),
-        ClusterFlattenService.Client.class, ClusterFlattenServiceConstants.SERVICE_NAME)) {
+  public void clusterFlattenService(RemoteConsumer<ClusterFlattenService.Iface> execute) {
+    try (Connection<ClusterFlattenService.Iface> con = connectionFactory.createConnection(
+        diqubeThriftServiceInfoManager.getServiceInfo(ClusterFlattenService.Iface.class),
+        server.getAddr().toRNodeAddress(), SOCKET_LISTENER)) {
 
       logger.info("Opened connection to ClusterFlattenService at {}.", server.getAddr());
       execute.accept(con.getService());
       logger.info("Closing connection to ClusterFlattenService at {}.", server.getAddr());
 
-    } catch (IOException | TestConnectionException | TException e) {
+    } catch (TException | ConnectionException | IOException e) {
       logger.error("Exception while accessing ClusterFlattenService of {}", server.getAddr(), e);
       throw new RuntimeException("Exception while accessing ClusterFlattenService of " + server.getAddr(), e);
+    }
+  }
+
+  /**
+   * Open a connection to the {@link KeepAliveService} of a specific node and then execute something.
+   * 
+   * @throws RuntimeException
+   *           if anything goes wrong.
+   */
+  public void keepAliveService(RemoteConsumer<KeepAliveService.Iface> execute) {
+    try (Connection<KeepAliveService.Iface> con =
+        connectionFactory.createConnection(diqubeThriftServiceInfoManager.getServiceInfo(KeepAliveService.Iface.class),
+            server.getAddr().toRNodeAddress(), SOCKET_LISTENER)) {
+
+      logger.info("Opened connection to KeepAliveService at {}.", server.getAddr());
+      execute.accept(con.getService());
+      logger.info("Closing connection to KeepAliveService at {}.", server.getAddr());
+
+    } catch (TException | ConnectionException | IOException e) {
+      // no logging here, as we use this to test if server is up -> we will have this case very often, but we do not
+      // want to see that many stacktraces in the log...
+      throw new RuntimeException("Exception while accessing KeepAliveService of " + server.getAddr(), e);
     }
   }
 

@@ -50,7 +50,6 @@ import org.diqube.listeners.TableLoadListener;
 import org.diqube.listeners.providers.OurNodeAddressStringProvider;
 import org.diqube.remote.base.thrift.RNodeAddress;
 import org.diqube.remote.base.util.RNodeAddressUtil;
-import org.diqube.remote.cluster.ClusterManagementServiceConstants;
 import org.diqube.remote.cluster.thrift.ClusterManagementService;
 import org.diqube.util.Pair;
 import org.diqube.util.RandomManager;
@@ -181,7 +180,7 @@ public class ClusterManager implements ServingListener, TableLoadListener, OurNo
           List<NodeAddress> workingRemoteAddr = new ArrayList<>();
 
           for (NodeAddress nodeAddr : clusterNodes) {
-            try (Connection<ClusterManagementService.Client> conn = reserveConnection(nodeAddr)) {
+            try (Connection<ClusterManagementService.Iface> conn = reserveConnection(nodeAddr)) {
               conn.getService().hello(ourAddress);
               workingRemoteAddr.add(nodeAddr);
             } catch (ConnectionException | TException | IOException e) {
@@ -203,7 +202,7 @@ public class ClusterManager implements ServingListener, TableLoadListener, OurNo
               visitedRemoteNodesForLayout.add(clusterLayoutAddr);
               logger.info("Fetching cluster layout data from {}", clusterLayoutAddr);
 
-              try (Connection<ClusterManagementService.Client> conn = reserveConnection(clusterLayoutAddr)) {
+              try (Connection<ClusterManagementService.Iface> conn = reserveConnection(clusterLayoutAddr)) {
                 Map<RNodeAddress, Map<Long, List<String>>> newClusterLayout = conn.getService().clusterLayout();
 
                 for (Entry<RNodeAddress, Map<Long, List<String>>> layoutEntry : newClusterLayout.entrySet()) {
@@ -237,7 +236,7 @@ public class ClusterManager implements ServingListener, TableLoadListener, OurNo
                 if (remoteAddr.equals(ourHostAddr) || workingRemoteAddr.contains(remoteAddr))
                   continue;
 
-                try (Connection<ClusterManagementService.Client> conn = reserveConnection(remoteAddr)) {
+                try (Connection<ClusterManagementService.Iface> conn = reserveConnection(remoteAddr)) {
                   long version = conn.getService().hello(ourAddress);
 
                   if (version != clusterLayout.getVersionedTableList(remoteAddr).getLeft()) {
@@ -267,10 +266,9 @@ public class ClusterManager implements ServingListener, TableLoadListener, OurNo
     }, "cluster-bootstrap").start();
   }
 
-  private Connection<ClusterManagementService.Client> reserveConnection(NodeAddress addr)
+  private Connection<ClusterManagementService.Iface> reserveConnection(NodeAddress addr)
       throws ConnectionException, InterruptedException {
-    return connectionPool.reserveConnection(ClusterManagementService.Client.class,
-        ClusterManagementServiceConstants.SERVICE_NAME, addr.createRemote(),
+    return connectionPool.reserveConnection(ClusterManagementService.Iface.class, addr.createRemote(),
         null /* node will be removed automatically from ClusterManager, therefore no separate listener needed */);
   }
 
@@ -282,7 +280,7 @@ public class ClusterManager implements ServingListener, TableLoadListener, OurNo
       if (addr.equals(ourHostAddr))
         continue;
 
-      try (Connection<ClusterManagementService.Client> conn = reserveConnection(addr)) {
+      try (Connection<ClusterManagementService.Iface> conn = reserveConnection(addr)) {
         conn.getService().nodeDied(ourRemoteAddr);
       } catch (ConnectionException | IOException | TException e) {
         // swallow, in case an exception happens, this will be handled automatically by the default listeners in
@@ -352,7 +350,7 @@ public class ClusterManager implements ServingListener, TableLoadListener, OurNo
         if (addr.equals(ourHostAddr))
           continue;
 
-        try (Connection<ClusterManagementService.Client> conn = reserveConnection(addr)) {
+        try (Connection<ClusterManagementService.Iface> conn = reserveConnection(addr)) {
           conn.getService().newNodeData(ourRemoteAddr, versionedTableList.getLeft(), versionedTableList.getRight());
         } catch (ConnectionException | IOException | TException e) {
           // swallow, in case an exception happens, this will be handled automatically by the default listeners in
@@ -379,7 +377,7 @@ public class ClusterManager implements ServingListener, TableLoadListener, OurNo
         if (addr.equals(ourHostAddr))
           continue;
 
-        try (Connection<ClusterManagementService.Client> conn = reserveConnection(addr)) {
+        try (Connection<ClusterManagementService.Iface> conn = reserveConnection(addr)) {
           conn.getService().newNodeData(ourRemoteAddr, versionedTableList.getLeft(), versionedTableList.getRight());
         } catch (ConnectionException | IOException | TException e) {
           // swallow, in case an exception happens, this will be handled automatically by the default listeners in

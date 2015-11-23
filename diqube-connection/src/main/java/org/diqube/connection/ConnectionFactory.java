@@ -20,7 +20,7 @@
  */
 package org.diqube.connection;
 
-import org.apache.thrift.TServiceClient;
+import org.diqube.remote.base.services.DiqubeThriftServiceInfoManager.DiqubeThriftServiceInfo;
 import org.diqube.remote.base.thrift.RNodeAddress;
 
 /**
@@ -32,10 +32,8 @@ public interface ConnectionFactory {
   /**
    * Create and open a new connection.
    * 
-   * @param thriftClientClass
-   *          The "Client" class of the thrift service to open a connection for.
-   * @param thriftServiceName
-   *          The service name of the service (see constants in [ServiceName]Constants class).
+   * @param serviceInfo
+   *          The service info of the thrift service to open a connection for.
    * @param addr
    *          The address to open a connection to.
    * @param socketListener
@@ -44,8 +42,8 @@ public interface ConnectionFactory {
    * @throws ConnectionException
    *           If anything happens.
    */
-  public <T extends TServiceClient> Connection<T> createConnection(Class<T> thriftClientClass, String thriftServiceName,
-      RNodeAddress addr, SocketListener socketListener) throws ConnectionException;
+  public <T> Connection<T> createConnection(DiqubeThriftServiceInfo<T> serviceInfo, RNodeAddress addr,
+      SocketListener socketListener) throws ConnectionException;
 
   /**
    * Create a new connection object based on an old one, whose socket is still open. The new one will provide a
@@ -59,15 +57,12 @@ public interface ConnectionFactory {
    *          The {@link Connection} whose socket should be used. Do not use this connection object any more after
    *          calling this method! The connection will therefore be disabled and a subsequent call to
    *          {@link Connection#getService()} will throw an exception.
-   * @param newThriftClientClass
-   *          The class of the new service.
-   * @param newThriftServiceName
-   *          The thrift service name of the new service.
+   * @param serviceInfo
+   *          The service info of the thrift service to open a connection for.
    * @return The new connection.
    * @throws ConnectionException
    *           if anything went wrong.
    */
-  public <T extends TServiceClient, U extends TServiceClient> Connection<U> createConnection(
-      Connection<T> oldConnection, Class<U> newThriftClientClass, String newThriftServiceName)
-          throws ConnectionException;
+  public <T, U> Connection<U> createConnection(Connection<T> oldConnection, DiqubeThriftServiceInfo<U> serviceInfo)
+      throws ConnectionException;
 }

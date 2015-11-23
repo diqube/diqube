@@ -21,9 +21,7 @@
 package org.diqube.connection;
 
 import org.apache.thrift.transport.TTransport;
-import org.diqube.connection.Connection;
-import org.diqube.connection.ConnectionFactory;
-import org.diqube.connection.ConnectionPool;
+import org.diqube.remote.base.services.DiqubeThriftServiceInfoManager.DiqubeThriftServiceInfo;
 import org.mockito.Mockito;
 
 /**
@@ -38,8 +36,9 @@ public class ConnectionPoolTestUtil {
     pool.setConnectionFactory(factory);
   }
 
-  public static <T> Connection<T> createConnection(ConnectionPool parentPool, Class<T> service) {
-    return new Connection<T>(parentPool, service, Mockito.mock(service, Mockito.RETURNS_MOCKS),
+  public static <T> Connection<T> createConnection(ConnectionPool parentPool, DiqubeThriftServiceInfo<T> serviceInfo) {
+    return new Connection<T>(parentPool, serviceInfo,
+        Mockito.mock(serviceInfo.getServiceInterface(), Mockito.RETURNS_MOCKS),
         Mockito.mock(TTransport.class, Mockito.RETURNS_MOCKS), null);
   }
 }

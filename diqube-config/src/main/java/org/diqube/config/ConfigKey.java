@@ -180,4 +180,49 @@ public class ConfigKey {
    * Use a value of "none" to disable caching of flattened tables to disk.
    */
   public static final String FLATTEN_DISK_CACHE_LOCATION = "flattenDiskCacheLocation";
+
+  /**
+   * Secret key for message integrity.
+   * 
+   * <p>
+   * All messages sent between nodes of the diqube cluster are integrity checked. This secret key needs to be the same
+   * on all nodes of the diqube cluster. It is used to sign each message and check validity of incoming messages.
+   * 
+   * <p>
+   * The value of this key can either be a normal string key, or, if it starts with the charachters "0x", it will be
+   * interpreted as hex-encoded byte value.
+   */
+  public static final String MESSAGE_INTEGRITY_SECRET = "messageIntegritySecret";
+
+  /**
+   * Secret key for validating message integrity.
+   * 
+   * <p>
+   * Another secret key which is only used for validating the integrity of incoming messages. Each incoming message
+   * needs to be valid acoording to only one of the secret keys.
+   * 
+   * <p>
+   * The value of this key can either be a normal string key, or, if it starts with the charachters "0x", it will be
+   * interpreted as hex-encoded byte value.
+   * 
+   * <p>
+   * A value of "none" will disable this alternative.
+   */
+  public static final String MESSAGE_INTEGRITY_SECRET_ALTERNATIVE1 = "messageIntegritySecretAlt1";
+
+  /**
+   * Secret key for validating message integrity.
+   * 
+   * <p>
+   * Another secret key which is only used for validating the integrity of incoming messages. Each incoming message
+   * needs to be valid acoording to only one of the secret keys.
+   * 
+   * <p>
+   * The value of this key can either be a normal string key, or, if it starts with the charachters "0x", it will be
+   * interpreted as hex-encoded byte value.
+   * 
+   * <p>
+   * A value of "none" will disable this alternative.
+   */
+  public static final String MESSAGE_INTEGRITY_SECRET_ALTERNATIVE2 = "messageIntegritySecretAlt1";
 }

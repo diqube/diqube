@@ -33,7 +33,6 @@ import org.diqube.itest.annotations.NeedsServer;
 import org.diqube.itest.control.ToolControl;
 import org.diqube.itest.util.QueryResultServiceTestUtil;
 import org.diqube.itest.util.QueryResultServiceTestUtil.TestQueryResultService;
-import org.diqube.itest.util.ServiceTestUtil;
 import org.diqube.itest.util.Waiter;
 import org.diqube.remote.base.thrift.RUUID;
 import org.diqube.remote.base.thrift.RValue;
@@ -84,8 +83,8 @@ public class MergeDeployIntegrationTest extends AbstractDiqubeIntegrationTest {
     try (TestQueryResultService queryRes = QueryResultServiceTestUtil.createQueryResultService()) {
       RUUID queryUuid = RUuidUtil.toRUuid(UUID.randomUUID());
       logger.info("Executing query {}", RUuidUtil.toUuid(queryUuid));
-      ServiceTestUtil.queryService(serverControl.get(0),
-          (queryService) -> queryService.asyncExecuteQuery(queryUuid,
+      serverControl.get(0).getSerivceTestUtil()
+          .queryService((queryService) -> queryService.asyncExecuteQuery(queryUuid,
               "select age, count() from " + AGE_TABLE + " group by age", true,
               queryRes.getThisServicesAddr().toRNodeAddress()));
 

@@ -55,10 +55,8 @@ import org.diqube.queries.QueryUuidProvider;
 import org.diqube.remote.base.thrift.RNodeAddress;
 import org.diqube.remote.base.thrift.RUUID;
 import org.diqube.remote.base.util.RUuidUtil;
-import org.diqube.remote.cluster.ClusterQueryServiceConstants;
 import org.diqube.remote.cluster.thrift.ClusterQueryService;
 import org.diqube.remote.cluster.thrift.RExecutionPlan;
-import org.diqube.remote.query.QueryResultServiceConstants;
 import org.diqube.remote.query.thrift.QueryResultService;
 import org.diqube.remote.query.thrift.QueryService;
 import org.diqube.remote.query.thrift.QueryService.Iface;
@@ -190,10 +188,10 @@ public class QueryServiceHandler implements Iface {
       }
     };
 
-    Connection<QueryResultService.Client> resultConnection;
+    Connection<QueryResultService.Iface> resultConnection;
     try {
-      resultConnection = connectionPool.reserveConnection(QueryResultService.Client.class,
-          QueryResultServiceConstants.SERVICE_NAME, resultAddress, resultSocketListener);
+      resultConnection =
+          connectionPool.reserveConnection(QueryResultService.Iface.class, resultAddress, resultSocketListener);
     } catch (ConnectionException | InterruptedException e) {
       logger.error("Could not open connection to result node", e);
       throw new RQueryException("Could not open connection to result node: " + e.getMessage());
@@ -396,8 +394,8 @@ public class QueryServiceHandler implements Iface {
     if (remoteNodesActive != null && !remoteNodesActive.isEmpty()) {
       logger.info("Cancelling execution on remotes for query {}: {}", RUuidUtil.toUuid(queryRUuid), remoteNodesActive);
       for (RNodeAddress triggeredRemote : remoteNodesActive) {
-        try (Connection<ClusterQueryService.Client> conn = connectionPool.reserveConnection(
-            ClusterQueryService.Client.class, ClusterQueryServiceConstants.SERVICE_NAME, triggeredRemote, null)) {
+        try (Connection<ClusterQueryService.Iface> conn =
+            connectionPool.reserveConnection(ClusterQueryService.Iface.class, triggeredRemote, null)) {
           conn.getService().cancelExecution(queryRUuid);
         } catch (ConnectionException | IOException | TException e) {
           // swallow - if we can't cancel, that's fine, too.

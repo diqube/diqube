@@ -90,7 +90,7 @@ public class ConfigurationPostProcessor implements BeanPostProcessor {
             }
           } else
             throw new FatalBeanException(bean.getClass().getName() + "." + f.getName()
-                + " requires configManager of which no value is available: " + configKey);
+                + " requires configKey of which no value is available: " + configKey);
         }
       }
       classes.add(clazz.getSuperclass());

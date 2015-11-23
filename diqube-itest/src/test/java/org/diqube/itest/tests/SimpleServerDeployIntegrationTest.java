@@ -34,7 +34,6 @@ import org.diqube.itest.annotations.NeedsServer;
 import org.diqube.itest.control.ServerControl.ServerAddr;
 import org.diqube.itest.util.QueryResultServiceTestUtil;
 import org.diqube.itest.util.QueryResultServiceTestUtil.TestQueryResultService;
-import org.diqube.itest.util.ServiceTestUtil;
 import org.diqube.itest.util.Waiter;
 import org.diqube.itest.util.Waiter.WaitTimeoutException;
 import org.diqube.remote.base.thrift.RNodeAddress;
@@ -78,14 +77,14 @@ public class SimpleServerDeployIntegrationTest extends AbstractDiqubeIntegration
 
     // THEN
     // server 0 serves table "age"
-    ServiceTestUtil.clusterMgmtService(serverControl.get(0), (cms) -> {
+    serverControl.get(0).getSerivceTestUtil().clusterMgmtService((cms) -> {
       List<String> tablesServed = Iterables.getOnlyElement(cms.fetchCurrentTablesServed().values());
       Assert.assertEquals(tablesServed, Arrays.asList(AGE_TABLE));
     });
 
     Holder<Map<ServerAddr, List<String>>> clusterLayoutHolder = new Holder<>();
-    ServiceTestUtil.clusterMgmtService(serverControl.get(0),
-        (cms) -> clusterLayoutHolder.setValue(toServerAddrCurrentMap(cms.clusterLayout())));
+    serverControl.get(0).getSerivceTestUtil()
+        .clusterMgmtService((cms) -> clusterLayoutHolder.setValue(toServerAddrCurrentMap(cms.clusterLayout())));
 
     Assert.assertTrue(clusterLayoutHolder.getValue().containsKey(serverControl.get(0).getAddr()),
         "Expected node to be contained in cluster layout");
@@ -101,25 +100,25 @@ public class SimpleServerDeployIntegrationTest extends AbstractDiqubeIntegration
 
     // THEN
     // server 0 serves table "age"
-    ServiceTestUtil.clusterMgmtService(serverControl.get(0), (cms) -> {
+    serverControl.get(0).getSerivceTestUtil().clusterMgmtService((cms) -> {
       List<String> tablesServed = Iterables.getOnlyElement(cms.fetchCurrentTablesServed().values());
       Assert.assertEquals(tablesServed, Arrays.asList(AGE_TABLE));
     });
 
     // get cluster layout
     Holder<Map<ServerAddr, List<String>>> clusterLayoutHolder = new Holder<>();
-    ServiceTestUtil.clusterMgmtService(serverControl.get(0),
-        (cms) -> clusterLayoutHolder.setValue(toServerAddrCurrentMap(cms.clusterLayout())));
+    serverControl.get(0).getSerivceTestUtil()
+        .clusterMgmtService((cms) -> clusterLayoutHolder.setValue(toServerAddrCurrentMap(cms.clusterLayout())));
 
     // server 1 serves table "age"
-    ServiceTestUtil.clusterMgmtService(serverControl.get(1), (cms) -> {
+    serverControl.get(1).getSerivceTestUtil().clusterMgmtService((cms) -> {
       List<String> tablesServed = Iterables.getOnlyElement(cms.fetchCurrentTablesServed().values());
       Assert.assertEquals(tablesServed, Arrays.asList(AGE_TABLE));
     });
     // server 1 has same clusterlayout as server 0
-    ServiceTestUtil.clusterMgmtService(serverControl.get(1),
-        (cms) -> Assert.assertEquals(toServerAddrCurrentMap(cms.clusterLayout()), clusterLayoutHolder.getValue(),
-            "Expected both cluster nodes to have the same cluster layout."));
+    serverControl.get(1).getSerivceTestUtil()
+        .clusterMgmtService((cms) -> Assert.assertEquals(toServerAddrCurrentMap(cms.clusterLayout()),
+            clusterLayoutHolder.getValue(), "Expected both cluster nodes to have the same cluster layout."));
 
     // clusterlayout contains both nodes with table "age".
     Assert.assertTrue(clusterLayoutHolder.getValue().containsKey(serverControl.get(0).getAddr()),
@@ -140,8 +139,8 @@ public class SimpleServerDeployIntegrationTest extends AbstractDiqubeIntegration
     try (TestQueryResultService queryRes = QueryResultServiceTestUtil.createQueryResultService()) {
       RUUID queryUuid = RUuidUtil.toRUuid(UUID.randomUUID());
       logger.info("Executing query {}", RUuidUtil.toUuid(queryUuid));
-      ServiceTestUtil.queryService(serverControl.get(0),
-          (queryService) -> queryService.asyncExecuteQuery(queryUuid,
+      serverControl.get(0).getSerivceTestUtil()
+          .queryService((queryService) -> queryService.asyncExecuteQuery(queryUuid,
               "select age, count() from age group by age order by count() desc", true,
               queryRes.getThisServicesAddr().toRNodeAddress()));
 
@@ -177,8 +176,8 @@ public class SimpleServerDeployIntegrationTest extends AbstractDiqubeIntegration
     try (TestQueryResultService queryRes = QueryResultServiceTestUtil.createQueryResultService()) {
       RUUID queryUuid = RUuidUtil.toRUuid(UUID.randomUUID());
       logger.info("Executing query {}", RUuidUtil.toUuid(queryUuid));
-      ServiceTestUtil.queryService(serverControl.get(0),
-          (queryService) -> queryService.asyncExecuteQuery(queryUuid,
+      serverControl.get(0).getSerivceTestUtil()
+          .queryService((queryService) -> queryService.asyncExecuteQuery(queryUuid,
               "select age, count() from age group by age order by count() desc", true,
               queryRes.getThisServicesAddr().toRNodeAddress()));
 
@@ -215,8 +214,8 @@ public class SimpleServerDeployIntegrationTest extends AbstractDiqubeIntegration
     try (TestQueryResultService queryRes = QueryResultServiceTestUtil.createQueryResultService()) {
       RUUID queryUuid = RUuidUtil.toRUuid(UUID.randomUUID());
       logger.info("Executing query {}", RUuidUtil.toUuid(queryUuid));
-      ServiceTestUtil.queryService(serverControl.get(0),
-          (queryService) -> queryService.asyncExecuteQuery(queryUuid,
+      serverControl.get(0).getSerivceTestUtil()
+          .queryService((queryService) -> queryService.asyncExecuteQuery(queryUuid,
               "select age, count() from age group by age order by count() desc", true,
               queryRes.getThisServicesAddr().toRNodeAddress()));
 
@@ -252,8 +251,8 @@ public class SimpleServerDeployIntegrationTest extends AbstractDiqubeIntegration
     try (TestQueryResultService queryRes = QueryResultServiceTestUtil.createQueryResultService()) {
       RUUID queryUuid = RUuidUtil.toRUuid(UUID.randomUUID());
       logger.info("Executing query {}", RUuidUtil.toUuid(queryUuid));
-      ServiceTestUtil.queryService(serverControl.get(0),
-          (queryService) -> queryService.asyncExecuteQuery(queryUuid,
+      serverControl.get(0).getSerivceTestUtil()
+          .queryService((queryService) -> queryService.asyncExecuteQuery(queryUuid,
               "select age, count() from age group by age order by count() desc", true,
               queryRes.getThisServicesAddr().toRNodeAddress()));
 
@@ -284,8 +283,8 @@ public class SimpleServerDeployIntegrationTest extends AbstractDiqubeIntegration
     try (TestQueryResultService queryRes = QueryResultServiceTestUtil.createQueryResultService()) {
       RUUID queryUuid = RUuidUtil.toRUuid(UUID.randomUUID());
       logger.info("Executing query {}", RUuidUtil.toUuid(queryUuid));
-      ServiceTestUtil.queryService(serverControl.get(0),
-          (queryService) -> queryService.asyncExecuteQuery(queryUuid,
+      serverControl.get(0).getSerivceTestUtil()
+          .queryService((queryService) -> queryService.asyncExecuteQuery(queryUuid,
               "select age, count() from age group by age order by count() desc", true,
               queryRes.getThisServicesAddr().toRNodeAddress()));
 
@@ -321,8 +320,8 @@ public class SimpleServerDeployIntegrationTest extends AbstractDiqubeIntegration
     try (TestQueryResultService queryRes = QueryResultServiceTestUtil.createQueryResultService()) {
       RUUID queryUuid = RUuidUtil.toRUuid(UUID.randomUUID());
       logger.info("Executing query {}", RUuidUtil.toUuid(queryUuid));
-      ServiceTestUtil.queryService(serverControl.get(0),
-          (queryService) -> queryService.asyncExecuteQuery(queryUuid,
+      serverControl.get(0).getSerivceTestUtil()
+          .queryService((queryService) -> queryService.asyncExecuteQuery(queryUuid,
               "select age, count() from age group by age order by count() desc", true,
               queryRes.getThisServicesAddr().toRNodeAddress()));
 
@@ -353,8 +352,8 @@ public class SimpleServerDeployIntegrationTest extends AbstractDiqubeIntegration
     try (TestQueryResultService queryRes = QueryResultServiceTestUtil.createQueryResultService()) {
       RUUID queryUuid = RUuidUtil.toRUuid(UUID.randomUUID());
       logger.info("Executing query {}", RUuidUtil.toUuid(queryUuid));
-      ServiceTestUtil.queryService(serverControl.get(0),
-          (queryService) -> queryService.asyncExecuteQuery(queryUuid,
+      serverControl.get(0).getSerivceTestUtil()
+          .queryService((queryService) -> queryService.asyncExecuteQuery(queryUuid,
               "select age, count() from age group by age order by count() desc", true,
               queryRes.getThisServicesAddr().toRNodeAddress()));
 

@@ -37,20 +37,18 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
-import org.apache.thrift.TException;
 import org.diqube.config.ConfigKey;
 import org.diqube.config.ConfigurationManager;
+import org.diqube.connection.ConnectionFactory;
+import org.diqube.connection.DefaultDiqubeConnectionFactoryTestUtil;
 import org.diqube.itest.annotations.NeedsProcessPid;
 import org.diqube.itest.util.ProcessPidUtil;
-import org.diqube.itest.util.TestThriftConnectionFactory;
-import org.diqube.itest.util.TestThriftConnectionFactory.TestConnection;
-import org.diqube.itest.util.TestThriftConnectionFactory.TestConnectionException;
+import org.diqube.itest.util.ServiceTestUtil;
 import org.diqube.itest.util.Waiter;
 import org.diqube.itest.util.Waiter.WaitTimeoutException;
+import org.diqube.remote.base.services.DiqubeThriftServiceInfoManager;
 import org.diqube.remote.base.thrift.RNodeAddress;
 import org.diqube.remote.base.thrift.RNodeDefaultAddress;
-import org.diqube.remote.query.KeepAliveServiceConstants;
-import org.diqube.remote.query.thrift.KeepAliveService;
 import org.diqube.server.ControlFileLoader;
 import org.diqube.server.NewDataWatcher;
 import org.diqube.util.Pair;
@@ -96,6 +94,11 @@ public class ServerControl implements LogfileSaver {
 
   private ProcessOutputReadThread processOutputReadThread;
 
+  private ServiceTestUtil serviceTestUtil;
+
+  /** key for HMAC the server uses for thrift access */
+  private String serverMacKey;
+
   public ServerControl(File serverJarFile, File workDir, ServerAddressProvider addressProvider,
       ServerClusterNodesProvider clusterNodesProvider, boolean manualOverride) {
     this.serverJarFile = serverJarFile;
@@ -117,6 +120,8 @@ public class ServerControl implements LogfileSaver {
 
     ourAddr = addressProvider.reserveAddress();
 
+    serverMacKey = "thisisatest";
+
     if (manualOverride) {
       logger.info("Using already started server at port {}, not starting a separate one!", ourAddr.getPort());
       serverDied.set(false);
@@ -129,6 +134,7 @@ public class ServerControl implements LogfileSaver {
       serverProp.setProperty(ConfigKey.DATA_DIR, workDir.getAbsolutePath());
       serverProp.setProperty(ConfigKey.CLUSTER_NODES, clusterNodesProvider.getClusterNodeConfigurationString(ourAddr));
       serverProp.setProperty(ConfigKey.BIND, ourAddr.getHost()); // bind only to our addr, which is typically 127.0.0.1
+      serverProp.setProperty(ConfigKey.MESSAGE_INTEGRITY_SECRET, serverMacKey);
       if (serverPropertiesAdjust != null)
         serverPropertiesAdjust.accept(serverProp);
 
@@ -265,6 +271,19 @@ public class ServerControl implements LogfileSaver {
     return manualOverride || serverProcess != null && serverProcess.isAlive();
   }
 
+  public ServiceTestUtil getSerivceTestUtil() {
+    if (serviceTestUtil == null) {
+      DiqubeThriftServiceInfoManager infoManager = new DiqubeThriftServiceInfoManager();
+      infoManager.initialize();
+
+      ConnectionFactory connectionFactory =
+          DefaultDiqubeConnectionFactoryTestUtil.createDefaultConnectionFactory(serverMacKey);
+
+      serviceTestUtil = new ServiceTestUtil(this, connectionFactory, infoManager);
+    }
+    return serviceTestUtil;
+  }
+
   private File readyFile(File controlFile) {
     return new File(controlFile.getParentFile(),
         controlFile.getName().substring(0,
@@ -340,17 +359,19 @@ public class ServerControl implements LogfileSaver {
 
   private void waitUntilServerIsRunning(ServerAddr addr) {
     new Waiter().waitUntil("Server at " + addr + " to start up", 10, 100, () -> {
-      try (TestConnection<KeepAliveService.Client> con = TestThriftConnectionFactory.open(addr,
-          KeepAliveService.Client.class, KeepAliveServiceConstants.SERVICE_NAME)) {
-        con.getService().ping();
-
+      try {
+        getSerivceTestUtil().keepAliveService(service -> service.ping());
         // ping succeeded, server started up!
         logger.info("Server at {} has started successfully.", addr);
         return true;
-      } catch (IOException | TestConnectionException | TException e) {
+      } catch (RuntimeException e) {
         return false;
       }
     });
+  }
+
+  public byte[] getServerMacKey() {
+    return serverMacKey.getBytes(Charset.forName("UTF-8"));
   }
 
   /**

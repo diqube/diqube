@@ -49,7 +49,6 @@ import org.diqube.context.AutoInstatiate;
 import org.diqube.remote.base.thrift.RNodeAddress;
 import org.diqube.remote.base.thrift.RUUID;
 import org.diqube.remote.base.util.RUuidUtil;
-import org.diqube.remote.cluster.ClusterFlattenServiceConstants;
 import org.diqube.remote.cluster.thrift.ClusterFlattenService;
 import org.diqube.remote.cluster.thrift.ROptionalUuid;
 import org.diqube.threads.ExecutorManager;
@@ -146,8 +145,7 @@ public class QueryMasterFlattenService {
         Set<UUID> validFlattenUuids = new HashSet<>();
         for (RNodeAddress node : nodesServingTable) {
           try (ServiceProvider<ClusterFlattenService.Iface> serviceProv =
-              connectionOrLocalHelper.getService(ClusterFlattenService.Client.class, ClusterFlattenService.Iface.class,
-                  ClusterFlattenServiceConstants.SERVICE_NAME, node, null)) {
+              connectionOrLocalHelper.getService(ClusterFlattenService.Iface.class, node, null)) {
 
             ROptionalUuid nodeRes = serviceProv.getService().getLatestValidFlattening(table, flattenBy);
             validFlattenUuids.add(nodeRes.isSetUuid() ? RUuidUtil.toUuid(nodeRes.getUuid()) : null);
@@ -185,8 +183,7 @@ public class QueryMasterFlattenService {
               List<RNodeAddress> otherFlatteners =
                   nodesServingTable.stream().filter(n -> n != node).collect(Collectors.toList());
               try (ServiceProvider<ClusterFlattenService.Iface> serviceProv =
-                  connectionOrLocalHelper.getService(ClusterFlattenService.Client.class,
-                      ClusterFlattenService.Iface.class, ClusterFlattenServiceConstants.SERVICE_NAME, node, null)) {
+                  connectionOrLocalHelper.getService(ClusterFlattenService.Iface.class, node, null)) {
 
                 serviceProv.getService().flattenAllLocalShards(flattenRequestRuuid, table, flattenBy, otherFlatteners,
                     clusterManager.getOurNodeAddress().createRemote());

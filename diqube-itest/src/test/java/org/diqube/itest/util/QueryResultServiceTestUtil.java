@@ -84,6 +84,7 @@ public class QueryResultServiceTestUtil {
     TNonblockingServer.Args args = new TNonblockingServer.Args(transport);
     args.processor(multiProcessor);
     args.transportFactory(new TFramedTransport.Factory());
+    // no integrity check for everything.
     args.protocolFactory(new TCompactProtocol.Factory());
     TNonblockingServer thriftServer = new TNonblockingServer(args);
 

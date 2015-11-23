@@ -21,6 +21,7 @@
 package org.diqube.remote.query;
 
 import org.apache.thrift.protocol.TMultiplexedProtocol;
+import org.diqube.remote.base.services.DiqubeThriftService;
 import org.diqube.remote.query.thrift.ClusterInformationService;
 
 /**
@@ -28,6 +29,11 @@ import org.diqube.remote.query.thrift.ClusterInformationService;
  *
  * @author Bastian Gloeckle
  */
+@DiqubeThriftService( //
+    serviceInterface = ClusterInformationService.Iface.class, //
+    clientClass = ClusterInformationService.Client.class, //
+    serviceName = ClusterInformationServiceConstants.SERVICE_NAME, //
+    integrityChecked = false)
 public class ClusterInformationServiceConstants {
   /** Name of the query service as set up in {@link TMultiplexedProtocol}. */
   public static final String SERVICE_NAME = "I";

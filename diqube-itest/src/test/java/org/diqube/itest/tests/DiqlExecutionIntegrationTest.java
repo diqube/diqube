@@ -27,7 +27,6 @@ import org.diqube.itest.AbstractDiqubeIntegrationTest;
 import org.diqube.itest.annotations.NeedsServer;
 import org.diqube.itest.util.QueryResultServiceTestUtil;
 import org.diqube.itest.util.QueryResultServiceTestUtil.TestQueryResultService;
-import org.diqube.itest.util.ServiceTestUtil;
 import org.diqube.itest.util.Waiter;
 import org.diqube.remote.base.thrift.RUUID;
 import org.diqube.remote.base.util.RUuidUtil;
@@ -63,8 +62,8 @@ public class DiqlExecutionIntegrationTest extends AbstractDiqubeIntegrationTest 
     try (TestQueryResultService queryRes = QueryResultServiceTestUtil.createQueryResultService()) {
       RUUID queryUuid = RUuidUtil.toRUuid(UUID.randomUUID());
       logger.info("Executing query {}", RUuidUtil.toUuid(queryUuid));
-      ServiceTestUtil.queryService(serverControl.get(0),
-          (queryService) -> queryService.asyncExecuteQuery(queryUuid,
+      serverControl.get(0).getSerivceTestUtil()
+          .queryService((queryService) -> queryService.asyncExecuteQuery(queryUuid,
               "select age, count() from age where add(age, 1) > 100 group by age", true,
               queryRes.getThisServicesAddr().toRNodeAddress()));
 
@@ -89,8 +88,8 @@ public class DiqlExecutionIntegrationTest extends AbstractDiqubeIntegrationTest 
     try (TestQueryResultService queryRes = QueryResultServiceTestUtil.createQueryResultService()) {
       RUUID queryUuid = RUuidUtil.toRUuid(UUID.randomUUID());
       logger.info("Executing query {}", RUuidUtil.toUuid(queryUuid));
-      ServiceTestUtil.queryService(serverControl.get(0),
-          (queryService) -> queryService.asyncExecuteQuery(queryUuid,
+      serverControl.get(0).getSerivceTestUtil()
+          .queryService((queryService) -> queryService.asyncExecuteQuery(queryUuid,
               "select age, count() from age group by age having count() > 100", true,
               queryRes.getThisServicesAddr().toRNodeAddress()));
 

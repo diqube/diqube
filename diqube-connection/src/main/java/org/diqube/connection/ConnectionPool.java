@@ -38,16 +38,18 @@ import java.util.function.Supplier;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
+import javax.inject.Inject;
 
 import org.apache.thrift.TException;
-import org.apache.thrift.TServiceClient;
 import org.diqube.config.Config;
 import org.diqube.config.ConfigKey;
+import org.diqube.connection.integrity.IntegritySecretHelper;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.context.InjectOptional;
 import org.diqube.queries.QueryUuid;
+import org.diqube.remote.base.services.DiqubeThriftServiceInfoManager;
+import org.diqube.remote.base.services.DiqubeThriftServiceInfoManager.DiqubeThriftServiceInfo;
 import org.diqube.remote.base.thrift.RNodeAddress;
-import org.diqube.remote.query.KeepAliveServiceConstants;
 import org.diqube.remote.query.thrift.KeepAliveService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -111,6 +113,12 @@ public class ConnectionPool implements ClusterNodeDiedListener {
   @InjectOptional
   private List<ClusterNodeDiedListener> clusterNodeDiedListeners;
 
+  @Inject
+  private DiqubeThriftServiceInfoManager diqubeThriftServiceInfoManager;
+
+  @Inject
+  private IntegritySecretHelper integritySecretHelper;
+
   /**
    * Connections by remote address which are currently not used. Each connection is fitted with a
    * {@link DefaultSocketListener} which can be fetched using {@link #defaultSocketListeners}.
@@ -121,14 +129,12 @@ public class ConnectionPool implements ClusterNodeDiedListener {
    * Changes to this map itself need to be synchronized on "this" of ConnectionPool - multiple threads at once might
    * mess with the Deque instance otherwise. TODO sync on an address-based object.
    */
-  private Map<RNodeAddress, Deque<Connection<? extends TServiceClient>>> availableConnections =
-      new ConcurrentHashMap<>();
+  private Map<RNodeAddress, Deque<Connection<?>>> availableConnections = new ConcurrentHashMap<>();
 
   /**
    * The {@link DefaultSocketListener} that a specific connection is bound to.
    */
-  private Map<Connection<? extends TServiceClient>, DefaultSocketListener> defaultSocketListeners =
-      new ConcurrentHashMap<>();
+  private Map<Connection<?>, DefaultSocketListener> defaultSocketListeners = new ConcurrentHashMap<>();
 
   /**
    * The number of connections opened currently for a given execution UUID (see
@@ -136,7 +142,7 @@ public class ConnectionPool implements ClusterNodeDiedListener {
    * 
    * The entries in this map will be removed as soon as the value reaches 0 - for this to work, there is additional
    * synchronization needed, which is done on the UUID object. See
-   * {@link #reserveConnection(Class, String, RNodeAddress, SocketListener)} and
+   * {@link #reserveConnection(Class, RNodeAddress, SocketListener)} and
    * {@link #decreaseOpenConnectionsByExecutionUuid(UUID)}.
    */
   private Map<UUID, AtomicInteger> openConnectionsByExecutionUuid = new ConcurrentHashMap<>();
@@ -160,8 +166,7 @@ public class ConnectionPool implements ClusterNodeDiedListener {
    * {@link #timeoutCloseConnectionIfViable(Supplier)}, as for connections which are still life, entries into this map
    * will be (re-)added to this map when those connections are released.
    */
-  private ConcurrentNavigableMap<Long, Connection<? extends TServiceClient>> connectionTimeouts =
-      new ConcurrentSkipListMap<>();
+  private ConcurrentNavigableMap<Long, Connection<?>> connectionTimeouts = new ConcurrentSkipListMap<>();
 
   /**
    * Lock for {@link #connectionTimeouts}.
@@ -174,7 +179,7 @@ public class ConnectionPool implements ClusterNodeDiedListener {
 
   @PostConstruct
   public void initialize() {
-    connectionFactory = new DefaultConnectionFactory(this, socketTimeout);
+    connectionFactory = new DefaultConnectionFactory(this, integritySecretHelper, socketTimeout);
     maintananceThread.start();
   }
 
@@ -197,8 +202,8 @@ public class ConnectionPool implements ClusterNodeDiedListener {
    * <p>
    * For each object reserved by this method, {@link #releaseConnection(RNodeAddress, Object)} needs to be called!
    * 
-   * @param thriftClientClass
-   *          The class of the thrift service client that the caller wants to access.
+   * @param serviceInterface
+   *          The interface class of the thrift service that the caller wants to access.
    * @param addr
    *          The address of the node to open a connection to.
    * @param socketListener
@@ -211,9 +216,10 @@ public class ConnectionPool implements ClusterNodeDiedListener {
    * @throws InterruptedException
    *           in case we were interrupted while waiting for a new connection.
    */
-  public <T extends TServiceClient> Connection<T> reserveConnection(Class<T> thriftClientClass,
-      String thriftServiceName, RNodeAddress addr, SocketListener socketListener)
-          throws ConnectionException, InterruptedException {
+  public <T> Connection<T> reserveConnection(Class<T> serviceInterface, RNodeAddress addr,
+      SocketListener socketListener) throws ConnectionException, InterruptedException {
+
+    DiqubeThriftServiceInfo<T> serviceInfo = diqubeThriftServiceInfoManager.getServiceInfo(serviceInterface);
 
     Connection<T> res = null;
 
@@ -223,14 +229,14 @@ public class ConnectionPool implements ClusterNodeDiedListener {
       // deadlock, we give that execution another connection, not verifying connectionSoftLimit.
 
       logger.trace("Execution {} has connections opened already, not blocking this thread", executionUuid);
-      res = reserveAvailableOrCreateConnection(thriftClientClass, thriftServiceName, addr, socketListener);
+      res = reserveAvailableOrCreateConnection(serviceInfo, addr, socketListener);
     }
 
     if (res == null) {
       // Normal execution path, try to reserve available conns, perhaps free some, block, and then create a new one.
 
       // Try to reserve an already opened connection
-      res = reserveAvailableConnection(thriftClientClass, thriftServiceName, addr, socketListener);
+      res = reserveAvailableConnection(serviceInfo, addr, socketListener);
 
       // Ok, we were not able to reserve a connection that was already openened to that addr already.
       // Before we start to block, let's try to eagerly close one connection that would be the next to timeout as soon
@@ -243,7 +249,7 @@ public class ConnectionPool implements ClusterNodeDiedListener {
             if (timeoutCloseConnectionIfViable(() -> connectionTimeouts.pollFirstEntry()))
               break;
         }
-        res = reserveAvailableConnection(thriftClientClass, thriftServiceName, addr, socketListener);
+        res = reserveAvailableConnection(serviceInfo, addr, socketListener);
       }
 
       // Block if we still got no connection and if we are above the softLimit (which might happen if another thread
@@ -270,13 +276,13 @@ public class ConnectionPool implements ClusterNodeDiedListener {
         }
 
         // try to reserve an already opened connection (there might have been one returned just now).
-        res = reserveAvailableConnection(thriftClientClass, thriftServiceName, addr, socketListener);
+        res = reserveAvailableConnection(serviceInfo, addr, socketListener);
       }
 
       if (res == null)
         // we were not able to reserve a connection before, but we are allowed to open a new one now, so get a
         // connection no matter how.
-        res = reserveAvailableOrCreateConnection(thriftClientClass, thriftServiceName, addr, socketListener);
+        res = reserveAvailableOrCreateConnection(serviceInfo, addr, socketListener);
     }
 
     if (executionUuid != null) {
@@ -310,34 +316,32 @@ public class ConnectionPool implements ClusterNodeDiedListener {
   /**
    * Reserves a connection that was already opened to the given remote.
    * 
-   * @param thriftClientClass
-   *          see {@link #reserveConnection(Class, String, RNodeAddress, SocketListener)}.
-   * @param thriftServiceName
-   *          see {@link #reserveConnection(Class, String, RNodeAddress, SocketListener)}.
+   * @param serviceInfo
+   *          see {@link #reserveConnection(Class, RNodeAddress, SocketListener)}.
    * @param addr
-   *          see {@link #reserveConnection(Class, String, RNodeAddress, SocketListener)}.
+   *          see {@link #reserveConnection(Class, RNodeAddress, SocketListener)}.
    * @param socketListener
-   *          see {@link #reserveConnection(Class, String, RNodeAddress, SocketListener)}.
+   *          see {@link #reserveConnection(Class, RNodeAddress, SocketListener)}.
    * @return the reserved connection or <code>null</code> in case there was no available connection.
    */
   @SuppressWarnings("unchecked")
-  private <T extends TServiceClient> Connection<T> reserveAvailableConnection(Class<T> thriftClientClass,
-      String thriftServiceName, RNodeAddress addr, SocketListener socketListener) {
-    Deque<Connection<? extends TServiceClient>> conns = availableConnections.get(addr);
+  private <T> Connection<T> reserveAvailableConnection(DiqubeThriftServiceInfo<T> serviceInfo, RNodeAddress addr,
+      SocketListener socketListener) {
+    Deque<Connection<?>> conns = availableConnections.get(addr);
 
     if (conns != null) {
       while (!conns.isEmpty()) {
-        Connection<? extends TServiceClient> conn = conns.poll();
+        Connection<?> conn = conns.poll();
         if (conn != null) {
           // we reserved "conn".
 
           // first we fetch a connection to a ClusterManagementService to execute a "ping".
-          Connection<KeepAliveService.Client> keepAliveConn;
+          Connection<KeepAliveService.Iface> keepAliveConn;
           if (conn.getService() instanceof KeepAliveService.Iface)
-            keepAliveConn = (Connection<KeepAliveService.Client>) conn;
+            keepAliveConn = (Connection<KeepAliveService.Iface>) conn;
           else {
-            keepAliveConn = connectionFactory.createConnection(conn, KeepAliveService.Client.class,
-                KeepAliveServiceConstants.SERVICE_NAME);
+            keepAliveConn = connectionFactory.createConnection(conn,
+                diqubeThriftServiceInfoManager.getServiceInfo(KeepAliveService.Iface.class));
 
             defaultSocketListeners.put(keepAliveConn, defaultSocketListeners.get(conn));
             defaultSocketListeners.remove(conn);
@@ -348,7 +352,7 @@ public class ConnectionPool implements ClusterNodeDiedListener {
             keepAliveConn.getService().ping();
 
             // yes, is still alive, so use it! Make sure it is a connection of the requested service.
-            Connection<T> res = connectionFactory.createConnection(keepAliveConn, thriftClientClass, thriftServiceName);
+            Connection<T> res = connectionFactory.createConnection(keepAliveConn, serviceInfo);
             defaultSocketListeners.put(res, defaultSocketListeners.get(keepAliveConn));
             defaultSocketListeners.remove(keepAliveConn);
             defaultSocketListeners.get(res).init(socketListener);
@@ -370,21 +374,19 @@ public class ConnectionPool implements ClusterNodeDiedListener {
    * remote. This method does not verify {@link #overallOpenConnections}, but just increases it in case a new connection
    * is created.
    * 
-   * @param thriftClientClass
-   *          see {@link #reserveConnection(Class, String, RNodeAddress, SocketListener)}.
-   * @param thriftServiceName
-   *          see {@link #reserveConnection(Class, String, RNodeAddress, SocketListener)}.
+   * @param serviceInfo
+   *          see {@link #reserveConnection(Class, RNodeAddress, SocketListener)}.
    * @param addr
-   *          see {@link #reserveConnection(Class, String, RNodeAddress, SocketListener)}.
+   *          see {@link #reserveConnection(Class, RNodeAddress, SocketListener)}.
    * @param socketListener
-   *          see {@link #reserveConnection(Class, String, RNodeAddress, SocketListener)}.
+   *          see {@link #reserveConnection(Class, RNodeAddress, SocketListener)}.
    * @return the reserved or freshly opened connection
    */
-  private <T extends TServiceClient> Connection<T> reserveAvailableOrCreateConnection(Class<T> thriftClientClass,
-      String thriftServiceName, RNodeAddress addr, SocketListener socketListener) {
+  private <T> Connection<T> reserveAvailableOrCreateConnection(DiqubeThriftServiceInfo<T> serviceInfo,
+      RNodeAddress addr, SocketListener socketListener) {
 
     Connection<T> res = null;
-    res = reserveAvailableConnection(thriftClientClass, thriftServiceName, addr, socketListener);
+    res = reserveAvailableConnection(serviceInfo, addr, socketListener);
 
     if (res == null) {
       // create a new connection.
@@ -394,7 +396,7 @@ public class ConnectionPool implements ClusterNodeDiedListener {
         DefaultSocketListener newDefaultSocketListener = new DefaultSocketListener(addr);
         overallOpenConnections.incrementAndGet();
 
-        res = connectionFactory.createConnection(thriftClientClass, thriftServiceName, addr, newDefaultSocketListener);
+        res = connectionFactory.createConnection(serviceInfo, addr, newDefaultSocketListener);
         newDefaultSocketListener.init(socketListener);
         newDefaultSocketListener.setParentConnection(res);
         defaultSocketListeners.put(res, newDefaultSocketListener);
@@ -422,8 +424,7 @@ public class ConnectionPool implements ClusterNodeDiedListener {
    */
   public <T> void releaseConnection(Connection<T> connection) {
     // thread-safe find the deque that contains the available connections of our address. If there is none, create one!
-    Deque<Connection<? extends TServiceClient>> availableConnectionsOnAddr =
-        availableConnections.get(connection.getAddress());
+    Deque<Connection<?>> availableConnectionsOnAddr = availableConnections.get(connection.getAddress());
 
     if (availableConnectionsOnAddr == null) {
       synchronized (this) {
@@ -457,10 +458,8 @@ public class ConnectionPool implements ClusterNodeDiedListener {
 
     // adjust socket listener
     defaultSocketListeners.get(connection).init(null);
-    @SuppressWarnings("unchecked")
-    Connection<? extends TServiceClient> c = (Connection<? extends TServiceClient>) connection;
     // mark connection as available.
-    availableConnectionsOnAddr.add(c);
+    availableConnectionsOnAddr.add(connection);
 
     // In the meantime, the deque we created in availableConnections could have been removed again or even replaced with
     // another instance. Make sure that our connection is available in availableConnections!
@@ -483,10 +482,7 @@ public class ConnectionPool implements ClusterNodeDiedListener {
     // that.
     connectionTimeoutLock.readLock().lock();
     try {
-      @SuppressWarnings("unchecked")
-      final Connection<? extends TServiceClient> castedConn = (Connection<? extends TServiceClient>) connection;
-
-      while (connectionTimeouts.putIfAbsent(newTimeout, castedConn) != null)
+      while (connectionTimeouts.putIfAbsent(newTimeout, connection) != null)
         newTimeout++;
       connection.setTimeout(newTimeout);
       // from now on, the timeouts might remove this connection!
@@ -532,13 +528,13 @@ public class ConnectionPool implements ClusterNodeDiedListener {
     // all resources. See the comment in ClusterManager#nodeDied for more info on when this procedure might get harmful
     // in the future.
 
-    Deque<Connection<? extends TServiceClient>> oldConnections;
+    Deque<Connection<?>> oldConnections;
     // removing an entry from availableConnections, be aware of the synchronization etc here!
     synchronized (this) {
       oldConnections = availableConnections.remove(nodeAddr);
     }
     if (oldConnections != null)
-      for (Connection<? extends TServiceClient> conn : oldConnections)
+      for (Connection<?> conn : oldConnections)
         cleanupConnection(conn);
 
     // Note that it might happen that there are still reserved connections for the node - in which case we cannot clean
@@ -552,7 +548,7 @@ public class ConnectionPool implements ClusterNodeDiedListener {
    * @param conn
    *          Must not be available in {@link #availableConnections} any more when calling this method!
    */
-  private void cleanupConnection(Connection<? extends TServiceClient> conn) {
+  private void cleanupConnection(Connection<?> conn) {
     logger.debug("Cleaning up connection {} to {}", System.identityHashCode(conn.getTransport()), conn.getAddress());
     defaultSocketListeners.remove(conn);
     conn.getTransport().close();
@@ -574,15 +570,14 @@ public class ConnectionPool implements ClusterNodeDiedListener {
    *          called with {@link #connectionTimeoutLock}s writeLock being acquired.
    * @return true in case the connection was closed, false if it was not.
    */
-  private boolean timeoutCloseConnectionIfViable(
-      Supplier<Entry<Long, Connection<? extends TServiceClient>>> connectionSupplier) {
+  private boolean timeoutCloseConnectionIfViable(Supplier<Entry<Long, Connection<?>>> connectionSupplier) {
 
-    Connection<? extends TServiceClient> timedOutConn;
+    Connection<?> timedOutConn;
     long proposedTimeoutTime;
 
     connectionTimeoutLock.writeLock().lock();
     try {
-      Entry<Long, Connection<? extends TServiceClient>> e = connectionSupplier.get();
+      Entry<Long, Connection<?>> e = connectionSupplier.get();
       proposedTimeoutTime = e.getKey();
       timedOutConn = e.getValue();
     } finally {
@@ -592,7 +587,7 @@ public class ConnectionPool implements ClusterNodeDiedListener {
     if (!timedOutConn.isEnabled())
       return false;
 
-    Deque<Connection<? extends TServiceClient>> addrConns = availableConnections.get(timedOutConn.getAddress());
+    Deque<Connection<?>> addrConns = availableConnections.get(timedOutConn.getAddress());
     if (addrConns == null)
       return false;
 
@@ -637,14 +632,23 @@ public class ConnectionPool implements ClusterNodeDiedListener {
     this.earlyCloseLevel = earlyCloseLevel;
   }
 
+  /** for tests */
+  /* package */ void setDiqubeThriftServiceInfoManager(DiqubeThriftServiceInfoManager diqubeThriftServiceInfoManager) {
+    this.diqubeThriftServiceInfoManager = diqubeThriftServiceInfoManager;
+  }
+
+  /** for tests */
+  /* package */ void setIntegritySecretHelper(IntegritySecretHelper integritySecretHelper) {
+    this.integritySecretHelper = integritySecretHelper;
+  }
+
   /**
    * A {@link SocketListener} that is installed on all connections returned by {@link ConnectionPool} and which is
    * maintained in {@link ConnectionPool#defaultSocketListeners}. The {@link DefaultSocketListener} can basically
    * forward any events that are thrown by the actual socket to any custom-installed delegate {@link SocketListener}s -
-   * the latter ones change on each
-   * {@link ConnectionPool#reserveConnection(Class, String, RNodeAddress, SocketListener)} and therefore we need to be
-   * flexible here, because we do not want to close/open the sockets themselves all the time, but maintain open
-   * connections.
+   * the latter ones change on each {@link ConnectionPool#reserveConnection(Class, RNodeAddress, SocketListener)} and
+   * therefore we need to be flexible here, because we do not want to close/open the sockets themselves all the time,
+   * but maintain open connections.
    * 
    * The implementation takes care of marking nodes as "died" in all interested {@link ClusterNodeDiedListener}s (read:
    * in the {@link ClusterManager}) as soon as a connection fails to a node.
@@ -653,7 +657,7 @@ public class ConnectionPool implements ClusterNodeDiedListener {
 
     private RNodeAddress address;
     private SocketListener delegateListener;
-    private Connection<? extends TServiceClient> parentConnection;
+    private Connection<?> parentConnection;
 
     public DefaultSocketListener(RNodeAddress address) {
       this.address = address;
@@ -663,7 +667,7 @@ public class ConnectionPool implements ClusterNodeDiedListener {
       this.delegateListener = delegateListener;
     }
 
-    public void setParentConnection(Connection<? extends TServiceClient> parentConnection) {
+    public void setParentConnection(Connection<?> parentConnection) {
       this.parentConnection = parentConnection;
     }
 
@@ -728,17 +732,15 @@ public class ConnectionPool implements ClusterNodeDiedListener {
     }
 
     private void executeTimeouts(long curTime) {
-      ConcurrentNavigableMap<Long, Connection<? extends TServiceClient>> timedOutMap =
-          connectionTimeouts.headMap(curTime, true);
+      ConcurrentNavigableMap<Long, Connection<?>> timedOutMap = connectionTimeouts.headMap(curTime, true);
 
       while (!timedOutMap.isEmpty())
         timeoutCloseConnectionIfViable(() -> timedOutMap.pollFirstEntry());
 
       // search for empty entries in availableConnections and release the resources.
-      Iterator<Entry<RNodeAddress, Deque<Connection<? extends TServiceClient>>>> it =
-          availableConnections.entrySet().iterator();
+      Iterator<Entry<RNodeAddress, Deque<Connection<?>>>> it = availableConnections.entrySet().iterator();
       while (it.hasNext()) {
-        Entry<RNodeAddress, Deque<Connection<? extends TServiceClient>>> e = it.next();
+        Entry<RNodeAddress, Deque<Connection<?>>> e = it.next();
 
         if (e.getValue().isEmpty()) {
           // be aware of the sync on availableConnections here!
@@ -761,11 +763,11 @@ public class ConnectionPool implements ClusterNodeDiedListener {
       logger.trace("Sending keep-alives to all open known nodes ({})", addrs.size());
 
       for (RNodeAddress addr : addrs) {
-        Deque<Connection<? extends TServiceClient>> conns = availableConnections.get(addr);
+        Deque<Connection<?>> conns = availableConnections.get(addr);
         if (conns == null)
           continue;
 
-        Connection<? extends TServiceClient> conn = conns.poll();
+        Connection<?> conn = conns.poll();
         if (conn == null)
           // either there are no open connections to this address, or all connections are currently in use (=
           // connection is ok, no need to send keep alives).
@@ -773,12 +775,12 @@ public class ConnectionPool implements ClusterNodeDiedListener {
 
         // we reserved "conn".
 
-        Connection<KeepAliveService.Client> keepAliveConn;
+        Connection<KeepAliveService.Iface> keepAliveConn;
         if (conn.getService() instanceof KeepAliveService.Iface)
-          keepAliveConn = (Connection<KeepAliveService.Client>) conn;
+          keepAliveConn = (Connection<KeepAliveService.Iface>) conn;
         else {
-          keepAliveConn = connectionFactory.createConnection(conn, KeepAliveService.Client.class,
-              KeepAliveServiceConstants.SERVICE_NAME);
+          keepAliveConn = connectionFactory.createConnection(conn,
+              diqubeThriftServiceInfoManager.getServiceInfo(KeepAliveService.Iface.class));
 
           defaultSocketListeners.put(keepAliveConn, defaultSocketListeners.get(conn));
           defaultSocketListeners.remove(conn);

@@ -24,7 +24,6 @@ import java.io.IOException;
 
 import javax.inject.Inject;
 
-import org.apache.thrift.TServiceClient;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.remote.base.thrift.RNodeAddress;
 import org.springframework.context.ApplicationContext;
@@ -49,40 +48,32 @@ public class ConnectionOrLocalHelper {
    * Retrieve an instance of the given service for the given address and return a local bean from the bean context if
    * the given address is this nodes address.
    * 
-   * @param thriftClientClass
-   *          See {@link ConnectionPool#reserveConnection(Class, String, RNodeAddress, SocketListener)}
-   * @param thriftServiceInterfaceClass
-   *          The interface the thriftClientClass implements (and which the local bean implementing the service
-   *          implement).
-   * @param thriftServiceName
-   *          See {@link ConnectionPool#reserveConnection(Class, String, RNodeAddress, SocketListener)}
+   * @param serviceInterfaceClass
+   *          See {@link ConnectionPool#reserveConnection(Class, RNodeAddress, SocketListener)}
    * @param addr
-   *          See {@link ConnectionPool#reserveConnection(Class, String, RNodeAddress, SocketListener)}
+   *          See {@link ConnectionPool#reserveConnection(Class, RNodeAddress, SocketListener)}
    * @param socketListener
-   *          See {@link ConnectionPool#reserveConnection(Class, String, RNodeAddress, SocketListener)}
+   *          See {@link ConnectionPool#reserveConnection(Class, RNodeAddress, SocketListener)}
    * @return A {@link ServiceProvider} that can be used to get the service bean (either local or remote access). Be sure
    *         to call {@link ServiceProvider#close()} when done!
    * @throws ConnectionException
-   *           See {@link ConnectionPool#reserveConnection(Class, String, RNodeAddress, SocketListener)}. Additionally
-   *           this is thrown if the local bean cannot be found.
+   *           See {@link ConnectionPool#reserveConnection(Class, RNodeAddress, SocketListener)}. Additionally this is
+   *           thrown if the local bean cannot be found.
    * @throws InterruptedException
-   *           See {@link ConnectionPool#reserveConnection(Class, String, RNodeAddress, SocketListener)}
+   *           See {@link ConnectionPool#reserveConnection(Class, RNodeAddress, SocketListener)}
    */
-  @SuppressWarnings("unchecked")
-  public <T extends TServiceClient, U> ServiceProvider<U> getService(Class<T> thriftClientClass,
-      Class<U> thriftServiceInterfaceClass, String thriftServiceName, RNodeAddress addr, SocketListener socketListener)
-          throws ConnectionException, InterruptedException {
+  public <T> ServiceProvider<T> getService(Class<T> serviceInterfaceClass, RNodeAddress addr,
+      SocketListener socketListener) throws ConnectionException, InterruptedException {
     if (ourNodeAddressProvider.getOurNodeAddress().createRemote().equals(addr)) {
       // Thrift client class implements the service interface.
-      U bean = beanContext.getBean(thriftServiceInterfaceClass);
+      T bean = beanContext.getBean(serviceInterfaceClass);
 
       if (bean == null)
-        throw new ConnectionException("Cannot find local instance of " + thriftServiceInterfaceClass.getName());
+        throw new ConnectionException("Cannot find local instance of " + serviceInterfaceClass.getName());
 
-      return new LocalServiceProvider<U>(bean);
+      return new LocalServiceProvider<T>(bean);
     } else {
-      return (ServiceProvider<U>) connectionPool.reserveConnection(thriftClientClass, thriftServiceName, addr,
-          socketListener);
+      return connectionPool.reserveConnection(serviceInterfaceClass, addr, socketListener);
     }
   }
 

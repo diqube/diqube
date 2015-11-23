@@ -61,7 +61,6 @@ import org.diqube.remote.base.thrift.RUUID;
 import org.diqube.remote.base.thrift.RValue;
 import org.diqube.remote.base.util.RUuidUtil;
 import org.diqube.remote.base.util.RValueUtil;
-import org.diqube.remote.cluster.ClusterQueryServiceConstants;
 import org.diqube.remote.cluster.RClusterQueryStatsUtil;
 import org.diqube.remote.cluster.RIntermediateAggregationResultUtil;
 import org.diqube.remote.cluster.thrift.ClusterQueryService;
@@ -158,8 +157,7 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
     ServiceProvider<ClusterQueryService.Iface> resultServiceProv;
     try {
       resultServiceProv =
-          connectionOrLocalHelper.getService(ClusterQueryService.Client.class, ClusterQueryService.Iface.class,
-              ClusterQueryServiceConstants.SERVICE_NAME, resultAddress, resultSocketListener);
+          connectionOrLocalHelper.getService(ClusterQueryService.Iface.class, resultAddress, resultSocketListener);
     } catch (ConnectionException | InterruptedException e1) {
       logger.error("Could not open connection to the result node for query {} execution {} ({}). Will not start "
           + "executing anything.", queryUuid, executionUuid, resultAddress);

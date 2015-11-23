@@ -40,6 +40,8 @@ import org.apache.thrift.server.TServer;
 import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TNonblockingServerSocket;
 import org.apache.thrift.transport.TTransportException;
+import org.diqube.connection.integrity.IntegrityCheckingProtocol;
+import org.diqube.connection.integrity.RememberingTransport;
 import org.diqube.itest.control.ServerControl.ServerAddr;
 import org.diqube.remote.base.thrift.RNodeAddress;
 import org.diqube.remote.base.thrift.RUUID;
@@ -65,7 +67,7 @@ import org.slf4j.LoggerFactory;
 public class ClusterFlattenServiceTestUtil {
   private static final Logger logger = LoggerFactory.getLogger(ClusterFlattenServiceTestUtil.class);
 
-  public static TestClusterFlattenService createClusterFlattenService() {
+  public static TestClusterFlattenService createClusterFlattenService(byte[] serverMacKey) {
     short port = 5200; // TODO find port dynamically.
 
     TMultiplexedProcessor multiProcessor = new TMultiplexedProcessor();
@@ -76,12 +78,14 @@ public class ClusterFlattenServiceTestUtil {
     multiProcessor.registerProcessor(ClusterFlattenServiceConstants.SERVICE_NAME,
         new ClusterFlattenService.Processor<ClusterFlattenService.Iface>(serviceImpl));
     multiProcessor.registerProcessor(KeepAliveServiceConstants.SERVICE_NAME,
-        new KeepAliveService.Processor<KeepAliveService.Iface>(new KeepAliveService.Iface() {
-          @Override
-          public void ping() throws TException {
-            // noop.
-          }
-        }));
+        // no integrity check for keep alives.
+        new IntegrityCheckingProtocol.IntegrityCheckDisablingProcessor(
+            new KeepAliveService.Processor<KeepAliveService.Iface>(new KeepAliveService.Iface() {
+              @Override
+              public void ping() throws TException {
+                // noop.
+              }
+            })));
 
     TNonblockingServerSocket transport;
     try {
@@ -91,8 +95,8 @@ public class ClusterFlattenServiceTestUtil {
     }
     TNonblockingServer.Args args = new TNonblockingServer.Args(transport);
     args.processor(multiProcessor);
-    args.transportFactory(new TFramedTransport.Factory());
-    args.protocolFactory(new TCompactProtocol.Factory());
+    args.transportFactory(new RememberingTransport.Factory(new TFramedTransport.Factory()));
+    args.protocolFactory(new IntegrityCheckingProtocol.Factory(new TCompactProtocol.Factory(), serverMacKey));
     TNonblockingServer thriftServer = new TNonblockingServer(args);
 
     Thread serverThread = new Thread(() -> thriftServer.serve(), "Test-ClusterFlattenService-serverthread");

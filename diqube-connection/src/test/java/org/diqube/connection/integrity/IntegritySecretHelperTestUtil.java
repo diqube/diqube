@@ -18,23 +18,14 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.remote.cluster;
-
-import org.apache.thrift.protocol.TMultiplexedProtocol;
-import org.diqube.remote.base.services.DiqubeThriftService;
-import org.diqube.remote.cluster.thrift.ClusterManagementService;
+package org.diqube.connection.integrity;
 
 /**
- * Constants to be used when using {@link ClusterManagementService}.
  *
  * @author Bastian Gloeckle
  */
-@DiqubeThriftService( //
-    serviceInterface = ClusterManagementService.Iface.class, //
-    clientClass = ClusterManagementService.Client.class, //
-    serviceName = ClusterManagementServiceConstants.SERVICE_NAME, //
-    integrityChecked = true)
-public class ClusterManagementServiceConstants {
-  /** Name of the query service as set up in {@link TMultiplexedProtocol}. */
-  public static final String SERVICE_NAME = "M";
+public class IntegritySecretHelperTestUtil {
+  public static void setMessageIntegritySecret(IntegritySecretHelper helper, String messageIntegritySecretString) {
+    helper.setMessageIntegritySecret(messageIntegritySecretString);
+  }
 }

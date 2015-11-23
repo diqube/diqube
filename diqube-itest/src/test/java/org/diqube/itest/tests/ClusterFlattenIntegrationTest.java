@@ -33,7 +33,6 @@ import org.diqube.itest.AbstractDiqubeIntegrationTest;
 import org.diqube.itest.annotations.NeedsServer;
 import org.diqube.itest.util.ClusterFlattenServiceTestUtil;
 import org.diqube.itest.util.ClusterFlattenServiceTestUtil.TestClusterFlattenService;
-import org.diqube.itest.util.ServiceTestUtil;
 import org.diqube.itest.util.TestDataGenerator;
 import org.diqube.itest.util.Waiter;
 import org.diqube.remote.base.util.RUuidUtil;
@@ -75,17 +74,18 @@ public class ClusterFlattenIntegrationTest extends AbstractDiqubeIntegrationTest
     serverControl.get(0).deploy(cp(BIG0_CONTROL_FILE), work(BIG_DATA_FILE_WORK));
     serverControl.get(1).deploy(cp(BIG10_CONTROL_FILE), work(BIG_DATA_FILE_WORK));
 
-    try (TestClusterFlattenService localCfs = ClusterFlattenServiceTestUtil.createClusterFlattenService()) {
+    try (TestClusterFlattenService localCfs = ClusterFlattenServiceTestUtil
+        .createClusterFlattenService(serverControl.get(0).getServerMacKey() /* same MAC key for both */)) {
 
       // first: request flattening from both servers using the first Request ID
       UUID firstRequestId = UUID.randomUUID();
       logger.info("Sending first request to flatten the table (request ID {})", firstRequestId);
-      ServiceTestUtil.clusterFlattenService(serverControl.get(0), clusterFlattenService -> {
+      serverControl.get(0).getSerivceTestUtil().clusterFlattenService(clusterFlattenService -> {
         clusterFlattenService.flattenAllLocalShards(RUuidUtil.toRUuid(firstRequestId), BIG_TABLE, "a[*].a[*]",
             Arrays.asList(serverControl.get(1).getAddr().toRNodeAddress()),
             localCfs.getThisServicesAddr().toRNodeAddress());
       });
-      ServiceTestUtil.clusterFlattenService(serverControl.get(1), clusterFlattenService -> {
+      serverControl.get(1).getSerivceTestUtil().clusterFlattenService(clusterFlattenService -> {
         clusterFlattenService.flattenAllLocalShards(RUuidUtil.toRUuid(firstRequestId), BIG_TABLE, "a[*].a[*]",
             Arrays.asList(serverControl.get(0).getAddr().toRNodeAddress()),
             localCfs.getThisServicesAddr().toRNodeAddress());
@@ -98,12 +98,12 @@ public class ClusterFlattenIntegrationTest extends AbstractDiqubeIntegrationTest
       // "merged" with the first one.
       UUID secondRequestId = UUID.randomUUID();
       logger.info("Sending second request to flatten the table (request ID {})", secondRequestId);
-      ServiceTestUtil.clusterFlattenService(serverControl.get(0), clusterFlattenService -> {
+      serverControl.get(0).getSerivceTestUtil().clusterFlattenService(clusterFlattenService -> {
         clusterFlattenService.flattenAllLocalShards(RUuidUtil.toRUuid(secondRequestId), BIG_TABLE, "a[*].a[*]",
             Arrays.asList(serverControl.get(1).getAddr().toRNodeAddress()),
             localCfs.getThisServicesAddr().toRNodeAddress());
       });
-      ServiceTestUtil.clusterFlattenService(serverControl.get(1), clusterFlattenService -> {
+      serverControl.get(1).getSerivceTestUtil().clusterFlattenService(clusterFlattenService -> {
         clusterFlattenService.flattenAllLocalShards(RUuidUtil.toRUuid(secondRequestId), BIG_TABLE, "a[*].a[*]",
             Arrays.asList(serverControl.get(0).getAddr().toRNodeAddress()),
             localCfs.getThisServicesAddr().toRNodeAddress());
@@ -164,12 +164,13 @@ public class ClusterFlattenIntegrationTest extends AbstractDiqubeIntegrationTest
     serverControl.get(0).deploy(cp(BIG0_CONTROL_FILE), work(BIG_DATA_FILE_WORK));
     serverControl.get(1).deploy(cp(BIG10_CONTROL_FILE), work(BIG_DATA_FILE_WORK));
 
-    try (TestClusterFlattenService localCfs = ClusterFlattenServiceTestUtil.createClusterFlattenService()) {
+    try (TestClusterFlattenService localCfs = ClusterFlattenServiceTestUtil
+        .createClusterFlattenService(serverControl.get(0).getServerMacKey() /* same MAC key for both */)) {
 
       // first request is sent to first server
       UUID firstRequestId = UUID.randomUUID();
       logger.info("Sending first request to flatten the table (request ID {}) to first server", firstRequestId);
-      ServiceTestUtil.clusterFlattenService(serverControl.get(0), clusterFlattenService -> {
+      serverControl.get(0).getSerivceTestUtil().clusterFlattenService(clusterFlattenService -> {
         clusterFlattenService.flattenAllLocalShards(RUuidUtil.toRUuid(firstRequestId), BIG_TABLE, "a[*].a[*]",
             Arrays.asList(serverControl.get(1).getAddr().toRNodeAddress()),
             localCfs.getThisServicesAddr().toRNodeAddress());
@@ -177,7 +178,7 @@ public class ClusterFlattenIntegrationTest extends AbstractDiqubeIntegrationTest
       // second request to second server
       UUID secondRequestId = UUID.randomUUID();
       logger.info("Sending second request to flatten the table (request ID {}) to second server", secondRequestId);
-      ServiceTestUtil.clusterFlattenService(serverControl.get(1), clusterFlattenService -> {
+      serverControl.get(1).getSerivceTestUtil().clusterFlattenService(clusterFlattenService -> {
         clusterFlattenService.flattenAllLocalShards(RUuidUtil.toRUuid(secondRequestId), BIG_TABLE, "a[*].a[*]",
             Arrays.asList(serverControl.get(0).getAddr().toRNodeAddress()),
             localCfs.getThisServicesAddr().toRNodeAddress());
@@ -188,13 +189,13 @@ public class ClusterFlattenIntegrationTest extends AbstractDiqubeIntegrationTest
 
       // now complete each request
       logger.info("Sending first request to flatten the table (request ID {}) to second server", firstRequestId);
-      ServiceTestUtil.clusterFlattenService(serverControl.get(1), clusterFlattenService -> {
+      serverControl.get(1).getSerivceTestUtil().clusterFlattenService(clusterFlattenService -> {
         clusterFlattenService.flattenAllLocalShards(RUuidUtil.toRUuid(firstRequestId), BIG_TABLE, "a[*].a[*]",
             Arrays.asList(serverControl.get(0).getAddr().toRNodeAddress()),
             localCfs.getThisServicesAddr().toRNodeAddress());
       });
       logger.info("Sending second request to flatten the table (request ID {}) to first server", secondRequestId);
-      ServiceTestUtil.clusterFlattenService(serverControl.get(0), clusterFlattenService -> {
+      serverControl.get(0).getSerivceTestUtil().clusterFlattenService(clusterFlattenService -> {
         clusterFlattenService.flattenAllLocalShards(RUuidUtil.toRUuid(secondRequestId), BIG_TABLE, "a[*].a[*]",
             Arrays.asList(serverControl.get(1).getAddr().toRNodeAddress()),
             localCfs.getThisServicesAddr().toRNodeAddress());
@@ -226,12 +227,13 @@ public class ClusterFlattenIntegrationTest extends AbstractDiqubeIntegrationTest
     serverControl.get(0).deploy(cp(BIG0_CONTROL_FILE), work(BIG_DATA_FILE_WORK));
     serverControl.get(1).deploy(cp(BIG10_CONTROL_FILE), work(BIG_DATA_FILE_WORK));
 
-    try (TestClusterFlattenService localCfs = ClusterFlattenServiceTestUtil.createClusterFlattenService()) {
+    try (TestClusterFlattenService localCfs = ClusterFlattenServiceTestUtil
+        .createClusterFlattenService(serverControl.get(0).getServerMacKey() /* same MAC key for both */)) {
 
       // first request is sent to first server
       UUID firstRequestId = UUID.randomUUID();
       logger.info("Sending first request to flatten the table (request ID {}) to first server", firstRequestId);
-      ServiceTestUtil.clusterFlattenService(serverControl.get(0), clusterFlattenService -> {
+      serverControl.get(0).getSerivceTestUtil().clusterFlattenService(clusterFlattenService -> {
         clusterFlattenService.flattenAllLocalShards(RUuidUtil.toRUuid(firstRequestId), BIG_TABLE, "a[*].a[*]",
             new ArrayList<>(), // no "other flatteners"
             localCfs.getThisServicesAddr().toRNodeAddress());
@@ -239,14 +241,14 @@ public class ClusterFlattenIntegrationTest extends AbstractDiqubeIntegrationTest
       // second request to second server
       UUID secondRequestId = UUID.randomUUID();
       logger.info("Sending second request to flatten the table (request ID {}) to second server", secondRequestId);
-      ServiceTestUtil.clusterFlattenService(serverControl.get(1), clusterFlattenService -> {
+      serverControl.get(1).getSerivceTestUtil().clusterFlattenService(clusterFlattenService -> {
         clusterFlattenService.flattenAllLocalShards(RUuidUtil.toRUuid(secondRequestId), BIG_TABLE, "a[*].a[*]",
             Arrays.asList(serverControl.get(0).getAddr().toRNodeAddress()),
             localCfs.getThisServicesAddr().toRNodeAddress());
       });
       // second request to first server
       logger.info("Sending second request to flatten the table (request ID {}) to first server", secondRequestId);
-      ServiceTestUtil.clusterFlattenService(serverControl.get(0), clusterFlattenService -> {
+      serverControl.get(0).getSerivceTestUtil().clusterFlattenService(clusterFlattenService -> {
         clusterFlattenService.flattenAllLocalShards(RUuidUtil.toRUuid(secondRequestId), BIG_TABLE, "a[*].a[*]",
             Arrays.asList(serverControl.get(1).getAddr().toRNodeAddress()),
             localCfs.getThisServicesAddr().toRNodeAddress());

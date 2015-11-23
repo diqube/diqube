@@ -34,6 +34,9 @@ import org.apache.thrift.transport.TNonblockingServerTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.diqube.config.Config;
 import org.diqube.config.ConfigKey;
+import org.diqube.connection.integrity.IntegrityCheckingProtocol;
+import org.diqube.connection.integrity.IntegritySecretHelper;
+import org.diqube.connection.integrity.RememberingTransport;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.context.InjectOptional;
 import org.diqube.listeners.ServingListener;
@@ -74,6 +77,9 @@ public class ServerImplementation {
 
   @Config(ConfigKey.BIND)
   private String bind;
+
+  @Inject
+  private IntegritySecretHelper integritySecretHelper;
 
   @Inject
   private ClusterQueryService.Iface clusterQueryHandler;
@@ -132,20 +138,27 @@ public class ServerImplementation {
   private TThreadedSelectorServer.Args createServerArgs() {
     TMultiplexedProcessor multiProcessor = new TMultiplexedProcessor();
 
+    // not-integrity-checked services: communication from "outside" of diqube-servers
     multiProcessor.registerProcessor(QueryServiceConstants.SERVICE_NAME,
-        new QueryService.Processor<QueryService.Iface>(queryHandler));
+        new IntegrityCheckingProtocol.IntegrityCheckDisablingProcessor(
+            new QueryService.Processor<QueryService.Iface>(queryHandler)));
+    multiProcessor.registerProcessor(KeepAliveServiceConstants.SERVICE_NAME,
+        new IntegrityCheckingProtocol.IntegrityCheckDisablingProcessor(
+            new KeepAliveService.Processor<KeepAliveService.Iface>(keepAliveHandler)));
+    multiProcessor.registerProcessor(FlattenPreparationServiceConstants.SERVICE_NAME,
+        new IntegrityCheckingProtocol.IntegrityCheckDisablingProcessor(
+            new FlattenPreparationService.Processor<FlattenPreparationService.Iface>(flattenPreparationHandler)));
+    multiProcessor.registerProcessor(ClusterInformationServiceConstants.SERVICE_NAME,
+        new IntegrityCheckingProtocol.IntegrityCheckDisablingProcessor(
+            new ClusterInformationService.Processor<ClusterInformationService.Iface>(clusterInformationHandler)));
+
+    // integrity-checked services: Communication between diqube-servers
     multiProcessor.registerProcessor(ClusterQueryServiceConstants.SERVICE_NAME,
         new ClusterQueryService.Processor<ClusterQueryService.Iface>(clusterQueryHandler));
     multiProcessor.registerProcessor(ClusterManagementServiceConstants.SERVICE_NAME,
         new ClusterManagementService.Processor<ClusterManagementService.Iface>(clusterManagementHandler));
-    multiProcessor.registerProcessor(KeepAliveServiceConstants.SERVICE_NAME,
-        new KeepAliveService.Processor<KeepAliveService.Iface>(keepAliveHandler));
-    multiProcessor.registerProcessor(ClusterInformationServiceConstants.SERVICE_NAME,
-        new ClusterInformationService.Processor<ClusterInformationService.Iface>(clusterInformationHandler));
     multiProcessor.registerProcessor(ClusterFlattenServiceConstants.SERVICE_NAME,
         new ClusterFlattenService.Processor<ClusterFlattenService.Iface>(clusterFlattenHandler));
-    multiProcessor.registerProcessor(FlattenPreparationServiceConstants.SERVICE_NAME,
-        new FlattenPreparationService.Processor<FlattenPreparationService.Iface>(flattenPreparationHandler));
 
     TNonblockingServerTransport transport;
     try {
@@ -164,8 +177,9 @@ public class ServerImplementation {
     // uses ExecutorService to actually invoke any methods.
     TThreadedSelectorServer.Args serverArgs = new TThreadedSelectorServer.Args(transport);
     serverArgs.processor(multiProcessor);
-    serverArgs.transportFactory(new TFramedTransport.Factory());
-    serverArgs.protocolFactory(new TCompactProtocol.Factory());
+    serverArgs.transportFactory(new RememberingTransport.Factory(new TFramedTransport.Factory()));
+    serverArgs.protocolFactory(new IntegrityCheckingProtocol.Factory(new TCompactProtocol.Factory(),
+        integritySecretHelper.provideMessageIntegritySecrets()));
     logger.info("Thrift server will use {} selector threads.", selectorThreads);
     serverArgs.selectorThreads(selectorThreads);
     serverArgs
@@ -178,4 +192,5 @@ public class ServerImplementation {
         }));
     return serverArgs;
   }
+
 }

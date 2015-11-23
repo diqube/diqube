@@ -26,6 +26,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.thrift.transport.TTransport;
+import org.diqube.remote.base.services.DiqubeThriftServiceInfoManager.DiqubeThriftServiceInfo;
 import org.diqube.remote.base.thrift.RNodeAddress;
 
 /**
@@ -40,15 +41,15 @@ public class Connection<T> implements Closeable, ServiceProvider<T> {
   private TTransport transport;
   private RNodeAddress address;
   private ConnectionPool parentPool;
-  private Class<T> serviceClientClass;
   private UUID executionUuid = null;
   private boolean enabled = true;
   private AtomicLong timeout = null;
+  private DiqubeThriftServiceInfo<T> serviceInfo;
 
-  /* package */ Connection(ConnectionPool parentPool, Class<T> serviceClientClass, T service, TTransport transport,
-      RNodeAddress address) {
+  /* package */ Connection(ConnectionPool parentPool, DiqubeThriftServiceInfo<T> serviceInfo, T service,
+      TTransport transport, RNodeAddress address) {
     this.parentPool = parentPool;
-    this.serviceClientClass = serviceClientClass;
+    this.serviceInfo = serviceInfo;
     this.service = service;
     this.transport = transport;
     this.address = address;
@@ -74,8 +75,8 @@ public class Connection<T> implements Closeable, ServiceProvider<T> {
     return address;
   }
 
-  /* package */ Class<T> getServiceClientClass() {
-    return serviceClientClass;
+  /* package */ DiqubeThriftServiceInfo<T> getServiceInfo() {
+    return serviceInfo;
   }
 
   /**

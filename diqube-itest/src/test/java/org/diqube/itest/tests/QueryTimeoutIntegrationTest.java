@@ -32,7 +32,6 @@ import org.diqube.itest.annotations.NeedsServer;
 import org.diqube.itest.control.ServerControl;
 import org.diqube.itest.util.QueryResultServiceTestUtil;
 import org.diqube.itest.util.QueryResultServiceTestUtil.TestQueryResultService;
-import org.diqube.itest.util.ServiceTestUtil;
 import org.diqube.itest.util.TestDataGenerator;
 import org.diqube.itest.util.Waiter;
 import org.diqube.remote.base.thrift.RUUID;
@@ -74,8 +73,8 @@ public class QueryTimeoutIntegrationTest extends AbstractDiqubeIntegrationTest {
       RUUID queryRUuid = RUuidUtil.toRUuid(queryUuid);
       logger.info("Executing query {}", RUuidUtil.toUuid(queryRUuid));
       // execute a long-running query. It should just take longer than the timeout we set above...
-      ServiceTestUtil.queryService(serverControl.get(0),
-          (queryService) -> queryService.asyncExecuteQuery(queryRUuid,
+      serverControl.get(0).getSerivceTestUtil()
+          .queryService((queryService) -> queryService.asyncExecuteQuery(queryRUuid,
               "select avg(add(a[*].a[*], 1)), avg(add(a[*].b[*], 1)), avg(add(b[*].a[*], 1)) from " + BIG_TABLE, true,
               queryRes.getThisServicesAddr().toRNodeAddress()));
 

@@ -28,14 +28,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import org.apache.thrift.TException;
-import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransport;
-import org.diqube.connection.Connection;
-import org.diqube.connection.ConnectionException;
-import org.diqube.connection.ConnectionFactory;
-import org.diqube.connection.ConnectionPool;
-import org.diqube.connection.SocketListener;
+import org.diqube.connection.integrity.IntegritySecretHelper;
+import org.diqube.connection.integrity.IntegritySecretHelperTestUtil;
 import org.diqube.queries.QueryUuid;
+import org.diqube.remote.base.services.DiqubeThriftServiceInfoManager;
+import org.diqube.remote.base.services.DiqubeThriftServiceInfoManager.DiqubeThriftServiceInfo;
 import org.diqube.remote.base.thrift.RNodeAddress;
 import org.diqube.remote.base.thrift.RNodeDefaultAddress;
 import org.diqube.remote.cluster.thrift.ClusterManagementService;
@@ -63,7 +61,15 @@ public class ConnectionPoolTest {
   public void before() {
     conFac = new TestConnectionFactory();
 
+    DiqubeThriftServiceInfoManager infoMgr = new DiqubeThriftServiceInfoManager();
+    infoMgr.initialize();
+
+    IntegritySecretHelper integritySecretHelper = new IntegritySecretHelper();
+    IntegritySecretHelperTestUtil.setMessageIntegritySecret(integritySecretHelper, "abc");
+
     pool = new ConnectionPool();
+    pool.setDiqubeThriftServiceInfoManager(infoMgr);
+    pool.setIntegritySecretHelper(integritySecretHelper);
   }
 
   @AfterMethod
@@ -84,21 +90,21 @@ public class ConnectionPoolTest {
   public void connectionReuse() throws ConnectionException, InterruptedException, IOException {
     initPool(Integer.MAX_VALUE, 2, Integer.MAX_VALUE, .95);
 
-    TestConnection<ClusterManagementService.Client> conn = (TestConnection<ClusterManagementService.Client>) pool
-        .reserveConnection(ClusterManagementService.Client.class, null, ADDR1, null);
+    TestConnection<ClusterManagementService.Iface> conn = (TestConnection<ClusterManagementService.Iface>) pool
+        .reserveConnection(ClusterManagementService.Iface.class, ADDR1, null);
 
     int connId = conn.getId();
-    Assert.assertEquals(conn.getServiceClientClass(), ClusterManagementService.Client.class,
+    Assert.assertEquals(conn.getServiceInfo().getServiceInterface(), ClusterManagementService.Iface.class,
         "Correct service expected");
     conn.close(); // release connection
 
     // re-request address
-    conn = (TestConnection<ClusterManagementService.Client>) pool
-        .reserveConnection(ClusterManagementService.Client.class, null, ADDR1, null);
+    conn = (TestConnection<ClusterManagementService.Iface>) pool.reserveConnection(ClusterManagementService.Iface.class,
+        ADDR1, null);
     conn.close();
 
     Assert.assertEquals(conn.getId(), connId, "Expected that connection is re-used");
-    Assert.assertEquals(conn.getServiceClientClass(), ClusterManagementService.Client.class,
+    Assert.assertEquals(conn.getServiceInfo().getServiceInterface(), ClusterManagementService.Iface.class,
         "Correct service expected");
   }
 
@@ -110,19 +116,19 @@ public class ConnectionPoolTest {
         3_000, // 3s idle time.
         2); // high earlyCloseLevel to force to block
 
-    TestConnection<ClusterManagementService.Client> conn = (TestConnection<ClusterManagementService.Client>) pool
-        .reserveConnection(ClusterManagementService.Client.class, null, ADDR1, null);
+    TestConnection<ClusterManagementService.Iface> conn = (TestConnection<ClusterManagementService.Iface>) pool
+        .reserveConnection(ClusterManagementService.Iface.class, ADDR1, null);
 
     int connId = conn.getId();
-    Assert.assertEquals(conn.getServiceClientClass(), ClusterManagementService.Client.class,
+    Assert.assertEquals(conn.getServiceInfo().getServiceInterface(), ClusterManagementService.Iface.class,
         "Correct service expected");
     long beforeNanos = System.nanoTime();
     conn.close(); // release connection
 
     // request a connection to another host (so it won't get re-used), which should be blocked - the first connection
     // was released, but it is effectively still open until it is closed automatically by the timeout!
-    TestConnection<ClusterManagementService.Client> conn2 = (TestConnection<ClusterManagementService.Client>) pool
-        .reserveConnection(ClusterManagementService.Client.class, null, ADDR2, null);
+    TestConnection<ClusterManagementService.Iface> conn2 = (TestConnection<ClusterManagementService.Iface>) pool
+        .reserveConnection(ClusterManagementService.Iface.class, ADDR2, null);
     long afterNanos = System.nanoTime();
     conn2.close();
 
@@ -134,7 +140,7 @@ public class ConnectionPoolTest {
             + (afterNanos - beforeNanos) + " nanos");
     Assert.assertNotEquals(conn2.getId(), connId, "Expected that connection was not re-used, as first "
         + "connection should have been closed before the second was opened");
-    Assert.assertEquals(conn2.getServiceClientClass(), ClusterManagementService.Client.class,
+    Assert.assertEquals(conn2.getServiceInfo().getServiceInterface(), ClusterManagementService.Iface.class,
         "Correct service expected");
   }
 
@@ -145,19 +151,19 @@ public class ConnectionPoolTest {
         Integer.MAX_VALUE, //
         .95);
 
-    TestConnection<ClusterManagementService.Client> conn = (TestConnection<ClusterManagementService.Client>) pool
-        .reserveConnection(ClusterManagementService.Client.class, null, ADDR1, null);
+    TestConnection<ClusterManagementService.Iface> conn = (TestConnection<ClusterManagementService.Iface>) pool
+        .reserveConnection(ClusterManagementService.Iface.class, ADDR1, null);
 
     int connId = conn.getId();
-    Assert.assertEquals(conn.getServiceClientClass(), ClusterManagementService.Client.class,
+    Assert.assertEquals(conn.getServiceInfo().getServiceInterface(), ClusterManagementService.Iface.class,
         "Correct service expected");
     conn.close(); // release connection
 
     // request a connection to another host (so it won't get re-used), which in our case should NOT be blocked, as the
     // pool should reach the "early close" level and close the first connection right away without waiting for it to
     // timeout.
-    TestConnection<ClusterManagementService.Client> conn2 = (TestConnection<ClusterManagementService.Client>) pool
-        .reserveConnection(ClusterManagementService.Client.class, null, ADDR2, null);
+    TestConnection<ClusterManagementService.Iface> conn2 = (TestConnection<ClusterManagementService.Iface>) pool
+        .reserveConnection(ClusterManagementService.Iface.class, ADDR2, null);
     conn2.close();
 
     // ensure that the "close" method on the first connection was called
@@ -165,7 +171,7 @@ public class ConnectionPoolTest {
 
     Assert.assertNotEquals(conn2.getId(), connId, "Expected that connection was not re-used, as first "
         + "connection should have been closed before the second was opened");
-    Assert.assertEquals(conn2.getServiceClientClass(), ClusterManagementService.Client.class,
+    Assert.assertEquals(conn2.getServiceInfo().getServiceInterface(), ClusterManagementService.Iface.class,
         "Correct service expected");
   }
 
@@ -177,19 +183,19 @@ public class ConnectionPoolTest {
         Integer.MAX_VALUE, //
         2); // high earlyCloseLevel to force to block
 
-    TestConnection<ClusterManagementService.Client> conn = (TestConnection<ClusterManagementService.Client>) pool
-        .reserveConnection(ClusterManagementService.Client.class, null, ADDR1, null);
+    TestConnection<ClusterManagementService.Iface> conn = (TestConnection<ClusterManagementService.Iface>) pool
+        .reserveConnection(ClusterManagementService.Iface.class, ADDR1, null);
 
     int connId = conn.getId();
-    Assert.assertEquals(conn.getServiceClientClass(), ClusterManagementService.Client.class,
+    Assert.assertEquals(conn.getServiceInfo().getServiceInterface(), ClusterManagementService.Iface.class,
         "Correct service expected");
     long beforeNanos = System.nanoTime();
 
     // adjust the morph of the connection to a KeepAliveService and make sure there is an exception thrown when the
     // "ping" method is called.
-    conFac.adjustMorphOfConn(connId, new Consumer<TestConnection<? extends TServiceClient>>() {
+    conFac.adjustMorphOfConn(connId, new Consumer<TestConnection<?>>() {
       @Override
-      public void accept(TestConnection<? extends TServiceClient> t) {
+      public void accept(TestConnection<?> t) {
         try {
           if (t.getService() instanceof KeepAliveService.Iface)
             Mockito.doThrow(TException.class).when(((KeepAliveService.Iface) t.getService())).ping();
@@ -202,8 +208,8 @@ public class ConnectionPoolTest {
 
     // request a connection to another host (so it won't get re-used), which should be blocked - the first connection
     // was released, but it is effectively still open until it is closed automatically by the timeout!
-    TestConnection<ClusterManagementService.Client> conn2 = (TestConnection<ClusterManagementService.Client>) pool
-        .reserveConnection(ClusterManagementService.Client.class, null, ADDR2, null);
+    TestConnection<ClusterManagementService.Iface> conn2 = (TestConnection<ClusterManagementService.Iface>) pool
+        .reserveConnection(ClusterManagementService.Iface.class, ADDR2, null);
     long afterNanos = System.nanoTime();
     conn2.close();
 
@@ -215,7 +221,7 @@ public class ConnectionPoolTest {
             + "new conn was opened, but waited only " + (afterNanos - beforeNanos) + " nanos");
     Assert.assertNotEquals(conn2.getId(), connId, "Expected that connection was not re-used, as "
         + "first connection should have been closed before the second was opened");
-    Assert.assertEquals(conn2.getServiceClientClass(), ClusterManagementService.Client.class,
+    Assert.assertEquals(conn2.getServiceInfo().getServiceInterface(), ClusterManagementService.Iface.class,
         "Correct service expected");
   }
 
@@ -226,19 +232,19 @@ public class ConnectionPoolTest {
         Integer.MAX_VALUE, //
         .95);
 
-    TestConnection<ClusterManagementService.Client> conn = (TestConnection<ClusterManagementService.Client>) pool
-        .reserveConnection(ClusterManagementService.Client.class, null, ADDR1, null);
+    TestConnection<ClusterManagementService.Iface> conn = (TestConnection<ClusterManagementService.Iface>) pool
+        .reserveConnection(ClusterManagementService.Iface.class, ADDR1, null);
 
     int connId = conn.getId();
-    Assert.assertEquals(conn.getServiceClientClass(), ClusterManagementService.Client.class,
+    Assert.assertEquals(conn.getServiceInfo().getServiceInterface(), ClusterManagementService.Iface.class,
         "Correct service expected");
 
     // adjust the morph of the connection to a KeepAliveService and make sure there is an exception thrown when the
     // "ping" method is called - this should be executed before re-using the connection above - marking the connection
     // above as dead.
-    conFac.adjustMorphOfConn(connId, new Consumer<TestConnection<? extends TServiceClient>>() {
+    conFac.adjustMorphOfConn(connId, new Consumer<TestConnection<?>>() {
       @Override
-      public void accept(TestConnection<? extends TServiceClient> t) {
+      public void accept(TestConnection<?> t) {
         try {
           if (t.getService() instanceof KeepAliveService.Iface)
             Mockito.doThrow(TException.class).when(((KeepAliveService.Iface) t.getService())).ping();
@@ -251,8 +257,8 @@ public class ConnectionPoolTest {
 
     // request a connection to the same host (so it will get re-used), which should be blocked - the first connection
     // was released, but it is effectively still open until it is closed automatically by the timeout!
-    TestConnection<ClusterManagementService.Client> conn2 = (TestConnection<ClusterManagementService.Client>) pool
-        .reserveConnection(ClusterManagementService.Client.class, null, ADDR1, null);
+    TestConnection<ClusterManagementService.Iface> conn2 = (TestConnection<ClusterManagementService.Iface>) pool
+        .reserveConnection(ClusterManagementService.Iface.class, ADDR1, null);
     conn2.close();
 
     // ensure that the "close" method on the first connection was called
@@ -260,7 +266,7 @@ public class ConnectionPoolTest {
 
     Assert.assertNotEquals(conn2.getId(), connId, "Expected that connection was not re-used, as "
         + "first connection was tried to be re-used but appeared to have died");
-    Assert.assertEquals(conn2.getServiceClientClass(), ClusterManagementService.Client.class,
+    Assert.assertEquals(conn2.getServiceInfo().getServiceInterface(), ClusterManagementService.Iface.class,
         "Correct service expected");
   }
 
@@ -271,11 +277,11 @@ public class ConnectionPoolTest {
         Integer.MAX_VALUE, //
         .95);
 
-    TestConnection<ClusterManagementService.Client> conn = (TestConnection<ClusterManagementService.Client>) pool
-        .reserveConnection(ClusterManagementService.Client.class, null, ADDR1, null);
+    TestConnection<ClusterManagementService.Iface> conn = (TestConnection<ClusterManagementService.Iface>) pool
+        .reserveConnection(ClusterManagementService.Iface.class, ADDR1, null);
 
     int connId = conn.getId();
-    Assert.assertEquals(conn.getServiceClientClass(), ClusterManagementService.Client.class,
+    Assert.assertEquals(conn.getServiceInfo().getServiceInterface(), ClusterManagementService.Iface.class,
         "Correct service expected");
     conn.close(); // release connection
 
@@ -283,8 +289,8 @@ public class ConnectionPoolTest {
     pool.nodeDied(ADDR1);
 
     // request another connection, which should open a new one!
-    TestConnection<ClusterManagementService.Client> conn2 = (TestConnection<ClusterManagementService.Client>) pool
-        .reserveConnection(ClusterManagementService.Client.class, null, ADDR1, null);
+    TestConnection<ClusterManagementService.Iface> conn2 = (TestConnection<ClusterManagementService.Iface>) pool
+        .reserveConnection(ClusterManagementService.Iface.class, ADDR1, null);
     conn2.close();
 
     // ensure that the "close" method on the first connection was called
@@ -292,7 +298,7 @@ public class ConnectionPoolTest {
 
     Assert.assertNotEquals(conn2.getId(), connId,
         "Expected that connection was not re-used, as " + "node died in between");
-    Assert.assertEquals(conn2.getServiceClientClass(), ClusterManagementService.Client.class,
+    Assert.assertEquals(conn2.getServiceInfo().getServiceInterface(), ClusterManagementService.Iface.class,
         "Correct service expected");
   }
 
@@ -305,24 +311,24 @@ public class ConnectionPoolTest {
 
     try {
       QueryUuid.setCurrentQueryUuidAndExecutionUuid(UUID.randomUUID(), UUID.randomUUID());
-      TestConnection<ClusterManagementService.Client> conn = (TestConnection<ClusterManagementService.Client>) pool
-          .reserveConnection(ClusterManagementService.Client.class, null, ADDR1, null);
+      TestConnection<ClusterManagementService.Iface> conn = (TestConnection<ClusterManagementService.Iface>) pool
+          .reserveConnection(ClusterManagementService.Iface.class, ADDR1, null);
 
       int connId = conn.getId();
-      Assert.assertEquals(conn.getServiceClientClass(), ClusterManagementService.Client.class,
+      Assert.assertEquals(conn.getServiceInfo().getServiceInterface(), ClusterManagementService.Iface.class,
           "Correct service expected");
 
       // request another connection to another node. We would break the limit, though we want that connection for the
       // same executionUuid, therefore we should get it without blocking.
-      TestConnection<ClusterManagementService.Client> conn2 = (TestConnection<ClusterManagementService.Client>) pool
-          .reserveConnection(ClusterManagementService.Client.class, null, ADDR2, null);
+      TestConnection<ClusterManagementService.Iface> conn2 = (TestConnection<ClusterManagementService.Iface>) pool
+          .reserveConnection(ClusterManagementService.Iface.class, ADDR2, null);
       conn2.close();
 
       conn.close();
 
       Assert.assertNotEquals(conn2.getId(), connId,
           "Expected that connection was not re-used, as both connections should be open at the same time");
-      Assert.assertEquals(conn2.getServiceClientClass(), ClusterManagementService.Client.class,
+      Assert.assertEquals(conn2.getServiceInfo().getServiceInterface(), ClusterManagementService.Iface.class,
           "Correct service expected");
     } finally {
       QueryUuid.clearCurrent();
@@ -335,17 +341,16 @@ public class ConnectionPoolTest {
   private class TestConnectionFactory implements ConnectionFactory {
     private AtomicInteger nextId = new AtomicInteger(0);
 
-    private Map<Integer, Consumer<TestConnection<? extends TServiceClient>>> morphConsumers = new HashMap<>();
+    private Map<Integer, Consumer<TestConnection<?>>> morphConsumers = new HashMap<>();
 
-    public void adjustMorphOfConn(int connId, Consumer<TestConnection<? extends TServiceClient>> adjuster) {
+    public void adjustMorphOfConn(int connId, Consumer<TestConnection<?>> adjuster) {
       morphConsumers.put(connId, adjuster);
     }
 
     @Override
-    public <T extends TServiceClient, U extends TServiceClient> Connection<U> createConnection(
-        Connection<T> oldConnection, Class<U> newThriftClientClass, String newThriftServiceName)
-            throws ConnectionException {
-      TestConnection<U> res = new TestConnection<>(newThriftClientClass, ((TestConnection<?>) oldConnection).getId(),
+    public <T, U> Connection<U> createConnection(Connection<T> oldConnection, DiqubeThriftServiceInfo<U> serviceInfo)
+        throws ConnectionException {
+      TestConnection<U> res = new TestConnection<>(serviceInfo, ((TestConnection<?>) oldConnection).getId(),
           ((TestConnection<?>) oldConnection).getAddress(), ((TestConnection<?>) oldConnection).getTransport());
       res.setTimeout(oldConnection.getTimeout());
       res.setExecutionUuid(oldConnection.getExecutionUuid());
@@ -355,9 +360,9 @@ public class ConnectionPoolTest {
     }
 
     @Override
-    public <T extends TServiceClient> Connection<T> createConnection(Class<T> thriftClientClass,
-        String thriftServiceName, RNodeAddress addr, SocketListener socketListener) throws ConnectionException {
-      return new TestConnection<>(thriftClientClass, nextId.getAndIncrement(), addr);
+    public <T> Connection<T> createConnection(DiqubeThriftServiceInfo<T> serviceInfo, RNodeAddress addr,
+        SocketListener socketListener) throws ConnectionException {
+      return new TestConnection<>(serviceInfo, nextId.getAndIncrement(), addr);
     }
   }
 
@@ -367,13 +372,13 @@ public class ConnectionPoolTest {
   private class TestConnection<T> extends Connection<T> {
     private int id;
 
-    TestConnection(Class<T> serviceClientClass, int id, RNodeAddress addr, TTransport transport) {
-      super(pool, serviceClientClass, Mockito.mock(serviceClientClass, Mockito.RETURNS_MOCKS), transport, addr);
+    TestConnection(DiqubeThriftServiceInfo<T> serviceInfo, int id, RNodeAddress addr, TTransport transport) {
+      super(pool, serviceInfo, Mockito.mock(serviceInfo.getServiceInterface(), Mockito.RETURNS_MOCKS), transport, addr);
       this.id = id;
     }
 
-    TestConnection(Class<T> serviceClientClass, int id, RNodeAddress addr) {
-      this(serviceClientClass, id, addr, Mockito.mock(TTransport.class));
+    TestConnection(DiqubeThriftServiceInfo<T> serviceInfo, int id, RNodeAddress addr) {
+      this(serviceInfo, id, addr, Mockito.mock(TTransport.class));
     }
 
     public int getId() {

@@ -26,7 +26,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
-import org.apache.thrift.TServiceClient;
 import org.diqube.connection.Connection;
 import org.diqube.connection.ConnectionException;
 import org.diqube.connection.ConnectionFactory;
@@ -35,6 +34,8 @@ import org.diqube.connection.ConnectionPoolTestUtil;
 import org.diqube.connection.SocketListener;
 import org.diqube.data.column.ColumnType;
 import org.diqube.queries.QueryRegistry;
+import org.diqube.remote.base.services.DiqubeThriftServiceInfoManager;
+import org.diqube.remote.base.services.DiqubeThriftServiceInfoManager.DiqubeThriftServiceInfo;
 import org.diqube.remote.base.thrift.RNodeAddress;
 import org.diqube.remote.cluster.thrift.ClusterQueryService;
 import org.diqube.server.execution.util.NoopClusterQueryService;
@@ -108,15 +109,15 @@ public abstract class AbstractRemoteEmulatingDiqlExecutionTest<T> extends Abstra
     ConnectionPoolTestUtil.setConnectionFactory(pool, new ConnectionFactory() {
       @SuppressWarnings("unchecked")
       @Override
-      public <C extends TServiceClient> Connection<C> createConnection(Class<C> thiftClientClass,
-          String thriftServiceName, RNodeAddress addr, SocketListener socketListener) throws ConnectionException {
-        return (Connection<C>) ConnectionPoolTestUtil.createConnection(pool, ClusterQueryService.Client.class);
+      public <C> Connection<C> createConnection(DiqubeThriftServiceInfo<C> serviceInfo, RNodeAddress addr,
+          SocketListener socketListener) throws ConnectionException {
+        return (Connection<C>) ConnectionPoolTestUtil.createConnection(pool,
+            dataContext.getBean(DiqubeThriftServiceInfoManager.class).getServiceInfo(ClusterQueryService.Iface.class));
       }
 
       @Override
-      public <U extends TServiceClient, V extends TServiceClient> Connection<V> createConnection(
-          Connection<U> oldConnection, Class<V> newThriftClientClass, String newThriftServiceName)
-              throws ConnectionException {
+      public <U, V> Connection<V> createConnection(Connection<U> oldConnection, DiqubeThriftServiceInfo<V> serviceInfo)
+          throws ConnectionException {
         return null;
       }
     });
