@@ -226,4 +226,12 @@ public class ConfigKey {
    * A value of "none" will disable this alternative.
    */
   public static final String MESSAGE_INTEGRITY_SECRET_ALTERNATIVE2 = "messageIntegritySecretAlt1";
+
+  /**
+   * Folder where the consensus cluster will put its data.
+   * 
+   * <p>
+   * If this is a relative path, it will be evaluated relative to {@link #DATA_DIR}.
+   */
+  public static final String CONSENSUS_DATA_DIR = "consensusDataDir";
 }

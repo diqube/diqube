@@ -40,9 +40,11 @@ import org.diqube.connection.integrity.RememberingTransport;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.context.InjectOptional;
 import org.diqube.listeners.ServingListener;
+import org.diqube.remote.cluster.ClusterConsensusServiceConstants;
 import org.diqube.remote.cluster.ClusterFlattenServiceConstants;
 import org.diqube.remote.cluster.ClusterManagementServiceConstants;
 import org.diqube.remote.cluster.ClusterQueryServiceConstants;
+import org.diqube.remote.cluster.thrift.ClusterConsensusService;
 import org.diqube.remote.cluster.thrift.ClusterFlattenService;
 import org.diqube.remote.cluster.thrift.ClusterManagementService;
 import org.diqube.remote.cluster.thrift.ClusterQueryService;
@@ -103,6 +105,9 @@ public class ServerImplementation {
   private FlattenPreparationService.Iface flattenPreparationHandler;
 
   @Inject
+  private ClusterConsensusService.Iface clusterConsensusHandler;
+
+  @Inject
   private ExecutorManager executorManager;
 
   @InjectOptional
@@ -159,6 +164,8 @@ public class ServerImplementation {
         new ClusterManagementService.Processor<ClusterManagementService.Iface>(clusterManagementHandler));
     multiProcessor.registerProcessor(ClusterFlattenServiceConstants.SERVICE_NAME,
         new ClusterFlattenService.Processor<ClusterFlattenService.Iface>(clusterFlattenHandler));
+    multiProcessor.registerProcessor(ClusterConsensusServiceConstants.SERVICE_NAME,
+        new ClusterConsensusService.Processor<ClusterConsensusService.Iface>(clusterConsensusHandler));
 
     TNonblockingServerTransport transport;
     try {

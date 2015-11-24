@@ -20,17 +20,111 @@
  */
 package org.diqube.consensus;
 
+import java.io.File;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import javax.annotation.PreDestroy;
+import javax.inject.Inject;
+
+import org.diqube.config.Config;
+import org.diqube.config.ConfigKey;
+import org.diqube.connection.NodeAddress;
+import org.diqube.connection.OurNodeAddressProvider;
+import org.diqube.context.AutoInstatiate;
+import org.diqube.context.InjectOptional;
+import org.diqube.listeners.ClusterManagerListener;
+import org.diqube.listeners.DiqubeConsensusListener;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.atomix.catalyst.transport.Address;
+import io.atomix.copycat.server.CopycatServer;
+import io.atomix.copycat.server.StateMachine;
+import io.atomix.copycat.server.StateMachineExecutor;
+import io.atomix.copycat.server.storage.Storage;
+import io.atomix.copycat.server.storage.StorageLevel;
+
 /**
  *
  * @author Bastian Gloeckle
  */
-public class DiqubeCopycatServer {
-  // private ONA
+@AutoInstatiate
+public class DiqubeCopycatServer implements ClusterManagerListener {
+  private static final Logger logger = LoggerFactory.getLogger(DiqubeCopycatServer.class);
 
-  // TODO #86
+  @Inject
+  private OurNodeAddressProvider ourNodeAddressProvider;
 
-  //
-  // public void start() {
-  // ServerContext serverContext = new ServerContext(address, members, stateMachine, transport, storage, serializer);
-  // }
+  @Inject
+  private ClusterNodeAddressProvider clusterNodeAddressProvider;
+
+  @Inject
+  private DiqubeCatalystTransport transport;
+
+  @Inject
+  private DiqubeCatalystSerializer serializer;
+
+  @InjectOptional
+  private List<DiqubeConsensusListener> listeners;
+
+  @Config(ConfigKey.CONSENSUS_DATA_DIR)
+  private String consensusDataDir;
+
+  @Config(ConfigKey.DATA_DIR)
+  private String dataDir;
+
+  private CopycatServer copycatServer;
+
+  @Override
+  public void clusterInitialized() {
+    Address ourAddr = toCopycatAddress(ourNodeAddressProvider.getOurNodeAddress());
+    List<Address> members = clusterNodeAddressProvider.getClusterNodeAddresses().stream()
+        .map(addr -> toCopycatAddress(addr)).collect(Collectors.toList());
+
+    File consensusDataDirFile = new File(consensusDataDir);
+    if (!consensusDataDirFile.isAbsolute())
+      consensusDataDirFile = new File(new File(dataDir), consensusDataDir);
+
+    if (!consensusDataDirFile.exists())
+      if (!consensusDataDirFile.mkdirs())
+        throw new RuntimeException("Could not create consenusDataDir at " + consensusDataDirFile.getAbsolutePath()
+            + ". Restart diqube-server!");
+
+    logger.info("Starting up consensus node with local data dir at '{}'.", consensusDataDirFile.getAbsolutePath());
+    Storage storage = Storage.builder().withStorageLevel(StorageLevel.DISK).withDirectory(consensusDataDirFile).build();
+
+    copycatServer = CopycatServer.builder(ourAddr, members).withTransport(transport).withStorage(storage)
+        .withSerializer(serializer).withStateMachine(new StateMachine() {
+          @Override
+          protected void configure(StateMachineExecutor executor) {
+            // executor.register(type, callback)
+          }
+        }).build();
+
+    copycatServer.open().handle((result, error) -> {
+      if (error != null)
+        throw new RuntimeException("Could not start Consensus node. Restart diqube-server!", error);
+
+      logger.info("Consensus node started successfully.");
+
+      if (listeners != null)
+        listeners.forEach(l -> l.consensusInitialized());
+
+      return null;
+    });
+  }
+
+  @PreDestroy
+  public void stop() {
+    if (copycatServer != null) {
+      copycatServer.close().join();
+      copycatServer = null;
+    }
+  }
+
+  private Address toCopycatAddress(NodeAddress addr) {
+    return new Address(addr.getHost(), addr.getPort());
+  }
+
 }

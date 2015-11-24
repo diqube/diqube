@@ -98,6 +98,11 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>diqube-consensus</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>diqube-buildinfo</artifactId>
       <version>${project.version}</version>
     </dependency>

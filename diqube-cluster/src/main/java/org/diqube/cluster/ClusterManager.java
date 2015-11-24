@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
@@ -42,6 +43,7 @@ import org.diqube.connection.ConnectionException;
 import org.diqube.connection.ConnectionPool;
 import org.diqube.connection.NodeAddress;
 import org.diqube.connection.OurNodeAddressProvider;
+import org.diqube.consensus.ClusterNodeAddressProvider;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.context.InjectOptional;
 import org.diqube.listeners.ClusterManagerListener;
@@ -68,7 +70,7 @@ import org.slf4j.LoggerFactory;
  */
 @AutoInstatiate
 public class ClusterManager implements ServingListener, TableLoadListener, OurNodeAddressStringProvider,
-    ClusterNodeDiedListener, OurNodeAddressProvider {
+    ClusterNodeDiedListener, OurNodeAddressProvider, ClusterNodeAddressProvider {
   private static final Logger logger = LoggerFactory.getLogger(ClusterManager.class);
 
   private static final String OUR_HOST_AUTOMATIC = "*";
@@ -398,6 +400,11 @@ public class ClusterManager implements ServingListener, TableLoadListener, OurNo
   @Override
   public String getOurNodeAddressAsString() {
     return ourHostAddr.toString();
+  }
+
+  @Override
+  public List<NodeAddress> getClusterNodeAddresses() {
+    return clusterLayout.getNodes().stream().filter(n -> !n.equals(ourHostAddr)).collect(Collectors.toList());
   }
 
 }
