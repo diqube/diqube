@@ -115,7 +115,7 @@ public class ServerImplementation {
 
   private TThreadedSelectorServer server;
 
-  public void serve() {
+  public void serve(Runnable shutdownContextRunnable) {
     TThreadedSelectorServer.Args serverArgs = createServerArgs();
 
     if (serverArgs == null)
@@ -128,6 +128,8 @@ public class ServerImplementation {
       @Override
       public void run() {
         logger.info("Shutting down server...");
+        // shutdown context while server is still running - in case we communicate with other servers for shutdown.
+        shutdownContextRunnable.run();
         server.stop();
         executorManager.shutdownEverythingOfAllQueries();
       }

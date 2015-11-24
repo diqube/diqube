@@ -31,6 +31,7 @@
 
   <!-- Only spring WARNs in test -->
   <logger name="org.springframework" level="warn" />
+  <logger name="io.atomix" level="warn" />
   
   <logger name="org.diqube" level="trace" />
 

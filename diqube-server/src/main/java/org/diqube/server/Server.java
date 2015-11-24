@@ -59,13 +59,12 @@ public class Server {
     logger.info("This executable is based on diqube commit {} and was built on {}.", BuildInfo.getGitCommitLong(),
         BuildInfo.getTimestamp());
 
-    try (AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext()) {
-      ctx.getEnvironment().setActiveProfiles(Profiles.ALL);
-      ctx.scan("org.diqube");
-      ctx.refresh();
+    AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext();
+    ctx.getEnvironment().setActiveProfiles(Profiles.ALL);
+    ctx.scan("org.diqube");
+    ctx.refresh();
 
-      ServerImplementation serverImpl = ctx.getBean(ServerImplementation.class);
-      serverImpl.serve();
-    }
+    ServerImplementation serverImpl = ctx.getBean(ServerImplementation.class);
+    serverImpl.serve(() -> ctx.close());
   }
 }
