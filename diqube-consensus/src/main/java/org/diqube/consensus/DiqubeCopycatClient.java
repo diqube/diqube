@@ -30,6 +30,8 @@ import javax.inject.Inject;
 
 import org.diqube.connection.NodeAddress;
 import org.diqube.connection.OurNodeAddressProvider;
+import org.diqube.consensus.internal.DiqubeCatalystSerializer;
+import org.diqube.consensus.internal.DiqubeCatalystTransport;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.listeners.DiqubeConsensusListener;
 

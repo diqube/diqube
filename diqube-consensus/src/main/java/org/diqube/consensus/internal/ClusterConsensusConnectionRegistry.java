@@ -18,39 +18,33 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.consensus;
+package org.diqube.consensus.internal;
 
-import javax.inject.Inject;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.diqube.context.AutoInstatiate;
 
-import io.atomix.catalyst.transport.Client;
-import io.atomix.catalyst.transport.Server;
-import io.atomix.catalyst.transport.Transport;
-
 /**
- * Catalyst {@link Transport} for diqube, which creates {@link DiqubeCatalystClient}s and serves a single
- * {@link DiqubeCatalystServer} instance.
+ * Registry for all currently open catalyst connections.
  *
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
-public class DiqubeCatalystTransport implements Transport {
+public class ClusterConsensusConnectionRegistry {
+  private Map<UUID, DiqubeCatalystConnection> connections = new ConcurrentHashMap<>();
 
-  @Inject
-  private DiqubeCatalystServer server;
-
-  @Inject
-  private DiqubeCatalystConnectionFactory conFactory;
-
-  @Override
-  public Client client() {
-    return new DiqubeCatalystClient(conFactory);
+  public void registerConnection(UUID connectionUuid, DiqubeCatalystConnection connection) {
+    connections.put(connectionUuid, connection);
   }
 
-  @Override
-  public Server server() {
-    return server;
+  public DiqubeCatalystConnection getConnection(UUID connectionUuid) {
+    return connections.get(connectionUuid);
+  }
+
+  public void removeConnection(UUID connectionUuid) {
+    connections.remove(connectionUuid);
   }
 
 }

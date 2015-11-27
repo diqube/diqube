@@ -18,34 +18,39 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.consensus;
+package org.diqube.consensus.internal;
 
 import javax.inject.Inject;
 
-import org.diqube.connection.ConnectionOrLocalHelper;
-import org.diqube.connection.OurNodeAddressProvider;
 import org.diqube.context.AutoInstatiate;
 
-import io.atomix.catalyst.util.concurrent.ThreadContext;
+import io.atomix.catalyst.transport.Client;
+import io.atomix.catalyst.transport.Server;
+import io.atomix.catalyst.transport.Transport;
 
 /**
- * Factory for {@link DiqubeCatalystConnection}.
+ * Catalyst {@link Transport} for diqube, which creates {@link DiqubeCatalystClient}s and serves a single
+ * {@link DiqubeCatalystServer} instance.
  *
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
-public class DiqubeCatalystConnectionFactory {
+public class DiqubeCatalystTransport implements Transport {
 
   @Inject
-  private ClusterConsensusConnectionRegistry registry;
+  private DiqubeCatalystServer server;
 
   @Inject
-  private ConnectionOrLocalHelper connectionOrLocalHelper;
+  private DiqubeCatalystConnectionFactory conFactory;
 
-  @Inject
-  private OurNodeAddressProvider ourNodeAddressProvider;
-
-  public DiqubeCatalystConnection createDiqubeCatalystConnection(ThreadContext generalContext) {
-    return new DiqubeCatalystConnection(registry, connectionOrLocalHelper, ourNodeAddressProvider, generalContext);
+  @Override
+  public Client client() {
+    return new DiqubeCatalystClient(conFactory);
   }
+
+  @Override
+  public Server server() {
+    return server;
+  }
+
 }

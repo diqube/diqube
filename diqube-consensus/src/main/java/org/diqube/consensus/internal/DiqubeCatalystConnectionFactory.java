@@ -18,25 +18,34 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.consensus;
+package org.diqube.consensus.internal;
 
+import javax.inject.Inject;
+
+import org.diqube.connection.ConnectionOrLocalHelper;
+import org.diqube.connection.OurNodeAddressProvider;
 import org.diqube.context.AutoInstatiate;
 
-import io.atomix.catalyst.serializer.Serializer;
-import io.atomix.catalyst.serializer.SerializerRegistry;
+import io.atomix.catalyst.util.concurrent.ThreadContext;
 
 /**
- * Catalyst serializer used by diqube.
+ * Factory for {@link DiqubeCatalystConnection}.
  *
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
-public class DiqubeCatalystSerializer extends Serializer {
-  public DiqubeCatalystSerializer() {
-    super(DiqubeCatalystSerializer::resolveTypes);
-  }
+public class DiqubeCatalystConnectionFactory {
 
-  public static void resolveTypes(SerializerRegistry registry) {
+  @Inject
+  private ClusterConsensusConnectionRegistry registry;
 
+  @Inject
+  private ConnectionOrLocalHelper connectionOrLocalHelper;
+
+  @Inject
+  private OurNodeAddressProvider ourNodeAddressProvider;
+
+  public DiqubeCatalystConnection createDiqubeCatalystConnection(ThreadContext generalContext) {
+    return new DiqubeCatalystConnection(registry, connectionOrLocalHelper, ourNodeAddressProvider, generalContext);
   }
 }

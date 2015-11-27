@@ -18,33 +18,25 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.consensus;
-
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
+package org.diqube.consensus.internal;
 
 import org.diqube.context.AutoInstatiate;
 
+import io.atomix.catalyst.serializer.Serializer;
+import io.atomix.catalyst.serializer.SerializerRegistry;
+
 /**
- * Registry for all currently open catalyst connections.
+ * Catalyst serializer used by diqube.
  *
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
-public class ClusterConsensusConnectionRegistry {
-  private Map<UUID, DiqubeCatalystConnection> connections = new ConcurrentHashMap<>();
-
-  public void registerConnection(UUID connectionUuid, DiqubeCatalystConnection connection) {
-    connections.put(connectionUuid, connection);
+public class DiqubeCatalystSerializer extends Serializer {
+  public DiqubeCatalystSerializer() {
+    super(DiqubeCatalystSerializer::resolveTypes);
   }
 
-  public DiqubeCatalystConnection getConnection(UUID connectionUuid) {
-    return connections.get(connectionUuid);
-  }
+  public static void resolveTypes(SerializerRegistry registry) {
 
-  public void removeConnection(UUID connectionUuid) {
-    connections.remove(connectionUuid);
   }
-
 }
