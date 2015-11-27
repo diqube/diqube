@@ -20,16 +20,21 @@
  */
 package org.diqube.consensus;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Deque;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentLinkedDeque;
 
 import io.atomix.catalyst.transport.Address;
 import io.atomix.catalyst.transport.Client;
 import io.atomix.catalyst.transport.Connection;
 import io.atomix.catalyst.transport.TransportException;
+import io.atomix.catalyst.util.concurrent.ThreadContext;
 
 /**
+ * Diqubes Catalyst client that is used internally by copycat.
+ * 
+ * <p>
+ * Manages a catalyst connection to another node.
  *
  * @author Bastian Gloeckle
  */
@@ -37,7 +42,7 @@ public class DiqubeCatalystClient implements Client {
 
   private DiqubeCatalystConnectionFactory factory;
 
-  private List<DiqubeCatalystConnection> connections = new ArrayList<>();
+  private Deque<DiqubeCatalystConnection> connections = new ConcurrentLinkedDeque<>();
 
   public DiqubeCatalystClient(DiqubeCatalystConnectionFactory factory) {
     this.factory = factory;
@@ -48,7 +53,7 @@ public class DiqubeCatalystClient implements Client {
     CompletableFuture<Connection> res = new CompletableFuture<>();
 
     try {
-      DiqubeCatalystConnection con = factory.createDiqubeCatalystConnection();
+      DiqubeCatalystConnection con = factory.createDiqubeCatalystConnection(ThreadContext.currentContextOrThrow());
       con.openAndRegister(address);
       connections.add(con);
       res.complete(con);
@@ -61,7 +66,8 @@ public class DiqubeCatalystClient implements Client {
 
   @Override
   public CompletableFuture<Void> close() {
-    connections.forEach(con -> con.close());
+    while (!connections.isEmpty())
+      connections.poll().close();
     CompletableFuture<Void> res = new CompletableFuture<>();
     res.complete(null);
     return res;

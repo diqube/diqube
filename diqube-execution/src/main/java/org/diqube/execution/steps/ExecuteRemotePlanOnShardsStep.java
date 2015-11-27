@@ -218,7 +218,7 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
     // this will be installed on the sockets we use to communicate to the remotes.
     SocketListener socketListener = new SocketListener() {
       @Override
-      public void connectionDied() {
+      public void connectionDied(String cause) {
         // one remote won't be able to fulfill our request :/
         remotesDone.incrementAndGet();
         // TODO #37: Warn user.

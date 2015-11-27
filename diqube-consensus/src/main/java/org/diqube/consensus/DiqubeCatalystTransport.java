@@ -29,6 +29,8 @@ import io.atomix.catalyst.transport.Server;
 import io.atomix.catalyst.transport.Transport;
 
 /**
+ * Catalyst {@link Transport} for diqube, which creates {@link DiqubeCatalystClient}s and serves a single
+ * {@link DiqubeCatalystServer} instance.
  *
  * @author Bastian Gloeckle
  */

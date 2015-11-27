@@ -45,6 +45,7 @@ import io.atomix.copycat.client.RecoveryStrategies;
 import io.atomix.copycat.client.session.Session;
 
 /**
+ * Provides a {@link RaftClient} which can be used to interact with the consensus cluster.
  *
  * @author Bastian Gloeckle
  */

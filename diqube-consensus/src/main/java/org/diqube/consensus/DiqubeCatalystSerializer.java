@@ -26,6 +26,7 @@ import io.atomix.catalyst.serializer.Serializer;
 import io.atomix.catalyst.serializer.SerializerRegistry;
 
 /**
+ * Catalyst serializer used by diqube.
  *
  * @author Bastian Gloeckle
  */

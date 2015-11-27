@@ -142,7 +142,7 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
 
     SocketListener resultSocketListener = new SocketListener() {
       @Override
-      public void connectionDied() {
+      public void connectionDied(String cause) {
         // Connection to result node died. The node will automatically be removed from ClusterManager and the
         // connection will automatically be handled.
         logger.error("Result node of query {} execution {} ({}) died unexpectedly. It will not receive any "

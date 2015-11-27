@@ -23,15 +23,18 @@ namespace java org.diqube.remote.cluster.thrift
 
 include "${diqube.thrift.dependencies}/base.thrift"
 
+exception RConnectionUnknownException {
+  1: string msg
+}
 
 service ClusterConsensusService {
-  oneway void open(1: base.RUUID consensusConnectionId, 2:base.RNodeAddress resultAddress)
+  void open(1: base.RUUID consensusConnectionId, 2:base.RNodeAddress resultAddress)
   
-  oneway void close(1: base.RUUID consensusConnectionId)
+  void close(1: base.RUUID consensusConnectionId) throws (1: RConnectionUnknownException connectionUnknownException)
 
-  oneway void request(1: base.RUUID consensusConnectionId, 2: base.RUUID consensusRequestId, 3: binary data)
+  void request(1: base.RUUID consensusConnectionId, 2: base.RUUID consensusRequestId, 3: binary data) throws (1: RConnectionUnknownException connectionUnknownException)
   
-  oneway void reply(1: base.RUUID consensusConnectionId, 2: base.RUUID consensusRequestId, 3: binary data)
+  void reply(1: base.RUUID consensusConnectionId, 2: base.RUUID consensusRequestId, 3: binary data) throws (1: RConnectionUnknownException connectionUnknownException)
   
-  oneway void replyException(1: base.RUUID consensusConnectionId, 2: base.RUUID consensusRequestId, 3: binary data)
+  void replyException(1: base.RUUID consensusConnectionId, 2: base.RUUID consensusRequestId, 3: binary data) throws (1: RConnectionUnknownException connectionUnknownException)
 }

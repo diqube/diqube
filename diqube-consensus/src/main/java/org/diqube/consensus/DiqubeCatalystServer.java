@@ -20,34 +20,36 @@
  */
 package org.diqube.consensus;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Deque;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.function.Consumer;
 
 import org.diqube.context.AutoInstatiate;
-import org.diqube.listeners.DiqubeConsensusListener;
 
 import io.atomix.catalyst.transport.Address;
 import io.atomix.catalyst.transport.Connection;
 import io.atomix.catalyst.transport.Server;
+import io.atomix.catalyst.util.concurrent.ThreadContext;
 
 /**
+ * The catalyst server which is used internally by copycat.
  *
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
-public class DiqubeCatalystServer implements Server, DiqubeConsensusListener {
+public class DiqubeCatalystServer implements Server {
 
   private Consumer<Connection> listener;
-  private List<DiqubeCatalystConnection> connections = new ArrayList<>();
-  private boolean consensusInitialized = false;
-  private ReentrantReadWriteLock initializeLock = new ReentrantReadWriteLock();
+  private Deque<DiqubeCatalystConnection> connections = new ConcurrentLinkedDeque<>();
+  private ThreadContext context;
+  private boolean initialized = false;
 
   @Override
   public CompletableFuture<Void> listen(Address address, Consumer<Connection> listener) {
     this.listener = listener;
+    context = ThreadContext.currentContextOrThrow();
+    initialized = true;
     CompletableFuture<Void> res = new CompletableFuture<>();
     res.complete(null);
     return res;
@@ -55,7 +57,8 @@ public class DiqubeCatalystServer implements Server, DiqubeConsensusListener {
 
   @Override
   public CompletableFuture<Void> close() {
-    connections.forEach(con -> con.close());
+    while (!connections.isEmpty())
+      connections.poll().close();
 
     CompletableFuture<Void> res = new CompletableFuture<>();
     res.complete(null);
@@ -63,26 +66,12 @@ public class DiqubeCatalystServer implements Server, DiqubeConsensusListener {
   }
 
   public void newClientConnection(DiqubeCatalystConnection con) {
-    initializeLock.readLock().lock();
-    try {
-      connections.add(con);
-      if (consensusInitialized)
-        listener.accept(con);
-    } finally {
-      initializeLock.readLock().unlock();
-    }
-  }
+    if (!initialized)
+      // should never happen as long as copycat does the right thing.
+      throw new IllegalStateException("Not initialized.");
 
-  @Override
-  public void consensusInitialized() {
-    initializeLock.writeLock().lock();
-    try {
-      consensusInitialized = true;
-      if (!connections.isEmpty())
-        connections.forEach(con -> listener.accept(con));
-    } finally {
-      initializeLock.writeLock().unlock();
-    }
+    connections.add(con);
+    context.executor().execute(() -> listener.accept(con));
   }
 
 }

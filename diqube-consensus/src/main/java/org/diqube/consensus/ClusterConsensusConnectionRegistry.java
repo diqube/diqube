@@ -27,6 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.diqube.context.AutoInstatiate;
 
 /**
+ * Registry for all currently open catalyst connections.
  *
  * @author Bastian Gloeckle
  */

@@ -54,10 +54,10 @@ public class DiqubeClientSocket extends TSocket {
     outputStream_ = new OutputStreamFacade(outputStream_);
   }
 
-  private synchronized void connectionDied() {
+  private synchronized void connectionDied(String cause) {
     if (!listenerInformed) {
       listenerInformed = true;
-      listener.connectionDied();
+      listener.connectionDied(cause);
       close();
     }
   }
@@ -74,7 +74,7 @@ public class DiqubeClientSocket extends TSocket {
       try {
         return delegate.read();
       } catch (IOException e) {
-        connectionDied();
+        connectionDied(e.getMessage());
         throw new IOException(e);
       }
     }
@@ -89,7 +89,7 @@ public class DiqubeClientSocket extends TSocket {
       try {
         return delegate.read(b);
       } catch (IOException e) {
-        connectionDied();
+        connectionDied(e.getMessage());
         throw new IOException(e);
       }
     }
@@ -104,7 +104,7 @@ public class DiqubeClientSocket extends TSocket {
       try {
         return delegate.read(b, off, len);
       } catch (IOException e) {
-        connectionDied();
+        connectionDied(e.getMessage());
         throw new IOException(e);
       }
     }
@@ -114,7 +114,7 @@ public class DiqubeClientSocket extends TSocket {
       try {
         return delegate.skip(n);
       } catch (IOException e) {
-        connectionDied();
+        connectionDied(e.getMessage());
         throw new IOException(e);
       }
     }
@@ -129,7 +129,7 @@ public class DiqubeClientSocket extends TSocket {
       try {
         return delegate.available();
       } catch (IOException e) {
-        connectionDied();
+        connectionDied(e.getMessage());
         throw new IOException(e);
       }
     }
@@ -139,7 +139,7 @@ public class DiqubeClientSocket extends TSocket {
       try {
         delegate.close();
       } catch (IOException e) {
-        connectionDied();
+        connectionDied(e.getMessage());
         throw new IOException(e);
       }
     }
@@ -173,7 +173,7 @@ public class DiqubeClientSocket extends TSocket {
       try {
         delegate.write(b);
       } catch (IOException e) {
-        connectionDied();
+        connectionDied(e.getMessage());
         throw new IOException(e);
       }
     }
@@ -188,7 +188,7 @@ public class DiqubeClientSocket extends TSocket {
       try {
         delegate.write(b);
       } catch (IOException e) {
-        connectionDied();
+        connectionDied(e.getMessage());
         throw new IOException(e);
       }
     }
@@ -198,7 +198,7 @@ public class DiqubeClientSocket extends TSocket {
       try {
         delegate.write(b, off, len);
       } catch (IOException e) {
-        connectionDied();
+        connectionDied(e.getMessage());
         throw new IOException(e);
       }
     }
@@ -213,7 +213,7 @@ public class DiqubeClientSocket extends TSocket {
       try {
         delegate.flush();
       } catch (IOException e) {
-        connectionDied();
+        connectionDied(e.getMessage());
         throw new IOException(e);
       }
     }
@@ -223,7 +223,7 @@ public class DiqubeClientSocket extends TSocket {
       try {
         delegate.close();
       } catch (IOException e) {
-        connectionDied();
+        connectionDied(e.getMessage());
         throw new IOException(e);
       }
     }

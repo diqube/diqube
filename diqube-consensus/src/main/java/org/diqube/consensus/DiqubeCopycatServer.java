@@ -21,6 +21,7 @@
 package org.diqube.consensus;
 
 import java.io.File;
+import java.time.Duration;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -39,6 +40,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.atomix.catalyst.transport.Address;
+import io.atomix.copycat.client.RaftClient;
 import io.atomix.copycat.server.CopycatServer;
 import io.atomix.copycat.server.StateMachine;
 import io.atomix.copycat.server.StateMachineExecutor;
@@ -46,6 +48,14 @@ import io.atomix.copycat.server.storage.Storage;
 import io.atomix.copycat.server.storage.StorageLevel;
 
 /**
+ * Instance of the copycat server which is part of the copycat cluster and provides a consensus cluster for us.
+ * 
+ * <p>
+ * Interact with that cluster through the {@link RaftClient} returned by {@link DiqubeCatalystClient}.
+ * 
+ * <p>
+ * This will automatically join the copycat cluster which is defined by the node addresses returned by
+ * {@link ClusterNodeAddressProvider}.
  *
  * @author Bastian Gloeckle
  */
@@ -74,6 +84,9 @@ public class DiqubeCopycatServer implements ClusterManagerListener {
   @Config(ConfigKey.DATA_DIR)
   private String dataDir;
 
+  @Config(ConfigKey.KEEP_ALIVE_MS)
+  private int keepAliveMs;
+
   private CopycatServer copycatServer;
 
   @Override
@@ -94,8 +107,14 @@ public class DiqubeCopycatServer implements ClusterManagerListener {
     logger.info("Starting up consensus node with local data dir at '{}'.", consensusDataDirFile.getAbsolutePath());
     Storage storage = Storage.builder().withStorageLevel(StorageLevel.DISK).withDirectory(consensusDataDirFile).build();
 
-    copycatServer = CopycatServer.builder(ourAddr, members).withTransport(transport).withStorage(storage)
-        .withSerializer(serializer).withStateMachine(new StateMachine() {
+    copycatServer = CopycatServer.builder(ourAddr, members). //
+        withTransport(transport). //
+        withStorage(storage). //
+        withSerializer(serializer). //
+        withSessionTimeout(Duration.ofMillis(30 * keepAliveMs)). // same approx distribution as the defaults of copycat.
+        withElectionTimeout(Duration.ofMillis(6 * keepAliveMs)). //
+        withHeartbeatInterval(Duration.ofMillis(keepAliveMs)). //
+        withStateMachine(new StateMachine() {
           @Override
           protected void configure(StateMachineExecutor executor) {
             // executor.register(type, callback)

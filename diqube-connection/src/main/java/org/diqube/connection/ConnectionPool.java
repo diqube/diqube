@@ -672,8 +672,8 @@ public class ConnectionPool implements ClusterNodeDiedListener {
     }
 
     @Override
-    public void connectionDied() {
-      logger.warn("Connection to {} died unexpectedly.", address);
+    public void connectionDied(String cause) {
+      logger.warn("Connection to {} died unexpectedly: {}", address, cause);
       if (clusterNodeDiedListeners != null)
         // We will call the ConnectionPool#nodeDied method on "this", too!
         for (ClusterNodeDiedListener listener : clusterNodeDiedListeners)
@@ -684,7 +684,7 @@ public class ConnectionPool implements ClusterNodeDiedListener {
       cleanupConnection(parentConnection);
 
       if (delegateListener != null)
-        delegateListener.connectionDied();
+        delegateListener.connectionDied(cause);
     }
   }
 
@@ -708,6 +708,8 @@ public class ConnectionPool implements ClusterNodeDiedListener {
 
     @Override
     public void run() {
+      // TODO #86: Disable keep-alives for nodes that have a consensus server, as then the consensus will do the
+      // keep-alives!
       int sleepTime = Math.max(IntMath.gcd(keepAliveMs, connectionIdleTimeMs), 1000);
 
       while (true) {

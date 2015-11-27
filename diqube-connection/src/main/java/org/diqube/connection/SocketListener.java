@@ -28,6 +28,9 @@ package org.diqube.connection;
 public interface SocketListener {
   /**
    * The connection to the server died unexpectedly.
+   * 
+   * @param cause
+   *          If a cause is available why the connection died, this is it.
    */
-  public void connectionDied();
+  public void connectionDied(String cause);
 }

@@ -49,7 +49,7 @@ public class ServiceTestUtil {
 
   private static final SocketListener SOCKET_LISTENER = new SocketListener() {
     @Override
-    public void connectionDied() {
+    public void connectionDied(String cause) {
       throw new RuntimeException("Connection died.");
     }
   };

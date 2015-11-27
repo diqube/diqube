@@ -26,7 +26,10 @@ import org.diqube.connection.ConnectionOrLocalHelper;
 import org.diqube.connection.OurNodeAddressProvider;
 import org.diqube.context.AutoInstatiate;
 
+import io.atomix.catalyst.util.concurrent.ThreadContext;
+
 /**
+ * Factory for {@link DiqubeCatalystConnection}.
  *
  * @author Bastian Gloeckle
  */
@@ -42,7 +45,7 @@ public class DiqubeCatalystConnectionFactory {
   @Inject
   private OurNodeAddressProvider ourNodeAddressProvider;
 
-  public DiqubeCatalystConnection createDiqubeCatalystConnection() {
-    return new DiqubeCatalystConnection(registry, connectionOrLocalHelper, ourNodeAddressProvider);
+  public DiqubeCatalystConnection createDiqubeCatalystConnection(ThreadContext generalContext) {
+    return new DiqubeCatalystConnection(registry, connectionOrLocalHelper, ourNodeAddressProvider, generalContext);
   }
 }

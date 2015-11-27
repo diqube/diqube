@@ -55,54 +55,93 @@ import io.atomix.catalyst.util.ReferenceCounted;
 import io.atomix.catalyst.util.concurrent.ThreadContext;
 
 /**
+ * A diqube Catalyst connection that is used internally by copycat and which is implemented to encapsulate any catalyst
+ * message to be sent/received with thrift and send/receive it through {@link ClusterConsensusService}.
+ * 
+ * <p>
+ * Each Catalyst connection is identified by a {@link #getConnectionUuid()} which is transported via
+ * {@link ClusterConsensusService}.
+ * 
+ * <p>
+ * When the connection is closed, it is automatically unregistered in {@link ClusterConsensusConnectionRegistry}.
+ * 
+ * <p>
+ * After instantiating, call either {@link #acceptAndRegister(UUID, RNodeAddress)} or {@link #openAndRegister(Address)}.
  *
  * @author Bastian Gloeckle
  */
 public class DiqubeCatalystConnection implements Connection {
   private static final Logger logger = LoggerFactory.getLogger(DiqubeCatalystConnection.class);
 
-  private ServiceProvider<ClusterConsensusService.Iface> diqubeServiceProvider = null;
-
+  /**
+   * Registered handlers for incoming messages
+   */
   private Map<Class<?>, Pair<MessageHandler<Object, Object>, ThreadContext>> handlers = new ConcurrentHashMap<>();
 
+  /**
+   * Currently active requests for which we wait on a response.
+   */
   private Map<UUID, Pair<CompletableFuture<Object>, ThreadContext>> requests = new ConcurrentHashMap<>();
 
   private final Listeners<Throwable> exceptionListeners = new Listeners<>();
   private final Listeners<Connection> closeListeners = new Listeners<>();
 
   private ConnectionOrLocalHelper connectionOrLocalHelper;
+  /** true if there was an exception on the socket, means the connection is dead. */
   private boolean connectionDiedAlready = false;
-  /** null if closed */
+  /** The ID identifying a catalyst connection. <code>null</code> if connection is closed */
   private UUID connectionUuid = null;
 
+  /** Address we maintain a catalyst connection to */
   private RNodeAddress remoteAddr;
+  /** Provider of the node addresses of our cluster */
+  private OurNodeAddressProvider ourNodeAddressProvider;
+  /** The registry we register to and deregister from when the connection is closed */
+  private ClusterConsensusConnectionRegistry registry;
+  /** The context to be used to de-/serialize data if we have no other context available */
+  private ThreadContext generalContext;
 
   private SocketListener socketListener = new SocketListener() {
     @Override
-    public void connectionDied() {
+    public void connectionDied(String cause) {
       connectionDiedAlready = true;
       connectionUuid = null;
       exceptionListeners.accept(new TransportException("Connection died"));
     }
   };
 
-  private OurNodeAddressProvider ourNodeAddressProvider;
-
-  private ClusterConsensusConnectionRegistry registry;
-
   public DiqubeCatalystConnection(ClusterConsensusConnectionRegistry registry,
-      ConnectionOrLocalHelper connectionOrLocalHelper, OurNodeAddressProvider ourNodeAddressProvider) {
+      ConnectionOrLocalHelper connectionOrLocalHelper, OurNodeAddressProvider ourNodeAddressProvider,
+      ThreadContext generalContext) {
     this.registry = registry;
     this.connectionOrLocalHelper = connectionOrLocalHelper;
     this.ourNodeAddressProvider = ourNodeAddressProvider;
+    this.generalContext = generalContext;
   }
 
+  /**
+   * Accept a connection that was initialized by another peer already. Will register the new connection with
+   * {@link ClusterConsensusConnectionRegistry}.
+   * 
+   * @param connectionUuid
+   *          The ID of the connection
+   * @param remoteAddr
+   *          The address of the remote.
+   */
   public void acceptAndRegister(UUID connectionUuid, RNodeAddress remoteAddr) {
     this.connectionUuid = connectionUuid;
     this.remoteAddr = remoteAddr;
     registry.registerConnection(connectionUuid, this);
   }
 
+  /**
+   * Opens a new connection to a peer.
+   * 
+   * @param catylstRemoteAddr
+   *          The catalyst-style address of the remote.
+   * @throws TransportException
+   *           If connection cannot be opened.
+   */
   public void openAndRegister(Address catylstRemoteAddr) throws TransportException {
     NodeAddress nodeAddress = new NodeAddress(catylstRemoteAddr.host(), (short) catylstRemoteAddr.port());
     this.remoteAddr = nodeAddress.createRemote();
@@ -121,6 +160,12 @@ public class DiqubeCatalystConnection implements Connection {
     registry.registerConnection(connectionUuid, this);
   }
 
+  /**
+   * Handle a response that was received for this catalyst connection.
+   * 
+   * @param requestUuid
+   * @param data
+   */
   public void handleResponse(UUID requestUuid, ByteBuffer data) {
     Pair<CompletableFuture<Object>, ThreadContext> p = requests.remove(requestUuid);
 
@@ -133,6 +178,12 @@ public class DiqubeCatalystConnection implements Connection {
     }
   }
 
+  /**
+   * Handle the response of a request this connection sent, if the response is exceptional.
+   * 
+   * @param requestUuid
+   * @param data
+   */
   public void handleResponseException(UUID requestUuid, ByteBuffer data) {
     Pair<CompletableFuture<Object>, ThreadContext> p = requests.remove(requestUuid);
 
@@ -145,27 +196,28 @@ public class DiqubeCatalystConnection implements Connection {
     }
   }
 
+  /**
+   * Handle the response of a request this connection sent, if the response is not exceptional.
+   * 
+   * @param requestUuid
+   * @param data
+   */
   public void handleRequest(UUID requestUuid, ByteBuffer data) {
-    CompletableFuture<Object> future = new CompletableFuture<>();
-    ThreadContext context = ThreadContext.currentContextOrThrow();
-
-    requests.put(requestUuid, new Pair<>(future, context));
-
     byte[] bytes = new byte[data.remaining()];
     data.get(bytes);
-    Object message = context.serializer().readObject(new ByteArrayInputStream(bytes));
+    Object message = generalContext.serializer().readObject(new ByteArrayInputStream(bytes));
 
     Pair<MessageHandler<Object, Object>, ThreadContext> p = handlers.get(message.getClass());
 
     if (p != null) {
       p.getRight().executor().execute(() -> {
         CompletableFuture<Object> result = p.getLeft().handle(message);
-        handleRequestResult(requestUuid, context, result);
+        handleRequestResult(requestUuid, p.getRight(), result);
       });
     } else {
       CompletableFuture<Object> res = new CompletableFuture<>();
-      res.completeExceptionally(new RuntimeException("Handler unkown"));
-      handleRequestResult(requestUuid, context, res);
+      res.completeExceptionally(new RuntimeException("Handler unknown: " + message.getClass().getName()));
+      handleRequestResult(requestUuid, generalContext, res);
     }
   }
 
@@ -241,7 +293,7 @@ public class DiqubeCatalystConnection implements Connection {
 
   @Override
   public Listener<Connection> closeListener(Consumer<Connection> listener) {
-    if (diqubeServiceProvider == null)
+    if (connectionUuid == null)
       listener.accept(this);
 
     return closeListeners.add(listener);
@@ -282,6 +334,9 @@ public class DiqubeCatalystConnection implements Connection {
     return res;
   }
 
+  /**
+   * @return ID of the catalyst connection this object represents.
+   */
   public UUID getConnectionUuid() {
     return connectionUuid;
   }

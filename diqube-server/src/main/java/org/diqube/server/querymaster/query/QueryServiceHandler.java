@@ -170,7 +170,7 @@ public class QueryServiceHandler implements Iface {
 
     SocketListener resultSocketListener = new SocketListener() {
       @Override
-      public void connectionDied() {
+      public void connectionDied(String cause) {
         // The connection to the "resultAdress" node died.
         logger.error(
             "Connection to result node of query {}, execution {} ({}) died unexpectedly. "

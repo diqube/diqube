@@ -25,13 +25,13 @@
 
   <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
     <encoder>
-      <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+      <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} [%file:%line] - %msg%n</pattern>
     </encoder>
   </appender>
 
   <!-- Only spring WARNs in test -->
   <logger name="org.springframework" level="warn" />
-  <logger name="io.atomix" level="warn" />
+  <logger name="io.atomix" level="info" />
   
   <logger name="org.diqube" level="trace" />
 
