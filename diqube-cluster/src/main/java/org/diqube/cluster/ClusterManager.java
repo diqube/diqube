@@ -21,6 +21,7 @@
 package org.diqube.cluster;
 
 import java.io.IOException;
+import java.lang.Thread.UncaughtExceptionHandler;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -35,6 +36,7 @@ import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 
 import org.apache.thrift.TException;
+import org.diqube.cluster.ClusterLayoutStateMachine.SetLayoutOfNode;
 import org.diqube.config.Config;
 import org.diqube.config.ConfigKey;
 import org.diqube.connection.ClusterNodeDiedListener;
@@ -44,6 +46,7 @@ import org.diqube.connection.ConnectionPool;
 import org.diqube.connection.NodeAddress;
 import org.diqube.connection.OurNodeAddressProvider;
 import org.diqube.consensus.ClusterNodeAddressProvider;
+import org.diqube.consensus.DiqubeCopycatClient;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.context.InjectOptional;
 import org.diqube.listeners.ClusterManagerListener;
@@ -98,6 +101,9 @@ public class ClusterManager implements ServingListener, TableLoadListener, OurNo
 
   @Inject
   private RandomManager randomManager;
+
+  @Inject
+  private DiqubeCopycatClient consensusClient;
 
   private ClusterLayout clusterLayout = new ClusterLayout();
 
@@ -175,7 +181,7 @@ public class ClusterManager implements ServingListener, TableLoadListener, OurNo
 
     // interact with other nodes in a separate "bootstrap" thread, as this might take some time - to not block
     // Thrifts thread here too long...
-    new Thread(new Runnable() {
+    Thread clusterBootstrap = new Thread(new Runnable() {
       @Override
       public void run() {
         try {
@@ -192,6 +198,9 @@ public class ClusterManager implements ServingListener, TableLoadListener, OurNo
 
           logger.info("Greeted cluster nodes {}", workingRemoteAddr);
 
+          // be sure that all nodes are available in the clusterLayout, no matter if they server any tables or not.
+          workingRemoteAddr.forEach(addr -> clusterLayout.addNode(addr));
+
           if (workingRemoteAddr.isEmpty())
             logger.warn("There are no cluster nodes alive, will therefore not connect anywhere.");
           else {
@@ -202,6 +211,7 @@ public class ClusterManager implements ServingListener, TableLoadListener, OurNo
               while (clusterLayoutAddr == null || visitedRemoteNodesForLayout.contains(clusterLayoutAddr))
                 clusterLayoutAddr = workingRemoteAddr.get(randomManager.nextInt(workingRemoteAddr.size()));
               visitedRemoteNodesForLayout.add(clusterLayoutAddr);
+
               logger.info("Fetching cluster layout data from {}", clusterLayoutAddr);
 
               try (Connection<ClusterManagementService.Iface> conn = reserveConnection(clusterLayoutAddr)) {
@@ -265,7 +275,15 @@ public class ClusterManager implements ServingListener, TableLoadListener, OurNo
           logger.error("Exception while bootstrapping. You probably should restart this servers node.", e);
         }
       }
-    }, "cluster-bootstrap").start();
+    }, "cluster-bootstrap");
+
+    clusterBootstrap.setUncaughtExceptionHandler(new UncaughtExceptionHandler() {
+      @Override
+      public void uncaughtException(Thread t, Throwable e) {
+        logger.error("Error while bootstrapping the cluster. Restart server!", e);
+      }
+    });
+    clusterBootstrap.start();
   }
 
   private Connection<ClusterManagementService.Iface> reserveConnection(NodeAddress addr)
@@ -362,6 +380,9 @@ public class ClusterManager implements ServingListener, TableLoadListener, OurNo
           return;
         }
       }
+
+      consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class)
+          .setLayoutOfNode(SetLayoutOfNode.local(ourHostAddr, versionedTableList.getRight()));
     }
   }
 

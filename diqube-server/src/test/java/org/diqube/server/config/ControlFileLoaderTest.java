@@ -31,10 +31,13 @@ import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.function.Function;
 
+import org.diqube.consensus.DiqubeCopycatServer;
+import org.diqube.consensus.DiqubeCopycatServerTestUtil;
 import org.diqube.context.Profiles;
 import org.diqube.data.table.TableFactory;
 import org.diqube.data.table.TableShard;
 import org.diqube.executionenv.TableRegistry;
+import org.diqube.listeners.ClusterManagerListener;
 import org.diqube.loader.CsvLoader;
 import org.diqube.loader.DiqubeLoader;
 import org.diqube.loader.JsonLoader;
@@ -94,6 +97,11 @@ public class ControlFileLoaderTest {
     dataContext.getEnvironment().setActiveProfiles(Profiles.ALL_BUT_NEW_DATA_WATCHER);
     dataContext.scan("org.diqube");
     dataContext.refresh();
+
+    // simulate "cluster initialized", although we do not start our local server. But we need to get the consensus
+    // running!
+    DiqubeCopycatServerTestUtil.configureMemoryOnlyStorage(dataContext.getBean(DiqubeCopycatServer.class));
+    dataContext.getBeansOfType(ClusterManagerListener.class).values().forEach(l -> l.clusterInitialized());
 
     tableRegistry = dataContext.getBean(TableRegistry.class);
 

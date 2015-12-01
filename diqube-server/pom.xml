@@ -169,6 +169,9 @@
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                   <mainClass>org.diqube.server.Server</mainClass>
                 </transformer>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                  <resource>META-INF/services/io.atomix.catalyst.serializer.CatalystSerializable</resource>
+                </transformer>
               </transformers>
             </configuration>
           </execution>

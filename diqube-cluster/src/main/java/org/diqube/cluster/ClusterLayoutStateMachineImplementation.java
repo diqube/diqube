@@ -18,33 +18,36 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.consensus.internal;
+package org.diqube.cluster;
 
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.diqube.context.AutoInstatiate;
+import org.diqube.connection.NodeAddress;
+import org.diqube.consensus.ConsensusStateMachineImplementation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.atomix.copycat.server.Commit;
 
 /**
- * Registry for all currently open catalyst connections.
  *
  * @author Bastian Gloeckle
  */
-@AutoInstatiate
-public class ClusterConsensusConnectionRegistry {
-  private Map<UUID, DiqubeCatalystConnection> connections = new ConcurrentHashMap<>();
+@ConsensusStateMachineImplementation
+public class ClusterLayoutStateMachineImplementation implements ClusterLayoutStateMachine {
+  private static final Logger logger = LoggerFactory.getLogger(ClusterLayoutStateMachineImplementation.class);
 
-  public void registerConnectionEndpoint(UUID connectionEndpointUuid, DiqubeCatalystConnection connection) {
-    connections.put(connectionEndpointUuid, connection);
-  }
+  private Map<NodeAddress, Commit<SetLayoutOfNode>> previousLayout = new ConcurrentHashMap<>();
 
-  public DiqubeCatalystConnection getConnectionEndpoint(UUID connectionEndpointUuid) {
-    return connections.get(connectionEndpointUuid);
-  }
+  @Override
+  public void setLayoutOfNode(Commit<SetLayoutOfNode> commit) {
+    Commit<SetLayoutOfNode> prev = previousLayout.put(commit.operation().getNode(), commit);
 
-  public void removeConnectionEndpoint(UUID connectionEndpointUuid) {
-    connections.remove(connectionEndpointUuid);
+    logger.info("New tables for node {}: {}", commit.operation().getNode(), commit.operation().getTables());
+
+    if (prev != null)
+      prev.clean();
   }
 
 }

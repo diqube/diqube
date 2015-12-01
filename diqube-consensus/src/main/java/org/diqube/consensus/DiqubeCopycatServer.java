@@ -21,10 +21,16 @@
 package org.diqube.consensus;
 
 import java.io.File;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 
@@ -39,10 +45,13 @@ import org.diqube.context.AutoInstatiate;
 import org.diqube.context.InjectOptional;
 import org.diqube.listeners.ClusterManagerListener;
 import org.diqube.listeners.DiqubeConsensusListener;
+import org.diqube.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
 
 import io.atomix.catalyst.transport.Address;
+import io.atomix.copycat.client.Operation;
 import io.atomix.copycat.client.RaftClient;
 import io.atomix.copycat.server.CopycatServer;
 import io.atomix.copycat.server.StateMachine;
@@ -90,7 +99,29 @@ public class DiqubeCopycatServer implements ClusterManagerListener {
   @Config(ConfigKey.KEEP_ALIVE_MS)
   private int keepAliveMs;
 
+  @Inject
+  private DiqubeConsensusStateMachineManager stateMachineManager;
+
+  @Inject
+  private ApplicationContext beanContext;
+
+  // extracted for tests
+  private ConsensusStorageProvider consensusStorageProvider = null;
+
   private CopycatServer copycatServer;
+
+  private long sessionTimeoutMs;
+
+  private long elecetionTimeoutMs;
+
+  private Address lastKnownCopycatLeaderAddress = null;
+  private Instant lastKnownCopycatLeaderTimestamp = null;
+
+  @PostConstruct
+  public void initialize() {
+    sessionTimeoutMs = 30 * keepAliveMs; // same approx distribution as the defaults of copycat.
+    elecetionTimeoutMs = 6 * keepAliveMs;
+  }
 
   @Override
   public void clusterInitialized() {
@@ -108,27 +139,35 @@ public class DiqubeCopycatServer implements ClusterManagerListener {
             + ". Restart diqube-server!");
 
     logger.info("Starting up consensus node with local data dir at '{}'.", consensusDataDirFile.getAbsolutePath());
-    Storage storage = Storage.builder().withStorageLevel(StorageLevel.DISK).withDirectory(consensusDataDirFile).build();
+    if (consensusStorageProvider == null)
+      consensusStorageProvider = new ConsensusStorageProvider(consensusDataDirFile);
+    Storage storage = consensusStorageProvider.createStorage();
 
     copycatServer = CopycatServer.builder(ourAddr, members). //
         withTransport(transport). //
         withStorage(storage). //
         withSerializer(serializer). //
-        withSessionTimeout(Duration.ofMillis(30 * keepAliveMs)). // same approx distribution as the defaults of copycat.
-        withElectionTimeout(Duration.ofMillis(6 * keepAliveMs)). //
+        withSessionTimeout(Duration.ofMillis(sessionTimeoutMs)). //
+        withElectionTimeout(Duration.ofMillis(elecetionTimeoutMs)). //
         withHeartbeatInterval(Duration.ofMillis(keepAliveMs)). //
-        withStateMachine(new StateMachine() {
-          @Override
-          protected void configure(StateMachineExecutor executor) {
-            // executor.register(type, callback)
-          }
-        }).build();
+        withStateMachine(new DiqubeStateMachine()).build();
 
     copycatServer.open().handle((result, error) -> {
       if (error != null)
         throw new RuntimeException("Could not start Consensus node. Restart diqube-server!", error);
 
       logger.info("Consensus node started successfully.");
+
+      copycatServer.onLeaderElection(leaderAddr -> {
+        if (leaderAddr != null) {
+          lastKnownCopycatLeaderAddress = leaderAddr;
+          lastKnownCopycatLeaderTimestamp = Instant.now();
+          logger.info("New consensus leader address: {}", lastKnownCopycatLeaderAddress);
+        }
+      });
+      lastKnownCopycatLeaderAddress = copycatServer.leader();
+      lastKnownCopycatLeaderTimestamp = Instant.now();
+      logger.info("New consensus leader address: {}", lastKnownCopycatLeaderAddress);
 
       if (listeners != null)
         listeners.forEach(l -> l.consensusInitialized());
@@ -140,7 +179,24 @@ public class DiqubeCopycatServer implements ClusterManagerListener {
   @PreDestroy
   public void stop() {
     if (copycatServer != null) {
-      copycatServer.close().join();
+      logger.debug("Closing consensus server...");
+      Thread closeThread = new Thread(() -> copycatServer.close().join(), "consensus-shutdown");
+      closeThread.start();
+      // copycat will retry after election timeout, give it some possibility to retry.
+      long copycatShutdownTimeoutMs = elecetionTimeoutMs * 2 + 2;
+      try {
+        closeThread.join(copycatShutdownTimeoutMs);
+      } catch (InterruptedException e) {
+        // swallow.
+      }
+      if (closeThread.isAlive())
+        logger.warn(
+            "Consensus server failed to stop withtin the timeout ({} ms). Maybe the consensus leader node cannot be "
+                + "reached? The last known leader node is {} ({}). Will continue shutdown anyway. "
+                + "Note that this server might not have been deregistered from the consensus cluster completely.",
+            copycatShutdownTimeoutMs, lastKnownCopycatLeaderAddress, lastKnownCopycatLeaderTimestamp);
+      else
+        logger.debug("Consensus server closed.");
       copycatServer = null;
     }
   }
@@ -149,4 +205,67 @@ public class DiqubeCopycatServer implements ClusterManagerListener {
     return new Address(addr.getHost(), addr.getPort());
   }
 
+  private class DiqubeStateMachine extends StateMachine {
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @Override
+    protected void configure(StateMachineExecutor executor) {
+      for (Class<? extends Operation<?>> operationClass : stateMachineManager.getAllOperationClasses()) {
+        Pair<Class<?>, Method> p = stateMachineManager.getImplementation(operationClass);
+        Object targetBean = beanContext.getBean(p.getLeft());
+        Method targetMethod = p.getRight();
+        if (targetMethod.getReturnType().equals(Void.TYPE)) {
+          executor.register((Class) operationClass, ((Consumer) new Consumer<Object>() {
+            @Override
+            public void accept(Object t) {
+              try {
+                targetMethod.invoke(targetBean, t);
+              } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+                throw new DiqubeStateExceptionExecutionException("Could not invoke state machine method", e);
+              }
+            }
+          }));
+        } else {
+          executor.register((Class) operationClass, ((Function) new Function<Object, Object>() {
+            @Override
+            public Object apply(Object t) {
+              try {
+                return targetMethod.invoke(targetBean, t);
+              } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+                throw new DiqubeStateExceptionExecutionException("Could not invoke state machine method", e);
+              }
+            }
+          }));
+        }
+      }
+    }
+  }
+
+  public static class DiqubeStateExceptionExecutionException extends RuntimeException {
+    private static final long serialVersionUID = 1L;
+
+    public DiqubeStateExceptionExecutionException(String msg) {
+      super(msg);
+    }
+
+    public DiqubeStateExceptionExecutionException(String msg, Throwable cause) {
+      super(msg, cause);
+    }
+  }
+
+  /* package */ static class ConsensusStorageProvider {
+    private File consensusDataDirFile;
+
+    ConsensusStorageProvider(File consensusDataDirFile) {
+      this.consensusDataDirFile = consensusDataDirFile;
+    }
+
+    public Storage createStorage() {
+      return Storage.builder().withStorageLevel(StorageLevel.DISK).withDirectory(consensusDataDirFile).build();
+    }
+  }
+
+  // for tests
+  /* package */ void setConsensusStorageProvider(ConsensusStorageProvider consensusStorageProvider) {
+    this.consensusStorageProvider = consensusStorageProvider;
+  }
 }

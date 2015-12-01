@@ -20,15 +20,23 @@
  */
 package org.diqube.util;
 
+import java.io.Serializable;
+
 /**
  * An arbitrary pair of values.
  * 
+ * <p>
  * A {@link Pair} is {@link Comparable} when both objects are {@link Comparable}. The left side will be compared first
  * and only if the left is equal, the right will be compared.
+ * 
+ * <p>
+ * A {@link Pair} is {@link Serializable} if its contents are {@link Serializable}.
  *
  * @author Bastian Gloeckle
  */
-public class Pair<L, R> implements Comparable<Pair<L, R>> {
+public class Pair<L, R> implements Comparable<Pair<L, R>>, Serializable {
+  private static final long serialVersionUID = 1L;
+
   final private L left;
 
   final private R right;

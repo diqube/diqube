@@ -51,7 +51,7 @@ import org.diqube.data.table.Table;
 import org.diqube.data.table.TableFactory;
 import org.diqube.data.table.TableShard;
 import org.diqube.executionenv.TableRegistry;
-import org.diqube.listeners.ClusterManagerListener;
+import org.diqube.listeners.DiqubeConsensusListener;
 import org.diqube.loader.CsvLoader;
 import org.diqube.loader.DiqubeLoader;
 import org.diqube.loader.JsonLoader;
@@ -77,7 +77,7 @@ import org.springframework.context.annotation.Profile;
  */
 @AutoInstatiate
 @Profile(Profiles.NEW_DATA_WATCHER)
-public class NewDataWatcher implements ClusterManagerListener {
+public class NewDataWatcher implements DiqubeConsensusListener {
 
   private static final Logger logger = LoggerFactory.getLogger(NewDataWatcher.class);
 
@@ -116,7 +116,7 @@ public class NewDataWatcher implements ClusterManagerListener {
   private Map<String, Pair<String, List<Long>>> tableInfoByControlFilePath = new HashMap<>();
 
   @Override
-  public void clusterInitialized() {
+  public void consensusInitialized() {
     // Start initializing as soon as we're ready to communicate with the cluster.
     watchPath = Paths.get(directory).toAbsolutePath();
     File f = watchPath.toFile();

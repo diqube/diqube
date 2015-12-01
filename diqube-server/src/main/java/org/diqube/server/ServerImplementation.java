@@ -128,10 +128,13 @@ public class ServerImplementation {
       @Override
       public void run() {
         logger.info("Shutting down server...");
-        // shutdown context while server is still running - in case we communicate with other servers for shutdown.
+        logger.debug("Stopping all local beans...");
         shutdownContextRunnable.run();
+        logger.debug("Stopping thrift server...");
         server.stop();
+        logger.debug("Shutting down everything of remaining queries...");
         executorManager.shutdownEverythingOfAllQueries();
+        logger.info("Shutdown complete.");
       }
     }, "shutdown-thread"));
 

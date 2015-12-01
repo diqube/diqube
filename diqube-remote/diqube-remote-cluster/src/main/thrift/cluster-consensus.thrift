@@ -28,13 +28,13 @@ exception RConnectionUnknownException {
 }
 
 service ClusterConsensusService {
-  void open(1: base.RUUID consensusConnectionId, 2:base.RNodeAddress resultAddress)
+  base.RUUID open(1: base.RUUID otherConsensusConnectionEndpointId, 2:base.RNodeAddress resultAddress)
   
-  void close(1: base.RUUID consensusConnectionId) throws (1: RConnectionUnknownException connectionUnknownException)
+  void close(1: base.RUUID consensusConnectionEndpointId) throws (1: RConnectionUnknownException connectionUnknownException)
 
-  void request(1: base.RUUID consensusConnectionId, 2: base.RUUID consensusRequestId, 3: binary data) throws (1: RConnectionUnknownException connectionUnknownException)
+  void request(1: base.RUUID consensusConnectionEndpointId, 2: base.RUUID consensusRequestId, 3: binary data) throws (1: RConnectionUnknownException connectionUnknownException)
   
-  void reply(1: base.RUUID consensusConnectionId, 2: base.RUUID consensusRequestId, 3: binary data) throws (1: RConnectionUnknownException connectionUnknownException)
+  void reply(1: base.RUUID consensusConnectionEndpointId, 2: base.RUUID consensusRequestId, 3: binary data) throws (1: RConnectionUnknownException connectionUnknownException)
   
-  void replyException(1: base.RUUID consensusConnectionId, 2: base.RUUID consensusRequestId, 3: binary data) throws (1: RConnectionUnknownException connectionUnknownException)
+  void replyException(1: base.RUUID consensusConnectionEndpointId, 2: base.RUUID consensusRequestId, 3: binary data) throws (1: RConnectionUnknownException connectionUnknownException)
 }

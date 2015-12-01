@@ -178,7 +178,7 @@ public class ServerControl implements LogfileSaver {
     }
   }
 
-  public void stop() {
+  public void stop() throws ShutdownForciblyException {
     if (serverDied.get()) {
       serverDied.set(false);
       throw new RuntimeException("The server " + ourAddr + " died unexpectedly before.");
@@ -217,7 +217,7 @@ public class ServerControl implements LogfileSaver {
         if (!stopped) {
           logger.error("The server {} did not stop, killing it forcibly.", ourAddr);
           serverProcess.destroyForcibly();
-          throw new RuntimeException("The server " + ourAddr + " did not stop, killed it forcibly.");
+          throw new ShutdownForciblyException("The server " + ourAddr + " did not stop, killed it forcibly.");
         }
       } catch (InterruptedException e) {
         throw new RuntimeException("Interrupted while waiting the server " + ourAddr + " to stop.", e);
@@ -528,6 +528,18 @@ public class ServerControl implements LogfileSaver {
      * node.
      */
     public String getClusterNodeConfigurationString(ServerAddr serverAddr);
+  }
+
+  public static class ShutdownForciblyException extends RuntimeException {
+    private static final long serialVersionUID = 1L;
+
+    public ShutdownForciblyException(String msg) {
+      super(msg);
+    }
+
+    public ShutdownForciblyException(String msg, Throwable cause) {
+      super(msg, cause);
+    }
   }
 
 }

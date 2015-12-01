@@ -28,6 +28,8 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
+import org.diqube.consensus.DiqubeCopycatServer;
+import org.diqube.consensus.DiqubeCopycatServerTestUtil;
 import org.diqube.context.Profiles;
 import org.diqube.data.column.ColumnType;
 import org.diqube.data.column.StandardColumnShard;
@@ -40,6 +42,7 @@ import org.diqube.execution.consumers.AbstractThreadedOverwritingRowIdConsumer;
 import org.diqube.execution.consumers.ColumnValueConsumer;
 import org.diqube.executionenv.ExecutionEnvironment;
 import org.diqube.executionenv.TableRegistry;
+import org.diqube.listeners.ClusterManagerListener;
 import org.diqube.loader.JsonLoader;
 import org.diqube.loader.LoadException;
 import org.diqube.loader.LoaderColumnInfo;
@@ -165,6 +168,11 @@ public abstract class AbstractDiqlExecutionTest<T> {
     dataContext.scan("org.diqube");
     adjustContextBeforeRefresh(dataContext);
     dataContext.refresh();
+
+    // simulate "cluster initialized", although we do not start our local server. But we need to get the consensus
+    // running!
+    DiqubeCopycatServerTestUtil.configureMemoryOnlyStorage(dataContext.getBean(DiqubeCopycatServer.class));
+    dataContext.getBeansOfType(ClusterManagerListener.class).values().forEach(l -> l.clusterInitialized());
 
     columnValueConsumerIsDone = false;
     resultValues = new ConcurrentHashMap<>();

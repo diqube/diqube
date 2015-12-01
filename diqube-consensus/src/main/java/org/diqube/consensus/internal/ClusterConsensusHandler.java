@@ -22,6 +22,7 @@ package org.diqube.consensus.internal;
 
 import java.nio.ByteBuffer;
 import java.util.Deque;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -75,65 +76,68 @@ public class ClusterConsensusHandler implements ClusterConsensusService.Iface {
    * Open a new catalyst connection
    */
   @Override
-  public void open(RUUID consensusConnectionId, RNodeAddress resultAddress) throws TException {
+  public RUUID open(RUUID otherConsensusConnectionEndpointId, RNodeAddress resultAddress) throws TException {
     DiqubeCatalystConnection newCon = factory.createDiqubeCatalystConnection(getOpenConnectionsThreadContext());
-    newCon.acceptAndRegister(RUuidUtil.toUuid(consensusConnectionId), resultAddress);
+    UUID thisConnectionEndpointId =
+        newCon.acceptAndRegister(RUuidUtil.toUuid(otherConsensusConnectionEndpointId), resultAddress);
     server.newClientConnection(newCon);
+
+    return RUuidUtil.toRUuid(thisConnectionEndpointId);
   }
 
   /**
    * Close a catalyst connection
    */
   @Override
-  public void close(RUUID consensusConnectionId) throws RConnectionUnknownException, TException {
-    DiqubeCatalystConnection con = registry.getConnection(RUuidUtil.toUuid(consensusConnectionId));
+  public void close(RUUID consensusConnectionEndpointId) throws RConnectionUnknownException, TException {
+    DiqubeCatalystConnection con = registry.getConnectionEndpoint(RUuidUtil.toUuid(consensusConnectionEndpointId));
     if (con != null)
       con.close();
     else
       throw new RConnectionUnknownException(
-          "Consensus connection unknown: " + RUuidUtil.toUuid(consensusConnectionId).toString());
+          "Consensus connection endpoint unknown: " + RUuidUtil.toUuid(consensusConnectionEndpointId).toString());
   }
 
   /**
    * Send a "request" of an opened catalyst connection
    */
   @Override
-  public void request(RUUID consensusConnectionId, RUUID consensusRequestId, ByteBuffer data)
+  public void request(RUUID consensusConnectionEndpointId, RUUID consensusRequestId, ByteBuffer data)
       throws RConnectionUnknownException, TException {
-    DiqubeCatalystConnection con = registry.getConnection(RUuidUtil.toUuid(consensusConnectionId));
+    DiqubeCatalystConnection con = registry.getConnectionEndpoint(RUuidUtil.toUuid(consensusConnectionEndpointId));
     if (con != null)
       con.handleRequest(RUuidUtil.toUuid(consensusRequestId), data);
     else
       throw new RConnectionUnknownException(
-          "Consensus connection unknown: " + RUuidUtil.toUuid(consensusConnectionId).toString());
+          "Consensus connection endpoint unknown: " + RUuidUtil.toUuid(consensusConnectionEndpointId).toString());
   }
 
   /**
    * Send a "response" (to a request which was received before) of an opened catalyst connection
    */
   @Override
-  public void reply(RUUID consensusConnectionId, RUUID consensusRequestId, ByteBuffer data)
+  public void reply(RUUID consensusConnectionEndpointId, RUUID consensusRequestId, ByteBuffer data)
       throws RConnectionUnknownException, TException {
-    DiqubeCatalystConnection con = registry.getConnection(RUuidUtil.toUuid(consensusConnectionId));
+    DiqubeCatalystConnection con = registry.getConnectionEndpoint(RUuidUtil.toUuid(consensusConnectionEndpointId));
     if (con != null)
       con.handleResponse(RUuidUtil.toUuid(consensusRequestId), data);
     else
       throw new RConnectionUnknownException(
-          "Consensus connection unknown: " + RUuidUtil.toUuid(consensusConnectionId).toString());
+          "Consensus connection endpoint unknown: " + RUuidUtil.toUuid(consensusConnectionEndpointId).toString());
   }
 
   /**
    * Send an "exceptional response" (to a request which was received before) of an opened catalyst connection
    */
   @Override
-  public void replyException(RUUID consensusConnectionId, RUUID consensusRequestId, ByteBuffer data)
+  public void replyException(RUUID consensusConnectionEndpointId, RUUID consensusRequestId, ByteBuffer data)
       throws RConnectionUnknownException, TException {
-    DiqubeCatalystConnection con = registry.getConnection(RUuidUtil.toUuid(consensusConnectionId));
+    DiqubeCatalystConnection con = registry.getConnectionEndpoint(RUuidUtil.toUuid(consensusConnectionEndpointId));
     if (con != null)
       con.handleResponseException(RUuidUtil.toUuid(consensusRequestId), data);
     else
       throw new RConnectionUnknownException(
-          "Consensus connection unknown: " + RUuidUtil.toUuid(consensusConnectionId).toString());
+          "Consensus connection endpoint unknown: " + RUuidUtil.toUuid(consensusConnectionEndpointId).toString());
   }
 
   /**

@@ -202,7 +202,8 @@ public abstract class OrderSplitDiqlExecutionTest<T> extends AbstractCacheDouble
             " order by " + COL_A + ", " + COL_B + " desc LIMIT 2");
 
     Set<Long> allRowIdsReportedByClusterNodes = new ConcurrentSkipListSet<>();
-    // Add a RowId consumer to the ExecuteRemotePlanOnShardsStep in order to collect all rowIDs that have been reported
+    // Add a RowId consumer to the ExecuteRemotePlanOnShardsStep in order to collect all rowIDs that have
+    // been reported
     // by cluster nodes/remote executions.
     executablePlan.getSteps().stream().filter(step -> step instanceof ExecuteRemotePlanOnShardsStep)
         .forEach(new Consumer<ExecutablePlanStep>() {

@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 import org.diqube.itest.control.ServerControl.ServerAddr;
 import org.diqube.itest.control.ServerControl.ServerAddressProvider;
 import org.diqube.itest.control.ServerControl.ServerClusterNodesProvider;
+import org.diqube.itest.control.ServerControl.ShutdownForciblyException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,8 +76,13 @@ public class ServerClusterControl implements ServerAddressProvider, ServerCluste
 
   public void stop() {
     logger.info("Stopping all cluster nodes: {}", reservedAddrs);
-    for (ServerControl server : servers)
-      server.stop();
+    for (ServerControl server : servers) {
+      try {
+        server.stop();
+      } catch (ShutdownForciblyException e) {
+        // swallow, stop the other cluster nodes, too!
+      }
+    }
     logger.info("All {} cluster nodes stopped.", servers.size());
   }
 

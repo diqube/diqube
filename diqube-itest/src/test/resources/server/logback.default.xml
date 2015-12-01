@@ -34,10 +34,11 @@
       <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} [%file:%line] - %msg%n</pattern>
     </encoder>
   </appender>
-
-
+ 
   <!-- Only spring WARNs in test -->
   <logger name="org.springframework" level="warn" />
+  
+  <logger name="io.atomix" level="debug" />
   
   <logger name="org.diqube" level="trace" /> 
 

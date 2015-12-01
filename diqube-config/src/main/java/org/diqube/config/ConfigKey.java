@@ -89,6 +89,10 @@ public class ConfigKey {
 
   /**
    * Time in milliseconds between keep alives that are sent to all nodes.
+   * 
+   * <p>
+   * Note that it may take this amount of time until a newly started server is initialized. In addition to that, it may
+   * take a multiple of this time until a shutdown of the server is completed.
    */
   public static final String KEEP_ALIVE_MS = "keepAliveMs";
 

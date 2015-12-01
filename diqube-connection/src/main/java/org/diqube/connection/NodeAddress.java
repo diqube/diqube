@@ -20,6 +20,8 @@
  */
 package org.diqube.connection;
 
+import java.io.Serializable;
+
 import org.diqube.remote.base.thrift.RNodeAddress;
 import org.diqube.remote.base.util.RNodeAddressUtil;
 import org.diqube.util.Pair;
@@ -29,7 +31,9 @@ import org.diqube.util.Pair;
  *
  * @author Bastian Gloeckle
  */
-public class NodeAddress {
+public class NodeAddress implements Serializable {
+  private static final long serialVersionUID = 1L;
+
   private String host;
 
   private Short port;

@@ -39,6 +39,7 @@ import org.diqube.connection.OurNodeAddressProvider;
 import org.diqube.connection.ServiceProvider;
 import org.diqube.connection.SocketListener;
 import org.diqube.remote.base.thrift.RNodeAddress;
+import org.diqube.remote.base.thrift.RUUID;
 import org.diqube.remote.base.util.RUuidUtil;
 import org.diqube.remote.cluster.thrift.ClusterConsensusService;
 import org.diqube.util.Pair;
@@ -59,8 +60,8 @@ import io.atomix.catalyst.util.concurrent.ThreadContext;
  * message to be sent/received with thrift and send/receive it through {@link ClusterConsensusService}.
  * 
  * <p>
- * Each Catalyst connection is identified by a {@link #getConnectionUuid()} which is transported via
- * {@link ClusterConsensusService}.
+ * Each Catalyst connection is identified by two {@link #getConnectionEndpointUuid()}s - one on the one end of the
+ * connection the other on the other end. These are transported via {@link ClusterConsensusService}.
  * 
  * <p>
  * When the connection is closed, it is automatically unregistered in {@link ClusterConsensusConnectionRegistry}.
@@ -89,11 +90,13 @@ public class DiqubeCatalystConnection implements Connection {
   private ConnectionOrLocalHelper connectionOrLocalHelper;
   /** true if there was an exception on the socket, means the connection is dead. */
   private boolean connectionDiedAlready = false;
-  /** The ID identifying a catalyst connection. <code>null</code> if connection is closed */
-  private UUID connectionUuid = null;
+  /** The ID identifying this endpoint of the catalyst connection. <code>null</code> if connection is closed */
+  private UUID connectionEndpointUuid = null;
 
   /** Address we maintain a catalyst connection to */
   private RNodeAddress remoteAddr;
+  /** The endpoint ID of the other side of this connection. */
+  private UUID remoteEndpointUuid;
   /** Provider of the node addresses of our cluster */
   private OurNodeAddressProvider ourNodeAddressProvider;
   /** The registry we register to and deregister from when the connection is closed */
@@ -105,7 +108,7 @@ public class DiqubeCatalystConnection implements Connection {
     @Override
     public void connectionDied(String cause) {
       connectionDiedAlready = true;
-      connectionUuid = null;
+      connectionEndpointUuid = null;
       exceptionListeners.accept(new TransportException("Connection died"));
     }
   };
@@ -123,15 +126,17 @@ public class DiqubeCatalystConnection implements Connection {
    * Accept a connection that was initialized by another peer already. Will register the new connection with
    * {@link ClusterConsensusConnectionRegistry}.
    * 
-   * @param connectionUuid
-   *          The ID of the connection
+   * @param remoteConnectionUuid
+   *          The ID of the connection endpoint fo the other side.
    * @param remoteAddr
    *          The address of the remote.
    */
-  public void acceptAndRegister(UUID connectionUuid, RNodeAddress remoteAddr) {
-    this.connectionUuid = connectionUuid;
+  public UUID acceptAndRegister(UUID remoteConnectionUuid, RNodeAddress remoteAddr) {
+    this.connectionEndpointUuid = UUID.randomUUID();
+    this.remoteEndpointUuid = remoteConnectionUuid;
     this.remoteAddr = remoteAddr;
-    registry.registerConnection(connectionUuid, this);
+    registry.registerConnectionEndpoint(connectionEndpointUuid, this);
+    return connectionEndpointUuid;
   }
 
   /**
@@ -145,19 +150,21 @@ public class DiqubeCatalystConnection implements Connection {
   public void openAndRegister(Address catylstRemoteAddr) throws TransportException {
     NodeAddress nodeAddress = new NodeAddress(catylstRemoteAddr.host(), (short) catylstRemoteAddr.port());
     this.remoteAddr = nodeAddress.createRemote();
-    connectionUuid = UUID.randomUUID();
+    connectionEndpointUuid = UUID.randomUUID();
 
     try (ServiceProvider<ClusterConsensusService.Iface> sp =
         connectionOrLocalHelper.getService(ClusterConsensusService.Iface.class, remoteAddr, socketListener)) {
 
-      sp.getService().open(RUuidUtil.toRUuid(connectionUuid),
+      RUUID remoteEndpointRUuid = sp.getService().open(RUuidUtil.toRUuid(connectionEndpointUuid),
           ourNodeAddressProvider.getOurNodeAddress().createRemote());
+
+      this.remoteEndpointUuid = RUuidUtil.toUuid(remoteEndpointRUuid);
 
     } catch (ConnectionException | IOException | InterruptedException | IllegalStateException | TException e) {
       throw new TransportException("Could not establish connection to " + remoteAddr);
     }
 
-    registry.registerConnection(connectionUuid, this);
+    registry.registerConnectionEndpoint(connectionEndpointUuid, this);
   }
 
   /**
@@ -230,12 +237,12 @@ public class DiqubeCatalystConnection implements Connection {
         if (error != null) {
           context.serializer().writeObject(error, baos);
 
-          sp.getService().replyException(RUuidUtil.toRUuid(connectionUuid), RUuidUtil.toRUuid(requestUuid),
+          sp.getService().replyException(RUuidUtil.toRUuid(remoteEndpointUuid), RUuidUtil.toRUuid(requestUuid),
               ByteBuffer.wrap(baos.toByteArray()));
         } else {
           context.serializer().writeObject(response, baos);
 
-          sp.getService().reply(RUuidUtil.toRUuid(connectionUuid), RUuidUtil.toRUuid(requestUuid),
+          sp.getService().reply(RUuidUtil.toRUuid(remoteEndpointUuid), RUuidUtil.toRUuid(requestUuid),
               ByteBuffer.wrap(baos.toByteArray()));
         }
       } catch (ConnectionException | IOException | InterruptedException | IllegalStateException | TException e) {
@@ -264,7 +271,7 @@ public class DiqubeCatalystConnection implements Connection {
 
       try (ServiceProvider<ClusterConsensusService.Iface> sp =
           connectionOrLocalHelper.getService(ClusterConsensusService.Iface.class, remoteAddr, socketListener)) {
-        sp.getService().request(RUuidUtil.toRUuid(connectionUuid), RUuidUtil.toRUuid(requestUuid),
+        sp.getService().request(RUuidUtil.toRUuid(remoteEndpointUuid), RUuidUtil.toRUuid(requestUuid),
             ByteBuffer.wrap(baos.toByteArray()));
       }
 
@@ -293,7 +300,7 @@ public class DiqubeCatalystConnection implements Connection {
 
   @Override
   public Listener<Connection> closeListener(Consumer<Connection> listener) {
-    if (connectionUuid == null)
+    if (connectionEndpointUuid == null)
       listener.accept(this);
 
     return closeListeners.add(listener);
@@ -301,9 +308,9 @@ public class DiqubeCatalystConnection implements Connection {
 
   @Override
   public CompletableFuture<Void> close() {
-    if (connectionUuid != null) {
-      UUID oldConnectionUuid = connectionUuid;
-      connectionUuid = null;
+    if (connectionEndpointUuid != null) {
+      UUID oldConnectionEndpointUuid = connectionEndpointUuid;
+      connectionEndpointUuid = null;
 
       Iterator<Pair<CompletableFuture<Object>, ThreadContext>> it = requests.values().iterator();
       while (it.hasNext()) {
@@ -314,17 +321,21 @@ public class DiqubeCatalystConnection implements Connection {
             .execute(() -> p.getLeft().completeExceptionally(new TransportException("Connection closed.")));
       }
 
-      registry.removeConnection(oldConnectionUuid);
+      registry.removeConnectionEndpoint(oldConnectionEndpointUuid);
       closeListeners.accept(this);
 
-      try (ServiceProvider<ClusterConsensusService.Iface> sp =
-          connectionOrLocalHelper.getService(ClusterConsensusService.Iface.class, remoteAddr, socketListener)) {
+      if (!remoteAddr.equals(ourNodeAddressProvider.getOurNodeAddress().createRemote())) {
+        // send "close" on catalyst connection - but not if the connection is to "local", as we cannot fetch the
+        // corresponding bean anymore if we're shutting down currently.
+        try (ServiceProvider<ClusterConsensusService.Iface> sp =
+            connectionOrLocalHelper.getService(ClusterConsensusService.Iface.class, remoteAddr, socketListener)) {
 
-        sp.getService().close(RUuidUtil.toRUuid(oldConnectionUuid));
+          sp.getService().close(RUuidUtil.toRUuid(remoteEndpointUuid));
 
-      } catch (ConnectionException | IOException | InterruptedException | IllegalStateException | TException e) {
-        logger.info("Could not send 'close' to remote at {}", remoteAddr);
-        // swallow otherwise, since we're trying to close the conn anyway.
+        } catch (ConnectionException | IOException | InterruptedException | IllegalStateException | TException e) {
+          logger.info("Could not send 'close' to remote at {}", remoteAddr);
+          // swallow otherwise, since we're trying to close the conn anyway.
+        }
       }
     }
 
@@ -337,8 +348,8 @@ public class DiqubeCatalystConnection implements Connection {
   /**
    * @return ID of the catalyst connection this object represents.
    */
-  public UUID getConnectionUuid() {
-    return connectionUuid;
+  public UUID getConnectionEndpointUuid() {
+    return connectionEndpointUuid;
   }
 
 }

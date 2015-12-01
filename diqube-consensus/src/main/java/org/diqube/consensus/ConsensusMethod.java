@@ -18,7 +18,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.context;
+package org.diqube.consensus;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Inherited;
@@ -26,20 +26,24 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import javax.inject.Inject;
-
-import org.springframework.stereotype.Component;
+import io.atomix.copycat.client.Operation;
 
 /**
- * Automatically instantiate an object of this class when the server starts and put the instance in the Bean context, so
- * it can be injected into other automatically created beans using {@link Inject}.
+ * Denotes a method that should be callable through the consensus cluster, i.e. the method will be called on all cluster
+ * nodes reliably by first distributing the information of the {@link Operation} in the cluster and then, when the
+ * operation is committed, the method will be called.
  * 
+ * <p>
+ * Use this annotation only in an interface, which itself has the {@link ConsensusStateMachine} annotation.
+ *
  * @author Bastian Gloeckle
  */
-@Target({ ElementType.TYPE })
 @Retention(RetentionPolicy.RUNTIME)
-@Component
+@Target(ElementType.METHOD)
 @Inherited
-public @interface AutoInstatiate {
-
+public @interface ConsensusMethod {
+  /**
+   * @return The {@link Operation} class which is used on-the-wire to communicate a call to this method.
+   */
+  Class<? extends Operation<?>> dataClass();
 }

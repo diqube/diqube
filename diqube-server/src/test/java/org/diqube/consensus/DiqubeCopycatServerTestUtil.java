@@ -18,33 +18,24 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.consensus.internal;
+package org.diqube.consensus;
 
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
+import org.diqube.consensus.DiqubeCopycatServer.ConsensusStorageProvider;
 
-import org.diqube.context.AutoInstatiate;
+import io.atomix.copycat.server.storage.Storage;
+import io.atomix.copycat.server.storage.StorageLevel;
 
 /**
- * Registry for all currently open catalyst connections.
  *
  * @author Bastian Gloeckle
  */
-@AutoInstatiate
-public class ClusterConsensusConnectionRegistry {
-  private Map<UUID, DiqubeCatalystConnection> connections = new ConcurrentHashMap<>();
-
-  public void registerConnectionEndpoint(UUID connectionEndpointUuid, DiqubeCatalystConnection connection) {
-    connections.put(connectionEndpointUuid, connection);
+public class DiqubeCopycatServerTestUtil {
+  public static void configureMemoryOnlyStorage(DiqubeCopycatServer server) {
+    server.setConsensusStorageProvider(new ConsensusStorageProvider(null) {
+      @Override
+      public Storage createStorage() {
+        return Storage.builder().withStorageLevel(StorageLevel.MEMORY).build();
+      }
+    });
   }
-
-  public DiqubeCatalystConnection getConnectionEndpoint(UUID connectionEndpointUuid) {
-    return connections.get(connectionEndpointUuid);
-  }
-
-  public void removeConnectionEndpoint(UUID connectionEndpointUuid) {
-    connections.remove(connectionEndpointUuid);
-  }
-
 }

@@ -51,7 +51,7 @@ public class DiqubeCatalystServer implements Server {
     context = ThreadContext.currentContextOrThrow();
     initialized = true;
     CompletableFuture<Void> res = new CompletableFuture<>();
-    res.complete(null);
+    context.executor().execute(() -> res.complete(null));
     return res;
   }
 
@@ -71,7 +71,8 @@ public class DiqubeCatalystServer implements Server {
       throw new IllegalStateException("Not initialized.");
 
     connections.add(con);
-    context.executor().execute(() -> listener.accept(con));
+    // execute listeners synchronously, as the connection will be initialized by those listeners.
+    CompletableFuture.runAsync(() -> listener.accept(con), context.executor()).join();
   }
 
 }

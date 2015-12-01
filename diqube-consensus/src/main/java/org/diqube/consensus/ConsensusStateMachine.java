@@ -18,33 +18,26 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.consensus.internal;
+package org.diqube.consensus;
 
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-
-import org.diqube.context.AutoInstatiate;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /**
- * Registry for all currently open catalyst connections.
+ * An interface that defines methods that should be callable through the consensus cluster.
+ * 
+ * <p>
+ * The interface should have at least one method that is annotated with {@link ConsensusMethod}.
+ * 
+ * <p>
+ * The interface must have exactly one implementing class that has the annotation {@link ConsensusStateMachineImplementation}.
  *
  * @author Bastian Gloeckle
  */
-@AutoInstatiate
-public class ClusterConsensusConnectionRegistry {
-  private Map<UUID, DiqubeCatalystConnection> connections = new ConcurrentHashMap<>();
-
-  public void registerConnectionEndpoint(UUID connectionEndpointUuid, DiqubeCatalystConnection connection) {
-    connections.put(connectionEndpointUuid, connection);
-  }
-
-  public DiqubeCatalystConnection getConnectionEndpoint(UUID connectionEndpointUuid) {
-    return connections.get(connectionEndpointUuid);
-  }
-
-  public void removeConnectionEndpoint(UUID connectionEndpointUuid) {
-    connections.remove(connectionEndpointUuid);
-  }
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.TYPE)
+public @interface ConsensusStateMachine {
 
 }
