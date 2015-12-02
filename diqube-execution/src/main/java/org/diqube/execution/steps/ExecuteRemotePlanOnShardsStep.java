@@ -34,9 +34,10 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.thrift.TException;
-import org.diqube.cluster.ClusterManager;
+import org.diqube.cluster.ClusterLayout;
 import org.diqube.connection.ConnectionException;
 import org.diqube.connection.ConnectionOrLocalHelper;
+import org.diqube.connection.OurNodeAddressProvider;
 import org.diqube.connection.ServiceProvider;
 import org.diqube.connection.SocketListener;
 import org.diqube.execution.RemotesTriggeredListener;
@@ -103,7 +104,7 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
   private List<RemotesTriggeredListener> remotesTriggeredListeners = new ArrayList<>();
 
   private RExecutionPlan remoteExecutionPlan;
-  private ClusterManager clusterManager;
+  private ClusterLayout clusterLayout;
   private QueryRegistry queryRegistry;
   private ConnectionOrLocalHelper connectionOrLocalHelper;
 
@@ -166,14 +167,17 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
 
   private int numberOfRemotesInformed;
 
+  private OurNodeAddressProvider ourNodeAddressProvider;
+
   public ExecuteRemotePlanOnShardsStep(int stepId, QueryRegistry queryRegistry, ExecutionEnvironment env,
-      RExecutionPlan remoteExecutionPlan, ClusterManager clusterManager,
-      ConnectionOrLocalHelper connectionOrLocalHelper) {
+      RExecutionPlan remoteExecutionPlan, ClusterLayout clusterLayout, ConnectionOrLocalHelper connectionOrLocalHelper,
+      OurNodeAddressProvider ourNodeAddressProvider) {
     super(stepId, queryRegistry);
     this.remoteExecutionPlan = remoteExecutionPlan;
-    this.clusterManager = clusterManager;
+    this.clusterLayout = clusterLayout;
     this.queryRegistry = queryRegistry;
     this.connectionOrLocalHelper = connectionOrLocalHelper;
+    this.ourNodeAddressProvider = ourNodeAddressProvider;
   }
 
   @Override
@@ -208,7 +212,7 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
 
       String tableName = remoteExecutionPlan.getFrom().getPlainTableName();
 
-      remoteNodes = clusterManager.getClusterLayout().findNodesServingTable(tableName);
+      remoteNodes = clusterLayout.findNodesServingTable(tableName);
       if (remoteNodes.isEmpty())
         throw new ExecutablePlanExecutionException("There are no cluster nodes serving table '" + tableName + "'");
     }
@@ -235,7 +239,7 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
     queryRegistry.addQueryResultHandler(QueryUuid.getCurrentQueryUuid(), resultHandler);
     try {
       // distribute query execution
-      RNodeAddress ourRemoteAddr = clusterManager.getOurNodeAddress().createRemote();
+      RNodeAddress ourRemoteAddr = ourNodeAddressProvider.getOurNodeAddress().createRemote();
       for (RNodeAddress remoteAddr : remoteNodes) {
         try (ServiceProvider<ClusterQueryService.Iface> service =
             connectionOrLocalHelper.getService(ClusterQueryService.Iface.class, remoteAddr, socketListener)) {

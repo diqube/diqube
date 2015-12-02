@@ -184,11 +184,6 @@ public class NewDataWatcher implements DiqubeConsensusListener {
       return;
     }
 
-    File readyFile = readyFile(controlFile);
-    if (readyFile.exists())
-      if (!readyFile.delete())
-        logger.warn("Could not delete ready file {}", readyFile.getAbsolutePath());
-
     Table t = tableRegistry.getTable(tableInfo.getLeft());
     if (t == null)
       logger.warn("Could not delete anything as table {} is not loaded (anymore?).", tableInfo.getLeft());
@@ -207,6 +202,11 @@ public class NewDataWatcher implements DiqubeConsensusListener {
       tableInfoByControlFilePath.remove(controlFile.getAbsolutePath());
       System.gc();
     }
+
+    File readyFile = readyFile(controlFile);
+    if (readyFile.exists())
+      if (!readyFile.delete())
+        logger.warn("Could not delete ready file {}", readyFile.getAbsolutePath());
   }
 
   /**

@@ -18,18 +18,18 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.connection;
+package org.diqube.listeners.providers;
 
-import org.diqube.remote.base.thrift.RNodeAddress;
+import java.util.Collection;
 
 /**
- * Listener that is informed as soon as someone found that a specific cluster node died.
+ * Provides information on the currently loaded tables of this node.
  *
  * @author Bastian Gloeckle
  */
-public interface ClusterNodeDiedListener {
+public interface LoadedTablesProvider {
   /**
-   * A specific node in the cluster died.
+   * @return A collection with the names of the currently loaded tables in this cluster node.
    */
-  public void nodeDied(RNodeAddress nodeAddr);
+  public Collection<String> getNamesOfLoadedTables();
 }

@@ -31,17 +31,19 @@ import org.diqube.context.InjectOptional;
 import org.diqube.data.flatten.FlattenedTable;
 import org.diqube.data.table.Table;
 import org.diqube.listeners.TableLoadListener;
+import org.diqube.listeners.providers.LoadedTablesProvider;
 
 /**
  * All {@link Table} objects that are available on the current cluster node are registered here.
  * 
  * <p>
- * Note that this does <b>NOT</b> include {@link FlattenedTable}s, as they are managed in {@link FlattenedTableInstanceManager}.
+ * Note that this does <b>NOT</b> include {@link FlattenedTable}s, as they are managed in
+ * {@link FlattenedTableInstanceManager}.
  *
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
-public class TableRegistry {
+public class TableRegistry implements LoadedTablesProvider {
   private Map<String, Table> tables = new HashMap<String, Table>();
 
   @InjectOptional
@@ -67,6 +69,11 @@ public class TableRegistry {
   }
 
   public synchronized Collection<String> getAllTableNames() {
+    return new ArrayList<>(tables.keySet());
+  }
+
+  @Override
+  public Collection<String> getNamesOfLoadedTables() {
     return new ArrayList<>(tables.keySet());
   }
 }

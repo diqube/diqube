@@ -39,11 +39,12 @@ import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 
 import org.apache.thrift.TException;
-import org.diqube.cluster.ClusterManager;
+import org.diqube.cluster.ClusterLayout;
 import org.diqube.config.Config;
 import org.diqube.config.ConfigKey;
 import org.diqube.connection.ConnectionException;
 import org.diqube.connection.ConnectionOrLocalHelper;
+import org.diqube.connection.OurNodeAddressProvider;
 import org.diqube.connection.ServiceProvider;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.remote.base.thrift.RNodeAddress;
@@ -67,7 +68,10 @@ public class QueryMasterFlattenService {
   private static final Logger logger = LoggerFactory.getLogger(QueryMasterFlattenService.class);
 
   @Inject
-  private ClusterManager clusterManager;
+  private ClusterLayout clusterLayout;
+
+  @Inject
+  private OurNodeAddressProvider ourNodeAddressProvider;
 
   @Inject
   private ConnectionOrLocalHelper connectionOrLocalHelper;
@@ -134,7 +138,7 @@ public class QueryMasterFlattenService {
         // handler needs access to that map!
         threadIdToRequestUuidAndCallback.put(Thread.currentThread().getId(), new Pair<>(null, callback));
 
-        Collection<RNodeAddress> nodesServingTable = clusterManager.getClusterLayout().findNodesServingTable(table);
+        Collection<RNodeAddress> nodesServingTable = clusterLayout.findNodesServingTable(table);
 
         if (nodesServingTable.isEmpty()) {
           threadIdToRequestUuidAndCallback.remove(Thread.currentThread().getId());
@@ -186,7 +190,7 @@ public class QueryMasterFlattenService {
                   connectionOrLocalHelper.getService(ClusterFlattenService.Iface.class, node, null)) {
 
                 serviceProv.getService().flattenAllLocalShards(flattenRequestRuuid, table, flattenBy, otherFlatteners,
-                    clusterManager.getOurNodeAddress().createRemote());
+                    ourNodeAddressProvider.getOurNodeAddress().createRemote());
               } catch (ConnectionException | IOException | IllegalStateException | TException e) {
                 logger.info("Exception while talking to {} about flattening table {}. Will retry.", node, table, e);
                 threadIdToRequestUuidAndCallback.remove(Thread.currentThread().getId());

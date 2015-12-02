@@ -313,6 +313,8 @@ public class ServerControl implements LogfileSaver {
     // wait for ready file to get present, if started
     if (isStarted())
       waitUntilDeployed(controlFile);
+
+    logger.info("Deployment complete.");
   }
 
   public void waitUntilDeployed(File controlFile) {
@@ -331,6 +333,8 @@ public class ServerControl implements LogfileSaver {
     // wait until ready file is deleted, too, if started
     if (isStarted())
       waitUntilUndeployed(controlFile);
+
+    logger.info("Undeployment complete.");
   }
 
   public void waitUntilUndeployed(File controlFile) {

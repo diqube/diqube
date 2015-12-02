@@ -38,7 +38,7 @@ import org.diqube.remote.query.thrift.ClusterInformationService;
 public class ClusterInformationServiceHandler implements ClusterInformationService.Iface {
 
   @Inject
-  private ClusterManager clusterManager;
+  private ClusterLayout clusterLayout;
 
   /**
    * Lists the names of the tables that are currently available in the diqube-server cluster.
@@ -46,6 +46,6 @@ public class ClusterInformationServiceHandler implements ClusterInformationServi
   @Override
   public List<String> getAvailableTables() throws TException {
     // TODO #48: We should not use the ClusterLayout for this, but the new to-be-created information on table data.
-    return new ArrayList<>(clusterManager.getClusterLayout().getAllTablesServed());
+    return new ArrayList<>(clusterLayout.getAllTablesServed());
   }
 }

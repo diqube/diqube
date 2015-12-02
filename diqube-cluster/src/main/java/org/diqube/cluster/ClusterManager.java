@@ -21,59 +21,56 @@
 package org.diqube.cluster;
 
 import java.io.IOException;
-import java.lang.Thread.UncaughtExceptionHandler;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 
 import org.apache.thrift.TException;
-import org.diqube.cluster.ClusterLayoutStateMachine.SetLayoutOfNode;
+import org.diqube.cluster.ClusterLayoutStateMachine.RemoveNode;
+import org.diqube.cluster.ClusterLayoutStateMachine.SetTablesOfNode;
 import org.diqube.config.Config;
 import org.diqube.config.ConfigKey;
-import org.diqube.connection.ClusterNodeDiedListener;
+import org.diqube.connection.ClusterNodeStatusDetailListener;
 import org.diqube.connection.Connection;
 import org.diqube.connection.ConnectionException;
 import org.diqube.connection.ConnectionPool;
 import org.diqube.connection.NodeAddress;
 import org.diqube.connection.OurNodeAddressProvider;
-import org.diqube.consensus.ClusterNodeAddressProvider;
+import org.diqube.consensus.ConsensusClusterNodeAddressProvider;
 import org.diqube.consensus.DiqubeCopycatClient;
+import org.diqube.consensus.DiqubeCopycatServer;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.context.InjectOptional;
 import org.diqube.listeners.ClusterManagerListener;
 import org.diqube.listeners.ServingListener;
 import org.diqube.listeners.TableLoadListener;
+import org.diqube.listeners.providers.LoadedTablesProvider;
 import org.diqube.listeners.providers.OurNodeAddressStringProvider;
 import org.diqube.remote.base.thrift.RNodeAddress;
-import org.diqube.remote.base.util.RNodeAddressUtil;
 import org.diqube.remote.cluster.thrift.ClusterManagementService;
-import org.diqube.util.Pair;
-import org.diqube.util.RandomManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Iterables;
+
 /**
- * Manages knowledge of other nodes in the diqube cluster.
+ * Manages state of the diqube-server cluster, this nodes state in other cluster nodes and shares information about
+ * that.
  * 
  * <p>
- * This registers a {@link ClusterNodeDiedListener} automatically to be informed if anyone identified a specific node to
- * be "down". If this class itself identifies a node to be down, it will inform all {@link ClusterNodeDiedListener}s,
- * too!
+ * This class ensures that the information other nodes have about this node is correct, it manages our nodes address.
  *
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
 public class ClusterManager implements ServingListener, TableLoadListener, OurNodeAddressStringProvider,
-    ClusterNodeDiedListener, OurNodeAddressProvider, ClusterNodeAddressProvider {
+    ClusterNodeStatusDetailListener, OurNodeAddressProvider, ConsensusClusterNodeAddressProvider {
   private static final Logger logger = LoggerFactory.getLogger(ClusterManager.class);
 
   private static final String OUR_HOST_AUTOMATIC = "*";
@@ -97,15 +94,27 @@ public class ClusterManager implements ServingListener, TableLoadListener, OurNo
 
   /** will contain "this", too! */
   @InjectOptional
-  private List<ClusterNodeDiedListener> clusterNodeDiedListeners;
+  private List<ClusterNodeStatusDetailListener> clusterNodeDiedListeners;
+
+  private List<NodeAddress> consensusClusterNodes = new ArrayList<>();
 
   @Inject
-  private RandomManager randomManager;
+  private ClusterLayout clusterLayout;
 
   @Inject
   private DiqubeCopycatClient consensusClient;
 
-  private ClusterLayout clusterLayout = new ClusterLayout();
+  @Inject
+  private DiqubeCopycatServer consensusServer;
+
+  @Inject
+  private LoadedTablesProvider loadedTablesProvider;
+
+  /**
+   * Disable the methods of {@link ClusterNodeStatusDetailListener} on startup, until we have initially found some
+   * cluster nodes.
+   */
+  private boolean clusterNodeStatusDetailListenerDisabled = true;
 
   @PostConstruct
   public void initialize() {
@@ -126,7 +135,6 @@ public class ClusterManager implements ServingListener, TableLoadListener, OurNo
           + "under that address!", ourHost);
 
     ourHostAddr = new NodeAddress(ourHost, (short) ourPort);
-    clusterLayout.addNode(ourHostAddr);
   }
 
   private List<NodeAddress> parseClusterNodes(String clusterNodes) {
@@ -162,7 +170,6 @@ public class ClusterManager implements ServingListener, TableLoadListener, OurNo
 
   @Override
   public void localServerStartedServing() {
-    // start sending hello messages etc as soon as our server is up and running so we can receive answers.
 
     if (clusterNodesConfigString == null || "".equals(clusterNodesConfigString)) {
       logger.info("There are no cluster nodes configured, will therefore not connect anywhere.");
@@ -170,120 +177,46 @@ public class ClusterManager implements ServingListener, TableLoadListener, OurNo
         clusterManagerListeners.forEach(l -> l.clusterInitialized());
       return;
     }
-    List<NodeAddress> clusterNodes = parseClusterNodes(this.clusterNodesConfigString);
-    if (clusterNodes == null) {
+    List<NodeAddress> initialClusterNodes = parseClusterNodes(this.clusterNodesConfigString);
+    if (initialClusterNodes == null) {
       logger.warn("There are no cluster nodes configured, will therefore not connect anywhere.");
       if (clusterManagerListeners != null)
         clusterManagerListeners.forEach(l -> l.clusterInitialized());
       return;
     }
-    RNodeAddress ourAddress = RNodeAddressUtil.buildDefault(ourHost, (short) ourPort);
 
-    // interact with other nodes in a separate "bootstrap" thread, as this might take some time - to not block
-    // Thrifts thread here too long...
-    Thread clusterBootstrap = new Thread(new Runnable() {
-      @Override
-      public void run() {
-        try {
-          List<NodeAddress> workingRemoteAddr = new ArrayList<>();
+    logger.debug("Starting to communicate to cluster using the configured hosts ({})...", initialClusterNodes);
 
-          for (NodeAddress nodeAddr : clusterNodes) {
-            try (Connection<ClusterManagementService.Iface> conn = reserveConnection(nodeAddr)) {
-              conn.getService().hello(ourAddress);
-              workingRemoteAddr.add(nodeAddr);
-            } catch (ConnectionException | TException | IOException e) {
-              logger.warn("Could not say hello to cluster node at {}, will ignore that node for now.", nodeAddr, e);
-            }
-          }
-
-          logger.info("Greeted cluster nodes {}", workingRemoteAddr);
-
-          // be sure that all nodes are available in the clusterLayout, no matter if they server any tables or not.
-          workingRemoteAddr.forEach(addr -> clusterLayout.addNode(addr));
-
-          if (workingRemoteAddr.isEmpty())
-            logger.warn("There are no cluster nodes alive, will therefore not connect anywhere.");
-          else {
-            boolean fetchedClusterLayout = false;
-            Set<NodeAddress> visitedRemoteNodesForLayout = new HashSet<>();
-            while (!fetchedClusterLayout && visitedRemoteNodesForLayout.size() < workingRemoteAddr.size()) {
-              NodeAddress clusterLayoutAddr = null;
-              while (clusterLayoutAddr == null || visitedRemoteNodesForLayout.contains(clusterLayoutAddr))
-                clusterLayoutAddr = workingRemoteAddr.get(randomManager.nextInt(workingRemoteAddr.size()));
-              visitedRemoteNodesForLayout.add(clusterLayoutAddr);
-
-              logger.info("Fetching cluster layout data from {}", clusterLayoutAddr);
-
-              try (Connection<ClusterManagementService.Iface> conn = reserveConnection(clusterLayoutAddr)) {
-                Map<RNodeAddress, Map<Long, List<String>>> newClusterLayout = conn.getService().clusterLayout();
-
-                for (Entry<RNodeAddress, Map<Long, List<String>>> layoutEntry : newClusterLayout.entrySet()) {
-                  // layoutEntry.getValue() is a map containing only a single entry (see .thrift file!).
-                  if (layoutEntry.getKey().equals(ourAddress))
-                    continue;
-
-                  long version = layoutEntry.getValue().keySet().iterator().next();
-                  List<String> tables = layoutEntry.getValue().get(version);
-                  loadNodeInfo(layoutEntry.getKey(), version, tables);
-                }
-
-                logger.info("Loaded cluster data from {} of {} nodes: {}", clusterLayoutAddr,
-                    clusterLayout.getNumberOfNodes(), clusterLayout.getNodes());
-                fetchedClusterLayout = true;
-              } catch (ConnectionException | TException | IOException e) {
-                logger.error("Could not retrieve cluster layout from {}.", clusterLayoutAddr);
-              }
-            }
-
-            if (!fetchedClusterLayout) {
-              // ConnectionPool guarantees that it has removed those nodes that we were not able to access from this
-              // ClusterManager already, therefore ClusterLayout is empty now (contains only our node).
-              logger
-                  .warn("I was able to say hello to at least one cluster node, but was unable to retrieve the cluster "
-                      + "layout from all of them. I am now not connected to any node.");
-            } else {
-              logger.info("Starting to greet all cluster nodes I didn't greet yet.");
-              // say hello to all nodes
-              for (NodeAddress remoteAddr : clusterLayout.getNodes()) {
-                if (remoteAddr.equals(ourHostAddr) || workingRemoteAddr.contains(remoteAddr))
-                  continue;
-
-                try (Connection<ClusterManagementService.Iface> conn = reserveConnection(remoteAddr)) {
-                  long version = conn.getService().hello(ourAddress);
-
-                  if (version != clusterLayout.getVersionedTableList(remoteAddr).getLeft()) {
-                    // node already has new list of tables, fetch new list, as we might miss it otherwise.
-                    Map<Long, List<String>> newTables = conn.getService().fetchCurrentTablesServed();
-                    long newVersion = newTables.keySet().iterator().next();
-                    loadNodeInfo(remoteAddr.createRemote(), newVersion, newTables.get(version));
-                  }
-                } catch (ConnectionException | TException | IOException e) {
-                  // swallow, in case an exception happens, this will be handled automatically by the default listeners
-                  // in ConnectionPool.
-                }
-              }
-            }
-          }
-
-          if (clusterManagerListeners != null) {
-            logger.info("Cluster bootstrap done.");
-            clusterManagerListeners.forEach(l -> l.clusterInitialized());
-          }
-        } catch (InterruptedException e) {
-          logger.error("Interrupted while starting to communicate with cluster", e);
-        } catch (RuntimeException e) {
-          logger.error("Exception while bootstrapping. You probably should restart this servers node.", e);
+    try {
+      // use the first node we can contact to fetch a list of all cluster nodes it knows. That list will later be used
+      // to startup the consensus node.
+      Set<RNodeAddress> allClusterNodes = new HashSet<>();
+      for (NodeAddress nodeAddr : initialClusterNodes) {
+        try (Connection<ClusterManagementService.Iface> conn = reserveConnection(nodeAddr)) {
+          allClusterNodes.addAll(conn.getService().getAllKnownClusterNodes());
+        } catch (ConnectionException | TException | IOException e) {
+          logger.warn("Could not contact cluster node at {}.", nodeAddr, e);
         }
       }
-    }, "cluster-bootstrap");
 
-    clusterBootstrap.setUncaughtExceptionHandler(new UncaughtExceptionHandler() {
-      @Override
-      public void uncaughtException(Thread t, Throwable e) {
-        logger.error("Error while bootstrapping the cluster. Restart server!", e);
+      if (allClusterNodes.isEmpty()) {
+        logger.warn("There are no cluster nodes alive, will therefore not connect anywhere.");
+        return;
       }
-    });
-    clusterBootstrap.start();
+
+      allClusterNodes.forEach(remoteAddr -> consensusClusterNodes.add(new NodeAddress(remoteAddr)));
+    } catch (InterruptedException e) {
+      logger.error("Interrupted while starting to communicate with cluster", e);
+      return;
+    }
+
+    logger.info("Gathered {} node addresses of the cluster (limit): {}", consensusClusterNodes.size(),
+        Iterables.limit(consensusClusterNodes, 100));
+
+    // enable activity when dead or alive nodes are identified.
+    clusterNodeStatusDetailListenerDisabled = false;
+
+    clusterManagerListeners.forEach(l -> l.clusterInitialized());
   }
 
   private Connection<ClusterManagementService.Iface> reserveConnection(NodeAddress addr)
@@ -294,123 +227,85 @@ public class ClusterManager implements ServingListener, TableLoadListener, OurNo
 
   @Override
   public void localServerStoppedServing() {
-    // Inform as much nodes as possible that we died.
-    RNodeAddress ourRemoteAddr = ourHostAddr.createRemote();
-    for (NodeAddress addr : clusterLayout.getNodes()) {
-      if (addr.equals(ourHostAddr))
-        continue;
-
-      try (Connection<ClusterManagementService.Iface> conn = reserveConnection(addr)) {
-        conn.getService().nodeDied(ourRemoteAddr);
-      } catch (ConnectionException | IOException | TException e) {
-        // swallow, in case an exception happens, this will be handled automatically by the default listeners in
-        // ConnectionPool.
-      } catch (InterruptedException e) {
-        // local server is being stopped, we're interrupted, so lets just quietly stop what we're doing
-        return;
-      }
-    }
+    // noop.
   }
 
-  /**
-   * Set the given list of table names as our clusterLayout information for the given node.
-   */
-  public void loadNodeInfo(RNodeAddress nodeAddr, long version, List<String> tables) {
-    NodeAddress addr = new NodeAddress(nodeAddr);
-    if (clusterLayout.setTables(addr, version, tables) && !addr.equals(ourHostAddr))
-      logger.info("Updated list of tables node {} serves (version {}): {}", addr, version, tables);
-  }
-
-  /**
-   * Called when a new cluster node came online, removes known tables of this node.
-   */
-  public void newNode(RNodeAddress newNodeAddress) {
-    // we might know about that node already, though.
-    NodeAddress addr = new NodeAddress(newNodeAddress);
-    clusterLayout.addNode(addr);
-    if (!addr.equals(ourHostAddr))
-      logger.info("New cluster node {}", addr);
-  }
-
-  /**
-   * We are informed that a specific node died. This happens either if our node itself identified another node to not be
-   * available any more (e.g. when a connection fails), or when the dying node had the chance to inform us that it died.
-   */
   @Override
   public void nodeDied(RNodeAddress diedAddr) {
-    NodeAddress addr = new NodeAddress(diedAddr);
-    if (clusterLayout.removeNode(addr) && !addr.equals(ourHostAddr)) {
-      logger.info("Cluster node died: {}. Will not send any requests to that node any more.", addr);
-      if (clusterManagerListeners != null)
-        // This might be harmful if a node informed us about the death of a third node - we would kill e.g. connections
-        // to the third node, although that node might be up and running for us (if there are network segment failures
-        // etc.). But as this scenario cannot happen currently (see JavaDoc of this method), we're fine to fire the
-        // event and ConnectionPool to listen to it.
-        clusterNodeDiedListeners.stream().filter(l -> l != this).forEach(l -> l.nodeDied(diedAddr));
-    }
-  }
+    if (clusterNodeStatusDetailListenerDisabled)
+      // Disable during startup, as we do not want to act on "dead" nodes of the config file.
+      return;
 
-  public ClusterLayout getClusterLayout() {
-    return clusterLayout;
+    // This will typically be called when a connection to a node fails. We will not remove the node from the consensus
+    // cluster (as that would allow split-brains), but we ensure that its information is removed from the clusterLayout
+    // across the consensus cluster. That way, no connections will be opened to that cluster node for queries any more
+    // etc. We have to ensure that we integrate the current information again as soon as the node gets back online (=the
+    // node gets restarted which would be a normal join to the consensus cluster or if the e.g. network partition ends
+    // and we can communicate with the node again without it re-joining the cluster).
+    if (diedAddr.isSetDefaultAddr()) {
+      NodeAddress addr = new NodeAddress(diedAddr);
+
+      logger.trace("Cluster node died. Checking consensus cluster if we need to distribute that information...");
+
+      if (clusterLayout.isNodeKnown(addr)) {
+        logger.info("Cluster node died: {}. Distributing information on changed cluster layout in consensus cluster.",
+            addr);
+        // This might actually be executed by multiple cluster nodes in parallel, but that does not hurt that much, as
+        // node deaths should be rare.
+        consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class).removeNode(RemoveNode.local(addr));
+      } else
+        logger.trace("Cluster node died. No need to distribute information since that node was unknown to the "
+            + "consensus cluster anyway.");
+    }
   }
 
   @Override
-  public synchronized void tableLoaded(String tableName) {
-    boolean isNewTable = clusterLayout.addTable(ourHostAddr, tableName) != null;
+  public void nodeAlive(RNodeAddress remoteNodeAddr) throws InterruptedException {
+    if (clusterNodeStatusDetailListenerDisabled)
+      // Disable during startup, as we are not yet interesting in "alive" nodes - we will receive cluster layout
+      // information automatically if we join a cluster (= our consensus log will be filled) or if we're a single node
+      // setup, there are no nodes anyway.
+      return;
 
-    if (isNewTable) {
-      RNodeAddress ourRemoteAddr = ourHostAddr.createRemote();
-      Pair<Long, List<String>> versionedTableList = clusterLayout.getVersionedTableList(ourHostAddr);
+    // This will typically be called on the consensus master node when a new node joined or became alive again, as the
+    // consensus master periodically sends keepAlives to all nodes. We ensure here that we get current information about
+    // that new node.
 
-      if (clusterLayout.getNodes().size() > 1)
-        logger.info("Informing other cluster nodes about updated list of tables served by this node (version {})",
-            versionedTableList.getLeft());
+    if (!consensusServer.isLeader())
+      // Only let the consensus leader find new alive nodes. This is to reduce the number of times a new node is asked
+      // to "publishLoadedTables" and also to limit the number of times "clusterLayout.isNodeKnown" is called: This is
+      // pretty slow on non-leader nodes, but we will receive a lot of "nodeAlive" calls.
+      return;
 
-      for (NodeAddress addr : clusterLayout.getNodes()) {
-        if (addr.equals(ourHostAddr))
-          continue;
+    if (remoteNodeAddr.isSetDefaultAddr()) {
+      NodeAddress addr = new NodeAddress(remoteNodeAddr);
+      if (!clusterLayout.isNodeKnown(addr)) {
+        logger.info("Cluster node seems to be accessible now: {}. As we do not have information on the tables this "
+            + "new node serves, we ask it to publicize that.", addr);
 
         try (Connection<ClusterManagementService.Iface> conn = reserveConnection(addr)) {
-          conn.getService().newNodeData(ourRemoteAddr, versionedTableList.getLeft(), versionedTableList.getRight());
-        } catch (ConnectionException | IOException | TException e) {
-          // swallow, in case an exception happens, this will be handled automatically by the default listeners in
-          // ConnectionPool.
-        } catch (InterruptedException e) {
-          logger.error("Interrupted while informing cluster about our new table list", e);
-          return;
+          conn.getService().publishLoadedTablesInConsensus();
+        } catch (ConnectionException | TException | IOException e) {
+          logger.warn("Could not contact cluster node at {}.", addr, e);
         }
       }
-
-      consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class)
-          .setLayoutOfNode(SetLayoutOfNode.local(ourHostAddr, versionedTableList.getRight()));
     }
+  }
+
+  @Override
+  public synchronized void tableLoaded(String newTableName) {
+    logger.info("Informing consensus cluster of our updated table list.");
+    consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class)
+        .setTablesOfNode(SetTablesOfNode.local(ourHostAddr, loadedTablesProvider.getNamesOfLoadedTables()));
+    logger.trace("Informed consensus cluster of our updated table list.");
   }
 
   @Override
   public void tableUnloaded(String tableName) {
-    boolean tableWasRemoved = clusterLayout.removeTable(ourHostAddr, tableName) != null;
-    if (tableWasRemoved) {
-      RNodeAddress ourRemoteAddr = ourHostAddr.createRemote();
-      Pair<Long, List<String>> versionedTableList = clusterLayout.getVersionedTableList(ourHostAddr);
-
-      if (clusterLayout.getNodes().size() > 1)
-        logger.info("Informing other cluster nodes about updated list of tables served by this node.");
-
-      for (NodeAddress addr : clusterLayout.getNodes()) {
-        if (addr.equals(ourHostAddr))
-          continue;
-
-        try (Connection<ClusterManagementService.Iface> conn = reserveConnection(addr)) {
-          conn.getService().newNodeData(ourRemoteAddr, versionedTableList.getLeft(), versionedTableList.getRight());
-        } catch (ConnectionException | IOException | TException e) {
-          // swallow, in case an exception happens, this will be handled automatically by the default listeners in
-          // ConnectionPool.
-        } catch (InterruptedException e) {
-          logger.error("Interrupted while informing cluster about our new table list", e);
-          return;
-        }
-      }
-    }
+    logger.info("Informing consensus cluster of our updated table list.");
+    consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class)
+        .setTablesOfNode(SetTablesOfNode.local(ourHostAddr, loadedTablesProvider.getNamesOfLoadedTables()));
+    logger.trace("Informed consensus cluster of our updated table list.");
   }
 
   @Override
@@ -424,8 +319,8 @@ public class ClusterManager implements ServingListener, TableLoadListener, OurNo
   }
 
   @Override
-  public List<NodeAddress> getClusterNodeAddresses() {
-    return clusterLayout.getNodes().stream().filter(n -> !n.equals(ourHostAddr)).collect(Collectors.toList());
+  public List<NodeAddress> getClusterNodeAddressesForConsensus() {
+    return consensusClusterNodes;
   }
 
 }

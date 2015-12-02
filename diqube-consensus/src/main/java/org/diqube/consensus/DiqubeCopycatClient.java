@@ -121,9 +121,9 @@ public class DiqubeCopycatClient implements DiqubeConsensusListener {
 
         Commit<?> c = (Commit<?>) args[0];
 
-        logger.debug("Opening copycat client to local (consensusIsInitialized = {})...", consensusIsInitialized);
+        logger.trace("Opening copycat client to local (consensusIsInitialized = {})...", consensusIsInitialized);
         client.open().join();
-        logger.debug("Copycat client opened.");
+        logger.trace("Copycat client opened.");
         return client.submit(c.operation()).join();
       }
     };
@@ -151,7 +151,7 @@ public class DiqubeCopycatClient implements DiqubeConsensusListener {
   @PreDestroy
   public void cleanup() {
     if (client != null) {
-      logger.trace("Cleaning up catalyst client...");
+      logger.trace("Cleaning up copycat client...");
       client.close();
       client = null;
     }

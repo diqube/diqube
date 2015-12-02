@@ -18,25 +18,27 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.util;
+package org.diqube.connection;
 
-import java.util.Random;
-
-import org.diqube.context.AutoInstatiate;
+import org.diqube.remote.base.thrift.RNodeAddress;
 
 /**
- * Simple manager for random numbers.
+ * Listener that is informed as soon as someone found that a specific cluster node died or is alive.
+ * 
+ * <p>
+ * THis listener publicizes detailed information, that means it might publicize the same information multiple times.
+ * Implementations should de-duplicate if needed.
  *
  * @author Bastian Gloeckle
  */
-@AutoInstatiate
-public class RandomManager {
-  private Random random = new Random();
+public interface ClusterNodeStatusDetailListener {
+  /**
+   * A specific node in the cluster died.
+   */
+  public void nodeDied(RNodeAddress nodeAddr);
 
   /**
-   * Return a random integer, see {@link Random#nextInt(int)}.
+   * A specific node in the cluster is alive.
    */
-  public int nextInt(int boundExclusive) {
-    return random.nextInt(boundExclusive);
-  }
+  public void nodeAlive(RNodeAddress nodeAddr) throws InterruptedException;
 }

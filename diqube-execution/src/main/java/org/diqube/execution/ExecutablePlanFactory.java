@@ -25,8 +25,9 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
-import org.diqube.cluster.ClusterManager;
+import org.diqube.cluster.ClusterLayout;
 import org.diqube.connection.ConnectionOrLocalHelper;
+import org.diqube.connection.OurNodeAddressProvider;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.data.column.ColumnShardFactory;
 import org.diqube.execution.steps.BuildColumnFromValuesStep;
@@ -75,13 +76,16 @@ public class ExecutablePlanFactory {
   private QueryRegistry queryRegistry;
 
   @Inject
-  private ClusterManager clusterManager;
+  private ClusterLayout clusterLayout;
 
   @Inject
   private ConnectionOrLocalHelper connectionOrLocalHelper;
 
   @Inject
   private QueryMasterFlattenService queryMasterFlattenService;
+
+  @Inject
+  private OurNodeAddressProvider ourNodeAddressProvider;
 
   public GroupFinalAggregationStep createGroupFinalAggregationStep(int stepId, ExecutionEnvironment env,
       String functionNameLowerCase, String outputColName, ColumnVersionManager columnVersionManager,
@@ -116,8 +120,8 @@ public class ExecutablePlanFactory {
 
   public ExecuteRemotePlanOnShardsStep createExecuteRemotePlanStep(int stepId, ExecutionEnvironment env,
       RExecutionPlan remotePlan) {
-    return new ExecuteRemotePlanOnShardsStep(stepId, queryRegistry, env, remotePlan, clusterManager,
-        connectionOrLocalHelper);
+    return new ExecuteRemotePlanOnShardsStep(stepId, queryRegistry, env, remotePlan, clusterLayout,
+        connectionOrLocalHelper, ourNodeAddressProvider);
   }
 
   public OrderStep createOrderStep(int stepId, ExecutionEnvironment env, List<Pair<String, Boolean>> sortCols,

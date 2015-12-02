@@ -25,13 +25,13 @@ import java.util.List;
 import org.diqube.connection.NodeAddress;
 
 /**
- * Implementation provides addresses of other cluster nodes.
+ * Implementation provides addresses of other cluster nodes which should be used by the consensus server to connect to.
  *
  * @author Bastian Gloeckle
  */
-public interface ClusterNodeAddressProvider {
+public interface ConsensusClusterNodeAddressProvider {
   /**
-   * @return Addresses of cluster nodes, not including our own address.
+   * @return Addresses of cluster nodes, not including our own address, to which the consensus server should connect to.
    */
-  public List<NodeAddress> getClusterNodeAddresses();
+  public List<NodeAddress> getClusterNodeAddressesForConsensus();
 }

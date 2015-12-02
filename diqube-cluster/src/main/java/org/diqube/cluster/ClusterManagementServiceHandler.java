@@ -20,74 +20,56 @@
  */
 package org.diqube.cluster;
 
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
 import org.apache.thrift.TException;
+import org.diqube.cluster.ClusterLayoutStateMachine.SetTablesOfNode;
+import org.diqube.connection.OurNodeAddressProvider;
+import org.diqube.consensus.DiqubeCopycatClient;
 import org.diqube.context.AutoInstatiate;
+import org.diqube.listeners.providers.LoadedTablesProvider;
 import org.diqube.remote.base.thrift.RNodeAddress;
 import org.diqube.remote.cluster.thrift.ClusterManagementService;
-import org.diqube.util.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * Implements {@link ClusterManagementService}, which manages the various nodes of a diqube cluster.
- * 
- * When executing queries, the of this service methods will be called on the "query remote" nodes.
+ * Implements {@link ClusterManagementService}, which allows us bootstrapping into a cluster.
  * 
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
 public class ClusterManagementServiceHandler implements ClusterManagementService.Iface {
+  private static final Logger logger = LoggerFactory.getLogger(ClusterManagementServiceHandler.class);
+
   @Inject
-  private ClusterManager clusterManager;
+  private ClusterLayout clusterLayout;
 
-  /**
-   * A new cluster node says "hello".
-   * 
-   * @return the current version number of the table-list this node serves parts of.
-   */
+  @Inject
+  private DiqubeCopycatClient consensusClient;
+
+  @Inject
+  private OurNodeAddressProvider ourNodeAddressProvider;
+
+  @Inject
+  private LoadedTablesProvider loadedTablesProvider;
+
   @Override
-  public long hello(RNodeAddress newNode) throws TException {
-    clusterManager.newNode(newNode);
-    return clusterManager.getClusterLayout().getVersionedTableList(clusterManager.getOurNodeAddress()).getLeft();
+  public void publishLoadedTablesInConsensus() throws TException {
+    logger.info("Publishing information on currently loaded tables in consensus, because we were requested to do so.");
+    consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class).setTablesOfNode(SetTablesOfNode
+        .local(ourNodeAddressProvider.getOurNodeAddress(), loadedTablesProvider.getNamesOfLoadedTables()));
   }
 
-  /**
-   * Someone asks us what cluster nodes we know and what tables they serve shards of.
-   */
   @Override
-  public Map<RNodeAddress, Map<Long, List<String>>> clusterLayout() throws TException {
-    return clusterManager.getClusterLayout().createRemoteLayout();
-  }
-
-  /**
-   * A cluster node has an updated list of tables available for which it serves data.
-   */
-  @Override
-  public void newNodeData(RNodeAddress nodeAddr, long version, List<String> tables) throws TException {
-    clusterManager.loadNodeInfo(nodeAddr, version, tables);
-  }
-
-  /**
-   * A cluster node died.
-   */
-  @Override
-  public void nodeDied(RNodeAddress nodeAddr) throws TException {
-    clusterManager.nodeDied(nodeAddr);
-  }
-
-  /**
-   * @return single entry map containing the current version and current list of table names this node serves parts of.
-   */
-  @Override
-  public Map<Long, List<String>> fetchCurrentTablesServed() throws TException {
-    Pair<Long, List<String>> p =
-        clusterManager.getClusterLayout().getVersionedTableList(clusterManager.getOurNodeAddress());
-    Map<Long, List<String>> res = new HashMap<>();
-    res.put(p.getLeft(), p.getRight());
+  public List<RNodeAddress> getAllKnownClusterNodes() throws TException {
+    List<RNodeAddress> res = new ArrayList<>();
+    res.addAll(clusterLayout.getNodes().stream().map(a -> a.createRemote()).collect(Collectors.toList()));
+    res.add(ourNodeAddressProvider.getOurNodeAddress().createRemote());
     return res;
   }
 

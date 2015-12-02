@@ -34,10 +34,10 @@ public interface TableLoadListener {
   /**
    * A new Table has been loaded and is available in the TableRegistry.
    * 
-   * @param tableName
+   * @param newTableName
    *          Name of the table the new shard belongs to.
    */
-  public void tableLoaded(String tableName);
+  public void tableLoaded(String newTableName);
 
   /**
    * A Table has been unloaded and is no longer available in the TableRegistry.

@@ -20,24 +20,21 @@
  */
 package org.diqube.cluster;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.NavigableSet;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.stream.Collectors;
 
+import javax.inject.Inject;
+
+import org.diqube.cluster.ClusterLayoutStateMachine.FindNodesServingTable;
+import org.diqube.cluster.ClusterLayoutStateMachine.GetAllNodes;
+import org.diqube.cluster.ClusterLayoutStateMachine.GetAllTablesServed;
+import org.diqube.cluster.ClusterLayoutStateMachine.IsNodeKnown;
 import org.diqube.connection.NodeAddress;
+import org.diqube.consensus.DiqubeCopycatClient;
+import org.diqube.context.AutoInstatiate;
 import org.diqube.remote.base.thrift.RNodeAddress;
-import org.diqube.util.Pair;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Contains addresses of all cluster nodes known and the tables the respective node is serving data of.
@@ -46,116 +43,44 @@ import org.slf4j.LoggerFactory;
  *
  * @author Bastian Gloeckle
  */
+@AutoInstatiate
 public class ClusterLayout {
-  private static final Logger logger = LoggerFactory.getLogger(ClusterLayout.class);
 
-  private Map<NodeAddress, Pair<Long, NavigableSet<String>>> tables = new ConcurrentHashMap<>();
-
-  /* package */ synchronized boolean setTables(NodeAddress addr, long version, Collection<String> newTables) {
-    if (tables.containsKey(addr) && tables.get(addr).getLeft() >= version)
-      return false;
-
-    Pair<Long, NavigableSet<String>> newPair = new Pair<>(version, new ConcurrentSkipListSet<>(newTables));
-    tables.put(addr, newPair);
-
-    return true;
-  }
-
-  /* package */synchronized void addNode(NodeAddress addr) {
-    tables.put(addr, new Pair<>(0L, new ConcurrentSkipListSet<>()));
-  }
-
-  /* package */ synchronized boolean removeNode(NodeAddress addr) {
-    logger.info("Dead cluster node {}", addr);
-    return tables.remove(addr) != null;
-  }
-
-  /**
-   * @return Number of cluster nodes known (including our node).
-   */
-  public int getNumberOfNodes() {
-    return tables.size();
-  }
+  @Inject
+  private DiqubeCopycatClient consensusClient;
 
   /**
    * @return Addresses of all cluster nodes that are known (including our node).
    */
   public Set<NodeAddress> getNodes() {
-    return new HashSet<>(tables.keySet());
+    return new HashSet<>(
+        consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class).getAllNodes(GetAllNodes.local()));
   }
 
   /**
-   * @return A cluster layout that can be used for sending to remote nodes.
+   * @return true if the layout knows that the given node is alive. Note that when executed on nodes that are not the
+   *         consensus master, this might be slow, despite it is expected to be quick!
    */
-  public Map<RNodeAddress, Map<Long, List<String>>> createRemoteLayout() {
-    Map<RNodeAddress, Map<Long, List<String>>> res = new HashMap<>();
-
-    for (Entry<NodeAddress, Pair<Long, NavigableSet<String>>> e : tables.entrySet()) {
-      Map<Long, List<String>> detailRes = new HashMap<>();
-      detailRes.put(e.getValue().getLeft(), new ArrayList<>(e.getValue().getRight()));
-      res.put(e.getKey().createRemote(), detailRes);
-    }
-
-    return res;
+  public boolean isNodeKnown(NodeAddress addr) {
+    return consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class).isNodeKnown(IsNodeKnown.local(addr));
   }
 
   /**
    * Finds the addresses of nodes of which is known that they serve parts of a specific table.
    */
   public Collection<RNodeAddress> findNodesServingTable(String table) {
-    List<RNodeAddress> res = new ArrayList<>();
+    Set<NodeAddress> res = consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class)
+        .findNodesServingTable(FindNodesServingTable.local(table));
 
-    for (Entry<NodeAddress, Pair<Long, NavigableSet<String>>> e : tables.entrySet()) {
-      if (e.getValue().getRight().contains(table))
-        res.add(e.getKey().createRemote());
-    }
-
-    return res;
+    return res.stream().map(addr -> addr.createRemote()).collect(Collectors.toSet());
   }
 
   /**
    * @return A set with all tablenames that are served from at least one cluster node.
    */
   public Set<String> getAllTablesServed() {
-    return tables.values().stream().flatMap(p -> p.getRight().stream()).collect(Collectors.toSet());
+    return consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class)
+        .getAllTablesServed(GetAllTablesServed.local());
   }
 
-  /* package */ synchronized Pair<Long, List<String>> getVersionedTableList(NodeAddress addr) {
-    List<String> resList = new ArrayList<>(tables.get(addr).getRight());
-    return new Pair<>(tables.get(addr).getLeft(), resList);
-  }
-
-  /* package */ synchronized Long addTable(NodeAddress addr, String tableName) {
-    if (!tables.containsKey(addr))
-      return null;
-
-    if (tables.get(addr).getRight().contains(tableName))
-      return null;
-
-    Long newVersion = tables.get(addr).getLeft() + 1;
-    Pair<Long, NavigableSet<String>> newPair =
-        new Pair<>(newVersion, new ConcurrentSkipListSet<>(tables.get(addr).getRight()));
-    newPair.getRight().add(tableName);
-
-    tables.put(addr, newPair);
-
-    return newVersion;
-  }
-
-  /* package */ synchronized Long removeTable(NodeAddress addr, String tableName) {
-    if (!tables.containsKey(addr))
-      return null;
-
-    if (!tables.get(addr).getRight().contains(tableName))
-      return null;
-
-    Long newVersion = tables.get(addr).getLeft() + 1;
-    Pair<Long, NavigableSet<String>> newPair =
-        new Pair<>(newVersion, new ConcurrentSkipListSet<>(tables.get(addr).getRight()));
-    newPair.getRight().remove(tableName);
-
-    tables.put(addr, newPair);
-
-    return newVersion;
-  }
 }

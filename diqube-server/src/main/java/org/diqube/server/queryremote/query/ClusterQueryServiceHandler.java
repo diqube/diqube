@@ -43,6 +43,7 @@ import org.diqube.data.column.ColumnShard;
 import org.diqube.data.table.TableShard;
 import org.diqube.execution.ExecutablePlan;
 import org.diqube.execution.ExecutablePlanFromRemoteBuilderFactory;
+import org.diqube.execution.exception.ExecutablePlanBuildException;
 import org.diqube.executionenv.ExecutionEnvironment;
 import org.diqube.executionenv.TableRegistry;
 import org.diqube.executionenv.cache.ColumnShardCacheRegistry;
@@ -55,6 +56,7 @@ import org.diqube.queries.QueryRegistry.QueryExceptionHandler;
 import org.diqube.queries.QueryRegistry.QueryPercentHandler;
 import org.diqube.queries.QueryRegistry.QueryResultHandler;
 import org.diqube.queries.QueryStats;
+import org.diqube.queries.QueryUuid;
 import org.diqube.queries.QueryUuidProvider;
 import org.diqube.remote.base.thrift.RNodeAddress;
 import org.diqube.remote.base.thrift.RUUID;
@@ -204,106 +206,118 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
 
     Holder<List<ExecutablePlan>> executablePlansHolder = new Holder<>();
 
-    Pair<Runnable, List<ExecutablePlan>> prepareRes =
-        executor.prepareExecution(queryUuid, executionUuid, executionPlan, new RemoteExecutionPlanExecutionCallback() {
-          @Override
-          public void newGroupIntermediaryAggregration(long groupId, String colName,
-              ROldNewIntermediateAggregationResult result, short percentDone) {
-            synchronized (resultServiceProv) {
-              try {
-                resultServiceProv.getService().groupIntermediateAggregationResultAvailable(remoteQueryUuid, groupId,
-                    colName, result, percentDone);
-              } catch (TException e) {
-                logger.error("Could not send new group intermediaries to client for query {}", queryUuid, e);
-                exceptionHandler.handleException(null);
-              }
-            }
-          }
-
-          @Override
-          public void newColumnValues(String colName, Map<Long, RValue> values, short percentDone) {
-            synchronized (resultServiceProv) {
-              try {
-                logger.trace("Constructed final column values, sending them now.");
-                resultServiceProv.getService().columnValueAvailable(remoteQueryUuid, colName, values, percentDone);
-              } catch (TException e) {
-                logger.error("Could not send new group intermediaries to client for query {}", queryUuid, e);
-                exceptionHandler.handleException(null);
-              }
-            }
-          }
-
-          @Override
-          public void executionDone() {
-            // gather final stats
-            queryRegistry.getOrCreateCurrentStatsManager().setCompletedNanos(System.nanoTime());
-
-            for (ExecutablePlan plan : executablePlansHolder.getValue())
-              new ExecutablePlanQueryStatsUtil().publishQueryStats(queryRegistry.getCurrentStatsManager(), plan);
-
-            // send stats
-            RClusterQueryStatistics remoteStats =
-                RClusterQueryStatsUtil.createRQueryStats(queryRegistry.getCurrentStatsManager().createQueryStats());
-            logger.trace("Sending query statistics of {} to query master: {}", queryUuid, remoteStats);
-            synchronized (resultServiceProv) {
-              try {
-                resultServiceProv.getService().queryStatistics(remoteQueryUuid, remoteStats);
-              } catch (TException e) {
-                logger.error("Could not send statistics to client for query {}", queryUuid, e);
-              }
-
-            }
-
-            // update table cache with the results of this query execution. Note that if this query execution loaded
-            // specific columns from the cache, they will be available in the ExecutionEnv as "temporary columns" - and
-            // we will present them to the cache again right away. With this mechanism the cache can actively count the
-            // usages of specific columns and therefore tune what it should cache and what not.
-            String finalTableName;
-            if (executionPlan.getFrom().isSetPlainTableName())
-              finalTableName = executionPlan.getFrom().getPlainTableName();
-            else {
-              String origTableName = executionPlan.getFrom().getFlattened().getTableName();
-              String flattenBy = executionPlan.getFrom().getFlattened().getFlattenBy();
-              UUID flattenId = RUuidUtil.toUuid(executionPlan.getFrom().getFlattened().getFlattenId());
-              finalTableName =
-                  new FlattenedTableNameGenerator().createFlattenedTableName(origTableName, flattenBy, flattenId);
-            }
-            WritableColumnShardCache tableCache = tableCacheRegistry.getColumnShardCache(finalTableName);
-            if (tableCache != null) {
-              logger.info("Updating the table cache with results of query {}, execution {}", queryUuid, executionUuid);
-              for (ExecutablePlan plan : executablePlansHolder.getValue()) {
-                ExecutionEnvironment env = plan.getDefaultExecutionEnvironment();
-                Map<String, List<QueryableColumnShard>> tempColShards = env.getAllTemporaryColumnShards();
-                for (String colName : tempColShards.keySet()) {
-                  ColumnShard tempCol = Iterables.getLast(tempColShards.get(colName)).getDelegate();
-                  tableCache.offer(env.getFirstRowIdInShard(), tempCol.getName(), tempCol);
+    Pair<Runnable, List<ExecutablePlan>> prepareRes = null;
+    try {
+      prepareRes = executor.prepareExecution(queryUuid, executionUuid, executionPlan,
+          new RemoteExecutionPlanExecutionCallback() {
+            @Override
+            public void newGroupIntermediaryAggregration(long groupId, String colName,
+                ROldNewIntermediateAggregationResult result, short percentDone) {
+              synchronized (resultServiceProv) {
+                try {
+                  resultServiceProv.getService().groupIntermediateAggregationResultAvailable(remoteQueryUuid, groupId,
+                      colName, result, percentDone);
+                } catch (TException e) {
+                  logger.error("Could not send new group intermediaries to client for query {}", queryUuid, e);
+                  exceptionHandler.handleException(null);
                 }
               }
             }
 
-            synchronized (resultServiceProv) {
-              try {
-                resultServiceProv.getService().executionDone(remoteQueryUuid);
-              } catch (TException e) {
-                logger.error("Could not send 'done' to client for query {}", queryUuid, e);
+            @Override
+            public void newColumnValues(String colName, Map<Long, RValue> values, short percentDone) {
+              synchronized (resultServiceProv) {
+                try {
+                  logger.trace("Constructed final column values, sending them now.");
+                  resultServiceProv.getService().columnValueAvailable(remoteQueryUuid, colName, values, percentDone);
+                } catch (TException e) {
+                  logger.error("Could not send new group intermediaries to client for query {}", queryUuid, e);
+                  exceptionHandler.handleException(null);
+                }
               }
             }
 
-            exceptionHandler.handleException(null);
-          }
-        });
+            @Override
+            public void executionDone() {
+              // gather final stats
+              queryRegistry.getOrCreateCurrentStatsManager().setCompletedNanos(System.nanoTime());
+
+              for (ExecutablePlan plan : executablePlansHolder.getValue())
+                new ExecutablePlanQueryStatsUtil().publishQueryStats(queryRegistry.getCurrentStatsManager(), plan);
+
+              // send stats
+              RClusterQueryStatistics remoteStats =
+                  RClusterQueryStatsUtil.createRQueryStats(queryRegistry.getCurrentStatsManager().createQueryStats());
+              logger.trace("Sending query statistics of {} to query master: {}", queryUuid, remoteStats);
+              synchronized (resultServiceProv) {
+                try {
+                  resultServiceProv.getService().queryStatistics(remoteQueryUuid, remoteStats);
+                } catch (TException e) {
+                  logger.error("Could not send statistics to client for query {}", queryUuid, e);
+                }
+
+              }
+
+              // update table cache with the results of this query execution. Note that if this query execution loaded
+              // specific columns from the cache, they will be available in the ExecutionEnv as "temporary columns" -
+              // and we will present them to the cache again right away. With this mechanism the cache can actively
+              // count the usages of specific columns and therefore tune what it should cache and what not.
+              String finalTableName;
+              if (executionPlan.getFrom().isSetPlainTableName())
+                finalTableName = executionPlan.getFrom().getPlainTableName();
+              else {
+                String origTableName = executionPlan.getFrom().getFlattened().getTableName();
+                String flattenBy = executionPlan.getFrom().getFlattened().getFlattenBy();
+                UUID flattenId = RUuidUtil.toUuid(executionPlan.getFrom().getFlattened().getFlattenId());
+                finalTableName =
+                    new FlattenedTableNameGenerator().createFlattenedTableName(origTableName, flattenBy, flattenId);
+              }
+              WritableColumnShardCache tableCache = tableCacheRegistry.getColumnShardCache(finalTableName);
+              if (tableCache != null) {
+                logger.info("Updating the table cache with results of query {}, execution {}", queryUuid,
+                    executionUuid);
+                for (ExecutablePlan plan : executablePlansHolder.getValue()) {
+                  ExecutionEnvironment env = plan.getDefaultExecutionEnvironment();
+                  Map<String, List<QueryableColumnShard>> tempColShards = env.getAllTemporaryColumnShards();
+                  for (String colName : tempColShards.keySet()) {
+                    ColumnShard tempCol = Iterables.getLast(tempColShards.get(colName)).getDelegate();
+                    tableCache.offer(env.getFirstRowIdInShard(), tempCol.getName(), tempCol);
+                  }
+                }
+              }
+
+              synchronized (resultServiceProv) {
+                try {
+                  resultServiceProv.getService().executionDone(remoteQueryUuid);
+                } catch (TException e) {
+                  logger.error("Could not send 'done' to client for query {}", queryUuid, e);
+                }
+              }
+
+              exceptionHandler.handleException(null);
+            }
+          });
+    } catch (ExecutablePlanBuildException e) {
+      // swallow, prepareRes == null, see just below.
+    }
 
     if (prepareRes == null) {
       // we cannot execute anything, probably the TableShards were just unloaded.
       long now = System.nanoTime();
-      queryRegistry.getOrCreateCurrentStatsManager().setStartedNanos(now);
-      queryRegistry.getOrCreateCurrentStatsManager().setCompletedNanos(now);
-      synchronized (resultServiceProv) {
-        logger.info("As there's nothing to execute for query {} execution {}, sending empty stats and an executionDone",
-            queryUuid, executionUuid);
-        resultServiceProv.getService().queryStatistics(remoteQueryUuid,
-            RClusterQueryStatsUtil.createRQueryStats(queryRegistry.getCurrentStatsManager().createQueryStats()));
-        resultServiceProv.getService().executionDone(remoteQueryUuid);
+      QueryUuid.setCurrentQueryUuidAndExecutionUuid(queryUuid, executionUuid);
+      try {
+        queryRegistry.getOrCreateCurrentStatsManager().setStartedNanos(now);
+        queryRegistry.getOrCreateCurrentStatsManager().setCompletedNanos(now);
+        synchronized (resultServiceProv) {
+          logger.info(
+              "As there's nothing to execute for query {} execution {}, sending empty stats and an executionDone",
+              queryUuid, executionUuid);
+          resultServiceProv.getService().queryStatistics(remoteQueryUuid,
+              RClusterQueryStatsUtil.createRQueryStats(queryRegistry.getCurrentStatsManager().createQueryStats()));
+          resultServiceProv.getService().executionDone(remoteQueryUuid);
+        }
+      } finally {
+        QueryUuid.clearCurrent();
       }
       exceptionHandler.handleException(null);
       return;

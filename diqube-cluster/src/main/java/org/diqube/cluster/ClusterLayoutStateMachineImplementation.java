@@ -20,7 +20,10 @@
  */
 package org.diqube.cluster;
 
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.diqube.connection.NodeAddress;
@@ -31,6 +34,7 @@ import org.slf4j.LoggerFactory;
 import io.atomix.copycat.server.Commit;
 
 /**
+ * Implementation of {@link ClusterLayoutStateMachine} which is executed on the "server side" of each cluster node.
  *
  * @author Bastian Gloeckle
  */
@@ -38,16 +42,68 @@ import io.atomix.copycat.server.Commit;
 public class ClusterLayoutStateMachineImplementation implements ClusterLayoutStateMachine {
   private static final Logger logger = LoggerFactory.getLogger(ClusterLayoutStateMachineImplementation.class);
 
-  private Map<NodeAddress, Commit<SetLayoutOfNode>> previousLayout = new ConcurrentHashMap<>();
+  private Map<NodeAddress, Commit<?>> previousCommand = new ConcurrentHashMap<>();
+  private Map<NodeAddress, Set<String>> tables = new ConcurrentHashMap<>();
 
   @Override
-  public void setLayoutOfNode(Commit<SetLayoutOfNode> commit) {
-    Commit<SetLayoutOfNode> prev = previousLayout.put(commit.operation().getNode(), commit);
+  public void setTablesOfNode(Commit<SetTablesOfNode> commit) {
+    Commit<?> prev = previousCommand.put(commit.operation().getNode(), commit);
 
     logger.info("New tables for node {}: {}", commit.operation().getNode(), commit.operation().getTables());
+    tables.put(commit.operation().getNode(), new HashSet<>(commit.operation().getTables()));
 
     if (prev != null)
       prev.clean();
+  }
+
+  @Override
+  public void removeNode(Commit<RemoveNode> commit) {
+    Commit<?> prev = previousCommand.put(commit.operation().getNode(), commit);
+
+    logger.info("Node removed from cluster layout: {}", commit.operation().getNode());
+    tables.remove(commit.operation().getNode());
+
+    if (prev != null)
+      prev.clean();
+  }
+
+  @Override
+  public Set<NodeAddress> findNodesServingTable(Commit<FindNodesServingTable> commit) {
+    String tableName = commit.operation().getTableName();
+    commit.close();
+
+    Set<NodeAddress> res = new HashSet<>();
+    for (Entry<NodeAddress, Set<String>> e : tables.entrySet()) {
+      if (e.getValue().contains(tableName))
+        res.add(e.getKey());
+    }
+
+    return res;
+  }
+
+  @Override
+  public Set<NodeAddress> getAllNodes(Commit<GetAllNodes> commit) {
+    commit.close();
+
+    return new HashSet<>(tables.keySet());
+  }
+
+  @Override
+  public Boolean isNodeKnown(Commit<IsNodeKnown> commit) {
+    NodeAddress addr = commit.operation().getNode();
+    commit.close();
+    return tables.containsKey(addr);
+  }
+
+  @Override
+  public Set<String> getAllTablesServed(Commit<GetAllTablesServed> commit) {
+    commit.close();
+
+    Set<String> res = new HashSet<>();
+    for (Entry<NodeAddress, Set<String>> e : tables.entrySet())
+      res.addAll(e.getValue());
+
+    return res;
   }
 
 }

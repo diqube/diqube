@@ -54,6 +54,7 @@ import io.atomix.catalyst.transport.Address;
 import io.atomix.copycat.client.Operation;
 import io.atomix.copycat.client.RaftClient;
 import io.atomix.copycat.server.CopycatServer;
+import io.atomix.copycat.server.RaftServer.State;
 import io.atomix.copycat.server.StateMachine;
 import io.atomix.copycat.server.StateMachineExecutor;
 import io.atomix.copycat.server.storage.Storage;
@@ -67,7 +68,7 @@ import io.atomix.copycat.server.storage.StorageLevel;
  * 
  * <p>
  * This will automatically join the copycat cluster which is defined by the node addresses returned by
- * {@link ClusterNodeAddressProvider}.
+ * {@link ConsensusClusterNodeAddressProvider}.
  *
  * @author Bastian Gloeckle
  */
@@ -79,7 +80,7 @@ public class DiqubeCopycatServer implements ClusterManagerListener {
   private OurNodeAddressProvider ourNodeAddressProvider;
 
   @Inject
-  private ClusterNodeAddressProvider clusterNodeAddressProvider;
+  private ConsensusClusterNodeAddressProvider consensusClusterNodeAddressProvider;
 
   @Inject
   private DiqubeCatalystTransport transport;
@@ -126,7 +127,7 @@ public class DiqubeCopycatServer implements ClusterManagerListener {
   @Override
   public void clusterInitialized() {
     Address ourAddr = toCopycatAddress(ourNodeAddressProvider.getOurNodeAddress());
-    List<Address> members = clusterNodeAddressProvider.getClusterNodeAddresses().stream()
+    List<Address> members = consensusClusterNodeAddressProvider.getClusterNodeAddressesForConsensus().stream()
         .map(addr -> toCopycatAddress(addr)).collect(Collectors.toList());
 
     File consensusDataDirFile = new File(consensusDataDir);
@@ -199,6 +200,13 @@ public class DiqubeCopycatServer implements ClusterManagerListener {
         logger.debug("Consensus server closed.");
       copycatServer = null;
     }
+  }
+
+  /**
+   * @return true if this node is the leader of the consensus cluster.
+   */
+  public boolean isLeader() {
+    return copycatServer != null && copycatServer.state().equals(State.LEADER);
   }
 
   private Address toCopycatAddress(NodeAddress addr) {

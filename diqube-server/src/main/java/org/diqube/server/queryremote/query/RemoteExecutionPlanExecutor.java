@@ -42,6 +42,7 @@ import org.diqube.execution.ExecutablePlanFromRemoteBuilderFactory;
 import org.diqube.execution.ExecutionPercentage;
 import org.diqube.execution.consumers.AbstractThreadedColumnValueConsumer;
 import org.diqube.execution.consumers.AbstractThreadedGroupIntermediaryAggregationConsumer;
+import org.diqube.execution.exception.ExecutablePlanBuildException;
 import org.diqube.executionenv.TableRegistry;
 import org.diqube.function.IntermediaryResult;
 import org.diqube.queries.QueryRegistry;
@@ -117,9 +118,11 @@ public class RemoteExecutionPlanExecutor {
    * @return Pair of runnable (see above) and the ExecutablePlans that were created from the {@link RExecutionPlan} and
    *         will be executed. <code>null</code> will be returned in case there is nothing to execute (e.g. the
    *         TableShards of the Table were just unloaded).
+   * @throws ExecutablePlanBuildException
+   *           If plan cannot be built.
    */
   public Pair<Runnable, List<ExecutablePlan>> prepareExecution(UUID queryUuid, UUID executionUuid,
-      RExecutionPlan executionPlan, RemoteExecutionPlanExecutionCallback callback) {
+      RExecutionPlan executionPlan, RemoteExecutionPlanExecutionCallback callback) throws ExecutablePlanBuildException {
     Holder<List<ExecutionPercentage>> executionPercentageHolder = new Holder<>();
 
     ExecutablePlanFromRemoteBuilder executablePlanBuilder =

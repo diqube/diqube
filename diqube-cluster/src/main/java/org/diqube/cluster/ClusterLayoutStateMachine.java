@@ -21,6 +21,7 @@
 package org.diqube.cluster;
 
 import java.util.Collection;
+import java.util.Set;
 
 import org.diqube.connection.NodeAddress;
 import org.diqube.consensus.ConsensusMethod;
@@ -28,19 +29,124 @@ import org.diqube.consensus.ConsensusStateMachine;
 import org.diqube.consensus.DiqubeConsensusUtil;
 
 import io.atomix.copycat.client.Command;
+import io.atomix.copycat.client.Query;
 import io.atomix.copycat.server.Commit;
 
 /**
+ * A cluster-safe state machine to distribute data of what nodes are in the cluster and what nodes know what tables.
  *
  * @author Bastian Gloeckle
  */
 @ConsensusStateMachine
 public interface ClusterLayoutStateMachine {
 
-  @ConsensusMethod(dataClass = SetLayoutOfNode.class)
-  public void setLayoutOfNode(Commit<SetLayoutOfNode> commit);
+  /**
+   * Sets the tables available on a node. A node without any tables denotes an available empty node.
+   */
+  @ConsensusMethod(dataClass = SetTablesOfNode.class)
+  public void setTablesOfNode(Commit<SetTablesOfNode> commit);
 
-  public static class SetLayoutOfNode implements Command<Void> {
+  /**
+   * Remove a node from the cluster layout - when a node left the cluster.
+   */
+  @ConsensusMethod(dataClass = RemoveNode.class)
+  public void removeNode(Commit<RemoveNode> commit);
+
+  /**
+   * Query that returns those node addresses which serve a specific table.
+   */
+  @ConsensusMethod(dataClass = FindNodesServingTable.class)
+  public Set<NodeAddress> findNodesServingTable(Commit<FindNodesServingTable> commit);
+
+  /**
+   * Query that returns a list of all known reachable nodes.
+   */
+  @ConsensusMethod(dataClass = GetAllNodes.class)
+  public Set<NodeAddress> getAllNodes(Commit<GetAllNodes> commit);
+
+  /**
+   * Query that returns whether a specific node is known to be reachable in the Cluster layout.
+   */
+  @ConsensusMethod(dataClass = IsNodeKnown.class)
+  public Boolean isNodeKnown(Commit<IsNodeKnown> commit);
+
+  /**
+   * Query that returns the names of all tables available in the cluster.
+   */
+  @ConsensusMethod(dataClass = GetAllTablesServed.class)
+  public Set<String> getAllTablesServed(Commit<GetAllTablesServed> commit);
+
+  public static class GetAllTablesServed implements Query<Set<String>> {
+    private static final long serialVersionUID = 1L;
+
+    public static Commit<GetAllTablesServed> local() {
+      GetAllTablesServed res = new GetAllTablesServed();
+      return DiqubeConsensusUtil.localCommit(res);
+    }
+  }
+
+  public static class IsNodeKnown implements Query<Boolean> {
+    private static final long serialVersionUID = 1L;
+
+    private NodeAddress node;
+
+    public NodeAddress getNode() {
+      return node;
+    }
+
+    public static Commit<IsNodeKnown> local(NodeAddress node) {
+      IsNodeKnown res = new IsNodeKnown();
+      res.node = node;
+      return DiqubeConsensusUtil.localCommit(res);
+    }
+  }
+
+  public static class GetAllNodes implements Query<Set<NodeAddress>> {
+    private static final long serialVersionUID = 1L;
+
+    public static Commit<GetAllNodes> local() {
+      GetAllNodes res = new GetAllNodes();
+      return DiqubeConsensusUtil.localCommit(res);
+    }
+  }
+
+  public static class FindNodesServingTable implements Query<Set<NodeAddress>> {
+    private static final long serialVersionUID = 1L;
+
+    private String tableName;
+
+    public String getTableName() {
+      return tableName;
+    }
+
+    public static Commit<FindNodesServingTable> local(String tableName) {
+      FindNodesServingTable res = new FindNodesServingTable();
+      res.tableName = tableName;
+      return DiqubeConsensusUtil.localCommit(res);
+    }
+  }
+
+  public static class RemoveNode implements Command<Void> {
+    private static final long serialVersionUID = 1L;
+    private NodeAddress node;
+
+    @Override
+    public PersistenceLevel persistence() {
+      return PersistenceLevel.PERSISTENT;
+    }
+
+    public NodeAddress getNode() {
+      return node;
+    }
+
+    public static Commit<RemoveNode> local(NodeAddress node) {
+      RemoveNode res = new RemoveNode();
+      res.node = node;
+      return DiqubeConsensusUtil.localCommit(res);
+    }
+  }
+
+  public static class SetTablesOfNode implements Command<Void> {
     private static final long serialVersionUID = 1L;
     private NodeAddress node;
     private Collection<String> tables;
@@ -53,8 +159,8 @@ public interface ClusterLayoutStateMachine {
       return tables;
     }
 
-    public static Commit<SetLayoutOfNode> local(NodeAddress node, Collection<String> tables) {
-      SetLayoutOfNode res = new SetLayoutOfNode();
+    public static Commit<SetTablesOfNode> local(NodeAddress node, Collection<String> tables) {
+      SetTablesOfNode res = new SetTablesOfNode();
       res.node = node;
       res.tables = tables;
       return DiqubeConsensusUtil.localCommit(res);

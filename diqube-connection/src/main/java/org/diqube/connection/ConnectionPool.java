@@ -71,9 +71,11 @@ import com.google.common.math.IntMath;
  * HTTP connections.
  * 
  * <p>
- * Note that this pool will install itself as {@link ClusterNodeDiedListener} automatically as it wants to be informed
- * if any other classes found a specific node to be "down". If this class itself (read: one of the connections created)
- * identifies that a remote is down, it will though inform all the {@link ClusterNodeDiedListener} itself as well.
+ * Note that this pool will install itself as {@link ClusterNodeStatusDetailListener} automatically as it wants to be
+ * informed if any other classes found a specific node to be "down". If this class itself (read: one of the connections
+ * created) identifies that a remote is down, it will though inform all the {@link ClusterNodeStatusDetailListener}
+ * itself as well. If this class identifies a node to be "up", then it will inform the
+ * {@link ClusterNodeStatusDetailListener}s, too.
  *
  * <p>
  * TODO ? change this class to use NodeAdress instead of RNodeAddress
@@ -81,7 +83,7 @@ import com.google.common.math.IntMath;
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
-public class ConnectionPool implements ClusterNodeDiedListener {
+public class ConnectionPool implements ClusterNodeStatusDetailListener {
   static final Logger logger = LoggerFactory.getLogger(ConnectionPool.class);
 
   @Config(ConfigKey.CLIENT_SOCKET_TIMEOUT_MS)
@@ -107,11 +109,11 @@ public class ConnectionPool implements ClusterNodeDiedListener {
   private Object connectionsAvailableWait = new Object();
 
   /**
-   * {@link ClusterNodeDiedListener}s to be informed when we identify that a node is down. Note that this list will
-   * contain "this" object as well!
+   * {@link ClusterNodeStatusDetailListener}s to be informed when we identify that a node is down. Note that this list
+   * will contain "this" object as well!
    */
   @InjectOptional
-  private List<ClusterNodeDiedListener> clusterNodeDiedListeners;
+  private List<ClusterNodeStatusDetailListener> clusterNodeStatusDetailListeners;
 
   @Inject
   private DiqubeThriftServiceInfoManager diqubeThriftServiceInfoManager;
@@ -326,7 +328,7 @@ public class ConnectionPool implements ClusterNodeDiedListener {
    */
   @SuppressWarnings("unchecked")
   private <T> Connection<T> reserveAvailableConnection(DiqubeThriftServiceInfo<T> serviceInfo, RNodeAddress addr,
-      SocketListener socketListener) {
+      SocketListener socketListener) throws InterruptedException {
     Deque<Connection<?>> conns = availableConnections.get(addr);
 
     if (conns != null) {
@@ -352,6 +354,9 @@ public class ConnectionPool implements ClusterNodeDiedListener {
             keepAliveConn.getService().ping();
 
             // yes, is still alive, so use it! Make sure it is a connection of the requested service.
+            if (clusterNodeStatusDetailListeners != null)
+              for (ClusterNodeStatusDetailListener l : clusterNodeStatusDetailListeners)
+                l.nodeAlive(addr);
             Connection<T> res = connectionFactory.createConnection(keepAliveConn, serviceInfo);
             defaultSocketListeners.put(res, defaultSocketListeners.get(keepAliveConn));
             defaultSocketListeners.remove(keepAliveConn);
@@ -383,7 +388,7 @@ public class ConnectionPool implements ClusterNodeDiedListener {
    * @return the reserved or freshly opened connection
    */
   private <T> Connection<T> reserveAvailableOrCreateConnection(DiqubeThriftServiceInfo<T> serviceInfo,
-      RNodeAddress addr, SocketListener socketListener) {
+      RNodeAddress addr, SocketListener socketListener) throws InterruptedException {
 
     Connection<T> res = null;
     res = reserveAvailableConnection(serviceInfo, addr, socketListener);
@@ -401,10 +406,15 @@ public class ConnectionPool implements ClusterNodeDiedListener {
         newDefaultSocketListener.setParentConnection(res);
         defaultSocketListeners.put(res, newDefaultSocketListener);
         logger.debug("Opened new connection {} to {}", System.identityHashCode(res.getTransport()), addr);
+
+        if (clusterNodeStatusDetailListeners != null)
+          for (ClusterNodeStatusDetailListener l : clusterNodeStatusDetailListeners)
+            l.nodeAlive(addr);
+
       } catch (ConnectionException e) {
         logger.warn("Could not connect to {}.", addr);
-        if (clusterNodeDiedListeners != null)
-          for (ClusterNodeDiedListener listener : clusterNodeDiedListeners)
+        if (clusterNodeStatusDetailListeners != null)
+          for (ClusterNodeStatusDetailListener listener : clusterNodeStatusDetailListeners)
             if (listener != this)
               listener.nodeDied(addr);
         throw new ConnectionException("Error connecting to " + addr, e);
@@ -525,8 +535,7 @@ public class ConnectionPool implements ClusterNodeDiedListener {
   @Override
   public void nodeDied(RNodeAddress nodeAddr) {
     // Someone (probably ClusterManager) informed us that a specific node died. Close all its connections and clean up
-    // all resources. See the comment in ClusterManager#nodeDied for more info on when this procedure might get harmful
-    // in the future.
+    // all resources.
 
     Deque<Connection<?>> oldConnections;
     // removing an entry from availableConnections, be aware of the synchronization etc here!
@@ -540,6 +549,11 @@ public class ConnectionPool implements ClusterNodeDiedListener {
     // Note that it might happen that there are still reserved connections for the node - in which case we cannot clean
     // defaultSocketListeners right here. It is to be expected that those reserved connections though will throw
     // exceptions, too - and will end up being handled by DefaultSocketListener.
+  }
+
+  @Override
+  public void nodeAlive(RNodeAddress nodeAddr) {
+    // noop. The pool is not interested in any alive notifications.
   }
 
   /**
@@ -650,8 +664,8 @@ public class ConnectionPool implements ClusterNodeDiedListener {
    * therefore we need to be flexible here, because we do not want to close/open the sockets themselves all the time,
    * but maintain open connections.
    * 
-   * The implementation takes care of marking nodes as "died" in all interested {@link ClusterNodeDiedListener}s (read:
-   * in the {@link ClusterManager}) as soon as a connection fails to a node.
+   * The implementation takes care of marking nodes as "died" in all interested {@link ClusterNodeStatusDetailListener}s
+   * (read: in the {@link ClusterManager}) as soon as a connection fails to a node.
    */
   private class DefaultSocketListener implements SocketListener {
 
@@ -674,9 +688,9 @@ public class ConnectionPool implements ClusterNodeDiedListener {
     @Override
     public void connectionDied(String cause) {
       logger.warn("Connection to {} died unexpectedly: {}", address, cause);
-      if (clusterNodeDiedListeners != null)
+      if (clusterNodeStatusDetailListeners != null)
         // We will call the ConnectionPool#nodeDied method on "this", too!
-        for (ClusterNodeDiedListener listener : clusterNodeDiedListeners)
+        for (ClusterNodeStatusDetailListener listener : clusterNodeStatusDetailListeners)
           listener.nodeDied(address);
 
       // although ConnectionPool#nodeDied was called, we need to cleanup this connection, because

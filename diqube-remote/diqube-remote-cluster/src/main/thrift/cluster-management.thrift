@@ -25,18 +25,8 @@ include "${diqube.thrift.dependencies}/base.thrift"
 
 
 service ClusterManagementService {
-  // a new node says hello to all cluster nodes, returns the current version number of the list table it serves.
-  i64 hello(1: base.RNodeAddress newNode),
+  // ask a node to please publish its currently loaded tables using diqube-consensus.
+  oneway void publishLoadedTablesInConsensus();
   
-  // After a new node has said hello, it will fetch the current active nodes in the whole cluster and the tablenames
-  // they are serving. Mapping from node address to a single-entry map containing the version number of the layout of 
-  // the node and the tableNames it currently serves shards of.
-  map<base.RNodeAddress, map<i64, list<string>>> clusterLayout(),
-  
-  // return a single-entry map containing the current version of what tables the node serves parts of.
-  map<i64, list<string>> fetchCurrentTablesServed(),
-  
-  oneway void newNodeData(1: base.RNodeAddress nodeAddr, 2:i64 version, 3:list<string> tables),
-  
-  oneway void nodeDied(1: base.RNodeAddress nodeAddr)
+  list<base.RNodeAddress> getAllKnownClusterNodes();
 }

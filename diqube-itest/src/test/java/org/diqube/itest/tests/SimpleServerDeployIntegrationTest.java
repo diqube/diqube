@@ -22,7 +22,6 @@ package org.diqube.itest.tests;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,7 +41,6 @@ import org.diqube.remote.base.thrift.RValue;
 import org.diqube.remote.base.util.RUuidUtil;
 import org.diqube.remote.base.util.RValueUtil;
 import org.diqube.server.NewDataWatcher;
-import org.diqube.util.Holder;
 import org.diqube.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,66 +66,6 @@ public class SimpleServerDeployIntegrationTest extends AbstractDiqubeIntegration
       + "/age_rowId11" + NewDataWatcher.CONTROL_FILE_EXTENSION;
   private static final String AGE_10_CONTROL_FILE = "/" + SimpleServerDeployIntegrationTest.class.getSimpleName()
       + "/age_rowId10" + NewDataWatcher.CONTROL_FILE_EXTENSION;
-
-  @Test
-  @NeedsServer(servers = 1)
-  public void singleServerTablesServedAndClusterLayout() throws InterruptedException {
-    // WHEN
-    serverControl.get(0).deploy(cp(AGE_0_CONTROL_FILE), cp(AGE_JSON_FILE));
-
-    // THEN
-    // server 0 serves table "age"
-    serverControl.get(0).getSerivceTestUtil().clusterMgmtService((cms) -> {
-      List<String> tablesServed = Iterables.getOnlyElement(cms.fetchCurrentTablesServed().values());
-      Assert.assertEquals(tablesServed, Arrays.asList(AGE_TABLE));
-    });
-
-    Holder<Map<ServerAddr, List<String>>> clusterLayoutHolder = new Holder<>();
-    serverControl.get(0).getSerivceTestUtil()
-        .clusterMgmtService((cms) -> clusterLayoutHolder.setValue(toServerAddrCurrentMap(cms.clusterLayout())));
-
-    Assert.assertTrue(clusterLayoutHolder.getValue().containsKey(serverControl.get(0).getAddr()),
-        "Expected node to be contained in cluster layout");
-    Assert.assertEquals(clusterLayoutHolder.getValue().get(serverControl.get(0).getAddr()), Arrays.asList(AGE_TABLE));
-  }
-
-  @Test
-  @NeedsServer(servers = 2)
-  public void twoServersTablesServedAndClusterLayout() throws InterruptedException {
-    // WHEN
-    serverControl.get(0).deploy(cp(AGE_0_CONTROL_FILE), cp(AGE_JSON_FILE));
-    serverControl.get(1).deploy(cp(AGE_11_CONTROL_FILE), cp(AGE_JSON_FILE));
-
-    // THEN
-    // server 0 serves table "age"
-    serverControl.get(0).getSerivceTestUtil().clusterMgmtService((cms) -> {
-      List<String> tablesServed = Iterables.getOnlyElement(cms.fetchCurrentTablesServed().values());
-      Assert.assertEquals(tablesServed, Arrays.asList(AGE_TABLE));
-    });
-
-    // get cluster layout
-    Holder<Map<ServerAddr, List<String>>> clusterLayoutHolder = new Holder<>();
-    serverControl.get(0).getSerivceTestUtil()
-        .clusterMgmtService((cms) -> clusterLayoutHolder.setValue(toServerAddrCurrentMap(cms.clusterLayout())));
-
-    // server 1 serves table "age"
-    serverControl.get(1).getSerivceTestUtil().clusterMgmtService((cms) -> {
-      List<String> tablesServed = Iterables.getOnlyElement(cms.fetchCurrentTablesServed().values());
-      Assert.assertEquals(tablesServed, Arrays.asList(AGE_TABLE));
-    });
-    // server 1 has same clusterlayout as server 0
-    serverControl.get(1).getSerivceTestUtil()
-        .clusterMgmtService((cms) -> Assert.assertEquals(toServerAddrCurrentMap(cms.clusterLayout()),
-            clusterLayoutHolder.getValue(), "Expected both cluster nodes to have the same cluster layout."));
-
-    // clusterlayout contains both nodes with table "age".
-    Assert.assertTrue(clusterLayoutHolder.getValue().containsKey(serverControl.get(0).getAddr()),
-        "Expected node to be contained in cluster layout");
-    Assert.assertEquals(clusterLayoutHolder.getValue().get(serverControl.get(0).getAddr()), Arrays.asList(AGE_TABLE));
-    Assert.assertTrue(clusterLayoutHolder.getValue().containsKey(serverControl.get(1).getAddr()),
-        "Expected node to be contained in cluster layout");
-    Assert.assertEquals(clusterLayoutHolder.getValue().get(serverControl.get(1).getAddr()), Arrays.asList(AGE_TABLE));
-  }
 
   @Test
   @NeedsServer(servers = 1)
