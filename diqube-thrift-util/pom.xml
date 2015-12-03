@@ -29,9 +29,9 @@
     <artifactId>diqube</artifactId>
     <version>1-SNAPSHOT</version>
   </parent>
-  <artifactId>diqube-connection</artifactId>
+  <artifactId>diqube-thrift-util</artifactId>
   <packaging>jar</packaging>
-  <name>diqube - Connection</name>
+  <name>diqube - Thrift Util</name>
   <url>http://www.diqube.org</url>
 
   <build>
@@ -62,59 +62,14 @@
 
   <dependencies>
     <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>diqube-context</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>diqube-listeners</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>diqube-config</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>diqube-remote-cluster</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>diqube-remote-query</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>diqube-queries</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>diqube-thrift-util</artifactId>
-      <version>${project.version}</version>
+      <groupId>org.apache.thrift</groupId>
+      <artifactId>libthrift</artifactId>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>diqube-test-util</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
-    </dependency>
-    
-    <dependency>
-      <groupId>org.bouncycastle</groupId>
-      <artifactId>bcprov-jdk15on</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.bouncycastle</groupId>
-      <artifactId>bcpkix-jdk15on</artifactId>
-    </dependency>
-    
-    <dependency>
-      <groupId>org.mockito</groupId>
-      <artifactId>mockito-all</artifactId>
     </dependency>
   </dependencies>
 </project>

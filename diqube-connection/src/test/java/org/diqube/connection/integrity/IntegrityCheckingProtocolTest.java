@@ -26,6 +26,7 @@ import org.apache.thrift.protocol.TMessage;
 import org.apache.thrift.transport.TMemoryBuffer;
 import org.apache.thrift.transport.TMemoryInputTransport;
 import org.diqube.connection.integrity.IntegrityCheckingProtocol.IntegrityViolatedException;
+import org.diqube.thriftutil.RememberingTransport;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;

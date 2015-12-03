@@ -35,6 +35,7 @@ import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.protocol.TProtocolDecorator;
 import org.apache.thrift.protocol.TProtocolFactory;
 import org.apache.thrift.transport.TTransport;
+import org.diqube.thriftutil.RememberingTransport;
 import org.diqube.util.BouncycastleUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

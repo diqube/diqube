@@ -56,12 +56,15 @@
     <module>diqube-listeners</module>
     <module>diqube-remote</module>
     <module>diqube-util</module>
+    <module>diqube-thrift-util</module>
     <module>diqube-queries</module>
     <module>diqube-threads</module>
     <module>diqube-context</module>
     <module>diqube-config</module>
     <module>diqube-connection</module>
+    <module>diqube-ticket</module>
     <module>diqube-consensus</module>
+    <module>diqube-im</module>
     <module>diqube-cluster</module>
     <module>diqube-cache</module>
     <module>diqube-data</module>
@@ -94,7 +97,7 @@
     <thrift.version.executable.string>Thrift version 0.9.2</thrift.version.executable.string>
     <hadoop.version>2.7.1</hadoop.version>
     <copycat.version>1.0.0-beta4</copycat.version>
-    <bouncycastle.version>1.53</bouncycastle.version>
+    <bouncycastle.version>1.52</bouncycastle.version>
   </properties>
 
   <build>
@@ -316,6 +319,7 @@
                 <exclude>diqube-ui/bower_components/**</exclude>
                 <exclude>diqube-ui/node_modules/**</exclude>
                 <exclude>diqube-ui/node/**</exclude>
+                <exclude>**/*.pem</exclude>
               </excludes>
               <mapping>
                 <g4>DOUBLESLASH_STYLE</g4>

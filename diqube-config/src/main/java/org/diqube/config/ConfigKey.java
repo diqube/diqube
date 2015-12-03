@@ -238,4 +238,12 @@ public class ConfigKey {
    * If this is a relative path, it will be evaluated relative to {@link #DATA_DIR}.
    */
   public static final String CONSENSUS_DATA_DIR = "consensusDataDir";
+
+  /**
+   * Timeout in minutes for tickets.
+   * 
+   * A ticket is created for each successfully authenticated user. As soon as the timeout is over, the ticket is not
+   * valid anymore and the user needs to re-authenticate.
+   */
+  public static final String TICKET_TIMEOUT_MIN = "ticketTimeoutMin";
 }
