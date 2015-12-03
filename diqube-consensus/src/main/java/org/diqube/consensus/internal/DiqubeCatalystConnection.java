@@ -246,8 +246,8 @@ public class DiqubeCatalystConnection implements Connection {
               ByteBuffer.wrap(baos.toByteArray()));
         }
       } catch (ConnectionException | IOException | InterruptedException | IllegalStateException | TException e) {
-        logger.error("Could not send result/exception to {}", remoteAddr);
-        // TODO
+        logger.error("Could not send result/exception to {}", remoteAddr, e);
+        throw new RuntimeException("Could not send result/exception to " + remoteAddr, e);
       }
     });
   }
