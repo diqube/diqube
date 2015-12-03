@@ -21,14 +21,17 @@
 package org.diqube.cluster;
 
 import java.io.IOException;
+import java.lang.Thread.UncaughtExceptionHandler;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 
 import org.apache.thrift.TException;
@@ -54,6 +57,7 @@ import org.diqube.listeners.providers.LoadedTablesProvider;
 import org.diqube.listeners.providers.OurNodeAddressStringProvider;
 import org.diqube.remote.base.thrift.RNodeAddress;
 import org.diqube.remote.cluster.thrift.ClusterManagementService;
+import org.diqube.threads.ExecutorManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -110,11 +114,16 @@ public class ClusterManager implements ServingListener, TableLoadListener, OurNo
   @Inject
   private LoadedTablesProvider loadedTablesProvider;
 
+  @Inject
+  private ExecutorManager executorManager;
+
   /**
    * Disable the methods of {@link ClusterNodeStatusDetailListener} on startup, until we have initially found some
    * cluster nodes.
    */
   private boolean clusterNodeStatusDetailListenerDisabled = true;
+
+  private ExecutorService executorService;
 
   @PostConstruct
   public void initialize() {
@@ -135,6 +144,20 @@ public class ClusterManager implements ServingListener, TableLoadListener, OurNo
           + "under that address!", ourHost);
 
     ourHostAddr = new NodeAddress(ourHost, (short) ourPort);
+
+    executorService = executorManager.newCachedThreadPool("clustermanager-%d", new UncaughtExceptionHandler() {
+      @Override
+      public void uncaughtException(Thread t, Throwable e) {
+        logger.error("Error while executing asynchronous ClusterManager task", e);
+        // swallow otherwise, as we'd like to continue as well as possible.
+      }
+    });
+  }
+
+  @PreDestroy
+  public void cleanup() {
+    if (executorService != null)
+      executorService.shutdownNow();
   }
 
   private List<NodeAddress> parseClusterNodes(String clusterNodes) {
@@ -201,6 +224,8 @@ public class ClusterManager implements ServingListener, TableLoadListener, OurNo
 
       if (allClusterNodes.isEmpty()) {
         logger.warn("There are no cluster nodes alive, will therefore not connect anywhere.");
+        if (clusterManagerListeners != null)
+          clusterManagerListeners.forEach(l -> l.clusterInitialized());
         return;
       }
 
@@ -216,7 +241,8 @@ public class ClusterManager implements ServingListener, TableLoadListener, OurNo
     // enable activity when dead or alive nodes are identified.
     clusterNodeStatusDetailListenerDisabled = false;
 
-    clusterManagerListeners.forEach(l -> l.clusterInitialized());
+    if (clusterManagerListeners != null)
+      clusterManagerListeners.forEach(l -> l.clusterInitialized());
   }
 
   private Connection<ClusterManagementService.Iface> reserveConnection(NodeAddress addr)
@@ -247,15 +273,19 @@ public class ClusterManager implements ServingListener, TableLoadListener, OurNo
 
       logger.trace("Cluster node died. Checking consensus cluster if we need to distribute that information...");
 
-      if (clusterLayout.isNodeKnown(addr)) {
-        logger.info("Cluster node died: {}. Distributing information on changed cluster layout in consensus cluster.",
-            addr);
-        // This might actually be executed by multiple cluster nodes in parallel, but that does not hurt that much, as
-        // node deaths should be rare.
-        consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class).removeNode(RemoveNode.local(addr));
-      } else
-        logger.trace("Cluster node died. No need to distribute information since that node was unknown to the "
-            + "consensus cluster anyway.");
+      // execute asynchronously, as this might take some time and we might even still be in startup (e.g. internal
+      // consensus cluster server startup).
+      executorService.execute(() -> {
+        if (clusterLayout.isNodeKnown(addr)) {
+          logger.info("Cluster node died: {}. Distributing information on changed cluster layout in consensus cluster.",
+              addr);
+          // This might actually be executed by multiple cluster nodes in parallel, but that does not hurt that much, as
+          // node deaths should be rare.
+          consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class).removeNode(RemoveNode.local(addr));
+        } else
+          logger.trace("Cluster node died. No need to distribute information since that node was unknown to the "
+              + "consensus cluster anyway.");
+      });
     }
   }
 

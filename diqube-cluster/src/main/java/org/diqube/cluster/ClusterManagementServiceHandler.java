@@ -68,7 +68,10 @@ public class ClusterManagementServiceHandler implements ClusterManagementService
   @Override
   public List<RNodeAddress> getAllKnownClusterNodes() throws TException {
     List<RNodeAddress> res = new ArrayList<>();
-    res.addAll(clusterLayout.getNodes().stream().map(a -> a.createRemote()).collect(Collectors.toList()));
+    // do not query the consensus cluster but only return the quick locally known nodes. This is needed, because this
+    // method is called to bootstrap the consensus server of a new node -> we must not take too long and actually our
+    // local list should be good enough for that.
+    res.addAll(clusterLayout.getNodesInsecure().stream().map(a -> a.createRemote()).collect(Collectors.toList()));
     res.add(ourNodeAddressProvider.getOurNodeAddress().createRemote());
     return res;
   }

@@ -106,4 +106,8 @@ public class ClusterLayoutStateMachineImplementation implements ClusterLayoutSta
     return res;
   }
 
+  public Set<NodeAddress> getLocalKnownNodesInsecure() {
+    return new HashSet<>(tables.keySet());
+  }
+
 }

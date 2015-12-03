@@ -23,8 +23,6 @@ package org.diqube.consensus;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Deque;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -32,12 +30,11 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Supplier;
 
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 
-import org.diqube.connection.NodeAddress;
-import org.diqube.connection.OurNodeAddressProvider;
 import org.diqube.consensus.internal.DiqubeCatalystSerializer;
 import org.diqube.consensus.internal.DiqubeCatalystTransport;
 import org.diqube.context.AutoInstatiate;
@@ -46,10 +43,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.atomix.catalyst.serializer.Serializer;
-import io.atomix.catalyst.transport.Address;
 import io.atomix.catalyst.transport.Transport;
 import io.atomix.catalyst.util.concurrent.ThreadContext;
 import io.atomix.copycat.client.Command;
+import io.atomix.copycat.client.ConnectionStrategies;
 import io.atomix.copycat.client.CopycatClient;
 import io.atomix.copycat.client.Operation;
 import io.atomix.copycat.client.Query;
@@ -71,9 +68,6 @@ public class DiqubeCopycatClient implements DiqubeConsensusListener {
   private DiqubeCatalystTransport transport;
 
   @Inject
-  private OurNodeAddressProvider ourNodeAddressProvider;
-
-  @Inject
   private DiqubeCatalystSerializer serializer;
 
   @Inject
@@ -93,15 +87,11 @@ public class DiqubeCopycatClient implements DiqubeConsensusListener {
     if (client == null) {
       synchronized (this) {
         if (client == null) {
-          NodeAddress ourAddr = ourNodeAddressProvider.getOurNodeAddress();
-
-          Address catalystAddr = new Address(ourAddr.getHost(), ourAddr.getPort());
-
-          client = new CoycatClientFacade(
-              CopycatClient.builder(catalystAddr).withTransport(transport).withSerializer(serializer)
-                  // connect only to local server.
-                  .withConnectionStrategy((leader, members) -> new ArrayList<>(Arrays.asList(catalystAddr)))
-                  .withRecoveryStrategy(RecoveryStrategies.RECOVER).build());
+          client = new CoycatClientFacade(() -> CopycatClient.builder(copycatServer.getClusterMembers())
+              .withTransport(transport).withSerializer(serializer)
+              // connect to any server.
+              .withConnectionStrategy(ConnectionStrategies.ANY) //
+              .withRecoveryStrategy(RecoveryStrategies.RECOVER).build());
         }
       }
     }
@@ -147,7 +137,7 @@ public class DiqubeCopycatClient implements DiqubeConsensusListener {
 
         while (true) {
           try {
-            logger.trace("Opening copycat client to local (consensusIsInitialized = {})...", consensusIsInitialized);
+            logger.trace("Opening copycat client (consensusIsInitialized = {})...", consensusIsInitialized);
             client.open().join();
             logger.trace("Copycat client opened.");
             return client.submit(c.operation()).join();
@@ -201,10 +191,11 @@ public class DiqubeCopycatClient implements DiqubeConsensusListener {
    * Facade on {@link RaftClient} that slows down {@link #open()} calls until the local consensus server is initialized.
    */
   private class CoycatClientFacade implements RaftClient {
-    private CopycatClient delegate;
+    private volatile CopycatClient delegate;
+    private Supplier<CopycatClient> delegateSupplier;
 
-    /* package */ CoycatClientFacade(CopycatClient delegate) {
-      this.delegate = delegate;
+    /* package */ CoycatClientFacade(Supplier<CopycatClient> delegateSupplier) {
+      this.delegateSupplier = delegateSupplier;
     }
 
     @Override
@@ -239,7 +230,7 @@ public class DiqubeCopycatClient implements DiqubeConsensusListener {
 
     @Override
     public CompletableFuture<RaftClient> open() {
-      if (consensusIsInitialized) {
+      if (consensusIsInitialized && delegate != null) {
         logger.trace("Calling delegate to open consensus client...");
         return delegate.open();
       }
@@ -249,7 +240,22 @@ public class DiqubeCopycatClient implements DiqubeConsensusListener {
         if (!consensusIsInitialized) {
           CompletableFuture<RaftClient> res = new CompletableFuture<>();
           waitingClients.add(res);
-          return res.thenCompose(v -> delegate.open());
+          return res.thenCompose(v -> {
+            if (delegate == null) {
+              synchronized (delegateSupplier) {
+                if (delegate == null)
+                  delegate = delegateSupplier.get();
+              }
+            }
+            return delegate.open();
+          });
+        } else if (delegate == null) {
+          synchronized (delegateSupplier) {
+            if (delegate == null)
+              delegate = delegateSupplier.get();
+          }
+          logger.trace("Calling delegate to open consensus client...");
+          return delegate.open();
         } else {
           logger.trace("Calling delegate to open consensus client...");
           return delegate.open();

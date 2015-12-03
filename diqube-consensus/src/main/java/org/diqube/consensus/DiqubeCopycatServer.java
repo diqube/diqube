@@ -25,6 +25,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -207,6 +208,12 @@ public class DiqubeCopycatServer implements ClusterManagerListener {
    */
   public boolean isLeader() {
     return copycatServer != null && copycatServer.state().equals(State.LEADER);
+  }
+
+  /* package */ Collection<Address> getClusterMembers() {
+    if (copycatServer == null)
+      return null;
+    return copycatServer.members();
   }
 
   private Address toCopycatAddress(NodeAddress addr) {

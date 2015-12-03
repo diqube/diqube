@@ -49,6 +49,17 @@ public class ClusterLayout {
   @Inject
   private DiqubeCopycatClient consensusClient;
 
+  @Inject
+  private ClusterLayoutStateMachineImplementation clusterLayoutStateMachineImplementation;
+
+  /**
+   * @return Addresses of all cluster nodes currently applied to this nodes' {@link ClusterLayoutStateMachine}. It can
+   *         therefore contain nodes which are not alive anymore and may not contain all live nodes.
+   */
+  public Set<NodeAddress> getNodesInsecure() {
+    return clusterLayoutStateMachineImplementation.getLocalKnownNodesInsecure();
+  }
+
   /**
    * @return Addresses of all cluster nodes that are known (including our node).
    */

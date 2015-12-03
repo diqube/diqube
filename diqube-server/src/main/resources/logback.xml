@@ -35,7 +35,7 @@
   <!-- Only spring WARNs in test -->
   <logger name="org.springframework" level="warn" />
   
-  <logger name="io.atomix" level="debug" additivity="false">
+  <logger name="io.atomix" level="info" additivity="false">
     <appender-ref ref="STDOUT_FileLine" />
   </logger>
   
