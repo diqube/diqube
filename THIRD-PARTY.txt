@@ -49,6 +49,10 @@ diqube source code.
     BSD (abego) [abego-bsd.txt]:
         * abego TreeLayout Core (org.abego.treelayout:org.abego.treelayout.core:1.0.1 - http://code.google.com/p/treelayout/)
 
+    Bouncy Castle Licence (MIT) [bouncycastle.txt]:
+        * Bouncy Castle PKIX, CMS, EAC, TSP, PKCS, OCSP, CMP, and CRMF APIs (org.bouncycastle:bcpkix-jdk15on:1.53 - http://www.bouncycastle.org/java.html)
+        * Bouncy Castle Provider (org.bouncycastle:bcprov-jdk15on:1.53 - http://www.bouncycastle.org/java.html)
+
     GPLv2 with classpath exception [gpl-20-classpath.txt]:
         * Expression Language 2.2 Implementation (org.glassfish.web:javax.el:2.2.4 - http://uel.java.net)
         * Expression Language API 2.2 (javax.el:javax.el-api:2.2.4 - http://uel.java.net)

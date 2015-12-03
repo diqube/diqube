@@ -94,6 +94,7 @@
     <thrift.version.executable.string>Thrift version 0.9.2</thrift.version.executable.string>
     <hadoop.version>2.7.1</hadoop.version>
     <copycat.version>1.0.0-beta4</copycat.version>
+    <bouncycastle.version>1.53</bouncycastle.version>
   </properties>
 
   <build>
@@ -443,6 +444,16 @@
         <artifactId>copycat-client</artifactId>
         <version>${copycat.version}</version>
       </dependency>
+      <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcprov-jdk15on</artifactId>
+        <version>${bouncycastle.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcpkix-jdk15on</artifactId>
+        <version>${bouncycastle.version}</version>
+      </dependency>
       
       <!-- JSR-349 Validator -->
       <dependency>
@@ -555,6 +566,7 @@
                     <licenseMerge>LGPL [lgpl.txt]|GNU Lesser General Public License|GNU LESSER GENERAL PUBLIC LICENSE|Eclipse Public License - v 1.0</licenseMerge>
                     <!-- "Expression Language" has CDDL or GPL2 with classpath exception -> choose GPL2 with classpath exception. -->
                     <licenseMerge>GPLv2 with classpath exception [gpl-20-classpath.txt]|CDDL + GPLv2 with classpath exception</licenseMerge>
+                    <licenseMerge>Bouncy Castle Licence (MIT) [bouncycastle.txt]|Bouncy Castle Licence</licenseMerge>
                     <!-- @formatter:on -->
                   </licenseMerges>
                 </configuration>
