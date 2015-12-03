@@ -28,7 +28,9 @@ import java.util.Arrays;
 import java.util.Deque;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import javax.annotation.PreDestroy;
@@ -77,6 +79,9 @@ public class DiqubeCopycatClient implements DiqubeConsensusListener {
   @Inject
   private DiqubeConsensusStateMachineManager stateMachineManager;
 
+  @Inject
+  private DiqubeCopycatServer copycatServer;
+
   private ReentrantReadWriteLock newClientOpensLock = new ReentrantReadWriteLock();
   private Deque<CompletableFuture<RaftClient>> waitingClients = new ConcurrentLinkedDeque<>();
 
@@ -103,9 +108,28 @@ public class DiqubeCopycatClient implements DiqubeConsensusListener {
     return client;
   }
 
+  /**
+   * Creates and returns an object implementing the given stateMachineInterface which will, when methods are called,
+   * distribute those calls among the consensus cluster and only return when the {@link Command}/{@link Query} is
+   * committed in the cluster.
+   * 
+   * <p>
+   * Note that methods on the returned object are always executed synchronously and it may take an arbitrary time too
+   * complete (e.g. if there is no consensus leader currently and a client session cannot be opened therefore). This is
+   * especially true for nodes which are partitioned on the network from the majority of the cluster: When a method on
+   * the returned object is called in such a case, it may take up until the network partition is resolved and the
+   * cluster became fully available again until the methods return!
+   * 
+   * @param stateMachineInterface
+   *          Interface which has the {@link ConsensusStateMachine} annotation.
+   */
   public <T> T getStateMachineClient(Class<T> stateMachineInterface) {
     Map<String, Class<? extends Operation<?>>> operationClassesByMethodName =
         stateMachineManager.getOperationClassesAndMethodNamesOfInterface(stateMachineInterface);
+
+    if (operationClassesByMethodName.isEmpty())
+      // no operations in interface, probably no ConsensusStateMachine annotated interface!
+      return null;
 
     RaftClient client = getClient();
 
@@ -121,10 +145,26 @@ public class DiqubeCopycatClient implements DiqubeConsensusListener {
 
         Commit<?> c = (Commit<?>) args[0];
 
-        logger.trace("Opening copycat client to local (consensusIsInitialized = {})...", consensusIsInitialized);
-        client.open().join();
-        logger.trace("Copycat client opened.");
-        return client.submit(c.operation()).join();
+        while (true) {
+          try {
+            logger.trace("Opening copycat client to local (consensusIsInitialized = {})...", consensusIsInitialized);
+            client.open().join();
+            logger.trace("Copycat client opened.");
+            return client.submit(c.operation()).join();
+          } catch (CompletionException e) {
+            // This can happen if our node currently has no connection to the consensus leader, as new client sessions
+            // are always registered with the leader.
+            logger.error("Could not open copycat client/submit something to consensus cluster! Will retry shortly.", e);
+          }
+          ThreadLocalRandom random = ThreadLocalRandom.current();
+          long targetSleepMs = copycatServer.getElectionTimeoutMs() / 3;
+          long deltaMs = targetSleepMs / 10;
+
+          // sleep random time, from 10% below "target" to 10% above "target".
+          Thread.sleep(random.nextLong(targetSleepMs - deltaMs, targetSleepMs + deltaMs));
+
+          logger.info("Retrying to open copycat client/submit something to consensus cluster.");
+        }
       }
     };
 

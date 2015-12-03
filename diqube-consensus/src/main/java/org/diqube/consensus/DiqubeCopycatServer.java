@@ -113,7 +113,7 @@ public class DiqubeCopycatServer implements ClusterManagerListener {
 
   private long sessionTimeoutMs;
 
-  private long elecetionTimeoutMs;
+  private long electionTimeoutMs;
 
   private Address lastKnownCopycatLeaderAddress = null;
   private Instant lastKnownCopycatLeaderTimestamp = null;
@@ -121,7 +121,7 @@ public class DiqubeCopycatServer implements ClusterManagerListener {
   @PostConstruct
   public void initialize() {
     sessionTimeoutMs = 30 * keepAliveMs; // same approx distribution as the defaults of copycat.
-    elecetionTimeoutMs = 6 * keepAliveMs;
+    electionTimeoutMs = 6 * keepAliveMs;
   }
 
   @Override
@@ -149,7 +149,7 @@ public class DiqubeCopycatServer implements ClusterManagerListener {
         withStorage(storage). //
         withSerializer(serializer). //
         withSessionTimeout(Duration.ofMillis(sessionTimeoutMs)). //
-        withElectionTimeout(Duration.ofMillis(elecetionTimeoutMs)). //
+        withElectionTimeout(Duration.ofMillis(electionTimeoutMs)). //
         withHeartbeatInterval(Duration.ofMillis(keepAliveMs)). //
         withStateMachine(new DiqubeStateMachine()).build();
 
@@ -184,7 +184,7 @@ public class DiqubeCopycatServer implements ClusterManagerListener {
       Thread closeThread = new Thread(() -> copycatServer.close().join(), "consensus-shutdown");
       closeThread.start();
       // copycat will retry after election timeout, give it some possibility to retry.
-      long copycatShutdownTimeoutMs = elecetionTimeoutMs * 2 + 2;
+      long copycatShutdownTimeoutMs = electionTimeoutMs * 2 + 2;
       try {
         closeThread.join(copycatShutdownTimeoutMs);
       } catch (InterruptedException e) {
@@ -275,5 +275,9 @@ public class DiqubeCopycatServer implements ClusterManagerListener {
   // for tests
   /* package */ void setConsensusStorageProvider(ConsensusStorageProvider consensusStorageProvider) {
     this.consensusStorageProvider = consensusStorageProvider;
+  }
+
+  /* package */ long getElectionTimeoutMs() {
+    return electionTimeoutMs;
   }
 }
