@@ -183,6 +183,18 @@
                   <resource>META-INF/services/io.atomix.catalyst.serializer.CatalystSerializable</resource>
                 </transformer>
               </transformers>
+              <filters>
+                <filter>
+                  <!-- Bouncycastle contains signature files of their jars: If we include those, the signature will be 
+                       wrong for the uber jar and will therefore not be loaded. Remove those files! -->
+                  <artifact>org.bouncycastle:*</artifact>
+                  <excludes>
+                    <exclude>META-INF/*.SF</exclude>
+                    <exclude>META-INF/*.DSA</exclude>
+                    <exclude>META-INF/*.RSA</exclude>
+                  </excludes>
+                </filter>
+              </filters>
             </configuration>
           </execution>
         </executions>
