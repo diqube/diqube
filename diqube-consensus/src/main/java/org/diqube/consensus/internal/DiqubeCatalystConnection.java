@@ -235,12 +235,18 @@ public class DiqubeCatalystConnection implements Connection {
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         if (error != null) {
+          if (response != null && response instanceof ReferenceCounted)
+            ((ReferenceCounted<?>) response).release();
+
           context.serializer().writeObject(error, baos);
 
           sp.getService().replyException(RUuidUtil.toRUuid(remoteEndpointUuid), RUuidUtil.toRUuid(requestUuid),
               ByteBuffer.wrap(baos.toByteArray()));
         } else {
           context.serializer().writeObject(response, baos);
+
+          if (response instanceof ReferenceCounted)
+            ((ReferenceCounted<?>) response).release();
 
           sp.getService().reply(RUuidUtil.toRUuid(remoteEndpointUuid), RUuidUtil.toRUuid(requestUuid),
               ByteBuffer.wrap(baos.toByteArray()));
@@ -263,9 +269,8 @@ public class DiqubeCatalystConnection implements Connection {
 
     try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
       context.serializer().writeObject(message, baos);
-      if (message instanceof ReferenceCounted) {
+      if (message instanceof ReferenceCounted)
         ((ReferenceCounted<?>) message).release();
-      }
 
       requests.put(requestUuid, new Pair<>((CompletableFuture<Object>) res, context));
 
