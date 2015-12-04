@@ -66,6 +66,8 @@ public class ServerControl implements LogfileSaver {
   private static final Logger logger = LoggerFactory.getLogger(ServerControl.class);
 
   private static final String LOGBACK_DEFAULT_CONFIG_CLASSPATH = "/server/logback.default.xml";
+  private static final String TICKET_PEM_CLASSPATH = "/server/ticket.pem";
+  private static final String TICKET_PEM_PASSWORD = "diqube";
 
   private File serverJarFile;
   private File workDir;
@@ -99,6 +101,8 @@ public class ServerControl implements LogfileSaver {
   /** key for HMAC the server uses for thrift access */
   private String serverMacKey;
 
+  private File ticketPem;
+
   public ServerControl(File serverJarFile, File workDir, ServerAddressProvider addressProvider,
       ServerClusterNodesProvider clusterNodesProvider, boolean manualOverride) {
     this.serverJarFile = serverJarFile;
@@ -108,6 +112,7 @@ public class ServerControl implements LogfileSaver {
     this.manualOverride = manualOverride;
     serverLog = new File(workDir, "server.log");
     logbackConfig = createLogbackConfig(serverLog);
+    ticketPem = createTicketPem();
   }
 
   public void start() {
@@ -135,6 +140,8 @@ public class ServerControl implements LogfileSaver {
       serverProp.setProperty(ConfigKey.CLUSTER_NODES, clusterNodesProvider.getClusterNodeConfigurationString(ourAddr));
       serverProp.setProperty(ConfigKey.BIND, ourAddr.getHost()); // bind only to our addr, which is typically 127.0.0.1
       serverProp.setProperty(ConfigKey.MESSAGE_INTEGRITY_SECRET, serverMacKey);
+      serverProp.setProperty(ConfigKey.TICKET_RSA_PRIVATE_KEY_PEM_FILE, ticketPem.getAbsolutePath());
+      serverProp.setProperty(ConfigKey.TICKET_RSA_PRIVATE_KEY_PASSWORD, TICKET_PEM_PASSWORD);
       if (serverPropertiesAdjust != null)
         serverPropertiesAdjust.accept(serverProp);
 
@@ -401,6 +408,19 @@ public class ServerControl implements LogfileSaver {
     }
 
     return logbackOut;
+  }
+
+  private File createTicketPem() {
+    InputStream is = this.getClass().getResourceAsStream(TICKET_PEM_CLASSPATH);
+    File ticketPemOut = new File(workDir, "ticket.pem");
+
+    try (FileOutputStream fos = new FileOutputStream(ticketPemOut)) {
+      ByteStreams.copy(is, fos);
+    } catch (IOException e) {
+      throw new RuntimeException("Could not create ticket.pem", e);
+    }
+
+    return ticketPemOut;
   }
 
   /**
