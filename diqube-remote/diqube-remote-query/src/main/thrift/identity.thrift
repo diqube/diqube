@@ -25,7 +25,8 @@ include "${diqube.thrift.dependencies}/base.thrift"
 
 struct TicketClaim {
     1: string username,
-    2: i64 validUntil
+    2: bool isSuperUser,
+    3: i64 validUntil
 }
 
 struct Ticket {
@@ -35,14 +36,36 @@ struct Ticket {
     2: binary signature
 }
 
-exception AuthenticationException {
-    1: string msg 
+struct OptionalString {
+    1: optional string value
 }
 
 service IdentityService {
-    Ticket login(1: string user, 2: string password) throws (1: AuthenticationException authenticationException)
+    Ticket login(1: string user, 2: string password) 
+        throws (1: base.AuthenticationException authenticationException)
     
     oneway void logout(1: Ticket ticket)
+    
+    void changePassword(1: Ticket ticket, 2: string username, 3: string newPassword) 
+        throws (1: base.AuthenticationException authenticationException, 2: base.AuthorizationException authorizationException)
+        
+    void changeEmail(1: Ticket ticket, 2: string username, 3: string newEmail) 
+        throws (1: base.AuthenticationException authenticationException, 2: base.AuthorizationException authorizationException)
+                
+    void addPermission(1: Ticket ticket, 2: string username, 3: string permission, 4: OptionalString object)
+        throws (1: base.AuthenticationException authenticationException, 2: base.AuthorizationException authorizationException)
+        
+    void removePermission(1: Ticket ticket, 2: string username, 3: string permission, 4: OptionalString object)
+        throws (1: base.AuthenticationException authenticationException, 2: base.AuthorizationException authorizationException)
+     
+    map<string, list<string>> getPermissions(1: Ticket ticket, 2: string username)
+        throws (1: base.AuthenticationException authenticationException, 2: base.AuthorizationException authorizationException)
+
+    void createUser(1: Ticket ticket, 2: string username, 3: string email, 4: string password) 
+        throws (1: base.AuthenticationException authenticationException, 2: base.AuthorizationException authorizationException)
+
+    void deleteUser(1: Ticket ticket, 2: string username) 
+        throws (1: base.AuthenticationException authenticationException, 2: base.AuthorizationException authorizationException)
 }
 
 

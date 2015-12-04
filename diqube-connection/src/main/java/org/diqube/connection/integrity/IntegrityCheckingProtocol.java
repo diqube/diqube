@@ -36,7 +36,7 @@ import org.apache.thrift.protocol.TProtocolDecorator;
 import org.apache.thrift.protocol.TProtocolFactory;
 import org.apache.thrift.transport.TTransport;
 import org.diqube.thriftutil.RememberingTransport;
-import org.diqube.util.BouncycastleUtil;
+import org.diqube.util.BouncyCastleUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -86,7 +86,7 @@ public class IntegrityCheckingProtocol extends TProtocolDecorator {
     try {
       mac = new Mac[macKeys.length];
       for (int i = 0; i < macKeys.length; i++) {
-        mac[i] = Mac.getInstance("HmacSHA256", BouncycastleUtil.getProvider());
+        mac[i] = Mac.getInstance("HmacSHA256", BouncyCastleUtil.getProvider());
         mac[i].init(new SecretKeySpec(macKeys[i], "HmacSHA256"));
       }
     } catch (NoSuchAlgorithmException | InvalidKeyException e) {

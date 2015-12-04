@@ -49,10 +49,14 @@ import org.diqube.remote.cluster.thrift.ClusterManagementService;
 import org.diqube.remote.cluster.thrift.ClusterQueryService;
 import org.diqube.remote.query.ClusterInformationServiceConstants;
 import org.diqube.remote.query.FlattenPreparationServiceConstants;
+import org.diqube.remote.query.IdentityCallbackServiceConstants;
+import org.diqube.remote.query.IdentityServiceConstants;
 import org.diqube.remote.query.KeepAliveServiceConstants;
 import org.diqube.remote.query.QueryServiceConstants;
 import org.diqube.remote.query.thrift.ClusterInformationService;
 import org.diqube.remote.query.thrift.FlattenPreparationService;
+import org.diqube.remote.query.thrift.IdentityCallbackService;
+import org.diqube.remote.query.thrift.IdentityService;
 import org.diqube.remote.query.thrift.KeepAliveService;
 import org.diqube.remote.query.thrift.QueryService;
 import org.diqube.server.thrift.ThriftServer;
@@ -108,6 +112,12 @@ public class ServerImplementation {
   private ClusterConsensusService.Iface clusterConsensusHandler;
 
   @Inject
+  private IdentityService.Iface identityHandler;
+
+  @Inject
+  private IdentityCallbackService.Iface identityCallbackHandler;
+
+  @Inject
   private ExecutorManager executorManager;
 
   @InjectOptional
@@ -161,6 +171,12 @@ public class ServerImplementation {
     multiProcessor.registerProcessor(ClusterInformationServiceConstants.SERVICE_NAME,
         new IntegrityCheckingProtocol.IntegrityCheckDisablingProcessor(
             new ClusterInformationService.Processor<ClusterInformationService.Iface>(clusterInformationHandler)));
+    multiProcessor.registerProcessor(IdentityServiceConstants.SERVICE_NAME,
+        new IntegrityCheckingProtocol.IntegrityCheckDisablingProcessor(
+            new IdentityService.Processor<IdentityService.Iface>(identityHandler)));
+    multiProcessor.registerProcessor(IdentityCallbackServiceConstants.SERVICE_NAME,
+        new IntegrityCheckingProtocol.IntegrityCheckDisablingProcessor(
+            new IdentityCallbackService.Processor<IdentityCallbackService.Iface>(identityCallbackHandler)));
 
     // integrity-checked services: Communication between diqube-servers
     multiProcessor.registerProcessor(ClusterQueryServiceConstants.SERVICE_NAME,

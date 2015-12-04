@@ -94,6 +94,11 @@ public interface ClusterLayoutStateMachine {
       return node;
     }
 
+    @Override
+    public ConsistencyLevel consistency() {
+      return ConsistencyLevel.BOUNDED_LINEARIZABLE;
+    }
+
     public static Commit<IsNodeKnown> local(NodeAddress node) {
       IsNodeKnown res = new IsNodeKnown();
       res.node = node;
@@ -103,6 +108,11 @@ public interface ClusterLayoutStateMachine {
 
   public static class GetAllNodes implements Query<Set<NodeAddress>> {
     private static final long serialVersionUID = 1L;
+
+    @Override
+    public ConsistencyLevel consistency() {
+      return ConsistencyLevel.BOUNDED_LINEARIZABLE;
+    }
 
     public static Commit<GetAllNodes> local() {
       GetAllNodes res = new GetAllNodes();
@@ -117,6 +127,11 @@ public interface ClusterLayoutStateMachine {
 
     public String getTableName() {
       return tableName;
+    }
+
+    @Override
+    public ConsistencyLevel consistency() {
+      return ConsistencyLevel.BOUNDED_LINEARIZABLE;
     }
 
     public static Commit<FindNodesServingTable> local(String tableName) {

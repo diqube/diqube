@@ -91,6 +91,7 @@ public class TicketSignatureServiceTest {
       t.setClaim(new TicketClaim());
       t.getClaim().setUsername("abc");
       t.getClaim().setValidUntil(123);
+      t.getClaim().setIsSuperUser(false);
 
       // WHEN
       ticketSignatureService.signTicket(t);
@@ -114,6 +115,7 @@ public class TicketSignatureServiceTest {
       t.setClaim(new TicketClaim());
       t.getClaim().setUsername("abc");
       t.getClaim().setValidUntil(123);
+      t.getClaim().setIsSuperUser(false);
 
       // WHEN
       ticketSignatureService.signTicket(t);
@@ -137,6 +139,7 @@ public class TicketSignatureServiceTest {
       t.setClaim(new TicketClaim());
       t.getClaim().setUsername("abc");
       t.getClaim().setValidUntil(123);
+      t.getClaim().setIsSuperUser(false);
 
       ticketSignatureService.signTicket(t);
 
@@ -166,6 +169,7 @@ public class TicketSignatureServiceTest {
       t.setClaim(new TicketClaim());
       t.getClaim().setUsername("abc");
       t.getClaim().setValidUntil(123);
+      t.getClaim().setIsSuperUser(false);
 
       ticketSignatureService.signTicket(t);
 
@@ -195,6 +199,7 @@ public class TicketSignatureServiceTest {
       t.setClaim(new TicketClaim());
       t.getClaim().setUsername("abc");
       t.getClaim().setValidUntil(123);
+      t.getClaim().setIsSuperUser(false);
 
       ticketSignatureService.signTicket(t);
 
@@ -222,6 +227,7 @@ public class TicketSignatureServiceTest {
       t.setClaim(new TicketClaim());
       t.getClaim().setUsername("abc");
       t.getClaim().setValidUntil(123);
+      t.getClaim().setIsSuperUser(false);
 
       ticketSignatureService.signTicket(t);
 
@@ -235,7 +241,8 @@ public class TicketSignatureServiceTest {
   }
 
   private boolean isValid(Ticket t) {
-    return ticketSignatureService.isValidTicketSignature(TicketUtil.deserialize(ByteBuffer.wrap(TicketUtil.serialize(t))));
+    return ticketSignatureService
+        .isValidTicketSignature(TicketUtil.deserialize(ByteBuffer.wrap(TicketUtil.serialize(t))));
   }
 
   private void startNewContext() {

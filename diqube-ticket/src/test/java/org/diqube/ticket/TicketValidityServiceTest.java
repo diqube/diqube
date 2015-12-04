@@ -75,6 +75,7 @@ public class TicketValidityServiceTest {
       t.setClaim(new TicketClaim());
       t.getClaim().setUsername("abc");
       t.getClaim().setValidUntil(123);
+      t.getClaim().setIsSuperUser(false);
 
       ticketSignatureService.signTicket(t);
 
@@ -100,6 +101,7 @@ public class TicketValidityServiceTest {
       t.setClaim(new TicketClaim());
       t.getClaim().setUsername("abc");
       t.getClaim().setValidUntil(123);
+      t.getClaim().setIsSuperUser(false);
 
       ticketSignatureService.signTicket(t);
 
@@ -124,6 +126,7 @@ public class TicketValidityServiceTest {
       t.setClaim(new TicketClaim());
       t.getClaim().setUsername("abc");
       t.getClaim().setValidUntil(123);
+      t.getClaim().setIsSuperUser(false);
 
       ticketSignatureService.signTicket(t);
 

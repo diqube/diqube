@@ -70,7 +70,7 @@ public class TicketVendorTest {
       startNewContext();
 
       // GIVEN
-      Ticket t = ticketVendor.createDefaultTicketForUser("abc");
+      Ticket t = ticketVendor.createDefaultTicketForUser("abc", false);
 
       // WHEN
       boolean isValid = ticketValidityService.isTicketValid(t);

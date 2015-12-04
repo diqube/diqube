@@ -51,3 +51,12 @@ union RValue {
   2: optional i64 longValue,
   3: optional double doubleValue
 }
+
+
+exception AuthenticationException {
+    1: string msg 
+}
+
+exception AuthorizationException {
+    1: string msg 
+}

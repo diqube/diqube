@@ -41,6 +41,7 @@ public class TicketUtilTest {
     t.setClaim(new TicketClaim());
     t.getClaim().setUsername("abc");
     t.getClaim().setValidUntil(123L);
+    t.getClaim().setIsSuperUser(true);
     t.setSignature(new byte[] { 5, 6, 7 });
 
     Ticket t2 = new Ticket(t);
@@ -70,12 +71,14 @@ public class TicketUtilTest {
     t.setClaim(new TicketClaim());
     t.getClaim().setUsername("abc");
     t.getClaim().setValidUntil(123L);
+    t.getClaim().setIsSuperUser(false);
     t.setSignature(new byte[] { 5, 6, 7 });
 
     Ticket t2 = new Ticket();
     t2.setClaim(new TicketClaim());
     t2.getClaim().setUsername("def");
     t2.getClaim().setValidUntil(789L);
+    t2.getClaim().setIsSuperUser(false);
     t2.setSignature(new byte[] { 5, 6, 7 });
 
     // WHEN

@@ -48,16 +48,21 @@ public class TicketVendor {
    * <p>
    * This method must only be called after successfully authenticating the user.
    * 
+   * @param username
+   *          Name of the user to create a ticket for.
+   * @param isSuperUser
+   *          true if this is a superuser. A superuser has permission to do everything.
    * @return The new {@link Ticket}.
    * @throws IllegalStateException
    *           If the ticket cannot be created, e.g. because there are no private keys available on this node.
    */
-  public Ticket createDefaultTicketForUser(String username) throws IllegalStateException {
+  public Ticket createDefaultTicketForUser(String username, boolean isSuperUser) throws IllegalStateException {
     long newTicketTimeout = System.currentTimeMillis() + ticketTimeoutMin * 60 * 1_000L;
     Ticket t = new Ticket();
     t.setClaim(new TicketClaim());
     t.getClaim().setUsername(username);
     t.getClaim().setValidUntil(newTicketTimeout);
+    t.getClaim().setIsSuperUser(isSuperUser);
 
     ticketSignatureService.signTicket(t);
 

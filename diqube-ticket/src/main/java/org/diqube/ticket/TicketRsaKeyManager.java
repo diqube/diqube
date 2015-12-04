@@ -105,7 +105,7 @@ public class TicketRsaKeyManager {
           if (o instanceof PEMEncryptedKeyPair) {
             if (pemPassword == null)
               throw new RuntimeException(
-                  "PEM file 'pemFile.getAbsolutePath()' is password protected, but the password is not configured.");
+                  "PEM file '" + pemFileName + "' is password protected, but the password is not configured.");
 
             PEMDecryptorProvider decryptionProvider =
                 new JcePEMDecryptorProviderBuilder().build(pemPassword.toCharArray());
@@ -140,7 +140,7 @@ public class TicketRsaKeyManager {
           }
         }
       } catch (IOException e) {
-        throw new RuntimeException("Could not interact with '" + pemFileName + "'", e);
+        throw new RuntimeException("Could not interact with '" + pemFileName + "'. Correct password?", e);
       }
     }
 

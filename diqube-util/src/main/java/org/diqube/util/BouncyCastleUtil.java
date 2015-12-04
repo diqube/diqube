@@ -28,19 +28,26 @@ import java.security.Security;
  *
  * @author Bastian Gloeckle
  */
-public class BouncycastleUtil {
+public class BouncyCastleUtil {
   private static final String BC_PROVIDER_NAME = "BC";
+
+  /**
+   * Ensure BouncyCastle is fully initialized.
+   */
+  public static void ensureInitialized() {
+    getProvider();
+  }
 
   /**
    * @return The java security {@link Provider} of bouncycastle, if available. Make sure to add the dependency to the
    *         projects pom.
-   * @throws BouncycastleUnavailableException
+   * @throws BouncyCastleUnavailableException
    *           if BC is unavailable.
    */
-  public static Provider getProvider() throws BouncycastleUnavailableException {
+  public static Provider getProvider() throws BouncyCastleUnavailableException {
     Provider res = Security.getProvider(BC_PROVIDER_NAME);
     if (res == null) {
-      synchronized (BouncycastleUtil.class) {
+      synchronized (BouncyCastleUtil.class) {
         res = Security.getProvider(BC_PROVIDER_NAME);
         if (res == null) {
           // disable BC "EC MQV" (patent issues).
@@ -56,7 +63,7 @@ public class BouncycastleUtil {
 
             res = Security.getProvider(BC_PROVIDER_NAME);
           } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
-            throw new BouncycastleUnavailableException(e);
+            throw new BouncyCastleUnavailableException(e);
           }
         }
       }
@@ -64,10 +71,10 @@ public class BouncycastleUtil {
     return res;
   }
 
-  public static class BouncycastleUnavailableException extends RuntimeException {
+  public static class BouncyCastleUnavailableException extends RuntimeException {
     private static final long serialVersionUID = 1L;
 
-    public BouncycastleUnavailableException(Throwable cause) {
+    public BouncyCastleUnavailableException(Throwable cause) {
       super(cause);
     }
   }

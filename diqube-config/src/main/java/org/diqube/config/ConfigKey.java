@@ -178,7 +178,7 @@ public class ConfigKey {
    * Folder on local disk to be used to write caches of flattened tables to.
    * 
    * <p>
-   * If this path is relative, it will be resolved relative to {@link #DATA_DIR}.
+   * If this path is relative, it will be resolved relative to {@link #INTERNAL_DB_DIR}.
    * 
    * <p>
    * Use a value of "none" to disable caching of flattened tables to disk.
@@ -235,7 +235,7 @@ public class ConfigKey {
    * Folder where the consensus cluster will put its data.
    * 
    * <p>
-   * If this is a relative path, it will be evaluated relative to {@link #DATA_DIR}.
+   * If this is a relative path, it will be evaluated relative to {@link #INTERNAL_DB_DIR}.
    */
   public static final String CONSENSUS_DATA_DIR = "consensusDataDir";
 
@@ -246,4 +246,74 @@ public class ConfigKey {
    * valid anymore and the user needs to re-authenticate.
    */
   public static final String TICKET_TIMEOUT_MIN = "ticketTimeoutMin";
+
+  /**
+   * File that contains a RSA private/public key pair in OpenSSL PEM format.
+   * 
+   * <p>
+   * The private key will be used to sign all tickets for successfully authenticated users. The public key will be used
+   * to validate already signed tickets.
+   */
+  public static final String TICKET_RSA_PRIVATE_KEY_PEM_FILE = "ticketRsaPrivateKeyPemFile";
+
+  /**
+   * The password to be used to decrypt {@link #TICKET_RSA_PRIVATE_KEY_PEM_FILE}.
+   */
+  public static final String TICKET_RSA_PRIVATE_KEY_PASSWORD = "ticketRsaPrivateKeyPassword";
+
+  /**
+   * File that contains a RSA private/public key pair or a public key in OpenSSL PEM format.
+   * 
+   * <p>
+   * Use a value of "none" to disable this alternative.
+   * 
+   * <p>
+   * If this file contains a private key, that will be ignored. The public key will be used to validate already signed
+   * tickets.
+   */
+  public static final String TICKET_RSA_PRIVATE_KEY_ALTERNATIVE1_PEM_FILE = "ticketRsaPrivateKeyAlt1PemFile";
+
+  /**
+   * The password to be used to decrypt {@link #TICKET_RSA_PRIVATE_KEY_ALTERNATIVE1_PEM_FILE}.
+   */
+  public static final String TICKET_RSA_PRIVATE_KEY_ALTERNATIVE1_PASSWORD = "ticketRsaPrivateKeyAlt1Password";
+
+  /**
+   * File that contains a RSA private/public key pair or a public key in OpenSSL PEM format.
+   * 
+   * <p>
+   * Use a value of "none" to disable this alternative.
+   * 
+   * <p>
+   * If this file contains a private key, that will be ignored. The public key will be used to validate already signed
+   * tickets.
+   */
+  public static final String TICKET_RSA_PRIVATE_KEY_ALTERNATIVE2_PEM_FILE = "ticketRsaPrivateKeyAlt2PemFile";
+
+  /**
+   * The password to be used to decrypt {@link #TICKET_RSA_PRIVATE_KEY_ALTERNATIVE2_PEM_FILE}.
+   */
+  public static final String TICKET_RSA_PRIVATE_KEY_ALTERNATIVE2_PASSWORD = "ticketRsaPrivateKeyAlt2Password";
+
+  /**
+   * Directory to store internal database files.
+   * 
+   * <p>
+   * If this is a relative path, it is relative to {@link #DATA_DIR}.
+   */
+  public static final String INTERNAL_DB_DIR = "internalDbDir";
+
+  /**
+   * Username of the superuser who is allowed to access everything.
+   * 
+   * <p>
+   * Use a value of "none" to disable superuser access.
+   */
+  public static final String SUPERUSER = "superuser";
+
+  /**
+   * Password of the {@link #SUPERUSER}.
+   */
+  public static final String SUPERUSER_PASSWORD = "superuserPassword";
+
 }

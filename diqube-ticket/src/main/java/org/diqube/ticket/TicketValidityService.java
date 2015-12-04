@@ -31,12 +31,13 @@ import java.util.concurrent.locks.ReentrantLock;
 import javax.inject.Inject;
 
 import org.diqube.context.AutoInstatiate;
+import org.diqube.remote.base.thrift.AuthenticationException;
 import org.diqube.remote.query.thrift.Ticket;
 import org.diqube.remote.query.thrift.TicketClaim;
 import org.diqube.util.Pair;
 
 /**
- * Checks the validity of {@link Ticket}s.
+ * Checks the overall validity of {@link Ticket}s.
  *
  * @author Bastian Gloeckle
  */
@@ -76,12 +77,12 @@ public class TicketValidityService {
    * Checks if a {@link Ticket} is valid. For performance reasons, {@link #isTicketValid(ByteBuffer)} should be used
    * instead of this one.
    * 
-   * @throws TicketInvalidException
+   * @throws AuthenticationException
    *           is thrown if the ticket is invalid.
    */
-  public void validateTicket(Ticket ticket) throws TicketInvalidException {
+  public void validateTicket(Ticket ticket) throws AuthenticationException {
     if (!isTicketValid(ticket))
-      throw new TicketInvalidException("Ticket for user '" + ticket.getClaim().getUsername() + "' is invalid!");
+      throw new AuthenticationException("Ticket for user '" + ticket.getClaim().getUsername() + "' is invalid!");
   }
 
   /**
@@ -112,13 +113,13 @@ public class TicketValidityService {
   /**
    * Checks if a serialized {@link Ticket} is valid.
    * 
-   * @throws TicketInvalidException
+   * @throws AuthenticationException
    *           is thrown if the ticket is invalid.
    */
-  public void validateTicket(ByteBuffer serializedTicket) throws TicketInvalidException {
+  public void validateTicket(ByteBuffer serializedTicket) throws AuthenticationException {
     if (!isTicketValid(serializedTicket)) {
       Ticket ticket = TicketUtil.deserialize(serializedTicket).getLeft();
-      throw new TicketInvalidException("Ticket for user '" + ticket.getClaim().getUsername() + "' is invalid!");
+      throw new AuthenticationException("Ticket for user '" + ticket.getClaim().getUsername() + "' is invalid!");
     }
   }
 

@@ -44,6 +44,7 @@ import javax.inject.Inject;
 
 import org.diqube.config.Config;
 import org.diqube.config.ConfigKey;
+import org.diqube.config.DerivedConfigKey;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.context.Profiles;
 import org.diqube.data.table.AdjustableTable;
@@ -84,7 +85,7 @@ public class NewDataWatcher implements DiqubeConsensusListener {
   public static final String CONTROL_FILE_EXTENSION = ".control";
   public static final String READY_FILE_EXTENSION = ".ready";
 
-  @Config(ConfigKey.DATA_DIR)
+  @Config(DerivedConfigKey.FINAL_DATA_DIR)
   private String directory;
 
   @Inject

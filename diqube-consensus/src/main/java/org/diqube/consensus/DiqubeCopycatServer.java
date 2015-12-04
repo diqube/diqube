@@ -37,6 +37,7 @@ import javax.inject.Inject;
 
 import org.diqube.config.Config;
 import org.diqube.config.ConfigKey;
+import org.diqube.config.DerivedConfigKey;
 import org.diqube.connection.NodeAddress;
 import org.diqube.connection.OurNodeAddressProvider;
 import org.diqube.consensus.internal.DiqubeCatalystClient;
@@ -92,11 +93,8 @@ public class DiqubeCopycatServer implements ClusterManagerListener {
   @InjectOptional
   private List<DiqubeConsensusListener> listeners;
 
-  @Config(ConfigKey.CONSENSUS_DATA_DIR)
+  @Config(DerivedConfigKey.FINAL_CONSENSUS_DATA_DIR)
   private String consensusDataDir;
-
-  @Config(ConfigKey.DATA_DIR)
-  private String dataDir;
 
   @Config(ConfigKey.KEEP_ALIVE_MS)
   private int keepAliveMs;
@@ -132,8 +130,6 @@ public class DiqubeCopycatServer implements ClusterManagerListener {
         .map(addr -> toCopycatAddress(addr)).collect(Collectors.toList());
 
     File consensusDataDirFile = new File(consensusDataDir);
-    if (!consensusDataDirFile.isAbsolute())
-      consensusDataDirFile = new File(new File(dataDir), consensusDataDir);
 
     if (!consensusDataDirFile.exists())
       if (!consensusDataDirFile.mkdirs())

@@ -18,20 +18,23 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.ticket;
+package org.diqube.config.derived;
 
-import org.diqube.remote.query.thrift.Ticket;
+import java.io.File;
+
+import org.diqube.config.ConfigKey;
+import org.diqube.config.DerivedConfigKey;
 
 /**
- * Excpetion that is thrown if a signature on a {@link Ticket} is invalid.
+ * Provider for {@link DerivedConfigKey#FINAL_DATA_DIR}
  *
  * @author Bastian Gloeckle
  */
-public class TicketInvalidException extends RuntimeException {
-  private static final long serialVersionUID = 1L;
+public class DerivedDataDirConfigValueProvider extends AbstractDerivedConfigValueProvider {
 
-  public TicketInvalidException(String msg) {
-    super(msg);
+  @Override
+  public String derive() {
+    return new File(configurationManager.getValue(ConfigKey.DATA_DIR)).getAbsolutePath();
   }
 
 }

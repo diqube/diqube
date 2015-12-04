@@ -25,10 +25,18 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 
 import javax.annotation.PostConstruct;
 
+import org.diqube.config.derived.AbstractDerivedConfigValueProvider;
+import org.diqube.config.derived.DerivedConsensusDataDirConfigValueProvider;
+import org.diqube.config.derived.DerivedDataDirConfigValueProvider;
+import org.diqube.config.derived.DerivedFlattenDiskCacheLocationConfigValueProvider;
+import org.diqube.config.derived.DerivedInternalDbDirConfigValueProvider;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.context.Profiles;
 import org.slf4j.Logger;
@@ -52,11 +60,25 @@ public class ConfigurationManager {
 
   public static final String CUSTOM_PROPERTIES_SYSTEM_PROPERTY = "diqube.properties";
 
+  private Map<String, AbstractDerivedConfigValueProvider> derivedValueProviders;
+
   private Properties defaultProperties;
   private Properties customProperties;
 
   @PostConstruct
   private void initialize() {
+    derivedValueProviders = new HashMap<>();
+    derivedValueProviders.put(DerivedConfigKey.FINAL_DATA_DIR, new DerivedDataDirConfigValueProvider());
+    derivedValueProviders.put(DerivedConfigKey.FINAL_INTERNAL_DB_DIR, new DerivedInternalDbDirConfigValueProvider());
+    derivedValueProviders.put(DerivedConfigKey.FINAL_CONSENSUS_DATA_DIR,
+        new DerivedConsensusDataDirConfigValueProvider());
+    derivedValueProviders.put(DerivedConfigKey.FINAL_FLATTEN_DISK_CACHE_LOCATION,
+        new DerivedFlattenDiskCacheLocationConfigValueProvider());
+
+    derivedValueProviders = Collections.unmodifiableMap(derivedValueProviders);
+    for (AbstractDerivedConfigValueProvider provider : derivedValueProviders.values())
+      provider.initialize(derivedValueProviders, this);
+
     String customFileName = System.getProperty(CUSTOM_PROPERTIES_SYSTEM_PROPERTY);
     if (customFileName != null) {
       customProperties = new Properties();
@@ -95,16 +117,13 @@ public class ConfigurationManager {
    *         default one.
    */
   public String getValue(String configKey) {
+    if (derivedValueProviders.containsKey(configKey))
+      return derivedValueProviders.get(configKey).derive();
+
     if (customProperties != null && customProperties.getProperty(configKey) != null)
       return customProperties.getProperty(configKey);
 
-    return getDefaultValue(configKey);
-  }
-
-  /**
-   * @return The default value for the given config key.
-   */
-  public String getDefaultValue(String configKey) {
     return defaultProperties.getProperty(configKey);
   }
+
 }

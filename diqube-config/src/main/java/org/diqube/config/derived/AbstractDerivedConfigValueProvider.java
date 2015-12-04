@@ -18,29 +18,25 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.im;
+package org.diqube.config.derived;
 
-import org.apache.thrift.TException;
-import org.diqube.context.AutoInstatiate;
-import org.diqube.remote.query.thrift.AuthenticationException;
-import org.diqube.remote.query.thrift.IdentityService;
-import org.diqube.remote.query.thrift.Ticket;
+import java.util.Map;
+
+import org.diqube.config.ConfigurationManager;
 
 /**
- * Implementation of an identity service.
  *
  * @author Bastian Gloeckle
  */
-@AutoInstatiate
-public class IndentityHandler implements IdentityService.Iface {
+public abstract class AbstractDerivedConfigValueProvider {
+  protected Map<String, AbstractDerivedConfigValueProvider> allProviders;
+  protected ConfigurationManager configurationManager;
 
-  @Override
-  public Ticket login(String user, String password) throws AuthenticationException, TException {
-    return null;
+  public void initialize(Map<String, AbstractDerivedConfigValueProvider> allProviders,
+      ConfigurationManager configurationManager) {
+    this.allProviders = allProviders;
+    this.configurationManager = configurationManager;
   }
 
-  @Override
-  public void logout(Ticket ticket) throws TException {
-  }
-
+  public abstract String derive();
 }

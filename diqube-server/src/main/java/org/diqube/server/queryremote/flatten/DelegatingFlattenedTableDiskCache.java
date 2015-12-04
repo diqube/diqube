@@ -27,7 +27,7 @@ import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 
 import org.diqube.config.Config;
-import org.diqube.config.ConfigKey;
+import org.diqube.config.DerivedConfigKey;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.data.flatten.FlattenDataFactory;
 import org.diqube.data.flatten.FlattenedTable;
@@ -59,10 +59,7 @@ public class DelegatingFlattenedTableDiskCache implements FlattenedTableDiskCach
   @Inject
   private ExecutorManager executorManager;
 
-  @Config(ConfigKey.DATA_DIR)
-  private String dataDir;
-
-  @Config(ConfigKey.FLATTEN_DISK_CACHE_LOCATION)
+  @Config(DerivedConfigKey.FINAL_FLATTEN_DISK_CACHE_LOCATION)
   private String cacheLocation;
 
   @PostConstruct
@@ -72,8 +69,6 @@ public class DelegatingFlattenedTableDiskCache implements FlattenedTableDiskCach
       delegate = new NoopFlattenedTableDiskCache();
     } else {
       File cacheLocationFile = new File(cacheLocation);
-      if (!cacheLocationFile.isAbsolute())
-        cacheLocationFile = new File(new File(dataDir), cacheLocation);
 
       if (cacheLocationFile.exists() && !cacheLocationFile.isDirectory())
         throw new RuntimeException(
