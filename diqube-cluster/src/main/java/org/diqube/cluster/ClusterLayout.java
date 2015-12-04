@@ -32,9 +32,12 @@ import org.diqube.cluster.ClusterLayoutStateMachine.GetAllNodes;
 import org.diqube.cluster.ClusterLayoutStateMachine.GetAllTablesServed;
 import org.diqube.cluster.ClusterLayoutStateMachine.IsNodeKnown;
 import org.diqube.connection.NodeAddress;
+import org.diqube.consensus.DiqubeConsensusStateMachineClientInterruptedException;
 import org.diqube.consensus.DiqubeCopycatClient;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.remote.base.thrift.RNodeAddress;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Contains addresses of all cluster nodes known and the tables the respective node is serving data of.
@@ -45,6 +48,7 @@ import org.diqube.remote.base.thrift.RNodeAddress;
  */
 @AutoInstatiate
 public class ClusterLayout {
+  private static final Logger logger = LoggerFactory.getLogger(ClusterLayout.class);
 
   @Inject
   private DiqubeCopycatClient consensusClient;
@@ -63,35 +67,56 @@ public class ClusterLayout {
   /**
    * @return Addresses of all cluster nodes that are known (including our node).
    */
-  public Set<NodeAddress> getNodes() {
-    return new HashSet<>(
-        consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class).getAllNodes(GetAllNodes.local()));
+  public Set<NodeAddress> getNodes() throws InterruptedException {
+    try {
+      return new HashSet<>(
+          consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class).getAllNodes(GetAllNodes.local()));
+    } catch (DiqubeConsensusStateMachineClientInterruptedException e) {
+      logger.error("Interrupted.", e);
+      throw e.getInterruptedException();
+    }
   }
 
   /**
    * @return true if the layout knows that the given node is alive. Note that when executed on nodes that are not the
    *         consensus master, this might be slow, despite it is expected to be quick!
    */
-  public boolean isNodeKnown(NodeAddress addr) {
-    return consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class).isNodeKnown(IsNodeKnown.local(addr));
+  public boolean isNodeKnown(NodeAddress addr) throws InterruptedException {
+    try {
+      return consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class)
+          .isNodeKnown(IsNodeKnown.local(addr));
+    } catch (DiqubeConsensusStateMachineClientInterruptedException e) {
+      logger.error("Interrupted.", e);
+      throw e.getInterruptedException();
+    }
   }
 
   /**
    * Finds the addresses of nodes of which is known that they serve parts of a specific table.
    */
-  public Collection<RNodeAddress> findNodesServingTable(String table) {
-    Set<NodeAddress> res = consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class)
-        .findNodesServingTable(FindNodesServingTable.local(table));
+  public Collection<RNodeAddress> findNodesServingTable(String table) throws InterruptedException {
+    try {
+      Set<NodeAddress> res = consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class)
+          .findNodesServingTable(FindNodesServingTable.local(table));
 
-    return res.stream().map(addr -> addr.createRemote()).collect(Collectors.toSet());
+      return res.stream().map(addr -> addr.createRemote()).collect(Collectors.toSet());
+    } catch (DiqubeConsensusStateMachineClientInterruptedException e) {
+      logger.error("Interrupted.", e);
+      throw e.getInterruptedException();
+    }
   }
 
   /**
    * @return A set with all tablenames that are served from at least one cluster node.
    */
-  public Set<String> getAllTablesServed() {
-    return consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class)
-        .getAllTablesServed(GetAllTablesServed.local());
+  public Set<String> getAllTablesServed() throws InterruptedException {
+    try {
+      return consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class)
+          .getAllTablesServed(GetAllTablesServed.local());
+    } catch (DiqubeConsensusStateMachineClientInterruptedException e) {
+      logger.error("Interrupted.", e);
+      throw e.getInterruptedException();
+    }
   }
 
 }

@@ -46,6 +46,7 @@ public class DiqubeCatalystServer implements Server {
   private boolean initialized = false;
   private CompletableFuture<Void> listenFuture = null;
   private boolean doAllowCompletionOfListen = false;
+  private boolean listenFutureScheduled = false;
 
   @Override
   public CompletableFuture<Void> listen(Address address, Consumer<Connection> listener) {
@@ -54,9 +55,9 @@ public class DiqubeCatalystServer implements Server {
     initialized = true;
     synchronized (this) {
       listenFuture = new CompletableFuture<>();
-      if (doAllowCompletionOfListen) {
+      if (doAllowCompletionOfListen && !listenFutureScheduled) {
         context.executor().execute(() -> listenFuture.complete(null));
-        listenFuture = null;
+        listenFutureScheduled = true;
       }
     }
     return CompletableFuture.completedFuture(null);
@@ -65,8 +66,10 @@ public class DiqubeCatalystServer implements Server {
   public void allowCompletionOfListen() {
     synchronized (this) {
       doAllowCompletionOfListen = true;
-      if (listenFuture != null)
+      if (listenFuture != null && !listenFutureScheduled) {
         context.executor().execute(() -> listenFuture.complete(null));
+        listenFutureScheduled = true;
+      }
     }
   }
 

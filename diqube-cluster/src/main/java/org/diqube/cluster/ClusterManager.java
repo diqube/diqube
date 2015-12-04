@@ -46,6 +46,7 @@ import org.diqube.connection.ConnectionPool;
 import org.diqube.connection.NodeAddress;
 import org.diqube.connection.OurNodeAddressProvider;
 import org.diqube.consensus.ConsensusClusterNodeAddressProvider;
+import org.diqube.consensus.DiqubeConsensusStateMachineClientInterruptedException;
 import org.diqube.consensus.DiqubeCopycatClient;
 import org.diqube.consensus.DiqubeCopycatServer;
 import org.diqube.context.AutoInstatiate;
@@ -276,15 +277,20 @@ public class ClusterManager implements ServingListener, TableLoadListener, OurNo
       // execute asynchronously, as this might take some time and we might even still be in startup (e.g. internal
       // consensus cluster server startup).
       executorService.execute(() -> {
-        if (clusterLayout.isNodeKnown(addr)) {
-          logger.info("Cluster node died: {}. Distributing information on changed cluster layout in consensus cluster.",
-              addr);
-          // This might actually be executed by multiple cluster nodes in parallel, but that does not hurt that much, as
-          // node deaths should be rare.
-          consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class).removeNode(RemoveNode.local(addr));
-        } else
-          logger.trace("Cluster node died. No need to distribute information since that node was unknown to the "
-              + "consensus cluster anyway.");
+        try {
+          if (clusterLayout.isNodeKnown(addr)) {
+            logger.info(
+                "Cluster node died: {}. Distributing information on changed cluster layout in consensus cluster.",
+                addr);
+            // This might actually be executed by multiple cluster nodes in parallel, but that does not hurt that much,
+            // as node deaths should be rare.
+            consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class).removeNode(RemoveNode.local(addr));
+          } else
+            logger.trace("Cluster node died. No need to distribute information since that node was unknown to the "
+                + "consensus cluster anyway.");
+        } catch (InterruptedException | DiqubeConsensusStateMachineClientInterruptedException e) {
+          // exit quietly.
+        }
       });
     }
   }

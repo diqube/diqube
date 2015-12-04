@@ -45,7 +45,11 @@ public class ClusterInformationServiceHandler implements ClusterInformationServi
    */
   @Override
   public List<String> getAvailableTables() throws TException {
-    // TODO #48: We should not use the ClusterLayout for this, but the new to-be-created information on table data.
-    return new ArrayList<>(clusterLayout.getAllTablesServed());
+    try {
+      // TODO #48: We should not use the ClusterLayout for this, but the new to-be-created information on table data.
+      return new ArrayList<>(clusterLayout.getAllTablesServed());
+    } catch (InterruptedException e) {
+      throw new TException("Interrupted", e);
+    }
   }
 }

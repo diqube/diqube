@@ -138,7 +138,14 @@ public class QueryMasterFlattenService {
         // handler needs access to that map!
         threadIdToRequestUuidAndCallback.put(Thread.currentThread().getId(), new Pair<>(null, callback));
 
-        Collection<RNodeAddress> nodesServingTable = clusterLayout.findNodesServingTable(table);
+        Collection<RNodeAddress> nodesServingTable;
+        try {
+          nodesServingTable = clusterLayout.findNodesServingTable(table);
+        } catch (InterruptedException e1) {
+          logger.error("Interrupted", e1);
+          // exit quietly.
+          return;
+        }
 
         if (nodesServingTable.isEmpty()) {
           threadIdToRequestUuidAndCallback.remove(Thread.currentThread().getId());

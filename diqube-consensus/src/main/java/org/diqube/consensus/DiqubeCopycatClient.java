@@ -110,6 +110,11 @@ public class DiqubeCopycatClient implements DiqubeConsensusListener {
    * the returned object is called in such a case, it may take up until the network partition is resolved and the
    * cluster became fully available again until the methods return!
    * 
+   * <p>
+   * The returned object might throw {@link DiqubeConsensusStateMachineClientInterruptedException} on each method call,
+   * since pure {@link InterruptedException}s cannot be thrown through the proxy. Be sure to catch them and throw the
+   * encapsulated {@link InterruptedException}.
+   * 
    * @param stateMachineInterface
    *          Interface which has the {@link ConsensusStateMachine} annotation.
    */
@@ -151,7 +156,11 @@ public class DiqubeCopycatClient implements DiqubeConsensusListener {
           long deltaMs = targetSleepMs / 10;
 
           // sleep random time, from 10% below "target" to 10% above "target".
-          Thread.sleep(random.nextLong(targetSleepMs - deltaMs, targetSleepMs + deltaMs));
+          try {
+            Thread.sleep(random.nextLong(targetSleepMs - deltaMs, targetSleepMs + deltaMs));
+          } catch (InterruptedException e) {
+            throw new DiqubeConsensusStateMachineClientInterruptedException("Interrupted while waiting", e);
+          }
 
           logger.info("Retrying to open copycat client/submit something to consensus cluster.");
         }

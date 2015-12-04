@@ -212,7 +212,14 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
 
       String tableName = remoteExecutionPlan.getFrom().getPlainTableName();
 
-      remoteNodes = clusterLayout.findNodesServingTable(tableName);
+      try {
+        remoteNodes = clusterLayout.findNodesServingTable(tableName);
+      } catch (InterruptedException e) {
+        logger.error("Interrupted.", e);
+        // exit quietly.
+        doneProcessing();
+        return;
+      }
       if (remoteNodes.isEmpty())
         throw new ExecutablePlanExecutionException("There are no cluster nodes serving table '" + tableName + "'");
     }
