@@ -44,15 +44,30 @@ public class DiqubeCatalystServer implements Server {
   private Deque<DiqubeCatalystConnection> connections = new ConcurrentLinkedDeque<>();
   private ThreadContext context;
   private boolean initialized = false;
+  private CompletableFuture<Void> listenFuture = null;
+  private boolean doAllowCompletionOfListen = false;
 
   @Override
   public CompletableFuture<Void> listen(Address address, Consumer<Connection> listener) {
     this.listener = listener;
     context = ThreadContext.currentContextOrThrow();
     initialized = true;
-    CompletableFuture<Void> res = new CompletableFuture<>();
-    context.executor().execute(() -> res.complete(null));
-    return res;
+    synchronized (this) {
+      listenFuture = new CompletableFuture<>();
+      if (doAllowCompletionOfListen) {
+        context.executor().execute(() -> listenFuture.complete(null));
+        listenFuture = null;
+      }
+    }
+    return CompletableFuture.completedFuture(null);
+  }
+
+  public void allowCompletionOfListen() {
+    synchronized (this) {
+      doAllowCompletionOfListen = true;
+      if (listenFuture != null)
+        context.executor().execute(() -> listenFuture.complete(null));
+    }
   }
 
   @Override

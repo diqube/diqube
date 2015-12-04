@@ -27,6 +27,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -42,6 +43,7 @@ import org.diqube.connection.NodeAddress;
 import org.diqube.connection.OurNodeAddressProvider;
 import org.diqube.consensus.internal.DiqubeCatalystClient;
 import org.diqube.consensus.internal.DiqubeCatalystSerializer;
+import org.diqube.consensus.internal.DiqubeCatalystServer;
 import org.diqube.consensus.internal.DiqubeCatalystTransport;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.context.InjectOptional;
@@ -105,6 +107,9 @@ public class DiqubeCopycatServer implements ClusterManagerListener {
   @Inject
   private ApplicationContext beanContext;
 
+  @Inject
+  private DiqubeCatalystServer catalystServer;
+
   // extracted for tests
   private ConsensusStorageProvider consensusStorageProvider = null;
 
@@ -150,7 +155,7 @@ public class DiqubeCopycatServer implements ClusterManagerListener {
         withHeartbeatInterval(Duration.ofMillis(keepAliveMs)). //
         withStateMachine(new DiqubeStateMachine()).build();
 
-    copycatServer.open().handle((result, error) -> {
+    CompletableFuture<?> serverOpenFuture = copycatServer.open().handle((result, error) -> {
       if (error != null)
         throw new RuntimeException("Could not start Consensus node. Restart diqube-server!", error);
 
@@ -172,6 +177,10 @@ public class DiqubeCopycatServer implements ClusterManagerListener {
 
       return null;
     });
+    // TODO #91 Workaround for unreliable copycat server startup: If listen is too quick, not all handlers might be
+    // installed on a future, and then some stuff might get called on the wrong thread.
+    catalystServer.allowCompletionOfListen();
+    serverOpenFuture.join();
   }
 
   @PreDestroy
