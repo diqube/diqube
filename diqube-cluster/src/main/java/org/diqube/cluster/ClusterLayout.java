@@ -34,6 +34,7 @@ import org.diqube.cluster.ClusterLayoutStateMachine.IsNodeKnown;
 import org.diqube.connection.NodeAddress;
 import org.diqube.consensus.DiqubeConsensusStateMachineClientInterruptedException;
 import org.diqube.consensus.DiqubeCopycatClient;
+import org.diqube.consensus.DiqubeCopycatClient.ClosableProvider;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.remote.base.thrift.RNodeAddress;
 import org.slf4j.Logger;
@@ -68,9 +69,11 @@ public class ClusterLayout {
    * @return Addresses of all cluster nodes that are known (including our node).
    */
   public Set<NodeAddress> getNodes() throws InterruptedException {
-    try {
-      return new HashSet<>(
-          consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class).getAllNodes(GetAllNodes.local()));
+    try (ClosableProvider<ClusterLayoutStateMachine> p =
+        consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class)) {
+
+      return new HashSet<>(p.getClient().getAllNodes(GetAllNodes.local()));
+
     } catch (DiqubeConsensusStateMachineClientInterruptedException e) {
       logger.error("Interrupted.", e);
       throw e.getInterruptedException();
@@ -82,9 +85,11 @@ public class ClusterLayout {
    *         consensus master, this might be slow, despite it is expected to be quick!
    */
   public boolean isNodeKnown(NodeAddress addr) throws InterruptedException {
-    try {
-      return consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class)
-          .isNodeKnown(IsNodeKnown.local(addr));
+    try (ClosableProvider<ClusterLayoutStateMachine> p =
+        consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class)) {
+
+      return p.getClient().isNodeKnown(IsNodeKnown.local(addr));
+
     } catch (DiqubeConsensusStateMachineClientInterruptedException e) {
       logger.error("Interrupted.", e);
       throw e.getInterruptedException();
@@ -95,9 +100,9 @@ public class ClusterLayout {
    * Finds the addresses of nodes of which is known that they serve parts of a specific table.
    */
   public Collection<RNodeAddress> findNodesServingTable(String table) throws InterruptedException {
-    try {
-      Set<NodeAddress> res = consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class)
-          .findNodesServingTable(FindNodesServingTable.local(table));
+    try (ClosableProvider<ClusterLayoutStateMachine> p =
+        consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class)) {
+      Set<NodeAddress> res = p.getClient().findNodesServingTable(FindNodesServingTable.local(table));
 
       return res.stream().map(addr -> addr.createRemote()).collect(Collectors.toSet());
     } catch (DiqubeConsensusStateMachineClientInterruptedException e) {
@@ -110,9 +115,11 @@ public class ClusterLayout {
    * @return A set with all tablenames that are served from at least one cluster node.
    */
   public Set<String> getAllTablesServed() throws InterruptedException {
-    try {
-      return consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class)
-          .getAllTablesServed(GetAllTablesServed.local());
+    try (ClosableProvider<ClusterLayoutStateMachine> p =
+        consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class)) {
+
+      return p.getClient().getAllTablesServed(GetAllTablesServed.local());
+
     } catch (DiqubeConsensusStateMachineClientInterruptedException e) {
       logger.error("Interrupted.", e);
       throw e.getInterruptedException();

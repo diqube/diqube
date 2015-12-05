@@ -18,25 +18,19 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.connection;
+package org.diqube.util;
+
+import java.io.Closeable;
 
 /**
- * Exception when connecting to a remote machine.
+ * Just like {@link Closeable}, but without any checked exceptions.
  *
  * @author Bastian Gloeckle
  */
-public class ConnectionException extends Exception {
-  private static final long serialVersionUID = 1L;
-
-  public ConnectionException() {
-    super();
-  }
-
-  public ConnectionException(String msg) {
-    super(msg);
-  }
-
-  public ConnectionException(String msg, Throwable cause) {
-    super(msg, cause);
-  }
+public interface CloseableNoException extends Closeable {
+  /**
+   * Just like in {@link Closeable}, but without any checked exceptions.
+   */
+  @Override
+  public void close();
 }

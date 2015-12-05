@@ -46,6 +46,7 @@ import org.diqube.connection.ConnectionPool;
 import org.diqube.connection.NodeAddress;
 import org.diqube.connection.OurNodeAddressProvider;
 import org.diqube.consensus.DiqubeCopycatClient;
+import org.diqube.consensus.DiqubeCopycatClient.ClosableProvider;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.im.IdentityStateMachine.DeleteUser;
 import org.diqube.im.IdentityStateMachine.GetUser;
@@ -114,7 +115,10 @@ public class IdentityHandler implements IdentityService.Iface {
       return ticketVendor.createDefaultTicketForUser(superuser, true);
     }
 
-    SUser user = consensusClient.getStateMachineClient(IdentityStateMachine.class).getUser(GetUser.local(userName));
+    SUser user;
+    try (ClosableProvider<IdentityStateMachine> p = consensusClient.getStateMachineClient(IdentityStateMachine.class)) {
+      user = p.getClient().getUser(GetUser.local(userName));
+    }
     if (user == null)
       throw new AuthenticationException("Invalid credentials.");
 
@@ -153,8 +157,9 @@ public class IdentityHandler implements IdentityService.Iface {
     }
 
     // then: distribute logout reliably (but probably slower) across the consensus cluster
-    consensusClient.getStateMachineClient(LogoutStateMachine.class).logout(Logout.local(ticket));
-
+    try (ClosableProvider<LogoutStateMachine> p = consensusClient.getStateMachineClient(LogoutStateMachine.class)) {
+      p.getClient().logout(Logout.local(ticket));
+    }
     // TODO #71 inform nodes like UI servers of the logout.
   }
 
@@ -169,11 +174,13 @@ public class IdentityHandler implements IdentityService.Iface {
     if (username.equals(superuser))
       throw new TException("Superuser password cannot be changed. Change in configuration of server.");
 
-    SUser user = consensusClient.getStateMachineClient(IdentityStateMachine.class).getUser(GetUser.local(username));
+    try (ClosableProvider<IdentityStateMachine> p = consensusClient.getStateMachineClient(IdentityStateMachine.class)) {
+      SUser user = p.getClient().getUser(GetUser.local(username));
 
-    internalSetUserPassword(user, newPassword);
+      internalSetUserPassword(user, newPassword);
 
-    consensusClient.getStateMachineClient(IdentityStateMachine.class).setUser(SetUser.local(user));
+      p.getClient().setUser(SetUser.local(user));
+    }
   }
 
   @Override
@@ -187,11 +194,13 @@ public class IdentityHandler implements IdentityService.Iface {
     if (username.equals(superuser))
       throw new TException("Superuser password cannot be changed. Change in configuration of server.");
 
-    SUser user = consensusClient.getStateMachineClient(IdentityStateMachine.class).getUser(GetUser.local(username));
+    try (ClosableProvider<IdentityStateMachine> p = consensusClient.getStateMachineClient(IdentityStateMachine.class)) {
+      SUser user = p.getClient().getUser(GetUser.local(username));
 
-    user.setEmail(newEmail);
+      user.setEmail(newEmail);
 
-    consensusClient.getStateMachineClient(IdentityStateMachine.class).setUser(SetUser.local(user));
+      p.getClient().setUser(SetUser.local(user));
+    }
   }
 
   @Override
@@ -205,33 +214,35 @@ public class IdentityHandler implements IdentityService.Iface {
     if (username.equals(superuser))
       throw new TException("Superuser permissions cannot be changed.");
 
-    SUser user = consensusClient.getStateMachineClient(IdentityStateMachine.class).getUser(GetUser.local(username));
+    try (ClosableProvider<IdentityStateMachine> p = consensusClient.getStateMachineClient(IdentityStateMachine.class)) {
+      SUser user = p.getClient().getUser(GetUser.local(username));
 
-    if (!user.isSetPermissions())
-      user.setPermissions(new ArrayList<>());
+      if (!user.isSetPermissions())
+        user.setPermissions(new ArrayList<>());
 
-    boolean found = false;
-    for (SPermission perm : user.getPermissions())
-      if (perm.getPermissionName().equals(permission)) {
-        found = true;
-        if (object.isSetValue() && !perm.isSetObjects())
-          perm.setObjects(new ArrayList<>());
-        if (object.isSetValue())
-          perm.getObjects().add(object.getValue());
-        break;
+      boolean found = false;
+      for (SPermission perm : user.getPermissions())
+        if (perm.getPermissionName().equals(permission)) {
+          found = true;
+          if (object.isSetValue() && !perm.isSetObjects())
+            perm.setObjects(new ArrayList<>());
+          if (object.isSetValue())
+            perm.getObjects().add(object.getValue());
+          break;
+        }
+
+      if (!found) {
+        SPermission newPerm = new SPermission();
+        newPerm.setPermissionName(permission);
+        if (object.isSetValue()) {
+          newPerm.setObjects(new ArrayList<>());
+          newPerm.getObjects().add(object.getValue());
+        }
+        user.getPermissions().add(newPerm);
       }
 
-    if (!found) {
-      SPermission newPerm = new SPermission();
-      newPerm.setPermissionName(permission);
-      if (object.isSetValue()) {
-        newPerm.setObjects(new ArrayList<>());
-        newPerm.getObjects().add(object.getValue());
-      }
-      user.getPermissions().add(newPerm);
+      p.getClient().setUser(SetUser.local(user));
     }
-
-    consensusClient.getStateMachineClient(IdentityStateMachine.class).setUser(SetUser.local(user));
   }
 
   @Override
@@ -245,30 +256,32 @@ public class IdentityHandler implements IdentityService.Iface {
     if (username.equals(superuser))
       throw new TException("Superuser permissions cannot be changed.");
 
-    SUser user = consensusClient.getStateMachineClient(IdentityStateMachine.class).getUser(GetUser.local(username));
+    try (ClosableProvider<IdentityStateMachine> p = consensusClient.getStateMachineClient(IdentityStateMachine.class)) {
+      SUser user = p.getClient().getUser(GetUser.local(username));
 
-    if (!user.isSetPermissions())
-      return;
+      if (!user.isSetPermissions())
+        return;
 
-    for (Iterator<SPermission> it = user.getPermissions().iterator(); it.hasNext();) {
-      SPermission perm = it.next();
-      if (perm.getPermissionName().equals(permission)) {
-        if (object.isSetValue() && !perm.isSetObjects()) {
-          // nothing to remove
-          return;
-        } else if (object.isSetValue()) {
-          if (!perm.getObjects().remove(object.getValue())) {
-            // object was not in perm.
+      for (Iterator<SPermission> it = user.getPermissions().iterator(); it.hasNext();) {
+        SPermission perm = it.next();
+        if (perm.getPermissionName().equals(permission)) {
+          if (object.isSetValue() && !perm.isSetObjects()) {
+            // nothing to remove
             return;
-          }
-        } else
-          // we want to remove the whole permission, not just an object.
-          it.remove();
-        break;
+          } else if (object.isSetValue()) {
+            if (!perm.getObjects().remove(object.getValue())) {
+              // object was not in perm.
+              return;
+            }
+          } else
+            // we want to remove the whole permission, not just an object.
+            it.remove();
+          break;
+        }
       }
-    }
 
-    consensusClient.getStateMachineClient(IdentityStateMachine.class).setUser(SetUser.local(user));
+      p.getClient().setUser(SetUser.local(user));
+    }
   }
 
   @Override
@@ -282,7 +295,10 @@ public class IdentityHandler implements IdentityService.Iface {
     if (username.equals(superuser))
       throw new TException("Cannot query permissions of superuser.");
 
-    SUser user = consensusClient.getStateMachineClient(IdentityStateMachine.class).getUser(GetUser.local(username));
+    SUser user;
+    try (ClosableProvider<IdentityStateMachine> p = consensusClient.getStateMachineClient(IdentityStateMachine.class)) {
+      user = p.getClient().getUser(GetUser.local(username));
+    }
     if (!user.isSetPermissions())
       return new HashMap<>();
 
@@ -313,7 +329,9 @@ public class IdentityHandler implements IdentityService.Iface {
     user.setEmail(email);
     internalSetUserPassword(user, password);
 
-    consensusClient.getStateMachineClient(IdentityStateMachine.class).setUser(SetUser.local(user));
+    try (ClosableProvider<IdentityStateMachine> p = consensusClient.getStateMachineClient(IdentityStateMachine.class)) {
+      p.getClient().setUser(SetUser.local(user));
+    }
   }
 
   @Override
@@ -327,7 +345,9 @@ public class IdentityHandler implements IdentityService.Iface {
     if (username.equals(superuser))
       throw new TException("Superuser permissions cannot be changed.");
 
-    consensusClient.getStateMachineClient(IdentityStateMachine.class).deleteUser(DeleteUser.local(username));
+    try (ClosableProvider<IdentityStateMachine> p = consensusClient.getStateMachineClient(IdentityStateMachine.class)) {
+      p.getClient().deleteUser(DeleteUser.local(username));
+    }
   }
 
   private void internalSetUserPassword(SUser user, String newPassword) throws TException {

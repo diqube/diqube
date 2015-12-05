@@ -46,6 +46,8 @@ import org.diqube.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Iterables;
+
 import io.atomix.catalyst.transport.Address;
 import io.atomix.catalyst.transport.Connection;
 import io.atomix.catalyst.transport.MessageHandler;
@@ -108,8 +110,24 @@ public class DiqubeCatalystConnection implements Connection {
     @Override
     public void connectionDied(String cause) {
       connectionDiedAlready = true;
+      logger.debug("Connection (endpoint {}, remote endpoint {}) died.", connectionEndpointUuid, remoteEndpointUuid);
       connectionEndpointUuid = null;
-      exceptionListeners.accept(new TransportException("Connection died"));
+      logger.trace("Informing all opened requests ({}, limit: {}).", requests.size(),
+          Iterables.limit(requests.keySet(), 100));
+
+      Iterator<Pair<CompletableFuture<Object>, ThreadContext>> it = requests.values().iterator();
+      while (it.hasNext()) {
+        Pair<CompletableFuture<Object>, ThreadContext> p = it.next();
+        it.remove();
+
+        p.getRight().executor()
+            .execute(() -> p.getLeft().completeExceptionally(new TransportException("Connection died.")));
+      }
+
+      logger.trace("Opened requests informed. Informing subscribed exception listeners ({})...",
+          exceptionListeners.size());
+      exceptionListeners.accept(new TransportException("Connection died."));
+      logger.trace("Subscribed exception listeners informed.");
     }
   };
 
@@ -160,7 +178,10 @@ public class DiqubeCatalystConnection implements Connection {
 
       this.remoteEndpointUuid = RUuidUtil.toUuid(remoteEndpointRUuid);
 
-    } catch (ConnectionException | IOException | InterruptedException | IllegalStateException | TException e) {
+    } catch (IOException | InterruptedException | IllegalStateException | TException e) {
+      throw new TransportException("Could not establish connection to " + remoteAddr);
+    } catch (ConnectionException e) {
+      socketListener.connectionDied("Could not establish new connection");
       throw new TransportException("Could not establish connection to " + remoteAddr);
     }
 
@@ -210,6 +231,9 @@ public class DiqubeCatalystConnection implements Connection {
    * @param data
    */
   public void handleRequest(UUID requestUuid, ByteBuffer data) {
+    logger.trace("Received request on endpoint {} from remote endpoint {}.", connectionEndpointUuid,
+        remoteEndpointUuid);
+
     byte[] bytes = new byte[data.remaining()];
     data.get(bytes);
     Object message = generalContext.serializer().readObject(new ByteArrayInputStream(bytes));
@@ -251,8 +275,12 @@ public class DiqubeCatalystConnection implements Connection {
           sp.getService().reply(RUuidUtil.toRUuid(remoteEndpointUuid), RUuidUtil.toRUuid(requestUuid),
               ByteBuffer.wrap(baos.toByteArray()));
         }
-      } catch (ConnectionException | IOException | InterruptedException | IllegalStateException | TException e) {
+      } catch (IOException | InterruptedException | IllegalStateException | TException e) {
         logger.error("Could not send result/exception to {}", remoteAddr, e);
+        throw new RuntimeException("Could not send result/exception to " + remoteAddr, e);
+      } catch (ConnectionException e) {
+        logger.error("Could not send result/exception to {}", remoteAddr, e);
+        socketListener.connectionDied("Could not send result/exception");
         throw new RuntimeException("Could not send result/exception to " + remoteAddr, e);
       }
     });
@@ -261,11 +289,18 @@ public class DiqubeCatalystConnection implements Connection {
   @SuppressWarnings("unchecked")
   @Override
   public <T, U> CompletableFuture<U> send(T message) {
+    if (connectionEndpointUuid == null) {
+      CompletableFuture<U> res = new CompletableFuture<>();
+      res.completeExceptionally(new TransportException("Connection closed or died before."));
+      return res;
+    }
+
     ThreadContext context = ThreadContext.currentContextOrThrow();
-
     CompletableFuture<U> res = new CompletableFuture<>();
-
     UUID requestUuid = UUID.randomUUID();
+
+    logger.trace("Sending from connection endpoint {} to remote endpoint {}, requestId {}", connectionEndpointUuid,
+        remoteEndpointUuid, requestUuid);
 
     try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
       context.serializer().writeObject(message, baos);
@@ -280,7 +315,9 @@ public class DiqubeCatalystConnection implements Connection {
             ByteBuffer.wrap(baos.toByteArray()));
       }
 
-    } catch (IOException | IllegalStateException | TException | TransportException | InterruptedException e) {
+    } catch (ConnectionException e) {
+      socketListener.connectionDied("Could not connect");
+    } catch (IOException | IllegalStateException | TException | InterruptedException e) {
       requests.remove(requestUuid);
       res.completeExceptionally(new TransportException("Failed to send request", e));
     }

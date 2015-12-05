@@ -29,6 +29,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Supplier;
 
@@ -39,12 +40,10 @@ import org.diqube.consensus.internal.DiqubeCatalystSerializer;
 import org.diqube.consensus.internal.DiqubeCatalystTransport;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.listeners.DiqubeConsensusListener;
+import org.diqube.util.CloseableNoException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.atomix.catalyst.serializer.Serializer;
-import io.atomix.catalyst.transport.Transport;
-import io.atomix.catalyst.util.concurrent.ThreadContext;
 import io.atomix.copycat.client.Command;
 import io.atomix.copycat.client.ConnectionStrategies;
 import io.atomix.copycat.client.CopycatClient;
@@ -52,7 +51,6 @@ import io.atomix.copycat.client.Operation;
 import io.atomix.copycat.client.Query;
 import io.atomix.copycat.client.RaftClient;
 import io.atomix.copycat.client.RecoveryStrategies;
-import io.atomix.copycat.client.session.Session;
 import io.atomix.copycat.server.Commit;
 
 /**
@@ -76,32 +74,31 @@ public class DiqubeCopycatClient implements DiqubeConsensusListener {
   @Inject
   private DiqubeCopycatServer copycatServer;
 
-  private ReentrantReadWriteLock newClientOpensLock = new ReentrantReadWriteLock();
-  private Deque<CompletableFuture<RaftClient>> waitingClients = new ConcurrentLinkedDeque<>();
-
-  private volatile CoycatClientFacade client;
+  private ReentrantReadWriteLock consensusInitializedWaitingLock = new ReentrantReadWriteLock();
+  private Deque<CompletableFuture<Void>> consensusWaitingFutures = new ConcurrentLinkedDeque<>();
 
   private volatile boolean consensusIsInitialized = false;
 
-  public RaftClient getClient() {
-    if (client == null) {
-      synchronized (this) {
-        if (client == null) {
-          client = new CoycatClientFacade(() -> CopycatClient.builder(copycatServer.getClusterMembers())
-              .withTransport(transport).withSerializer(serializer)
-              // connect to any server.
-              .withConnectionStrategy(ConnectionStrategies.ANY) //
-              .withRecoveryStrategy(RecoveryStrategies.RECOVER).build());
-        }
-      }
-    }
-    return client;
-  }
+  /**
+   * The {@link RaftClientProvider} which is capable of recreating the client.
+   * 
+   * <p>
+   * When recreating the client, always use the most up-to-date list of cluster members from {@link #copycatServer}.
+   */
+  private RaftClientProvider raftClientProvider = new RaftClientProvider(
+      () -> CopycatClient.builder(copycatServer.getClusterMembers()).withTransport(transport).withSerializer(serializer)
+          // connect to any server.
+          .withConnectionStrategy(ConnectionStrategies.ANY) //
+          .withRecoveryStrategy(RecoveryStrategies.RECOVER).build());
 
   /**
    * Creates and returns an object implementing the given stateMachineInterface which will, when methods are called,
    * distribute those calls among the consensus cluster and only return when the {@link Command}/{@link Query} is
    * committed in the cluster.
+   * 
+   * <p>
+   * The returned {@link ClosableProvider} can provide the created instance and must be closed after the client is not
+   * needed any more!
    * 
    * <p>
    * Note that methods on the returned object are always executed synchronously and it may take an arbitrary time too
@@ -118,15 +115,16 @@ public class DiqubeCopycatClient implements DiqubeConsensusListener {
    * @param stateMachineInterface
    *          Interface which has the {@link ConsensusStateMachine} annotation.
    */
-  public <T> T getStateMachineClient(Class<T> stateMachineInterface) {
+  public <T> ClosableProvider<T> getStateMachineClient(Class<T> stateMachineInterface) {
+    // only execute this after consensus server was initialized fully!
+    waitUntilConsensusServerIsInitialized();
+
     Map<String, Class<? extends Operation<?>>> operationClassesByMethodName =
         stateMachineManager.getOperationClassesAndMethodNamesOfInterface(stateMachineInterface);
 
     if (operationClassesByMethodName.isEmpty())
       // no operations in interface, probably no ConsensusStateMachine annotated interface!
       return null;
-
-    RaftClient client = getClient();
 
     InvocationHandler h = new InvocationHandler() {
       @SuppressWarnings("unchecked")
@@ -138,14 +136,15 @@ public class DiqubeCopycatClient implements DiqubeConsensusListener {
         if (args.length != 1 || !(args[0] instanceof Commit))
           throw new RuntimeException("Invalid parameters!");
 
+        RaftClient raftClient = raftClientProvider.getClient();
         Commit<?> c = (Commit<?>) args[0];
 
         while (true) {
           try {
-            logger.trace("Opening copycat client (consensusIsInitialized = {})...", consensusIsInitialized);
-            client.open().join();
-            logger.trace("Copycat client opened.");
-            return client.submit(c.operation()).join();
+            logger.trace("Opening copycat client...");
+            raftClient.open().join();
+            logger.trace("Copycat client opened, submitting request...");
+            return raftClient.submit(c.operation()).join();
           } catch (CompletionException e) {
             // This can happen if our node currently has no connection to the consensus leader, as new client sessions
             // are always registered with the leader.
@@ -162,131 +161,211 @@ public class DiqubeCopycatClient implements DiqubeConsensusListener {
             throw new DiqubeConsensusStateMachineClientInterruptedException("Interrupted while waiting", e);
           }
 
-          logger.info("Retrying to open copycat client/submit something to consensus cluster.");
+          // In case we did not succeed, we fully re-create the RaftClient. Copycat seems to open a connection to a
+          // random node, but may then, on an error stick to that node, if the connection was opened successfully. This
+          // was seen for example when a connection to a PASSIVE node was opened - connection can be opened just fine,
+          // but the RegisterRequests of the new ClientSession are not accepted by PassiveState and Errors are returned.
+          // The CopycatClient then might not choose another node to connect to, but always the same one, leaving us
+          // with no successful ClientSession. We therefore clean all state the client might have by simply recreating
+          // it fully (and initializing it with the currently active nodes in the consensus cluster which are retrieved
+          // from DiqubeCopycatServer).
+
+          raftClientProvider.close(); // unregister
+          raftClientProvider.recreateClient().join(); // recreate, wait until recreated.
+          raftClientProvider.registerUsage(); // register again (if another thread strated recreation, this will block!)
+          raftClient = raftClientProvider.getClient(); // get new client.
         }
       }
     };
 
     @SuppressWarnings("unchecked")
-    T resProxy =
-        (T) Proxy.newProxyInstance(this.getClass().getClassLoader(), new Class<?>[] { stateMachineInterface }, h);
+    T proxy = (T) Proxy.newProxyInstance(this.getClass().getClassLoader(), new Class<?>[] { stateMachineInterface }, h);
 
-    return resProxy;
+    // initial registration, will unregister on #close!
+    raftClientProvider.registerUsage();
+    return new ClosableProvider<T>() {
+      @Override
+      public void close() {
+        raftClientProvider.close();
+      }
+
+      @Override
+      public T getClient() {
+        return proxy;
+      }
+    };
   }
 
   @Override
   public void consensusInitialized() {
-    newClientOpensLock.writeLock().lock();
+    consensusInitializedWaitingLock.writeLock().lock();
     try {
       consensusIsInitialized = true;
 
-      waitingClients.forEach(completableFuture -> completableFuture.complete(null));
-      waitingClients = null;
+      consensusWaitingFutures.forEach(completableFuture -> completableFuture.complete(null));
+      consensusWaitingFutures = null;
     } finally {
-      newClientOpensLock.writeLock().unlock();
+      consensusInitializedWaitingLock.writeLock().unlock();
+    }
+  }
+
+  private void waitUntilConsensusServerIsInitialized() {
+    if (!consensusIsInitialized) {
+      CompletableFuture<Void> f = new CompletableFuture<>();
+      consensusInitializedWaitingLock.readLock().lock();
+      try {
+        if (!consensusIsInitialized)
+          consensusWaitingFutures.add(f);
+        else
+          f.complete(null);
+      } finally {
+        consensusInitializedWaitingLock.readLock().unlock();
+      }
+      f.join();
     }
   }
 
   @PreDestroy
   public void cleanup() {
-    if (client != null) {
-      logger.trace("Cleaning up copycat client...");
-      client.close();
-      client = null;
-    }
+    raftClientProvider.shutdown();
   }
 
   /**
-   * Facade on {@link RaftClient} that slows down {@link #open()} calls until the local consensus server is initialized.
+   * Provider of a {@link RaftClient} which tracks the number of times the current client is used (see
+   * {@link #registerUsage()} and {@link #close()}) and which has the capability to re-create the client completely (=
+   * close the old one and create a new one that will need to be {@link RaftClient#open()}ed again). This is meaningful
+   * for retrying connections that are broken.
    */
-  private class CoycatClientFacade implements RaftClient {
-    private volatile CopycatClient delegate;
-    private Supplier<CopycatClient> delegateSupplier;
+  private class RaftClientProvider implements ClosableProvider<RaftClient> {
 
-    /* package */ CoycatClientFacade(Supplier<CopycatClient> delegateSupplier) {
-      this.delegateSupplier = delegateSupplier;
+    /** Number of times the RaftClient is in use by users currently. */
+    private AtomicInteger useCount = new AtomicInteger(0);
+
+    private ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+
+    /**
+     * If != null then someone requested to reopen the RaftClient and this future will be completed, once the new client
+     * is created.
+     */
+    private volatile CompletableFuture<Void> newClientFuture;
+
+    private Supplier<RaftClient> clientFactory;
+    private volatile RaftClient currentClient;
+
+    /* package */ RaftClientProvider(Supplier<RaftClient> clientFactory) {
+      this.clientFactory = clientFactory;
     }
 
-    @Override
-    public ThreadContext context() {
-      return delegate.context();
-    }
+    /**
+     * Request for the RaftClient to be recreated. The new client will then need to be re-opened fully.
+     * 
+     * @return A {@link CompletableFuture} that will be completed as soon as the new client is available. The returned
+     *         future will never be completed exceptionally.
+     */
+    /* package */ CompletableFuture<Void> recreateClient() {
+      CompletableFuture<Void> f = newClientFuture;
+      if (f != null)
+        return f;
 
-    @Override
-    public Transport transport() {
-      return delegate.transport();
-    }
-
-    @Override
-    public Serializer serializer() {
-      return delegate.serializer();
-    }
-
-    @Override
-    public Session session() {
-      return delegate.session();
-    }
-
-    @Override
-    public <T> CompletableFuture<T> submit(Command<T> command) {
-      return delegate.submit(command);
-    }
-
-    @Override
-    public <T> CompletableFuture<T> submit(Query<T> query) {
-      return delegate.submit(query);
-    }
-
-    @Override
-    public CompletableFuture<RaftClient> open() {
-      if (consensusIsInitialized && delegate != null) {
-        logger.trace("Calling delegate to open consensus client...");
-        return delegate.open();
-      }
-
-      newClientOpensLock.readLock().lock();
+      lock.writeLock().lock();
       try {
-        if (!consensusIsInitialized) {
-          CompletableFuture<RaftClient> res = new CompletableFuture<>();
-          waitingClients.add(res);
-          return res.thenCompose(v -> {
-            if (delegate == null) {
-              synchronized (delegateSupplier) {
-                if (delegate == null)
-                  delegate = delegateSupplier.get();
-              }
-            }
-            return delegate.open();
-          });
-        } else if (delegate == null) {
-          synchronized (delegateSupplier) {
-            if (delegate == null)
-              delegate = delegateSupplier.get();
-          }
-          logger.trace("Calling delegate to open consensus client...");
-          return delegate.open();
-        } else {
-          logger.trace("Calling delegate to open consensus client...");
-          return delegate.open();
+        if (newClientFuture != null)
+          return newClientFuture;
+
+        newClientFuture = new CompletableFuture<>();
+
+        CompletableFuture<Void> newFuture = newClientFuture;
+
+        if (useCount.get() == 0) {
+          // trigger execution of opening new client.
+          registerUsage();
+          close();
         }
+
+        return newFuture;
       } finally {
-        newClientOpensLock.readLock().unlock();
+        lock.writeLock().unlock();
       }
     }
 
     @Override
-    public boolean isOpen() {
-      return delegate.isOpen();
+    public void close() {
+      int c = useCount.decrementAndGet();
+      if (c == 0 && newClientFuture != null) {
+        lock.writeLock().lock();
+        // double checked locking
+        try {
+          if (useCount.get() == 0 && newClientFuture != null) {
+            logger.debug("Recreating consensus client...");
+            // close old client and create a new one.
+            try {
+              currentClient.close().join();
+            } catch (CompletionException e) {
+              logger.warn("Could not close old consensus client", e);
+              // swallow otherwise, there's nothing we can do...
+            }
+
+            currentClient = clientFactory.get();
+
+            logger.debug("Consensus client recreated.");
+            newClientFuture.complete(null);
+            newClientFuture = null;
+          }
+        } finally {
+          lock.writeLock().unlock();
+        }
+      }
     }
 
+    /**
+     * The currently valid {@link RaftClient}. Call only after calling {@link #registerUsage()} and before calling
+     * {@link #close()}!
+     */
     @Override
-    public CompletableFuture<Void> close() {
-      return delegate.close();
+    public RaftClient getClient() {
+      // save without locking, because this is only called if useCount > 0
+
+      // lazily create client, as on instantiation we cannot create it, since consensus server is not ready and the
+      // factory needs that!
+      if (currentClient == null) {
+        synchronized (this) {
+          if (currentClient == null)
+            currentClient = clientFactory.get();
+        }
+      }
+
+      return currentClient;
     }
 
-    @Override
-    public boolean isClosed() {
-      return delegate.isClosed();
+    /**
+     * Register one more user of the RaftClient.
+     */
+    /* package */void registerUsage() {
+      lock.readLock().lock();
+      try {
+        useCount.incrementAndGet();
+      } finally {
+        lock.readLock().unlock();
+      }
     }
+
+    /* package */ void shutdown() {
+      lock.writeLock().lock();
+      try {
+        logger.trace("Cleaning up copycat client...");
+        currentClient.close().join();
+        currentClient = null;
+      } finally {
+        lock.writeLock().unlock();
+      }
+    }
+
+  }
+
+  /**
+   * Provides a client to a consensus client. Needs to be {@link #close()}d correctly!
+   */
+  public static interface ClosableProvider<T> extends CloseableNoException {
+    public T getClient();
   }
 }

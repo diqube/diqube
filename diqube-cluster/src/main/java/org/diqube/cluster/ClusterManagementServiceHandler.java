@@ -30,6 +30,7 @@ import org.apache.thrift.TException;
 import org.diqube.cluster.ClusterLayoutStateMachine.SetTablesOfNode;
 import org.diqube.connection.OurNodeAddressProvider;
 import org.diqube.consensus.DiqubeCopycatClient;
+import org.diqube.consensus.DiqubeCopycatClient.ClosableProvider;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.listeners.providers.LoadedTablesProvider;
 import org.diqube.remote.base.thrift.RNodeAddress;
@@ -61,8 +62,13 @@ public class ClusterManagementServiceHandler implements ClusterManagementService
   @Override
   public void publishLoadedTablesInConsensus() throws TException {
     logger.info("Publishing information on currently loaded tables in consensus, because we were requested to do so.");
-    consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class).setTablesOfNode(SetTablesOfNode
-        .local(ourNodeAddressProvider.getOurNodeAddress(), loadedTablesProvider.getNamesOfLoadedTables()));
+    try (ClosableProvider<ClusterLayoutStateMachine> p =
+        consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class)) {
+
+      p.getClient().setTablesOfNode(SetTablesOfNode.local(ourNodeAddressProvider.getOurNodeAddress(),
+          loadedTablesProvider.getNamesOfLoadedTables()));
+
+    }
   }
 
   @Override

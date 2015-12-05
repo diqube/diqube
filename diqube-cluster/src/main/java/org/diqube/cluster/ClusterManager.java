@@ -48,6 +48,7 @@ import org.diqube.connection.OurNodeAddressProvider;
 import org.diqube.consensus.ConsensusClusterNodeAddressProvider;
 import org.diqube.consensus.DiqubeConsensusStateMachineClientInterruptedException;
 import org.diqube.consensus.DiqubeCopycatClient;
+import org.diqube.consensus.DiqubeCopycatClient.ClosableProvider;
 import org.diqube.consensus.DiqubeCopycatServer;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.context.InjectOptional;
@@ -282,9 +283,13 @@ public class ClusterManager implements ServingListener, TableLoadListener, OurNo
             logger.info(
                 "Cluster node died: {}. Distributing information on changed cluster layout in consensus cluster.",
                 addr);
+
             // This might actually be executed by multiple cluster nodes in parallel, but that does not hurt that much,
             // as node deaths should be rare.
-            consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class).removeNode(RemoveNode.local(addr));
+            try (ClosableProvider<ClusterLayoutStateMachine> p =
+                consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class)) {
+              p.getClient().removeNode(RemoveNode.local(addr));
+            }
           } else
             logger.trace("Cluster node died. No need to distribute information since that node was unknown to the "
                 + "consensus cluster anyway.");
@@ -331,16 +336,20 @@ public class ClusterManager implements ServingListener, TableLoadListener, OurNo
   @Override
   public synchronized void tableLoaded(String newTableName) {
     logger.info("Informing consensus cluster of our updated table list.");
-    consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class)
-        .setTablesOfNode(SetTablesOfNode.local(ourHostAddr, loadedTablesProvider.getNamesOfLoadedTables()));
+    try (ClosableProvider<ClusterLayoutStateMachine> p =
+        consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class)) {
+      p.getClient().setTablesOfNode(SetTablesOfNode.local(ourHostAddr, loadedTablesProvider.getNamesOfLoadedTables()));
+    }
     logger.trace("Informed consensus cluster of our updated table list.");
   }
 
   @Override
   public void tableUnloaded(String tableName) {
     logger.info("Informing consensus cluster of our updated table list.");
-    consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class)
-        .setTablesOfNode(SetTablesOfNode.local(ourHostAddr, loadedTablesProvider.getNamesOfLoadedTables()));
+    try (ClosableProvider<ClusterLayoutStateMachine> p =
+        consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class)) {
+      p.getClient().setTablesOfNode(SetTablesOfNode.local(ourHostAddr, loadedTablesProvider.getNamesOfLoadedTables()));
+    }
     logger.trace("Informed consensus cluster of our updated table list.");
   }
 

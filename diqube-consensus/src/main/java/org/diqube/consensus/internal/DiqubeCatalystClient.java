@@ -56,7 +56,9 @@ public class DiqubeCatalystClient implements Client {
       DiqubeCatalystConnection con = factory.createDiqubeCatalystConnection(ThreadContext.currentContextOrThrow());
       con.openAndRegister(address);
       connections.add(con);
-      res.complete(con);
+      // TODO workaround as long as copycat pullrequest #76 is not merged.
+      ThreadContext.currentContextOrThrow().executor().execute(() -> res.complete(con));
+      // res.complete(con);
     } catch (TransportException e) {
       res.completeExceptionally(e);
     }

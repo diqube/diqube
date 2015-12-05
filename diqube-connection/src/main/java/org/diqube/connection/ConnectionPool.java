@@ -220,7 +220,6 @@ public class ConnectionPool implements ClusterNodeStatusDetailListener {
    */
   public <T> Connection<T> reserveConnection(Class<T> serviceInterface, RNodeAddress addr,
       SocketListener socketListener) throws ConnectionException, InterruptedException {
-
     DiqubeThriftServiceInfo<T> serviceInfo = diqubeThriftServiceInfoManager.getServiceInfo(serviceInterface);
 
     Connection<T> res = null;
@@ -256,19 +255,19 @@ public class ConnectionPool implements ClusterNodeStatusDetailListener {
 
       // Block if we still got no connection and if we are above the softLimit (which might happen if another thread
       // picked the slot that we might just have freed).
-      // This while loop will block and re-check if there is an available connection as soon as a
-      // connection is released.
-      // Note that this is not 100% thread safe, as we might leave the while loop because overallOpenConnections is low
-      // enough to not hit the limit, but we were not able to reserve an already opened connection. In that case, we
-      // will open a new connection to the remote. This might happen in multiple threads simultaneously though and we
-      // might therefore exceed the limit of connections (overallOpenConnections is only increased after actually
+      // This while loop will block and re-check if there is an available connection as soon as a connection is
+      // released.
+      // Note that this is not 100% thread safe, as we might leave the while loop because overallOpenConnections is
+      // low enough to not hit the limit, but we were not able to reserve an already opened connection. In that case,
+      // we will open a new connection to the remote. This might happen in multiple threads simultaneously though and
+      // we might therefore exceed the limit of connections (overallOpenConnections is only increased after actually
       // opening the new connection). This is though not as bad, as we have a "soft" limit only anyway. Therefore we
       // spare ourselves some synchronization logic.
-      // We re-check openConnectionsByExecutionUuid regularly, as it might happen that two threads of the same execution
-      // simultaneously call this method, but only one gets a connection returned and the other needs to wait. Be sure
-      // to break that possible deadlock by letting the waiting one pass as soon as we know there is another connection
-      // for the execution. If the first connection is already returned again, then there cannot be a
-      // connection-deadlock for that execution and therefore we can let the second one wait.
+      // We re-check openConnectionsByExecutionUuid regularly, as it might happen that two threads of the same
+      // execution simultaneously call this method, but only one gets a connection returned and the other needs to
+      // wait. Be sure to break that possible deadlock by letting the waiting one pass as soon as we know there is
+      // another connection for the execution. If the first connection is already returned again, then there cannot be
+      // a connection-deadlock for that execution and therefore we can let the second one wait.
       while (res == null && overallOpenConnections.get() >= connectionSoftLimit
           && (executionUuid == null || !openConnectionsByExecutionUuid.containsKey(executionUuid))) {
         logger.debug("Blocking thread as there are no connections available ({}/{}).", overallOpenConnections.get(),
@@ -298,9 +297,10 @@ public class ConnectionPool implements ClusterNodeStatusDetailListener {
       }
 
       // synchronize access with the decreaseOpenConnectionsByExecutionUuid method - make sure that there is a valid
-      // object inside openConnectionsByExecutionUuid although one connection is reserved simultaneously to another one
-      // being released.
-      // We are safe to sync on the UUID object here, as everywhere the exact same UUID object is used (see QueryUuid).
+      // object inside openConnectionsByExecutionUuid although one connection is reserved simultaneously to another
+      // one being released.
+      // We are safe to sync on the UUID object here, as everywhere the exact same UUID object is used (see
+      // QueryUuid).
       synchronized (executionUuid) {
         int openConns = openConnCount.incrementAndGet();
         logger.trace("Execution {} has {} open connections", executionUuid, openConns);
@@ -328,7 +328,7 @@ public class ConnectionPool implements ClusterNodeStatusDetailListener {
    */
   @SuppressWarnings("unchecked")
   private <T> Connection<T> reserveAvailableConnection(DiqubeThriftServiceInfo<T> serviceInfo, RNodeAddress addr,
-      SocketListener socketListener) throws InterruptedException {
+      SocketListener socketListener) throws ConnectionException, InterruptedException {
     Deque<Connection<?>> conns = availableConnections.get(addr);
 
     if (conns != null) {
@@ -386,9 +386,11 @@ public class ConnectionPool implements ClusterNodeStatusDetailListener {
    * @param socketListener
    *          see {@link #reserveConnection(Class, RNodeAddress, SocketListener)}.
    * @return the reserved or freshly opened connection
+   * @throws ConnectionException
+   *           if connection cannot be opened.
    */
   private <T> Connection<T> reserveAvailableOrCreateConnection(DiqubeThriftServiceInfo<T> serviceInfo,
-      RNodeAddress addr, SocketListener socketListener) throws InterruptedException {
+      RNodeAddress addr, SocketListener socketListener) throws ConnectionException, InterruptedException {
 
     Connection<T> res = null;
     res = reserveAvailableConnection(serviceInfo, addr, socketListener);
@@ -399,9 +401,10 @@ public class ConnectionPool implements ClusterNodeStatusDetailListener {
         // This is not 100% thread safe, we might open too many connections, because opening a connection and increasing
         // overallOpenConnections is not atomic. This though is not as bad, as we only have a "soft" limit.
         DefaultSocketListener newDefaultSocketListener = new DefaultSocketListener(addr);
-        overallOpenConnections.incrementAndGet();
 
         res = connectionFactory.createConnection(serviceInfo, addr, newDefaultSocketListener);
+        overallOpenConnections.incrementAndGet();
+
         newDefaultSocketListener.init(socketListener);
         newDefaultSocketListener.setParentConnection(res);
         defaultSocketListeners.put(res, newDefaultSocketListener);
@@ -795,8 +798,14 @@ public class ConnectionPool implements ClusterNodeStatusDetailListener {
         if (conn.getService() instanceof KeepAliveService.Iface)
           keepAliveConn = (Connection<KeepAliveService.Iface>) conn;
         else {
-          keepAliveConn = connectionFactory.createConnection(conn,
-              diqubeThriftServiceInfoManager.getServiceInfo(KeepAliveService.Iface.class));
+          try {
+            keepAliveConn = connectionFactory.createConnection(conn,
+                diqubeThriftServiceInfoManager.getServiceInfo(KeepAliveService.Iface.class));
+          } catch (ConnectionException e) {
+            // connection died.
+            logger.debug("Could not send open connection for keep-alive to {}.", addr);
+            continue;
+          }
 
           defaultSocketListeners.put(keepAliveConn, defaultSocketListeners.get(conn));
           defaultSocketListeners.remove(conn);

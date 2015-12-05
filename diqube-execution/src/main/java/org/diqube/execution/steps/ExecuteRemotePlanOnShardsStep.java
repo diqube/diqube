@@ -255,7 +255,7 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
 
           if (!service.isLocal())
             remotesActive.add(remoteAddr);
-        } catch (IOException | ConnectionException | TException e) {
+        } catch (ConnectionException | IOException | TException e) {
           if (ourRemoteAddr.equals(remoteAddr)) {
             logger.error("Could not execute remote plan on local node", e);
             throw new ExecutablePlanExecutionException("Could not execute remote plan on local node", e);

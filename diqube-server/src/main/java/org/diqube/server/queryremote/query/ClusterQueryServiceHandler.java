@@ -355,11 +355,21 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
 
     UUID queryUuid = RUuidUtil.toUuid(remoteQueryUuid);
 
-    for (QueryPercentHandler handler : queryRegistry.getQueryPercentHandlers(queryUuid))
-      handler.newRemoteCompletionPercentDelta(percentDoneDelta);
+    int numberOfPercentHandlers = 0;
+    int numberOfResultHandlers = 0;
 
-    for (QueryResultHandler handler : queryRegistry.getQueryResultHandlers(queryUuid))
+    for (QueryPercentHandler handler : queryRegistry.getQueryPercentHandlers(queryUuid)) {
+      handler.newRemoteCompletionPercentDelta(percentDoneDelta);
+      numberOfPercentHandlers++;
+    }
+
+    for (QueryResultHandler handler : queryRegistry.getQueryResultHandlers(queryUuid)) {
       handler.newIntermediaryAggregationResult(groupId, colName, oldRes, newRes);
+      numberOfResultHandlers++;
+    }
+
+    logger.trace("Informed {} result and {} percent handlers about new column values for query {}",
+        numberOfPercentHandlers, numberOfResultHandlers, queryUuid);
   }
 
   /**
@@ -378,11 +388,21 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
 
     UUID queryUuid = RUuidUtil.toUuid(remoteQueryUuid);
 
-    for (QueryPercentHandler handler : queryRegistry.getQueryPercentHandlers(queryUuid))
-      handler.newRemoteCompletionPercentDelta(percentDoneDelta);
+    int numberOfPercentHandlers = 0;
+    int numberOfResultHandlers = 0;
 
-    for (QueryResultHandler handler : queryRegistry.getQueryResultHandlers(queryUuid))
+    for (QueryPercentHandler handler : queryRegistry.getQueryPercentHandlers(queryUuid)) {
+      handler.newRemoteCompletionPercentDelta(percentDoneDelta);
+      numberOfPercentHandlers++;
+    }
+
+    for (QueryResultHandler handler : queryRegistry.getQueryResultHandlers(queryUuid)) {
       handler.newColumnValues(colName, values);
+      numberOfResultHandlers++;
+    }
+
+    logger.trace("Informed {} result and {} percent handlers about new column values for query {}",
+        numberOfPercentHandlers, numberOfResultHandlers, queryUuid);
   }
 
   /**
