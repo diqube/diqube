@@ -42,11 +42,13 @@ import org.diqube.util.Pair;
 @AutoInstatiate
 public class DiqubeServletConfig {
 
+  // For a description of what these configuration keys mean, see the #get.. methods below.
   public static final String INIT_PARAM_CLUSTER = "diqube.cluster";
   public static final String INIT_PARAM_CLUSTER_RESPONSE = "diqube.clusterresponse";
   public static final String INIT_PARAM_TICKET_PUBLIC_KEY_PEM = "diqube.ticketPublicKeyPem";
   public static final String INIT_PARAM_TICKET_PUBLIC_KEY_PEM_ALT1 = "diqube.ticketPublicKeyPemAlt1";
   public static final String INIT_PARAM_TICKET_PUBLIC_KEY_PEM_ALT2 = "diqube.ticketPublicKeyPemAlt2";
+
   public static final String DEFAULT_CLUSTER = "localhost:5101";
   public static final String DEFAULT_CLUSTER_RESPONSE = "http://localhost:8080";
 

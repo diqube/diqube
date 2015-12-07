@@ -168,7 +168,7 @@ diqube-ui can be configured using [context init parameters][1]. The configuratio
 [DiqubeServletConfig](https://github.com/diqube/diqube/tree/master/diqube-ui/src/main/java/org/diqube/ui/DiqubeServletConfig.java). 
 There is currently one **mandatory** key: `diqube.ticketPublicKeyPem`.
 
-`diqube.ticketPublicKeyPem` points to a file containing a public RSA key in OpenSSL PEM format. Note that this needs to be the public key of the private/public key pair that is configured for diqube-servers under `ticketRsaPrivateKeyPemFile`.
+`diqube.ticketPublicKeyPem` points to a file containing a public RSA key in OpenSSL PEM format. Note that this needs to be the public key of the private/public key pair that is configured for diqube-servers under `ticketRsaPrivateKeyPemFile`. Note that the UI though must only get the public key configured, not the private one. This is because the UI itself will never sign its own Tickets, but will only just validate ones signed by diqube-server. Therefore it is a configuration error to provide a pem file to the UI that contains a private key. Extract the public key from a file that contains a private/public key pair with `openssl rsa -in private.pem -pubout -out public.pem`.
 
 To be able to provide these configuration properties, deployment to Tomcat should be done using a context xml file. Use and adjust the following example file and copy it into Tomcats `conf/Catalina/localhost` directory: [tomcat-sample-context.xml](tomcat-sample-context.xml). Be sure to name the file just like the context-path you want the app to be available at.
 
