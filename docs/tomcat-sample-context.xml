@@ -29,7 +29,8 @@ diqube-ui has several configuration properties, of which one is currently mandat
 diqube.ticketPublicKeyPem. This holds the path to a file containing a RSA public key in OpenSSL PEM format. That public
 key corresponds to the private/public key pairs that are installed on the diqube-servers under configuration property 
 "ticketRsaPrivateKeyPemFile". This means that this is the public key belonging to the private keys that sign new
-Tickets.
+Tickets. To get a public key from a private/public key pair, use: 
+  $ openssl rsa -in ticket.pem -pubout -out ticket.public.pem
 
 Deployment of diqube-ui to Tomcat should be done using a file like this, as this allows to specify the configuration
 parameters. To deploy, do the following:
