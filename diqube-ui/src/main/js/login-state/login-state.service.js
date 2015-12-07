@@ -22,7 +22,7 @@
 
 (function() {
   angular.module("diqube.login-state", [ "ngCookies" ]).service("loginStateService",
-      [ "$log", "$cookies", function remoteServiceProvider($log, $cookies) {
+      [ "$log", "$cookies", function loginStateProvider($log, $cookies) {
         var me = this;
         
         me.getTicket = getTicket;
@@ -32,8 +32,9 @@
         // ==
 
         me.ticket = undefined;
+        me.isSecure = undefined;
+        me.initialize = initialize;
 
-        // The login ticket to be used for all upcoming requests.
         function setTicket(ticket) {
           me.ticket = ticket;
         }
@@ -43,7 +44,10 @@
         }
         
         function storeTicketInCookie() {
-          $cookies.put("DiqubeTicket", me.ticket);
+          if (me.isSecure)
+            $cookies.put("DiqubeTicket", me.ticket, { secure: true });
+          else
+            $cookies.put("DiqubeTicket", me.ticket);
         }
         
         function initialize() {
@@ -51,6 +55,10 @@
             me.ticket = $cookies.get("DiqubeTicket");
         }
         
-        initialize();
+        function initialize($location) {
+          me.isSecure = $location.protocol().toLowerCase() === "https";
+        }
+      } ]).run([ "loginStateService", "$location", function loginStateRun(loginStateService, $location) {
+        loginStateService.initialize($location);
       } ]);
 })();
