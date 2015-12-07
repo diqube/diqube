@@ -17,7 +17,15 @@ This will use the default server configuration and logging configuration. Some s
 
 The server configuration is loaded from a simple properties file, whose location can be specified using the `diqube.properties` system property when starting the server. The set of properties that are available can be seen in the default configuration at [`server.properties`](/diqube-server/src/main/resources/server.properties) - if you specifiy your own configuration and you do not set a specific configuration value, the default will be used as fallback. A description of what these properties mean is available in the [`ConfigKey` class](/diqube-config/src/main/java/org/diqube/config/ConfigKey.java).
 
-Please note that there is currently one **mandatory property** that needs to be set: [`messageIntegritySecret`](/diqube-config/src/main/java/org/diqube/config/ConfigKey.java#L195).
+Please note that there are currently two **mandatory property** that need to be set:
+  * [`messageIntegritySecret`](/diqube-config/src/main/java/org/diqube/config/ConfigKey.java#L200)
+  * [`ticketRsaPrivateKeyPemFile`](/diqube-config/src/main/java/org/diqube/config/ConfigKey.java#L257)
+    * If .pem is password protected: [`ticketRsaPrivateKeyPassword`](/diqube-config/src/main/java/org/diqube/config/ConfigKey.java#L262)
+    * Note: create .pem e.g. with `openssl genrsa -des3 -out ticket.pem 2048`
+
+You might also want to change:
+  * [`superuser`](/diqube-config/src/main/java/org/diqube/config/ConfigKey.java#L312)
+  * [`superuserPassword`](/diqube-config/src/main/java/org/diqube/config/ConfigKey.java#L317)
 
 For example if you want to operate a cluster with two nodes, you could use the following configurations:
 
@@ -28,6 +36,10 @@ port=5101
 clusterNodes=192.168.0.2:5102
 
 messageIntegritySecret=SOME_RANDOM_VALUE   # A not-guessable, random value; same value for all servers
+ticketRsaPrivateKeyPemFile=/same/pem/file/for/all/nodes.pem
+ticketRsaPrivateKeyPassword=yourPassword
+superuser=root
+superuserPassword=yourSuperuserPassword    # Obviously: Same for all nodes, too.
 ```
 
 Node 2 (assume the IP that is accessible by other nodes is 192.168.0.2):
@@ -37,6 +49,10 @@ port=5102
 clusterNodes=192.168.0.1:5101
 
 messageIntegritySecret=SOME_RANDOM_VALUE
+ticketRsaPrivateKeyPemFile=/same/pem/file/for/all/nodes.pem
+ticketRsaPrivateKeyPassword=yourPassword
+superuser=root
+superuserPassword=yourSuperuserPassword
 ```
 
 When then starting the server using `java -Ddiqube.properties=/home/diqube/server.properties -jar target/diqube-server-1-SNAPSHOT.jar` on both machines, the one that is started last will greet the first one and they will introduce themselves to each other (see log).

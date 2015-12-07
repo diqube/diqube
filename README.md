@@ -53,10 +53,17 @@ After everything is prepared, execute the build using
 
 ####Starting diqube####
 
-Execute the following after building:
+Execute the following after building, note that the passwords and secrets **need to be changed for production use**, obviously:
 
     $ cd diqube-server
+    
     $ echo "messageIntegritySecret=CHANGE_THIS_IN_PRODUCTION" > server.properties
+    $ openssl genrsa -des3 -out ticket.pem -passout pass:diqube 2048
+    $ echo "ticketRsaPrivateKeyPemFile=`pwd`/ticket.pem" >> server.properties
+    $ echo "ticketRsaPrivateKeyPassword=diqube" >> server.properties
+    $ echo "superuser=root" >> server.properties
+    $ echo "superuserPassword=diqube" >> server.properties
+    
     $ java -Ddiqube.properties=server.properties -jar target/diqube-server-1-SNAPSHOT.jar
 
 The server will then start and watch the 'data' directory inside diqube-server for any new data to be loaded (.control
