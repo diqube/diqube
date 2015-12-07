@@ -92,9 +92,9 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <spring.version>4.1.6.RELEASE</spring.version>
     <slf4j.version>1.7.12</slf4j.version>
-    <thrift.version>0.9.2</thrift.version>
+    <thrift.version>0.9.3</thrift.version>
     <!-- string the thrift compiler (executable) outputs when called with param "- -version" -->
-    <thrift.version.executable.string>Thrift version 0.9.2</thrift.version.executable.string>
+    <thrift.version.executable.string>Thrift version 0.9.3</thrift.version.executable.string>
     <hadoop.version>2.7.1</hadoop.version>
     <copycat.version>1.0.0-beta4</copycat.version>
     <bouncycastle.version>1.52</bouncycastle.version>

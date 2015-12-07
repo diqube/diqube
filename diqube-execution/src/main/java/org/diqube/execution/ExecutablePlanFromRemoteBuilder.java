@@ -129,16 +129,16 @@ public class ExecutablePlanFromRemoteBuilder {
    */
   public List<ExecutablePlan> build() throws ExecutablePlanBuildException {
     Table table;
-    if (plan.getFrom().isSetPlainTableName()) {
-      String tableName = plan.getFrom().getPlainTableName();
+    if (plan.getFromSpec().isSetPlainTableName()) {
+      String tableName = plan.getFromSpec().getPlainTableName();
       table = tableRegistry.getTable(tableName);
       if (table == null) {
         throw new ExecutablePlanBuildException("Table '" + tableName + "' does not exist.");
       }
     } else {
-      String tableName = plan.getFrom().getFlattened().getTableName();
-      String flattenBy = plan.getFrom().getFlattened().getFlattenBy();
-      UUID flattenId = RUuidUtil.toUuid(plan.getFrom().getFlattened().getFlattenId());
+      String tableName = plan.getFromSpec().getFlattened().getTableName();
+      String flattenBy = plan.getFromSpec().getFlattened().getFlattenBy();
+      UUID flattenId = RUuidUtil.toUuid(plan.getFromSpec().getFlattened().getFlattenId());
       table = flattenedTableManager.getFlattenedTable(flattenId, tableName, flattenBy);
       if (table == null)
         throw new ExecutablePlanBuildException(

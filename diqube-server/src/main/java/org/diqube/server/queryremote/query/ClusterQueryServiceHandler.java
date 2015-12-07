@@ -263,12 +263,12 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
               // and we will present them to the cache again right away. With this mechanism the cache can actively
               // count the usages of specific columns and therefore tune what it should cache and what not.
               String finalTableName;
-              if (executionPlan.getFrom().isSetPlainTableName())
-                finalTableName = executionPlan.getFrom().getPlainTableName();
+              if (executionPlan.getFromSpec().isSetPlainTableName())
+                finalTableName = executionPlan.getFromSpec().getPlainTableName();
               else {
-                String origTableName = executionPlan.getFrom().getFlattened().getTableName();
-                String flattenBy = executionPlan.getFrom().getFlattened().getFlattenBy();
-                UUID flattenId = RUuidUtil.toUuid(executionPlan.getFrom().getFlattened().getFlattenId());
+                String origTableName = executionPlan.getFromSpec().getFlattened().getTableName();
+                String flattenBy = executionPlan.getFromSpec().getFlattened().getFlattenBy();
+                UUID flattenId = RUuidUtil.toUuid(executionPlan.getFromSpec().getFlattened().getFlattenId());
                 finalTableName =
                     new FlattenedTableNameGenerator().createFlattenedTableName(origTableName, flattenBy, flattenId);
               }

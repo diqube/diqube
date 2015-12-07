@@ -216,7 +216,7 @@ public class RemoteExecutionPlanFactory {
     RExecutionPlan res = new RExecutionPlan();
     res.setSteps(steps);
     RExecutionPlanFrom from = new RExecutionPlanFrom();
-    res.setFrom(from);
+    res.setFromSpec(from);
     if (fromRequest.isFlattened()) {
       RExecutionPlanFromFlattened flattened = new RExecutionPlanFromFlattened();
       from.setFlattened(flattened);

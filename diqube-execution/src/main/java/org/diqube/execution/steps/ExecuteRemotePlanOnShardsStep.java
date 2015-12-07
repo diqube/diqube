@@ -205,12 +205,12 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
       flattenId = flattenResult.getLeft();
 
       // provide the remote plan with the correct & valid flatten ID.
-      remoteExecutionPlan.getFrom().getFlattened().setFlattenId(RUuidUtil.toRUuid(flattenId));
+      remoteExecutionPlan.getFromSpec().getFlattened().setFlattenId(RUuidUtil.toRUuid(flattenId));
     } else {
-      if (!remoteExecutionPlan.getFrom().isSetPlainTableName())
+      if (!remoteExecutionPlan.getFromSpec().isSetPlainTableName())
         throw new ExecutablePlanExecutionException("Expected to have a plain table name to select from.");
 
-      String tableName = remoteExecutionPlan.getFrom().getPlainTableName();
+      String tableName = remoteExecutionPlan.getFromSpec().getPlainTableName();
 
       try {
         remoteNodes = clusterLayout.findNodesServingTable(tableName);

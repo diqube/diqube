@@ -26,7 +26,7 @@ Make sure you have the prerequisites installed:
 
  * Java 8
  * [Maven 3][1] (>= 3.1)
- * [Apache Thrift][2] compiler 0.9.2
+ * [Apache Thrift][2] compiler 0.9.3
 
 In addition to that, you need to provide the location of the Thrift compiler executable to the maven build. Do this by
 setting the property "thrift.executable" in your settings.xml:
@@ -36,7 +36,7 @@ setting the property "thrift.executable" in your settings.xml:
               xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">
       <profiles>
         <profile>
-          <id>local-thrift-092</id>
+          <id>local-thrift-093</id>
           <activation>
             <activeByDefault>true</activeByDefault>
           </activation>

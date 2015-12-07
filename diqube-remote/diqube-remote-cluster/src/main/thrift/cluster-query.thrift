@@ -162,7 +162,7 @@ union RExecutionPlanFrom {
 }
 
 struct RExecutionPlan {
-  1: RExecutionPlanFrom from,
+  1: RExecutionPlanFrom fromSpec,
   2: list<RExecutionPlanStep> steps,
 }
 
