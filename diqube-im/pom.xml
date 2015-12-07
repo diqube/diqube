@@ -36,7 +36,7 @@
 
   <build>
     <plugins>
-<!-- Validate that Thrift compiler is available. -->
+      <!-- Validate that Thrift compiler is available. -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-antrun-plugin</artifactId>
@@ -151,7 +151,12 @@
       <artifactId>diqube-cluster</artifactId>
       <version>${project.version}</version>
     </dependency>
-
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>diqube-cache</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    
     <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcprov-jdk15on</artifactId>

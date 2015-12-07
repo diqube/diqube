@@ -68,14 +68,15 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Implementation of an identity service.
+ * 
+ * <p>
+ * This implementation does not use {@link SUserProvider}, as it wants to work on the newest objects always.
  *
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
 public class IdentityHandler implements IdentityService.Iface {
   private static final Logger logger = LoggerFactory.getLogger(IdentityHandler.class);
-
-  private static final String NONE = "none";
 
   private static final int PBKDF2_ITERATIONS = 200_000;
   private static final int SALT_LENGTH_BYTES = 64;
@@ -105,9 +106,12 @@ public class IdentityHandler implements IdentityService.Iface {
   @Inject
   private TicketValidityService ticketValidityService;
 
+  @Inject
+  private PermissionCheckUtil permissionCheck;
+
   @Override
   public Ticket login(String userName, String password) throws AuthenticationException, TException {
-    if (!superuser.equals(NONE) && userName.equals(superuser)) {
+    if (permissionCheck.isSuperuser(userName)) {
       if (!password.equals(superuserPassword))
         throw new AuthenticationException("Invalid credentials.");
 
@@ -168,10 +172,10 @@ public class IdentityHandler implements IdentityService.Iface {
       throws AuthenticationException, AuthorizationException, TException {
     ticketValidityService.validateTicket(ticket);
 
-    if (!ticket.getClaim().getUsername().equals(username) && !ticket.getClaim().isIsSuperUser())
+    if (!ticket.getClaim().getUsername().equals(username) && !permissionCheck.isSuperuser(ticket))
       throw new AuthorizationException();
 
-    if (username.equals(superuser))
+    if (permissionCheck.isSuperuser(username))
       throw new TException("Superuser password cannot be changed. Change in configuration of server.");
 
     try (ClosableProvider<IdentityStateMachine> p = consensusClient.getStateMachineClient(IdentityStateMachine.class)) {
@@ -188,10 +192,10 @@ public class IdentityHandler implements IdentityService.Iface {
       throws AuthenticationException, AuthorizationException, TException {
     ticketValidityService.validateTicket(ticket);
 
-    if (!ticket.getClaim().getUsername().equals(username) && !ticket.getClaim().isIsSuperUser())
+    if (!ticket.getClaim().getUsername().equals(username) && !permissionCheck.isSuperuser(ticket))
       throw new AuthorizationException();
 
-    if (username.equals(superuser))
+    if (!permissionCheck.isSuperuser(username))
       throw new TException("Superuser password cannot be changed. Change in configuration of server.");
 
     try (ClosableProvider<IdentityStateMachine> p = consensusClient.getStateMachineClient(IdentityStateMachine.class)) {
@@ -208,10 +212,10 @@ public class IdentityHandler implements IdentityService.Iface {
       throws AuthenticationException, AuthorizationException, TException {
     ticketValidityService.validateTicket(ticket);
 
-    if (!ticket.getClaim().isIsSuperUser())
+    if (!permissionCheck.isSuperuser(ticket))
       throw new AuthorizationException();
 
-    if (username.equals(superuser))
+    if (permissionCheck.isSuperuser(username))
       throw new TException("Superuser permissions cannot be changed.");
 
     try (ClosableProvider<IdentityStateMachine> p = consensusClient.getStateMachineClient(IdentityStateMachine.class)) {
@@ -250,10 +254,10 @@ public class IdentityHandler implements IdentityService.Iface {
       throws AuthenticationException, AuthorizationException, TException {
     ticketValidityService.validateTicket(ticket);
 
-    if (!ticket.getClaim().isIsSuperUser())
+    if (!permissionCheck.isSuperuser(ticket))
       throw new AuthorizationException();
 
-    if (username.equals(superuser))
+    if (permissionCheck.isSuperuser(username))
       throw new TException("Superuser permissions cannot be changed.");
 
     try (ClosableProvider<IdentityStateMachine> p = consensusClient.getStateMachineClient(IdentityStateMachine.class)) {
@@ -289,10 +293,10 @@ public class IdentityHandler implements IdentityService.Iface {
       throws AuthenticationException, AuthorizationException, TException {
     ticketValidityService.validateTicket(ticket);
 
-    if (!ticket.getClaim().getUsername().equals(username) && !ticket.getClaim().isIsSuperUser())
+    if (!ticket.getClaim().getUsername().equals(username) && !permissionCheck.isSuperuser(ticket))
       throw new AuthorizationException();
 
-    if (username.equals(superuser))
+    if (permissionCheck.isSuperuser(username))
       throw new TException("Cannot query permissions of superuser.");
 
     SUser user;
@@ -318,10 +322,10 @@ public class IdentityHandler implements IdentityService.Iface {
       throws AuthenticationException, AuthorizationException, TException {
     ticketValidityService.validateTicket(ticket);
 
-    if (!ticket.getClaim().isIsSuperUser())
+    if (!permissionCheck.isSuperuser(ticket))
       throw new AuthorizationException();
 
-    if (username.equals(superuser))
+    if (permissionCheck.isSuperuser(username))
       throw new TException("Superuser permissions cannot be changed.");
 
     SUser user = new SUser();
@@ -339,11 +343,11 @@ public class IdentityHandler implements IdentityService.Iface {
       throws AuthenticationException, AuthorizationException, TException {
     ticketValidityService.validateTicket(ticket);
 
-    if (!ticket.getClaim().isIsSuperUser())
+    if (!permissionCheck.isSuperuser(ticket))
       throw new AuthorizationException();
 
-    if (username.equals(superuser))
-      throw new TException("Superuser permissions cannot be changed.");
+    if (permissionCheck.isSuperuser(username))
+      throw new TException("Superuser cannot be deleted.");
 
     try (ClosableProvider<IdentityStateMachine> p = consensusClient.getStateMachineClient(IdentityStateMachine.class)) {
       p.getClient().deleteUser(DeleteUser.local(username));

@@ -316,4 +316,11 @@ public class ConfigKey {
    */
   public static final String SUPERUSER_PASSWORD = "superuserPassword";
 
+  /**
+   * Information of users (including their passwords and credentials) are cached for this amount of seconds. That means
+   * that after a change of their information, it might take up to this amount of time until the change is seen on all
+   * cluster nodes.
+   */
+  public static final String USER_INFORMATION_CACHE_SEC = "userInformationCacheSec";
+
 }

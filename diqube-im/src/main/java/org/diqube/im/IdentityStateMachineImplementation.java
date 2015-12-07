@@ -33,6 +33,7 @@ import javax.annotation.PostConstruct;
 import org.diqube.config.Config;
 import org.diqube.config.DerivedConfigKey;
 import org.diqube.consensus.ConsensusStateMachineImplementation;
+import org.diqube.context.InjectOptional;
 import org.diqube.im.thrift.v1.SUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,6 +60,9 @@ public class IdentityStateMachineImplementation implements IdentityStateMachine 
 
   private File internalDbDirFile;
 
+  @InjectOptional
+  private List<UserChangedListener> userChangedListeners;
+
   @PostConstruct
   public void initialize() {
     internalDbDirFile = new File(internalDbDir);
@@ -71,11 +75,15 @@ public class IdentityStateMachineImplementation implements IdentityStateMachine 
   public void setUser(Commit<SetUser> commit) {
     Commit<?> prev = previous.put(commit.operation().getUser().getUsername(), commit);
 
-    users.put(commit.operation().getUser().getUsername(), commit.operation().getUser());
+    String username = commit.operation().getUser().getUsername();
+    users.put(username, commit.operation().getUser());
     storeCurrentUsers(commit.index());
 
     if (prev != null)
       prev.clean();
+
+    if (userChangedListeners != null)
+      userChangedListeners.forEach(l -> l.userChanged(username));
   }
 
   @Override
@@ -88,12 +96,16 @@ public class IdentityStateMachineImplementation implements IdentityStateMachine 
   @Override
   public void deleteUser(Commit<DeleteUser> commit) {
     Commit<?> prev = previous.put(commit.operation().getUserName(), commit);
-    users.remove(commit.operation().getUserName());
+    String username = commit.operation().getUserName();
+    users.remove(username);
     storeCurrentUsers(commit.index());
 
     if (prev != null)
       prev.clean();
     commit.clean();
+
+    if (userChangedListeners != null)
+      userChangedListeners.forEach(l -> l.userChanged(username));
   }
 
   private void storeCurrentUsers(long newestCommitId) {

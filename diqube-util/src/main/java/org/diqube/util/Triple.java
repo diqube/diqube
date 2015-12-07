@@ -22,10 +22,13 @@ package org.diqube.util;
 
 /**
  * An arbitrary triple of values.
+ * 
+ * <p>
+ * Triple is comparable, if L, M and R are comparable. It will compare from left to right.
  *
  * @author Bastian Gloeckle
  */
-public class Triple<L, M, R> {
+public class Triple<L, M, R> implements Comparable<Triple<L, M, R>> {
   final private L left;
 
   final private M middle;
@@ -48,6 +51,21 @@ public class Triple<L, M, R> {
 
   public R getRight() {
     return right;
+  }
+
+  @Override
+  @SuppressWarnings("unchecked")
+  public int compareTo(Triple<L, M, R> o) {
+    int r = ((Comparable<L>) left).compareTo(o.getLeft());
+    if (r != 0)
+      return r;
+
+    r = ((Comparable<M>) middle).compareTo(o.getMiddle());
+    if (r != 0)
+      return r;
+
+    r = ((Comparable<R>) right).compareTo(o.getRight());
+    return r;
   }
 
   @Override

@@ -114,4 +114,19 @@ public interface IdentityStateMachine {
       return DiqubeConsensusUtil.localCommit(res);
     }
   }
+
+  /**
+   * Listener that will be called as soon as the state machine changed a user.
+   * 
+   * <p>
+   * Note that this is not reliable to be called in time (i.e. all other cluster nodes can have executed the change
+   * already, but this node has fallen behind). Therefore this is no generally-available listener, but just one that
+   * this package can use.
+   */
+  /* package */ static interface UserChangedListener {
+    /**
+     * User information has changed/was deleted. See {@link UserChangedListener}.
+     */
+    public void userChanged(String username);
+  }
 }
