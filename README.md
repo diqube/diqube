@@ -70,11 +70,11 @@ The server will then start and watch the 'data' directory inside diqube-server f
 files). There is some sample data already provided. For more information see [Operating a cluster](/docs/OperatingCluster.md).
 
 The diqube server itself does not contain the diqube UI. The UI is available as standard web archive (.war file) which 
-can be deployed to a [Apache Tomcat 8.0.26+][3]. You can find the .war in diqube-ui/target after building. Please note 
+can be deployed using a context xml like [tomcat-sample-context](docs/tomcat-sample-context.xml) (for additional 
+configuration keys see [DiqubeServletConfig](diqube-ui/src/main/java/org/diqube/ui/DiqubeServletConfig.java)) to an 
+[Apache Tomcat 8.0.26+][3]. You can find the .war in diqube-ui/target after building. Please note 
 that only Apache Tomcat 8.0.26+ is supported, as it relies on [Tomcat Bug 58232][6] being fixed which is the case 
-starting with 8.0.26. Configuration of the UI can be done via [context init parameters][5], see 
-[DiqubeServletConfig](diqube-ui/src/main/java/org/diqube/ui/DiqubeServletConfig.java) for configuration options. The UI
-only supports current versions of Chrome.
+starting with 8.0.26. The UI only supports current versions of Chrome.
 
 ##Documentation##
 

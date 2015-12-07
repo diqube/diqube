@@ -161,3 +161,15 @@ This can be done by providing a different logging configuration. diqube uses [lo
 ##The User Interface##
 
 TODO
+
+###Deployment###
+
+diqube-ui can be configured using [context init parameters][1]. The configuration keys can currently be found in 
+[DiqubeServletConfig](https://github.com/diqube/diqube/tree/master/diqube-ui/src/main/java/org/diqube/ui/DiqubeServletConfig.java). 
+There is currently one **mandatory** key: `diqube.ticketPublicKeyPem`.
+
+`diqube.ticketPublicKeyPem` points to a file containing a public RSA key in OpenSSL PEM format. Note that this needs to be the public key of the private/public key pair that is configured for diqube-servers under `ticketRsaPrivateKeyPemFile`.
+
+To be able to provide these configuration properties, deployment to Tomcat should be done using a context xml file. Use and adjust the following example file and copy it into Tomcats `conf/Catalina/localhost` directory: [tomcat-sample-context.xml](tomcat-sample-context.xml). Be sure to name the file just like the context-path you want the app to be available at.
+
+[1]: http://tomcat.apache.org/tomcat-8.0-doc/config/context.html#Context_Parameters

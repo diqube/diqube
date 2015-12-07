@@ -1,0 +1,44 @@
+<!--
+
+    diqube: Distributed Query Base.
+
+    Copyright (C) 2015 Bastian Gloeckle
+
+    This file is part of diqube.
+
+    diqube is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as
+    published by the Free Software Foundation, either version 3 of the
+    License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+-->
+
+<!-- 
+This file is a sample "context xml" that can be used to deploy diqube-ui in Tomcat.
+
+diqube-ui has several configuration properties, of which one is currently mandatory:
+
+diqube.ticketPublicKeyPem. This holds the path to a file containing a RSA public key in OpenSSL PEM format. That public
+key corresponds to the private/public key pairs that are installed on the diqube-servers under configuration property 
+"ticketRsaPrivateKeyPemFile". This means that this is the public key belonging to the private keys that sign new
+Tickets.
+
+Deployment of diqube-ui to Tomcat should be done using a file like this, as this allows to specify the configuration
+parameters. To deploy, do the following:
+
+* Adjust the values in this file according to your local paths.
+* Copy the file into the Tomcat directory conf/Catalina/localhost
+* Tomcat will deploy a new web app with the same context name as this xml file.
+-->
+
+<Context docBase="/path/to/diqube-ui.war">
+  <Parameter name="diqube.ticketPublicKeyPem" value="/path/to/ticket.public.pem" />
+</Context>
