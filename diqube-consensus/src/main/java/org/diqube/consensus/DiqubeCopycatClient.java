@@ -169,10 +169,13 @@ public class DiqubeCopycatClient implements DiqubeConsensusListener {
           // with no successful ClientSession. We therefore clean all state the client might have by simply recreating
           // it fully (and initializing it with the currently active nodes in the consensus cluster which are retrieved
           // from DiqubeCopycatServer).
+          // It could have been that copycat did not connect to new servers, because diqube had a buggy implementation
+          // of catyst client/connection. But even then,, it is meaningful to recreate the client once and then, as the
+          // nodes that are in the cluster might change and we'd like to initialize the client session freshly.
 
           raftClientProvider.close(); // unregister
           raftClientProvider.recreateClient().join(); // recreate, wait until recreated.
-          raftClientProvider.registerUsage(); // register again (if another thread strated recreation, this will block!)
+          raftClientProvider.registerUsage(); // register again (if another thread started recreation, this will block!)
           raftClient = raftClientProvider.getClient(); // get new client.
         }
       }

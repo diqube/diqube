@@ -35,7 +35,7 @@
   <!-- Only spring WARNs in test -->
   <logger name="org.springframework" level="warn" />
   
-  <logger name="io.atomix" level="info" additivity="false">
+  <logger name="io.atomix" level="warn" additivity="false">
     <appender-ref ref="STDOUT_FileLine" />
   </logger>
   
@@ -43,6 +43,7 @@
   <logger name="org.diqube.loader.compression.CompressedLongArrayBuilder" level="warn" />
   <logger name="org.diqube.data.types.lng.array.RunLengthLongArray" level="warn" />
   <logger name="org.diqube.connection.ConnectionPool" level="info" /> 
+  <logger name="org.diqube.consensus.internal.DiqubeCatalystConnection" level="info" />
 
   <root level="info">
     <appender-ref ref="STDOUT" />
