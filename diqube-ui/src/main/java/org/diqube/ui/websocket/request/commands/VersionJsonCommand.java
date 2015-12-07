@@ -21,6 +21,7 @@
 package org.diqube.ui.websocket.request.commands;
 
 import org.diqube.buildinfo.BuildInfo;
+import org.diqube.remote.query.thrift.Ticket;
 import org.diqube.ui.websocket.request.CommandClusterInteraction;
 import org.diqube.ui.websocket.request.CommandResultHandler;
 import org.diqube.ui.websocket.result.VersionJsonResult;
@@ -41,7 +42,7 @@ public class VersionJsonCommand implements JsonCommand {
   public static final String NAME = "version";
 
   @Override
-  public void execute(CommandResultHandler resultHandler, CommandClusterInteraction clusterInteraction)
+  public void execute(Ticket ticket, CommandResultHandler resultHandler, CommandClusterInteraction clusterInteraction)
       throws RuntimeException {
     VersionJsonResult res = new VersionJsonResult();
     res.setBuildTimestamp(BuildInfo.getTimestamp());

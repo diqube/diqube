@@ -27,6 +27,8 @@ import java.util.List;
 import javax.servlet.ServletContext;
 
 import org.diqube.context.AutoInstatiate;
+import org.diqube.context.InjectOptional;
+import org.diqube.remote.query.thrift.Ticket;
 import org.diqube.util.Pair;
 
 /**
@@ -42,12 +44,21 @@ public class DiqubeServletConfig {
 
   public static final String INIT_PARAM_CLUSTER = "diqube.cluster";
   public static final String INIT_PARAM_CLUSTER_RESPONSE = "diqube.clusterresponse";
+  public static final String INIT_PARAM_TICKET_PUBLIC_KEY_PEM = "diqube.ticketPublicKeyPem";
+  public static final String INIT_PARAM_TICKET_PUBLIC_KEY_PEM_ALT1 = "diqube.ticketPublicKeyPemAlt1";
+  public static final String INIT_PARAM_TICKET_PUBLIC_KEY_PEM_ALT2 = "diqube.ticketPublicKeyPemAlt2";
   public static final String DEFAULT_CLUSTER = "localhost:5101";
   public static final String DEFAULT_CLUSTER_RESPONSE = "http://localhost:8080";
+
+  @InjectOptional
+  private List<ServletConfigListener> servletConfigListeners;
 
   private List<Pair<String, Short>> clusterServers;
 
   private String clusterResponseAddr;
+  private String ticketPublicKeyPem;
+  private String ticketPublicKeyPemAlt1;
+  private String ticketPublicKeyPemAlt2;
 
   /* package */ void initialize(ServletContext ctx) {
     String clusterLocation = ctx.getInitParameter(INIT_PARAM_CLUSTER);
@@ -66,6 +77,15 @@ public class DiqubeServletConfig {
       clusterResponse = DEFAULT_CLUSTER_RESPONSE;
 
     clusterResponseAddr = clusterResponse + ctx.getContextPath();
+
+    ticketPublicKeyPem = ctx.getInitParameter(INIT_PARAM_TICKET_PUBLIC_KEY_PEM);
+    if (ticketPublicKeyPem == null)
+      throw new RuntimeException("Value for paramater '" + INIT_PARAM_TICKET_PUBLIC_KEY_PEM + "' needed.");
+    ticketPublicKeyPemAlt1 = ctx.getInitParameter(INIT_PARAM_TICKET_PUBLIC_KEY_PEM_ALT1);
+    ticketPublicKeyPemAlt2 = ctx.getInitParameter(INIT_PARAM_TICKET_PUBLIC_KEY_PEM_ALT2);
+
+    if (servletConfigListeners != null)
+      servletConfigListeners.forEach(l -> l.servletConfigurationAvailable());
   }
 
   /**
@@ -82,5 +102,35 @@ public class DiqubeServletConfig {
    */
   public String getClusterResponseAddr() {
     return clusterResponseAddr;
+  }
+
+  /**
+   * @return File name of the .pem file containing a RSA public key which can be used to validate {@link Ticket}s.
+   */
+  public String getTicketPublicKeyPem() {
+    return ticketPublicKeyPem;
+  }
+
+  /**
+   * @return File name of the .pem file containing a RSA public key which can be used to validate {@link Ticket}s. This
+   *         can be <code>null</code>.
+   */
+  public String getTicketPublicKeyPemAlt1() {
+    return ticketPublicKeyPemAlt1;
+  }
+
+  /**
+   * @return File name of the .pem file containing a RSA public key which can be used to validate {@link Ticket}s. This
+   *         can be <code>null</code>.
+   */
+  public String getTicketPublicKeyPemAlt2() {
+    return ticketPublicKeyPemAlt2;
+  }
+
+  /**
+   * Simple listener interface that gets called as soon as the {@link DiqubeServletConfig} is initialized.
+   */
+  public static interface ServletConfigListener {
+    public void servletConfigurationAvailable();
   }
 }

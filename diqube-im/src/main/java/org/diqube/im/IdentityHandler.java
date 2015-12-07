@@ -21,6 +21,7 @@
 package org.diqube.im;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
@@ -60,6 +61,8 @@ import org.diqube.remote.query.thrift.IdentityCallbackService;
 import org.diqube.remote.query.thrift.IdentityService;
 import org.diqube.remote.query.thrift.OptionalString;
 import org.diqube.remote.query.thrift.Ticket;
+import org.diqube.ticket.TicketSignatureService;
+import org.diqube.ticket.TicketUtil;
 import org.diqube.ticket.TicketValidityService;
 import org.diqube.ticket.TicketVendor;
 import org.diqube.util.BouncyCastleUtil;
@@ -109,8 +112,17 @@ public class IdentityHandler implements IdentityService.Iface {
   @Inject
   private PermissionCheckUtil permissionCheck;
 
+  @Inject
+  private TicketSignatureService ticketSignatureService;
+
   @Override
   public Ticket login(String userName, String password) throws AuthenticationException, TException {
+    if (userName == null || "".equals(userName.trim()))
+      throw new AuthenticationException("Empty username.");
+
+    if (password == null || "".equals(password.trim()))
+      throw new AuthenticationException("Empty password.");
+
     if (permissionCheck.isSuperuser(userName)) {
       if (!password.equals(superuserPassword))
         throw new AuthenticationException("Invalid credentials.");
@@ -144,6 +156,12 @@ public class IdentityHandler implements IdentityService.Iface {
 
   @Override
   public void logout(Ticket ticket) throws TException {
+    if (!ticketSignatureService
+        .isValidTicketSignature(TicketUtil.deserialize(ByteBuffer.wrap(TicketUtil.serialize(ticket)))))
+      // filter out tickets with invalid signature, since we do not want to let users flood the consensus cluster with
+      // requests.
+      throw new TException("Ticket signaure invalid.");
+
     // quickly (but unreliably) distribute the logout to all known cluster nodes first
     for (NodeAddress addr : clusterLayout.getNodesInsecure()) {
       if (addr.equals(ourNodeAddressProvider.getOurNodeAddress()))

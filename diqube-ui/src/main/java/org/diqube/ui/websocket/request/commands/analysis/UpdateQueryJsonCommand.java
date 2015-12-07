@@ -24,6 +24,7 @@ import javax.inject.Inject;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
+import org.diqube.remote.query.thrift.Ticket;
 import org.diqube.ui.AnalysisRegistry;
 import org.diqube.ui.analysis.QueryBuilder;
 import org.diqube.ui.analysis.QueryBuilder.QueryBuilderException;
@@ -74,7 +75,7 @@ public class UpdateQueryJsonCommand implements JsonCommand {
   private AnalysisRegistry registry;
 
   @Override
-  public void execute(CommandResultHandler resultHandler, CommandClusterInteraction clusterInteraction)
+  public void execute(Ticket ticket, CommandResultHandler resultHandler, CommandClusterInteraction clusterInteraction)
       throws RuntimeException {
     UiAnalysis analysis = registry.getAnalysis(analysisId);
     if (analysis == null)

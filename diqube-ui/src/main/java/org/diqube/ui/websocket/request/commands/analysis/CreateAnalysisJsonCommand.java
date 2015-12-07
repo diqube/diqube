@@ -33,6 +33,7 @@ import org.diqube.diql.request.ExecutionRequest;
 import org.diqube.diql.visitors.SelectStmtVisitor;
 import org.diqube.name.FunctionBasedColumnNameBuilderFactory;
 import org.diqube.name.RepeatedColumnNameGenerator;
+import org.diqube.remote.query.thrift.Ticket;
 import org.diqube.ui.AnalysisRegistry;
 import org.diqube.ui.analysis.AnalysisFactory;
 import org.diqube.ui.analysis.UiAnalysis;
@@ -89,7 +90,7 @@ public class CreateAnalysisJsonCommand implements JsonCommand {
   private FunctionBasedColumnNameBuilderFactory functionBasedColumnNameBuilderFactory;
 
   @Override
-  public void execute(CommandResultHandler resultHandler, CommandClusterInteraction clusterInteraction)
+  public void execute(Ticket ticket, CommandResultHandler resultHandler, CommandClusterInteraction clusterInteraction)
       throws RuntimeException {
     UiAnalysis res = factory.createAnalysis(UUID.randomUUID().toString(), name, table);
 

@@ -23,6 +23,7 @@ package org.diqube.ticket;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import org.diqube.remote.query.thrift.Ticket;
 import org.diqube.util.Triple;
@@ -40,11 +41,11 @@ public interface TicketRsaKeyFileProvider {
    * For validating tickets the public keys of all returned files are inspected, but new tickets will be signed only
    * with the private key (if there is one) of the <b>first</b> returned file.
    * 
-   * @return List of {@link Triple}s: Left is the string denoting the source of the .pem file (= file name), middle is a
-   *         supplier of a new {@link InputStream} to read from it and right is the password which is needed to decrypt
-   *         the .pem stream (<code>null</code> if no password).
+   * @return A {@link CompletableFuture} that completes to a list of {@link Triple}s: Left is the string denoting the
+   *         source of the .pem file (= file name), middle is a supplier of a new {@link InputStream} to read from it
+   *         and right is the password which is needed to decrypt the .pem stream (<code>null</code> if no password).
    */
-  public List<Triple<String, IOExceptionSupplier<InputStream>, String>> getPemFiles();
+  public CompletableFuture<List<Triple<String, IOExceptionSupplier<InputStream>, String>>> getPemFiles();
 
   /**
    * @return If <code>true</code> it is required that {@link #getPemFiles()} returns files that contain a private key,

@@ -23,6 +23,7 @@ package org.diqube.ticket;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import org.diqube.context.Profiles;
 import org.diqube.remote.query.thrift.Ticket;
@@ -100,8 +101,8 @@ public class TicketVendorTest {
     }
 
     @Override
-    public List<Triple<String, IOExceptionSupplier<InputStream>, String>> getPemFiles() {
-      return files;
+    public CompletableFuture<List<Triple<String, IOExceptionSupplier<InputStream>, String>>> getPemFiles() {
+      return CompletableFuture.completedFuture(files);
     }
 
     @Override

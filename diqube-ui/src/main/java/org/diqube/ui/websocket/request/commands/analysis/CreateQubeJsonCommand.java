@@ -25,6 +25,7 @@ import java.util.UUID;
 import javax.inject.Inject;
 import javax.validation.constraints.NotNull;
 
+import org.diqube.remote.query.thrift.Ticket;
 import org.diqube.ui.AnalysisRegistry;
 import org.diqube.ui.analysis.AnalysisFactory;
 import org.diqube.ui.analysis.UiAnalysis;
@@ -76,7 +77,7 @@ public class CreateQubeJsonCommand implements JsonCommand {
   private AnalysisFactory factory;
 
   @Override
-  public void execute(CommandResultHandler resultHandler, CommandClusterInteraction clusterInteraction)
+  public void execute(Ticket ticket, CommandResultHandler resultHandler, CommandClusterInteraction clusterInteraction)
       throws RuntimeException {
     UiAnalysis analysis = registry.getAnalysis(analysisId);
 

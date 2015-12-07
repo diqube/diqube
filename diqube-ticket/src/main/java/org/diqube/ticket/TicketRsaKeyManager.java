@@ -44,8 +44,6 @@ import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.openssl.jcajce.JcePEMDecryptorProviderBuilder;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.remote.query.thrift.Ticket;
-import org.diqube.ticket.TicketRsaKeyFileProvider.IOExceptionSupplier;
-import org.diqube.util.Triple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,14 +60,17 @@ public class TicketRsaKeyManager {
   private TicketRsaKeyFileProvider provider;
 
   private RSAPrivateCrtKeyParameters privateSigningKey = null;
-
   private List<RSAKeyParameters> publicValidationKeys = null;
+
+  private boolean initialized = false;
 
   /**
    * @return The private key that needs to be used to sign any {@link Ticket}s. May be <code>null</code> in case there
    *         is no private key available.
    */
   public RSAPrivateCrtKeyParameters getPrivateSigningKey() {
+    if (!initialized)
+      throw new IllegalStateException("Not initialized");
     return privateSigningKey;
   }
 
@@ -77,6 +78,8 @@ public class TicketRsaKeyManager {
    * @return Unmodifiable list of RSA public keys that can be used to validate signatures of {@link Ticket}s.
    */
   public List<RSAKeyParameters> getPublicValidationKeys() {
+    if (!initialized)
+      throw new IllegalStateException("Not initialized");
     return publicValidationKeys;
   }
 
@@ -85,68 +88,75 @@ public class TicketRsaKeyManager {
     List<RSAKeyParameters> allPublicKeys = new ArrayList<>();
     publicValidationKeys = Collections.unmodifiableList(allPublicKeys);
 
-    List<Triple<String, IOExceptionSupplier<InputStream>, String>> pemFiles = provider.getPemFiles();
+    provider.getPemFiles().whenComplete((pemFiles, error) -> {
+      if (error != null)
+        throw new RuntimeException("Exception while identifying .pem files!", error);
 
-    if (pemFiles.isEmpty())
-      throw new RuntimeException("No .pem files configured that can be used to sign/validate tickets!");
+      if (pemFiles.isEmpty())
+        throw new RuntimeException("No .pem files configured that can be used to sign/validate tickets!");
 
-    for (int i = 0; i < pemFiles.size(); i++) {
-      String pemFileName = pemFiles.get(i).getLeft();
-      String pemPassword = pemFiles.get(i).getRight();
+      for (int i = 0; i < pemFiles.size(); i++) {
+        String pemFileName = pemFiles.get(i).getLeft();
+        String pemPassword = pemFiles.get(i).getRight();
 
-      try (InputStream pemStream = pemFiles.get(i).getMiddle().get()) {
-        Reader pemReader = new InputStreamReader(pemStream);
-        try (PEMParser parser = new PEMParser(pemReader)) {
-          Object o = parser.readObject();
+        try (InputStream pemStream = pemFiles.get(i).getMiddle().get()) {
+          Reader pemReader = new InputStreamReader(pemStream);
+          try (PEMParser parser = new PEMParser(pemReader)) {
+            Object o = parser.readObject();
 
-          SubjectPublicKeyInfo publicKeyInfo = null;
-          PrivateKeyInfo privateKeyInfo = null;
+            SubjectPublicKeyInfo publicKeyInfo = null;
+            PrivateKeyInfo privateKeyInfo = null;
 
-          if (o instanceof PEMEncryptedKeyPair) {
-            if (pemPassword == null)
+            if (o instanceof PEMEncryptedKeyPair) {
+              if (pemPassword == null)
+                throw new RuntimeException(
+                    "PEM file '" + pemFileName + "' is password protected, but the password is not configured.");
+
+              PEMDecryptorProvider decryptionProvider =
+                  new JcePEMDecryptorProviderBuilder().build(pemPassword.toCharArray());
+
+              PEMEncryptedKeyPair encryptedKeyPair = (PEMEncryptedKeyPair) o;
+              PEMKeyPair keyPair = encryptedKeyPair.decryptKeyPair(decryptionProvider);
+              publicKeyInfo = keyPair.getPublicKeyInfo();
+              privateKeyInfo = keyPair.getPrivateKeyInfo();
+            } else if (o instanceof PEMKeyPair) {
+              PEMKeyPair keyPair = (PEMKeyPair) o;
+              publicKeyInfo = keyPair.getPublicKeyInfo();
+              privateKeyInfo = keyPair.getPrivateKeyInfo();
+            } else if (o instanceof SubjectPublicKeyInfo)
+              publicKeyInfo = (SubjectPublicKeyInfo) o;
+            else
               throw new RuntimeException(
-                  "PEM file '" + pemFileName + "' is password protected, but the password is not configured.");
+                  "Could not identify content of pem file '" + pemFileName + "': " + o.toString());
 
-            PEMDecryptorProvider decryptionProvider =
-                new JcePEMDecryptorProviderBuilder().build(pemPassword.toCharArray());
+            if (publicKeyInfo == null)
+              throw new RuntimeException(
+                  "Could not load '" + pemFileName + "' because it did not contain a public key.");
 
-            PEMEncryptedKeyPair encryptedKeyPair = (PEMEncryptedKeyPair) o;
-            PEMKeyPair keyPair = encryptedKeyPair.decryptKeyPair(decryptionProvider);
-            publicKeyInfo = keyPair.getPublicKeyInfo();
-            privateKeyInfo = keyPair.getPrivateKeyInfo();
-          } else if (o instanceof PEMKeyPair) {
-            PEMKeyPair keyPair = (PEMKeyPair) o;
-            publicKeyInfo = keyPair.getPublicKeyInfo();
-            privateKeyInfo = keyPair.getPrivateKeyInfo();
-          } else if (o instanceof SubjectPublicKeyInfo)
-            publicKeyInfo = (SubjectPublicKeyInfo) o;
-          else
-            throw new RuntimeException("Could not identify content of pem file '" + pemFileName + "': " + o.toString());
+            if (privateKeyInfo == null)
+              logger.info("Loading public key from '{}'.", pemFileName);
+            else if (!provider.filesWithPrivateKeyAreRequired())
+              throw new RuntimeException("File '" + pemFileName + "' contains a private key, but only public keys are "
+                  + "accepted. Please extract the public key from the current file and configure diqube to use "
+                  + "that new file.");
 
-          if (publicKeyInfo == null)
-            throw new RuntimeException("Could not load '" + pemFileName + "' because it did not contain a public key.");
-
-          if (privateKeyInfo == null)
-            logger.info("Loading public key from '{}'.", pemFileName);
-          else if (!provider.filesWithPrivateKeyAreRequired())
-            throw new RuntimeException("File '" + pemFileName + "' contains a private key, but only public keys are "
-                + "accepted. Please extract the public key from the current file and configure diqube to use "
-                + "that new file.");
-
-          allPublicKeys.add((RSAKeyParameters) PublicKeyFactory.createKey(publicKeyInfo));
-          if (i == 0 && privateKeyInfo != null) {
-            logger.info("Loading private key from '{}' and will use that for signing tickets.", pemFileName);
-            privateSigningKey = (RSAPrivateCrtKeyParameters) PrivateKeyFactory.createKey(privateKeyInfo);
+            allPublicKeys.add((RSAKeyParameters) PublicKeyFactory.createKey(publicKeyInfo));
+            if (i == 0 && privateKeyInfo != null) {
+              logger.info("Loading private key from '{}' and will use that for signing tickets.", pemFileName);
+              privateSigningKey = (RSAPrivateCrtKeyParameters) PrivateKeyFactory.createKey(privateKeyInfo);
+            }
           }
+        } catch (IOException e) {
+          throw new RuntimeException("Could not interact with '" + pemFileName + "'. Correct password?", e);
         }
-      } catch (IOException e) {
-        throw new RuntimeException("Could not interact with '" + pemFileName + "'. Correct password?", e);
       }
-    }
 
-    if (privateSigningKey == null && provider.filesWithPrivateKeyAreRequired())
-      throw new RuntimeException("A .pem file containing a private key for signing tickets is required. "
-          + "Make sure that the first configured .pem file contains a private key.");
+      if (privateSigningKey == null && provider.filesWithPrivateKeyAreRequired())
+        throw new RuntimeException("A .pem file containing a private key for signing tickets is required. "
+            + "Make sure that the first configured .pem file contains a private key.");
+
+      initialized = true;
+    });
   }
 
 }

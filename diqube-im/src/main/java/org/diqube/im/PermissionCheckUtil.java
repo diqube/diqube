@@ -20,6 +20,7 @@
  */
 package org.diqube.im;
 
+import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 
 import org.diqube.config.Config;
@@ -47,6 +48,7 @@ public class PermissionCheckUtil {
 
   private boolean superuserEnabled;
 
+  @PostConstruct
   public void initialize() {
     superuserEnabled = superuser != null && !superuser.equals("") && !superuser.equals(NONE);
   }

@@ -22,6 +22,7 @@ package org.diqube.ui.websocket.request;
 
 import org.diqube.remote.query.thrift.ClusterInformationService;
 import org.diqube.remote.query.thrift.FlattenPreparationService;
+import org.diqube.remote.query.thrift.IdentityService;
 import org.diqube.remote.query.thrift.QueryResultService;
 
 /**
@@ -54,4 +55,9 @@ public interface CommandClusterInteraction {
    *         table.
    */
   public FlattenPreparationService.Iface getFlattenPreparationService();
+
+  /**
+   * @return An instance of {@link IdentityService} that can be used to login/logout.
+   */
+  public IdentityService.Iface getIdentityService();
 }

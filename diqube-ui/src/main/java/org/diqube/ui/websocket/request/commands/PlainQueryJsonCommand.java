@@ -36,6 +36,7 @@ import org.diqube.remote.query.thrift.QueryResultService;
 import org.diqube.remote.query.thrift.RQueryException;
 import org.diqube.remote.query.thrift.RQueryStatistics;
 import org.diqube.remote.query.thrift.RResultTable;
+import org.diqube.remote.query.thrift.Ticket;
 import org.diqube.ui.websocket.request.CommandClusterInteraction;
 import org.diqube.ui.websocket.request.CommandResultHandler;
 import org.diqube.ui.websocket.result.StatsJsonResult;
@@ -74,7 +75,7 @@ public class PlainQueryJsonCommand implements AsyncJsonCommand {
   }
 
   @Override
-  public void execute(CommandResultHandler resultHandler, CommandClusterInteraction clusterInteraction)
+  public void execute(Ticket ticket, CommandResultHandler resultHandler, CommandClusterInteraction clusterInteraction)
       throws RuntimeException {
     clusterInteraction.executeDiqlQuery(diql, new QueryResultService.Iface() {
       @Override

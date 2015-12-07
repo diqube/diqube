@@ -21,8 +21,8 @@
 'use strict';
 
 (function() {
-  angular.module("diqube.remote", [ "ngWebsocket" ]).service("remoteService",
-      [ "$websocket", "$log", function remoteServiceProvider($websocket, $log) {
+  angular.module("diqube.remote", [ "ngWebsocket", "diqube.login-state" ]).service("remoteService",
+      [ "$websocket", "$log", "loginStateService", function remoteServiceProvider($websocket, $log, loginStateService) {
         var me = this;
         
         me.execute = execute;
@@ -31,7 +31,6 @@
         // ==
 
         me.getSocket = getSocket;
-        me.getService = getService;
         me.initialize = initialize;
         
         me.socketMessage = socketMessage;
@@ -72,7 +71,8 @@
           sock.$$send({
             requestId: requestId, 
             command: commandName,
-            commandData: cleanCmdData
+            commandData: cleanCmdData,
+            ticket: loginStateService.getTicket()
           });
           
           return requestId;
@@ -182,10 +182,6 @@
           me.socket.$on("$close", me.socketClose);
           
           return me.socket;
-        }
-
-        function getService() {
-          // $location.protocol()
         }
         
         function initialize($location) {

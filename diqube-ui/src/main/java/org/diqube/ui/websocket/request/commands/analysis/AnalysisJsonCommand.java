@@ -23,6 +23,7 @@ package org.diqube.ui.websocket.request.commands.analysis;
 import javax.inject.Inject;
 import javax.validation.constraints.NotNull;
 
+import org.diqube.remote.query.thrift.Ticket;
 import org.diqube.ui.AnalysisRegistry;
 import org.diqube.ui.analysis.UiAnalysis;
 import org.diqube.ui.websocket.request.CommandClusterInteraction;
@@ -59,7 +60,7 @@ public class AnalysisJsonCommand implements JsonCommand {
   public AnalysisRegistry registry;
 
   @Override
-  public void execute(CommandResultHandler resultHandler, CommandClusterInteraction clusterInteraction)
+  public void execute(Ticket ticket, CommandResultHandler resultHandler, CommandClusterInteraction clusterInteraction)
       throws RuntimeException {
     UiAnalysis analysis = registry.getAnalysis(analysisId);
     if (analysis == null)

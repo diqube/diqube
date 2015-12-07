@@ -43,6 +43,10 @@
       <destName>bower_components/angular-route/angular-route.js</destName>
     </file>
     <file>
+      <source>bower_components/angular-cookies/angular-cookies.min.js</source>
+      <destName>bower_components/angular-cookies/angular-cookies.js</destName>
+    </file>
+    <file>
       <source>bower_components/angular-nvd3/dist/angular-nvd3.min.js</source>
       <destName>bower_components/angular-nvd3/dist/angular-nvd3.js</destName>
     </file>

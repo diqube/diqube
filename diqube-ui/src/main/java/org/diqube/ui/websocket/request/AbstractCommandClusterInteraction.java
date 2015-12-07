@@ -38,9 +38,11 @@ import org.diqube.remote.base.thrift.RNodeHttpAddress;
 import org.diqube.remote.base.util.RUuidUtil;
 import org.diqube.remote.query.ClusterInformationServiceConstants;
 import org.diqube.remote.query.FlattenPreparationServiceConstants;
+import org.diqube.remote.query.IdentityServiceConstants;
 import org.diqube.remote.query.QueryServiceConstants;
 import org.diqube.remote.query.thrift.ClusterInformationService;
 import org.diqube.remote.query.thrift.FlattenPreparationService;
+import org.diqube.remote.query.thrift.IdentityService;
 import org.diqube.remote.query.thrift.QueryResultService;
 import org.diqube.remote.query.thrift.QueryResultService.Iface;
 import org.diqube.remote.query.thrift.QueryService;
@@ -140,6 +142,25 @@ public abstract class AbstractCommandClusterInteraction implements CommandCluste
         continue;
 
       client = openConnection(FlattenPreparationService.Client.class, FlattenPreparationServiceConstants.SERVICE_NAME,
+          config.getClusterServers().get(nextIdx));
+    }
+
+    return client;
+  }
+
+  @Override
+  public IdentityService.Iface getIdentityService() {
+    Set<Integer> idxToCheck = IntStream.range(0, config.getClusterServers().size()).boxed().collect(Collectors.toSet());
+
+    IdentityService.Client client = null;
+    while (client == null) {
+      if (idxToCheck.isEmpty())
+        throw new RuntimeException("No cluster servers were reachable");
+      int nextIdx = (int) Math.floor(Math.random() * config.getClusterServers().size());
+      if (!idxToCheck.remove(nextIdx))
+        continue;
+
+      client = openConnection(IdentityService.Client.class, IdentityServiceConstants.SERVICE_NAME,
           config.getClusterServers().get(nextIdx));
     }
 

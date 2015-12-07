@@ -20,29 +20,54 @@
  */
 package org.diqube.ui.websocket.request.commands;
 
+import javax.validation.constraints.NotNull;
+
+import org.apache.thrift.TException;
+import org.diqube.remote.base.thrift.AuthenticationException;
 import org.diqube.remote.query.thrift.Ticket;
 import org.diqube.ui.websocket.request.CommandClusterInteraction;
 import org.diqube.ui.websocket.request.CommandResultHandler;
+import org.diqube.ui.websocket.result.TicketJsonResult;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * Cancels the execution of the request that was executed with the same reuqestId.
- *
+ * Tries to login a user.
+ * 
  * <p>
  * Sends following results:
  * <ul>
- * <li>none
+ * <li>{@link TicketJsonResult}
  * </ul>
- * 
+ *
  * @author Bastian Gloeckle
  */
-@CommandInformation(name = CancelJsonCommand.NAME)
-public class CancelJsonCommand implements JsonCommand {
-  public static final String NAME = "cancel";
+@CommandInformation(name = LoginJsonCommand.NAME)
+public class LoginJsonCommand implements JsonCommand {
+
+  public static final String NAME = "login";
+
+  @JsonProperty
+  @NotNull
+  public String username;
+
+  @JsonProperty
+  @NotNull
+  public String password;
 
   @Override
   public void execute(Ticket ticket, CommandResultHandler resultHandler, CommandClusterInteraction clusterInteraction)
       throws RuntimeException {
-    // currently only queries can be cancelled.
-    clusterInteraction.cancelQuery();
+    Ticket newTicket;
+    try {
+      newTicket = clusterInteraction.getIdentityService().login(username, password);
+    } catch (AuthenticationException e) {
+      throw new RuntimeException(e.getMsg(), e);
+    } catch (TException e) {
+      throw new RuntimeException("Could not login.", e);
+    }
+
+    resultHandler.sendData(new TicketJsonResult(newTicket));
   }
+
 }

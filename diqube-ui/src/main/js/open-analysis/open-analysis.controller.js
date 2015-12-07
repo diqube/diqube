@@ -88,6 +88,13 @@
           me.reloadAnalysis();
         });
         
+        $scope.$on("login:succeeded", function(event, data) {
+          me.reloadAnalysis();
+        });
+        $scope.$on("login:failed", function(event, data) {
+          me.reloadAnalysis();
+        });
+        
         // needed for dropdown.
         $scope.toggleDropdown = function($event) {
           $event.preventDefault();

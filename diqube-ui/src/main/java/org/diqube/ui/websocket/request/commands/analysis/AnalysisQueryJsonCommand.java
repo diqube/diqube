@@ -23,6 +23,7 @@ package org.diqube.ui.websocket.request.commands.analysis;
 import javax.inject.Inject;
 import javax.validation.constraints.NotNull;
 
+import org.diqube.remote.query.thrift.Ticket;
 import org.diqube.ui.AnalysisRegistry;
 import org.diqube.ui.analysis.QueryBuilder;
 import org.diqube.ui.analysis.QueryBuilder.QueryBuilderException;
@@ -77,7 +78,7 @@ public class AnalysisQueryJsonCommand implements AsyncJsonCommand {
   private PlainQueryJsonCommand plainQueryJsonCommand;
 
   @Override
-  public void execute(CommandResultHandler resultHandler, CommandClusterInteraction clusterInteraction)
+  public void execute(Ticket ticket, CommandResultHandler resultHandler, CommandClusterInteraction clusterInteraction)
       throws RuntimeException {
     UiAnalysis analysis = registry.getAnalysis(analysisId);
     if (analysis == null)
@@ -105,7 +106,7 @@ public class AnalysisQueryJsonCommand implements AsyncJsonCommand {
     }
 
     plainQueryJsonCommand = new PlainQueryJsonCommand(finalDiql);
-    plainQueryJsonCommand.execute(resultHandler, clusterInteraction);
+    plainQueryJsonCommand.execute(ticket, resultHandler, clusterInteraction);
   }
 
   @Override

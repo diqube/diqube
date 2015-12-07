@@ -40,6 +40,7 @@ import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.diqube.remote.query.thrift.QueryResultService.Iface;
+import org.diqube.remote.query.thrift.Ticket;
 import org.diqube.ui.DiqubeServletConfig;
 import org.diqube.ui.UiQueryRegistry;
 import org.diqube.ui.websocket.request.commands.AsyncJsonCommand;
@@ -112,9 +113,12 @@ public class JsonRequest {
   private CommandClusterInteraction commandClusterInteraction;
   private JsonRequestRegistry requestRegistry;
 
-  /* package */ JsonRequest(Session session, String requestId, JsonCommand jsonCommand,
+  private Ticket ticket;
+
+  /* package */ JsonRequest(Session session, Ticket ticket, String requestId, JsonCommand jsonCommand,
       JsonRequestRegistry requestRegistry) {
     this.session = session;
+    this.ticket = ticket;
     this.requestId = requestId;
     this.jsonCommand = jsonCommand;
     this.requestRegistry = requestRegistry;
@@ -209,7 +213,7 @@ public class JsonRequest {
     };
 
     try {
-      jsonCommand.execute(commandResultHandler, commandClusterInteraction);
+      jsonCommand.execute(ticket, commandResultHandler, commandClusterInteraction);
     } catch (RuntimeException e) {
       sendException(e);
       logger.warn("Exception while executing command", e);

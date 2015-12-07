@@ -22,13 +22,16 @@
 
 (function() {
     angular.module("diqube", [ "ngRoute", 
+                               "ngCookies",
                                "ngWebsocket", 
                                "angular-toArrayFilter",
                                "ui.bootstrap",
                                "ui.bootstrap.collapse",
                                "nvd3",
                                "diqube.route", 
-                               "diqube.about", 
+                               "diqube.about",
+                               "diqube.login-state",
+                               "diqube.login", 
                                "diqube.query", 
                                "diqube.remote",
                                "diqube.analysis",

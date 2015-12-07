@@ -85,6 +85,7 @@ diqube source code.
 
     MIT License (AngularJS) [angular-mit.txt]:
         * AngularJS, http://angularjs.org
+        * angular-cookies, https://github.com/angular/bower-angular-cookies
 
     MIT License (ng-websocket) [ng-websocket-mit.txt]:
         * ng-websocket, https://github.com/wilk/ng-websocket

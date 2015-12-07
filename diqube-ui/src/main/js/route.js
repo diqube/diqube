@@ -39,8 +39,12 @@
           templateUrl : "analysis/analysis.html",
           controller : "AnalysisCtrl",
           controllerAs : "analysis"
+        }).when("/login", {
+          templateUrl : "login/login.html",
+          controller : "LoginCtrl",
+          controllerAs : "login"
         }).otherwise({
-          redirectTo : "/query"
+          redirectTo : "/login"
         });
       } ]);
 

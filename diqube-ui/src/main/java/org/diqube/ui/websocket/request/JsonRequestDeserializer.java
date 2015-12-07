@@ -25,6 +25,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -34,6 +35,8 @@ import javax.inject.Inject;
 import javax.websocket.Session;
 
 import org.diqube.context.AutoInstatiate;
+import org.diqube.remote.query.thrift.Ticket;
+import org.diqube.ticket.TicketUtil;
 import org.diqube.ui.websocket.request.commands.CommandInformation;
 import org.diqube.ui.websocket.request.commands.JsonCommand;
 import org.diqube.ui.websocket.result.JsonResult;
@@ -47,6 +50,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.io.BaseEncoding;
 import com.google.common.reflect.ClassPath;
 import com.google.common.reflect.ClassPath.ClassInfo;
 
@@ -69,6 +73,7 @@ public class JsonRequestDeserializer {
   private static final String JSON_REQUEST_ID = "requestId";
   private static final String JSON_COMMAND_NAME = "command";
   private static final String JSON_COMMAND_DATA = "commandData";
+  private static final String JSON_TICKET = "ticket";
 
   private Map<String, Class<? extends JsonCommand>> commandClasses;
 
@@ -114,8 +119,15 @@ public class JsonRequestDeserializer {
           throw new JsonPayloadDeserializerException("Could not instantiate command class");
         }
 
+      Ticket t = null;
+      if (requestTreeRoot.get(JSON_TICKET) != null) {
+        String ticketBase64 = requestTreeRoot.get(JSON_TICKET).textValue();
+        byte[] ticketSerialized = BaseEncoding.base64().decode(ticketBase64);
+        t = TicketUtil.deserialize(ByteBuffer.wrap(ticketSerialized)).getLeft();
+      }
+
       wireInjectFieldsAndCallPostConstruct(cmd);
-      JsonRequest request = new JsonRequest(websocketSession, requestId, cmd, jsonRequestRegistry);
+      JsonRequest request = new JsonRequest(websocketSession, t, requestId, cmd, jsonRequestRegistry);
       wireInjectFieldsAndCallPostConstruct(request);
 
       return request;

@@ -20,6 +20,7 @@
  */
 package org.diqube.ui.websocket.request.commands;
 
+import org.diqube.remote.query.thrift.Ticket;
 import org.diqube.ui.websocket.request.CommandClusterInteraction;
 import org.diqube.ui.websocket.request.CommandResultHandler;
 import org.diqube.ui.websocket.request.JsonRequestDeserializer;
@@ -48,14 +49,19 @@ public interface JsonCommand {
    * do not need to call {@link CommandResultHandler#sendDone()} when they're done, although asynchronous ones do need
    * to call this.
    * 
+   * @param ticket
+   *          The ticket identifying the user. <code>null</code> if user is not logged in. The ticket is typically not
+   *          validated anyhow, but one can safely fail a command if it needs a ticket and none is there. Otherwise
+   *          probably the diqube-server will fail the request.
    * @param resultHandler
    *          Can be called to send any results to the client.
    * @param clusterInteraction
    *          access to the diqube-server cluster for the command.
+   * 
    * @throws RuntimeException
    *           is thrown if anything goes wrong.
    */
-  public abstract void execute(CommandResultHandler resultHandler, CommandClusterInteraction clusterInteraction)
-      throws RuntimeException;
+  public abstract void execute(Ticket ticket, CommandResultHandler resultHandler,
+      CommandClusterInteraction clusterInteraction) throws RuntimeException;
 
 }

@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import org.diqube.config.Config;
 import org.diqube.config.ConfigKey;
@@ -104,7 +105,7 @@ public class ServerTicketRsaKeyFileProvider implements TicketRsaKeyFileProvider 
   }
 
   @Override
-  public List<Triple<String, IOExceptionSupplier<InputStream>, String>> getPemFiles() {
+  public CompletableFuture<List<Triple<String, IOExceptionSupplier<InputStream>, String>>> getPemFiles() {
     List<Triple<String, IOExceptionSupplier<InputStream>, String>> pemFiles = new ArrayList<>();
 
     Triple<String, IOExceptionSupplier<InputStream>, String> t = getPemFile(pemFile1, password1);
@@ -120,7 +121,7 @@ public class ServerTicketRsaKeyFileProvider implements TicketRsaKeyFileProvider 
     if (t != null)
       pemFiles.add(t);
 
-    return pemFiles;
+    return CompletableFuture.completedFuture(pemFiles);
   }
 
   @Override
