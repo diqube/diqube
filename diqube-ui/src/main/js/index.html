@@ -49,8 +49,8 @@
       <div class="navbar-header">
         <a class="navbar-brand" href="{{globalContextPath}}">diqube</a>
       </div>
-      <div id="navbar" class="navbar-collapse collapse">
-        <ul class="nav navbar-nav navbar-right">
+      <div id="navbar" class="navbar-collapse collapse" ng-controller="LoginStateCtrl as loginState">
+        <ul class="nav navbar-nav navbar-right" ng-if="loginState.isLoggedIn()">
           <li ng-controller="OpenAnalysisCtrl as openAnalysis" dropdown is-open="openAnalysis.dropdownIsOpen" 
             auto-close="outsideClick">
             
@@ -70,6 +70,11 @@
           <li><a href="create-analysis">Create Analysis</a></li>
           <li><a href="query">Execute Query</a></li>
           <li><a href="about">About</a></li>
+          <li ng-controller="LogoutCtrl as logout"><a href ng-click="logout.logout()" title="Logout"><i class="fa fa-sign-out"></i></a></li>
+        </ul>
+        <ul class="nav navbar-nav navbar-right" ng-if="!loginState.isLoggedIn()">
+          <li><a href="about">About</a></li>
+          <li ng-controller="LoginCtrl as login"><a href="login" title="Login"><i class="fa fa-sign-in"></i></a></li>
         </ul>
       </div>
     </div>
@@ -96,6 +101,7 @@
   <script src="app.js"></script>
   <script src="route.js"></script>
   <script src="analysis/analysis.module.js"></script>
+  <script src="login-state/login-state.module.js"></script>
   
   <script src="login-state/login-state.service.js"></script>
   <script src="remote/remote.service.js"></script>
@@ -104,6 +110,8 @@
   <script src="analysis/analysis.execution.service.js"></script>
   
   <script src="login/login.controller.js"></script>
+  <script src="login-state/login-state.controller.js"></script>
+  <script src="logout/logout.controller.js"></script>
   <script src="query/query.controller.js"></script>
   <script src="about/about.controller.js"></script>
   <script src="analysis/analysis.controller.js"></script>

@@ -21,5 +21,5 @@
 "use strict";
 
 (function() {
-  angular.module("diqube.analysis", [ "diqube.remote", "nvd3", "ui.bootstrap.collapse", "diqube.login-state" ]);
+  angular.module("diqube.login-state", [ "ngCookies" ]);
 })();

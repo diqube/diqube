@@ -44,7 +44,7 @@
           controller : "LoginCtrl",
           controllerAs : "login"
         }).otherwise({
-          redirectTo : "/login"
+          redirectTo : "/query"
         });
       } ]);
 

@@ -22,7 +22,8 @@
   "use strict";
 
   angular.module("diqube.analysis").controller("AnalysisCtrl",
-      [ "$routeParams", "$scope", "analysisService", function($routeParams, $scope, analysisService) {
+      [ "$routeParams", "$scope", "analysisService", "loginStateService", "$location", 
+      function($routeParams, $scope, analysisService, loginStateService, $location) {
         var me = this;
 
         me.analysisId = $routeParams.analysisId;
@@ -38,6 +39,11 @@
         me.loadAnalysis = loadAnalysis;
         
         function initialize() {
+          if (!loginStateService.isTicketAvailable()) {
+            loginStateService.loginAndReturnHere();
+            return;
+          }
+          
           analysisService.loadAnalysis(me.analysisId).then(function success_(analysis) {
             $scope.$apply(function() {
               me.loadAnalysis(analysis);

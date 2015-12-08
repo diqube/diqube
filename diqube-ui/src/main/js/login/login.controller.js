@@ -22,7 +22,8 @@
   "use strict";
 
   angular.module("diqube.login", [ "diqube.remote", "diqube.login-state" ]).controller("LoginCtrl",
-      [ "remoteService", "loginStateService", "$scope", "$rootScope", function(remoteService, loginStateService, $scope, $rootScope) {
+      [ "remoteService", "loginStateService", "$scope", "$rootScope", "$location", 
+      function(remoteService, loginStateService, $scope, $rootScope, $location) {
         var me = this;
         
         me.login = login;
@@ -30,6 +31,12 @@
         me.error = undefined;
         
         // ====
+        
+        function initialize() {
+          if (loginStateService.isTicketAvailable())
+            // already logged in.
+            $location.path("/");
+        }
 
         function login(user) {
           var setCookie = user.setcookie
@@ -39,10 +46,9 @@
               if (dataType == "ticket") {
                 $scope.$apply(function() {
                   me.isLoggingIn = false;
-                  loginStateService.setTicket(data.ticket);
-                  if (setCookie)
-                    loginStateService.storeTicketInCookie();
+                  loginStateService.setStoreTicketInCookie(setCookie);
                   $rootScope.$broadcast("login:succeeded");
+                  loginStateService.loginSuccessful(data.ticket);
                 });
               }
             }
@@ -55,5 +61,7 @@
             };
           })());
         }
+        
+        initialize();
       } ]);
 })();

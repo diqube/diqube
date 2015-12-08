@@ -18,8 +18,19 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-"use strict";
-
 (function() {
-  angular.module("diqube.analysis", [ "diqube.remote", "nvd3", "ui.bootstrap.collapse", "diqube.login-state" ]);
+  "use strict";
+
+  angular.module("diqube.login-state").controller("LoginStateCtrl",
+      [ "loginStateService", function(loginStateService) {
+        var me = this;
+        
+        me.isLoggedIn = isLoggedIn;
+        
+        // ====
+        
+        function isLoggedIn() {
+          return loginStateService.isTicketAvailable();
+        }
+      } ]);
 })();

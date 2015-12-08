@@ -23,8 +23,8 @@
   
 
   angular.module("diqube.create-analysis", [ "diqube.remote", "diqube.analysis" ]).controller(
-      "CreateAnalysisCtrl", [ "remoteService",  "analysisService", "$scope", "$rootScope", "$log", "$location", 
-      function(remoteService, analysisService, $scope, $rootScope, $log, $location) {
+      "CreateAnalysisCtrl", [ "remoteService",  "analysisService", "$scope", "$rootScope", "$log", "$location", "loginStateService",
+      function(remoteService, analysisService, $scope, $rootScope, $log, $location, loginStateService) {
         var me = this;
         
         me.createAnalysis = createAnalysis;
@@ -63,6 +63,13 @@
             })());
           }
         });
+        
+        function initialize() {
+          if (!loginStateService.isTicketAvailable()) {
+            loginStateService.loginAndReturnHere();
+            return;
+          }
+        }
         
         function createAnalysis(analysis) {
           if (analysis === undefined) {
@@ -137,5 +144,7 @@
           me.tableValid = true;
           return undefined;
         }
+        
+        initialize();
       } ]);
 })();

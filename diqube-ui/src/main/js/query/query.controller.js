@@ -22,7 +22,7 @@
   "use strict";
 
   angular.module("diqube.query", [ "angular-toArrayFilter", "diqube.remote" ]).controller("QueryCtrl",
-      [ "remoteService", "$scope", function(remoteService, $scope) {
+      [ "remoteService", "$scope", "loginStateService", "$location", function(remoteService, $scope, loginStateService, $location) {
         var me = this;
         me.diql = "";
         me.result = null;
@@ -40,6 +40,13 @@
 
         me.currentRequestId = null;
 
+        function initialize() {
+          if (!loginStateService.isTicketAvailable()) {
+            loginStateService.loginAndReturnHere();
+            return;
+          }
+        }
+        
         function execute() {
           if (me.isExecuting)
             return;
@@ -105,5 +112,7 @@
         function displayStats() {
           me.displayResultsOrStats = "stats";
         }
+        
+        initialize();
       } ]);
 })();

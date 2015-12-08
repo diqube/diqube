@@ -21,33 +21,56 @@
 'use strict';
 
 (function() {
-  angular.module("diqube.login-state", [ "ngCookies" ]).service("loginStateService",
-      [ "$log", "$cookies", function loginStateProvider($log, $cookies) {
+  angular.module("diqube.login-state").service("loginStateService",
+      [ "$log", "$cookies", "$location", function loginStateProvider($log, $cookies, $location) {
         var me = this;
         
         me.getTicket = getTicket;
-        me.setTicket = setTicket;
-        me.storeTicketInCookie = storeTicketInCookie; 
+        me.loginSuccessful = loginSuccessful;
+        me.logoutSuccessful = logoutSuccessful;
+        me.setStoreTicketInCookie = setStoreTicketInCookie;
+        me.isTicketAvailable = isTicketAvailable;
+        me.loginAndReturnHere = loginAndReturnHere; 
 
         // ==
 
         me.ticket = undefined;
         me.isSecure = undefined;
         me.initialize = initialize;
+        me.returnPathAfterLogin = undefined;
+        me.storeTicketInCookie = false;
 
-        function setTicket(ticket) {
+        function loginSuccessful(ticket) {
           me.ticket = ticket;
+          
+          if (me.storeTicketInCookie) {
+            if (me.isSecure)
+              $cookies.put("DiqubeTicket", me.ticket, { secure: true });
+            else
+              $cookies.put("DiqubeTicket", me.ticket);
+          } else
+            $cookies.remove("DiqubeTicket");
+          
+          if (me.returnPathAfterLogin) {
+            var p = me.returnPathAfterLogin;
+            me.returnPathAfterLogin = undefined;
+            $location.path(p);
+          } else 
+            $location.path("/");
+        }
+        
+        function logoutSuccessful() {
+          me.ticket = undefined;
+          $cookies.remove("DiqubeTicket");
+          $location.path("/");
         }
         
         function getTicket() {
           return me.ticket;
         }
         
-        function storeTicketInCookie() {
-          if (me.isSecure)
-            $cookies.put("DiqubeTicket", me.ticket, { secure: true });
-          else
-            $cookies.put("DiqubeTicket", me.ticket);
+        function setStoreTicketInCookie(storeTicketInCookie) {
+          me.storeTicketInCookie = storeTicketInCookie;
         }
         
         function initialize() {
@@ -55,9 +78,22 @@
             me.ticket = $cookies.get("DiqubeTicket");
         }
         
+        function isTicketAvailable() {
+          return !!me.ticket;
+        }
+        
+        function loginAndReturnHere() {
+          me.returnPathAfterLogin = $location.path();
+          $location.path("/login");
+        }
+        
         function initialize($location) {
           me.isSecure = $location.protocol().toLowerCase() === "https";
+          var cookie = $cookies.get("DiqubeTicket");
+          if (cookie)
+            me.ticket = cookie;
         }
+        
       } ]).run([ "loginStateService", "$location", function loginStateRun(loginStateService, $location) {
         loginStateService.initialize($location);
       } ]);

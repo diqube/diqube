@@ -94,6 +94,9 @@
         $scope.$on("login:failed", function(event, data) {
           me.reloadAnalysis();
         });
+        $scope.$on("logout:succeeded", function(event, data) {
+          me.reloadAnalysis();
+        });
         
         // needed for dropdown.
         $scope.toggleDropdown = function($event) {
