@@ -48,8 +48,9 @@ public class JsonResultSerializer {
    * @param requestId
    *          The requestId the client provided when it sent the request (to which this is a result).
    * @param status
-   *          One of {@link JsonResultEnvelope#STATUS_DATA}, {@link JsonResultEnvelope#STATUS_DONE} or
-   *          {@link JsonResultEnvelope#STATUS_EXCEPTION} depending on what result you want to inform the client of.
+   *          One of {@link JsonResultEnvelope#STATUS_DATA}, {@link JsonResultEnvelope#STATUS_DONE},
+   *          {@link JsonResultEnvelope#STATUS_EXCEPTION} or {@link JsonResultEnvelope#STATUS_AUTHENTICATION_EXCEPTION}
+   *          depending on what result you want to inform the client of.
    * @param payload
    *          the actual {@link JsonResult}. Can be <code>null</code> if status ==
    *          {@link JsonResultEnvelope#STATUS_DONE}.

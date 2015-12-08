@@ -39,6 +39,7 @@ import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
+import org.diqube.remote.base.thrift.AuthenticationException;
 import org.diqube.remote.query.thrift.QueryResultService.Iface;
 import org.diqube.remote.query.thrift.Ticket;
 import org.diqube.ui.DiqubeServletConfig;
@@ -214,6 +215,15 @@ public class JsonRequest {
 
     try {
       jsonCommand.execute(ticket, commandResultHandler, commandClusterInteraction);
+    } catch (AuthenticationException e) {
+      try {
+        String serialized =
+            serializer.serializeWithEnvelope(requestId, JsonResultEnvelope.STATUS_AUTHENTICATION_EXCEPTION, null);
+        session.getBasicRemote().sendText(serialized);
+      } catch (IOException | JsonPayloadSerializerException e2) {
+        throw new RuntimeException("Could not serialize authentication exception result.", e2);
+      }
+      return;
     } catch (RuntimeException e) {
       sendException(e);
       logger.warn("Exception while executing command", e);

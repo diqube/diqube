@@ -36,6 +36,8 @@ public class JsonResultEnvelope {
   public static final String STATUS_EXCEPTION = "exception";
   /** Inform the client that the execution of the command has completed. */
   public static final String STATUS_DONE = "done";
+  /** Inform the client that the ticket he provided was not accepted. */
+  public static final String STATUS_AUTHENTICATION_EXCEPTION = "authenticationException";
 
   /**
    * Property name in the resulting JSON (when serializing) that will contain the data sent along with the envelope.

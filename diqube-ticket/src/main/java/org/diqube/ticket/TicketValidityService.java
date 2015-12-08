@@ -88,12 +88,23 @@ public class TicketValidityService {
   /**
    * Checks if a serialized {@link Ticket} is valid.
    * 
-   * @return true if {@link Ticket} signature is valid.
+   * @return true if {@link Ticket} is valid.
    */
   public boolean isTicketValid(ByteBuffer serializedTicket) {
     Pair<Ticket, byte[]> p = TicketUtil.deserialize(serializedTicket);
 
-    Ticket t = p.getLeft();
+    return isTicketValid(p);
+  }
+
+  /**
+   * Checks if a ticket that was deserialized by {@link TicketUtil#deserialize(ByteBuffer)} is valid.
+   * 
+   * @param deserializedTicket
+   *          Result of {@link TicketUtil#deserialize(ByteBuffer)}
+   * @return true if Ticket is valid.
+   */
+  public boolean isTicketValid(Pair<Ticket, byte[]> deserializedTicket) {
+    Ticket t = deserializedTicket.getLeft();
 
     if (timestampProvider.now() > t.getClaim().getValidUntil())
       // "now" is after "valid until"
@@ -107,7 +118,7 @@ public class TicketValidityService {
     if (cleanupStrategy.shouldCleanup())
       executeCleanup();
 
-    return ticketSignatureService.isValidTicketSignature(p);
+    return ticketSignatureService.isValidTicketSignature(deserializedTicket);
   }
 
   /**

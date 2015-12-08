@@ -35,11 +35,14 @@ import javax.inject.Inject;
 import javax.websocket.Session;
 
 import org.diqube.context.AutoInstatiate;
+import org.diqube.remote.base.thrift.AuthenticationException;
 import org.diqube.remote.query.thrift.Ticket;
 import org.diqube.ticket.TicketUtil;
+import org.diqube.ticket.TicketValidityService;
 import org.diqube.ui.websocket.request.commands.CommandInformation;
 import org.diqube.ui.websocket.request.commands.JsonCommand;
 import org.diqube.ui.websocket.result.JsonResult;
+import org.diqube.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
@@ -69,7 +72,7 @@ import com.google.common.reflect.ClassPath.ClassInfo;
  */
 @AutoInstatiate
 public class JsonRequestDeserializer {
-  private static Logger logger = LoggerFactory.getLogger(JsonRequestDeserializer.class);
+  private static final Logger logger = LoggerFactory.getLogger(JsonRequestDeserializer.class);
   private static final String JSON_REQUEST_ID = "requestId";
   private static final String JSON_COMMAND_NAME = "command";
   private static final String JSON_COMMAND_DATA = "commandData";
@@ -82,6 +85,9 @@ public class JsonRequestDeserializer {
 
   @Inject
   private JsonRequestRegistry jsonRequestRegistry;
+
+  @Inject
+  private TicketValidityService ticketValidityService;
 
   private JsonFactory jsonFactory = new JsonFactory();
   private ObjectMapper mapper = new ObjectMapper(jsonFactory);
@@ -123,7 +129,19 @@ public class JsonRequestDeserializer {
       if (requestTreeRoot.get(JSON_TICKET) != null) {
         String ticketBase64 = requestTreeRoot.get(JSON_TICKET).textValue();
         byte[] ticketSerialized = BaseEncoding.base64().decode(ticketBase64);
-        t = TicketUtil.deserialize(ByteBuffer.wrap(ticketSerialized)).getLeft();
+        Pair<Ticket, byte[]> p = TicketUtil.deserialize(ByteBuffer.wrap(ticketSerialized));
+        // ensure that ticket is valid. If not, reject request directly.
+        if (!ticketValidityService.isTicketValid(p)) {
+          logger.warn("Invalid ticket provided by client.");
+          cmd = new JsonCommand() {
+            @Override
+            public void execute(Ticket ticket, CommandResultHandler resultHandler,
+                CommandClusterInteraction clusterInteraction) throws RuntimeException, AuthenticationException {
+              throw new AuthenticationException("Ticket invalid.");
+            }
+          };
+        } else
+          t = p.getLeft();
       }
 
       wireInjectFieldsAndCallPostConstruct(cmd);
