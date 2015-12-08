@@ -22,8 +22,8 @@
   "use strict";
 
   angular.module("diqube.analysis").controller("AnalysisCtrl",
-      [ "$routeParams", "$scope", "analysisService", "loginStateService", "$location", 
-      function($routeParams, $scope, analysisService, loginStateService, $location) {
+      [ "$routeParams", "$scope", "analysisService", "loginStateService", 
+      function($routeParams, $scope, analysisService, loginStateService) {
         var me = this;
 
         me.analysisId = $routeParams.analysisId;

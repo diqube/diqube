@@ -50,9 +50,10 @@
     }));
     
     describe("CreateAnalysisCtrl", function() {
-      var $scope, controller;
+      var $scope, controller, mockedLoginStateService;
       beforeEach(function() {
         $scope = new MockedScope();
+        mockedLoginStateService = new MockedLoginStateService();
       });
 
       it("tables are loaded", function(testDone) {
@@ -60,7 +61,8 @@
           var controller = $controller("CreateAnalysisCtrl", { 
             $scope: $scope,
             // a remoteService which simply returns the test data.
-            remoteService: new MockedRemoteService(function(res) { res.data("tableNameList", testTableNameList); res.done(); })
+            remoteService: new MockedRemoteService(function(res) { res.data("tableNameList", testTableNameList); res.done(); }),
+            loginStateService: mockedLoginStateService
           });
           
           var doneCounterCount = 0;
@@ -92,7 +94,8 @@
       it("createAnalysis needs name", inject(function($controller) {
         var controller = $controller("CreateAnalysisCtrl", { 
           $scope: $scope,
-          remoteService: new MockedRemoteService(function(res) { res.done(); })
+          remoteService: new MockedRemoteService(function(res) { res.done(); }),
+          loginStateService: mockedLoginStateService
         });
         
         controller.createAnalysis({ table: "xyz" });
@@ -103,7 +106,8 @@
       it("createAnalysis needs table", inject(function($controller) {
         var controller = $controller("CreateAnalysisCtrl", { 
           $scope: $scope,
-          remoteService: new MockedRemoteService(function(res) { res.done(); })
+          remoteService: new MockedRemoteService(function(res) { res.done(); }),
+          loginStateService: mockedLoginStateService
         });
         
         controller.createAnalysis({ name: "xyz" });
@@ -114,7 +118,8 @@
       it("createAnalysis needs name", inject(function($controller) {
         var controller = $controller("CreateAnalysisCtrl", { 
           $scope: $scope,
-          remoteService: new MockedRemoteService(function(res) { res.done(); })
+          remoteService: new MockedRemoteService(function(res) { res.done(); }),
+          loginStateService: mockedLoginStateService
         });
         
         controller.createAnalysis({ table: "xyz" });
@@ -132,7 +137,8 @@
             commandDataSent = commandData;
             res.data("analysis", testEmptyAnalysis);
             res.done(); 
-          })
+          }),
+          loginStateService: mockedLoginStateService
         });
         
         controller.createAnalysis({ name: "abc", table: "xyz" });
@@ -145,7 +151,8 @@
       it("createAnalysis redirects", inject(function($controller) {
         var controller = $controller("CreateAnalysisCtrl", { 
           $scope: $scope,
-          remoteService: new MockedRemoteService(function(res) { res.data("analysis", testEmptyAnalysis); res.done(); })
+          remoteService: new MockedRemoteService(function(res) { res.data("analysis", testEmptyAnalysis); res.done(); }),
+          loginStateService: mockedLoginStateService
         });
         
         spyOn($location, "path");
@@ -161,7 +168,8 @@
         var controller = $controller("CreateAnalysisCtrl", { 
           $scope: $scope,
           $rootScope: $scope,
-          remoteService: new MockedRemoteService(function(res) { res.data("analysis", testEmptyAnalysis); res.done(); })
+          remoteService: new MockedRemoteService(function(res) { res.data("analysis", testEmptyAnalysis); res.done(); }),
+          loginStateService: mockedLoginStateService
         });
         
         var eventDataBroadcasted = undefined;

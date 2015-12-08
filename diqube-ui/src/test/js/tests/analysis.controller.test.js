@@ -147,9 +147,10 @@
     }));
     
     describe("AnalysisCtrl", function() {
-      var $scope, controller;
+      var $scope, controller, mockedLoginStateService;
       beforeEach(function() {
         $scope = new MockedScope();
+        mockedLoginStateService = new MockedLoginStateService();
       });
 
       it("initialized with correct analysis", function(testDone) {
@@ -165,7 +166,8 @@
           var controller = $controller("AnalysisCtrl", { 
             $scope: $scope,
             $routeParams: { analysisId: "analysisId" },
-            analysisService: mockedAnalysisService });
+            analysisService: mockedAnalysisService,
+            loginStateService: mockedLoginStateService });
 
           waitUntil("Default analysis to be loaded", 
               function() { return controller.analysis == testTwoQubeAnalysisResult.analysis }).then(function() {
@@ -194,7 +196,8 @@
           var controller = $controller("AnalysisCtrl", { 
             $scope: $scope,
             $routeParams: { analysisId: "analysisId" },
-            analysisService: mockedAnalysisService });
+            analysisService: mockedAnalysisService,
+            loginStateService: mockedLoginStateService });
 
           waitUntil("Default analysis to be loaded", 
               function() { return controller.analysis == testTwoQubeAnalysisResult.analysis }).then(function() {
@@ -228,7 +231,8 @@
           var controller = $controller("AnalysisCtrl", { 
             $scope: $scope,
             $routeParams: { analysisId: "analysisId" },
-            analysisService: mockedAnalysisService });
+            analysisService: mockedAnalysisService,
+            loginStateService: mockedLoginStateService });
 
           waitUntil("Default analysis to be loaded", 
               function() { return controller.analysis == testEmptyAnalysisResult.analysis }).then(function() {
