@@ -31,8 +31,10 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
+import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 
 import org.apache.thrift.TException;
@@ -60,6 +62,7 @@ import org.diqube.im.callback.IdentityCallbackRegistryStateMachineImplementation
 import org.diqube.im.logout.LogoutStateMachine;
 import org.diqube.im.logout.LogoutStateMachine.GetInvalidTickets;
 import org.diqube.im.logout.LogoutStateMachine.Logout;
+import org.diqube.im.thrift.v1.SPassword;
 import org.diqube.im.thrift.v1.SPermission;
 import org.diqube.im.thrift.v1.SUser;
 import org.diqube.remote.base.thrift.AuthenticationException;
@@ -97,11 +100,17 @@ public class IdentityHandler implements IdentityService.Iface {
   private static final int SALT_LENGTH_BYTES = 64;
   private static final int HASH_LENGTH_BYTES = 64;
 
+  private static final String TRUE = "true";
+
   @Config(ConfigKey.SUPERUSER)
   private String superuser;
 
   @Config(ConfigKey.SUPERUSER_PASSWORD)
   private String superuserPassword;
+
+  @Config(ConfigKey.TICKET_USE_STRONG_RANDOM)
+  private String useStrongRandomConigValue;
+  private boolean useStrongRandom;
 
   @Inject
   private DiqubeCopycatClient consensusClient;
@@ -130,6 +139,17 @@ public class IdentityHandler implements IdentityService.Iface {
   @Inject
   private IdentityCallbackRegistryStateMachineImplementation callbackRegistry;
 
+  @PostConstruct
+  public void initialize() {
+    useStrongRandom = useStrongRandomConigValue != null && useStrongRandomConigValue.toLowerCase().trim().equals(TRUE);
+    if (useStrongRandom)
+      logger.info("Using STRONG random to calculate new salts for hashing passwords. Ensure that the system "
+          + "provides enough strong randomness!");
+    else
+      logger.info("Using normal random to calculate new salts for hashing passwords. Ensure that the system "
+          + "provides enough strong randomness!");
+  }
+
   @Override
   public Ticket login(String userName, String password) throws AuthenticationException, TException {
     if (userName == null || "".equals(userName.trim()))
@@ -142,6 +162,8 @@ public class IdentityHandler implements IdentityService.Iface {
       if (!password.equals(superuserPassword))
         throw new AuthenticationException("Invalid credentials.");
 
+      logger.info("Successful login by superuser '{}'", userName);
+
       // we have a successfully authenticated superuser!
       return ticketVendor.createDefaultTicketForUser(superuser, true);
     }
@@ -150,8 +172,10 @@ public class IdentityHandler implements IdentityService.Iface {
     try (ClosableProvider<IdentityStateMachine> p = consensusClient.getStateMachineClient(IdentityStateMachine.class)) {
       user = p.getClient().getUser(GetUser.local(userName));
     }
-    if (user == null)
+    if (user == null) {
+      logger.info("User '{}' tried to login, but does not exist", userName);
       throw new AuthenticationException("Invalid credentials.");
+    }
 
     byte[] userProvidedPassword = password.getBytes(Charset.forName("UTF-8"));
     byte[] salt = user.getPassword().getSalt();
@@ -162,8 +186,12 @@ public class IdentityHandler implements IdentityService.Iface {
     pbkdf2sha256.init(userProvidedPassword, salt, PBKDF2_ITERATIONS);
     byte[] userProvidedHash = ((KeyParameter) pbkdf2sha256.generateDerivedParameters(HASH_LENGTH_BYTES * 8)).getKey();
 
-    if (!Arrays.equals(userProvidedHash, user.getPassword().getHash()))
+    if (!Arrays.equals(userProvidedHash, user.getPassword().getHash())) {
+      logger.info("User '{}' provided bad password for login", userName);
       throw new AuthenticationException("Invalid credentials.");
+    }
+
+    logger.info("User '{}' logged in successfully!", userName);
 
     // authenticated successfully!
     return ticketVendor.createDefaultTicketForUser(userName, false);
@@ -172,10 +200,16 @@ public class IdentityHandler implements IdentityService.Iface {
   @Override
   public void logout(Ticket ticket) throws TException {
     if (!ticketSignatureService
-        .isValidTicketSignature(TicketUtil.deserialize(ByteBuffer.wrap(TicketUtil.serialize(ticket)))))
+        .isValidTicketSignature(TicketUtil.deserialize(ByteBuffer.wrap(TicketUtil.serialize(ticket))))) {
       // filter out tickets with invalid signature, since we do not want to let users flood the consensus cluster with
       // requests.
+      logger.info("Someone tried to logout with an invalid ticket. Username provided in ticket is '{}'",
+          ticket.getClaim().getUsername());
       throw new TException("Ticket signaure invalid.");
+    }
+
+    logger.info("Logging out user '{}', ticket valid until {}", ticket.getClaim().getUsername(),
+        ticket.getClaim().getValidUntil());
 
     ticketValidityService.markTicketAsInvalid(TicketInfoUtil.fromTicket(ticket));
 
@@ -201,6 +235,9 @@ public class IdentityHandler implements IdentityService.Iface {
     try (ClosableProvider<LogoutStateMachine> p = consensusClient.getStateMachineClient(LogoutStateMachine.class)) {
       p.getClient().logout(Logout.local(ticket));
     }
+
+    logger.info("Logout of user '{}', ticket valid until {} successful.", ticket.getClaim().getUsername(),
+        ticket.getClaim().getValidUntil());
   }
 
   @Override
@@ -213,6 +250,9 @@ public class IdentityHandler implements IdentityService.Iface {
 
     if (permissionCheck.isSuperuser(username))
       throw new TException("Superuser password cannot be changed. Change in configuration of server.");
+
+    logger.info("Password of user '{}' is being changed, authorized by ticket of '{}'", username,
+        ticket.getClaim().getUsername());
 
     try (ClosableProvider<IdentityStateMachine> p = consensusClient.getStateMachineClient(IdentityStateMachine.class)) {
       SUser user = p.getClient().getUser(GetUser.local(username));
@@ -234,6 +274,9 @@ public class IdentityHandler implements IdentityService.Iface {
     if (!permissionCheck.isSuperuser(username))
       throw new TException("Superuser password cannot be changed. Change in configuration of server.");
 
+    logger.info("E-Mail of user '{}' is being changed, authorized by ticket of '{}'", username,
+        ticket.getClaim().getUsername());
+
     try (ClosableProvider<IdentityStateMachine> p = consensusClient.getStateMachineClient(IdentityStateMachine.class)) {
       SUser user = p.getClient().getUser(GetUser.local(username));
 
@@ -253,6 +296,9 @@ public class IdentityHandler implements IdentityService.Iface {
 
     if (permissionCheck.isSuperuser(username))
       throw new TException("Superuser permissions cannot be changed.");
+
+    logger.info("Permission ({}/{}) is added to user '{}', authorized by ticket of '{}'", permission, object, username,
+        ticket.getClaim().getUsername());
 
     try (ClosableProvider<IdentityStateMachine> p = consensusClient.getStateMachineClient(IdentityStateMachine.class)) {
       SUser user = p.getClient().getUser(GetUser.local(username));
@@ -295,6 +341,9 @@ public class IdentityHandler implements IdentityService.Iface {
 
     if (permissionCheck.isSuperuser(username))
       throw new TException("Superuser permissions cannot be changed.");
+
+    logger.info("Permission ({}/{}) is removed from user '{}', authorized by ticket of '{}'", permission, object,
+        username, ticket.getClaim().getUsername());
 
     try (ClosableProvider<IdentityStateMachine> p = consensusClient.getStateMachineClient(IdentityStateMachine.class)) {
       SUser user = p.getClient().getUser(GetUser.local(username));
@@ -364,6 +413,8 @@ public class IdentityHandler implements IdentityService.Iface {
     if (permissionCheck.isSuperuser(username))
       throw new TException("Superuser permissions cannot be changed.");
 
+    logger.info("User '{}' is being created, authorized by ticket of '{}'", username, ticket.getClaim().getUsername());
+
     SUser user = new SUser();
     user.setUsername(username);
     user.setEmail(email);
@@ -385,6 +436,8 @@ public class IdentityHandler implements IdentityService.Iface {
     if (permissionCheck.isSuperuser(username))
       throw new TException("Superuser cannot be deleted.");
 
+    logger.info("User '{}' is being deleted, authorized by ticket of '{}'", username, ticket.getClaim().getUsername());
+
     try (ClosableProvider<IdentityStateMachine> p = consensusClient.getStateMachineClient(IdentityStateMachine.class)) {
       p.getClient().deleteUser(DeleteUser.local(username));
     }
@@ -396,6 +449,7 @@ public class IdentityHandler implements IdentityService.Iface {
         consensusClient.getStateMachineClient(IdentityCallbackRegistryStateMachine.class)) {
       p.getClient().register(Register.local(nodeAddress, System.currentTimeMillis()));
     }
+    logger.info("Registered identity callback at '{}' (service level).", nodeAddress);
   }
 
   @Override
@@ -404,6 +458,7 @@ public class IdentityHandler implements IdentityService.Iface {
         consensusClient.getStateMachineClient(IdentityCallbackRegistryStateMachine.class)) {
       p.getClient().unregister(Unregister.local(nodeAddress));
     }
+    logger.info("Removed identity callback at '{}' (service level).", nodeAddress);
   }
 
   @Override
@@ -420,17 +475,24 @@ public class IdentityHandler implements IdentityService.Iface {
     BouncyCastleUtil.ensureInitialized();
 
     byte[] newSalt = new byte[SALT_LENGTH_BYTES];
-    try {
-      SecureRandom.getInstanceStrong().nextBytes(newSalt);
-    } catch (NoSuchAlgorithmException e) {
-      logger.error("Internal error when calculating new salt for new password", e);
-      throw new TException("Internal error.", e);
+
+    if (useStrongRandom) {
+      try {
+        SecureRandom.getInstanceStrong().nextBytes(newSalt);
+      } catch (NoSuchAlgorithmException e) {
+        logger.error("Internal error when calculating new salt for new password", e);
+        throw new TException("Internal error.", e);
+      }
+    } else {
+      // use non-string random.
+      ThreadLocalRandom.current().nextBytes(newSalt);
     }
 
     PKCS5S2ParametersGenerator pbkdf2sha256 = new PKCS5S2ParametersGenerator(new SHA256Digest());
     pbkdf2sha256.init(newPassword.getBytes(Charset.forName("UTF-8")), newSalt, PBKDF2_ITERATIONS);
     byte[] newHash = ((KeyParameter) pbkdf2sha256.generateDerivedParameters(HASH_LENGTH_BYTES * 8)).getKey();
 
+    user.setPassword(new SPassword());
     user.getPassword().setHash(newHash);
     user.getPassword().setSalt(newSalt);
   }

@@ -31,6 +31,7 @@ import org.diqube.itest.control.ServerControl;
 import org.diqube.remote.base.services.DiqubeThriftServiceInfoManager;
 import org.diqube.remote.cluster.thrift.ClusterFlattenService;
 import org.diqube.remote.cluster.thrift.ClusterManagementService;
+import org.diqube.remote.query.thrift.IdentityService;
 import org.diqube.remote.query.thrift.KeepAliveService;
 import org.diqube.remote.query.thrift.QueryService;
 import org.slf4j.Logger;
@@ -143,6 +144,28 @@ public class ServiceTestUtil {
       // no logging here, as we use this to test if server is up -> we will have this case very often, but we do not
       // want to see that many stacktraces in the log...
       throw new RuntimeException("Exception while accessing KeepAliveService of " + server.getAddr(), e);
+    }
+  }
+
+  /**
+   * Open a connection to the {@link IdentityService} of a specific node and then execute something.
+   * 
+   * @throws RuntimeException
+   *           if anything goes wrong.
+   */
+  public void identityService(RemoteConsumer<IdentityService.Iface> execute) {
+    try (Connection<IdentityService.Iface> con =
+        connectionFactory.createConnection(diqubeThriftServiceInfoManager.getServiceInfo(IdentityService.Iface.class),
+            server.getAddr().toRNodeAddress(), SOCKET_LISTENER)) {
+
+      logger.info("Opened connection to IdentityService at {}.", server.getAddr());
+      execute.accept(con.getService());
+      logger.info("Closing connection to IdentityService at {}.", server.getAddr());
+
+    } catch (TException | ConnectionException | IOException e) {
+      // no logging here, as we use this to test if server is up -> we will have this case very often, but we do not
+      // want to see that many stacktraces in the log...
+      throw new RuntimeException("Exception while accessing IdentityService of " + server.getAddr(), e);
     }
   }
 

@@ -296,6 +296,18 @@ public class ConfigKey {
   public static final String TICKET_RSA_PRIVATE_KEY_ALTERNATIVE2_PASSWORD = "ticketRsaPrivateKeyAlt2Password";
 
   /**
+   * Controls whether "strong random" should be used when generating the salt for hashing new passwords.
+   * 
+   * <p>
+   * Use a value of exactly "true" to enable this, all other values will disable using strong random.
+   * 
+   * <p>
+   * Note that when using this for example on linux, you should ensure that enough randomness is provided e.g. in
+   * /dev/random, otherwise diqube may block.
+   */
+  public static final String TICKET_USE_STRONG_RANDOM = "ticketUseStrongRandom";
+
+  /**
    * Directory to store internal database files.
    * 
    * <p>
