@@ -21,7 +21,9 @@
 package org.diqube.ticket;
 
 import java.nio.ByteBuffer;
+import java.util.UUID;
 
+import org.diqube.remote.base.util.RUuidUtil;
 import org.diqube.remote.query.thrift.Ticket;
 import org.diqube.remote.query.thrift.TicketClaim;
 import org.diqube.util.Pair;
@@ -39,6 +41,7 @@ public class TicketUtilTest {
     // two tickets with the same claim, different sig
     Ticket t = new Ticket();
     t.setClaim(new TicketClaim());
+    t.getClaim().setTicketId(RUuidUtil.toRUuid(UUID.randomUUID()));
     t.getClaim().setUsername("abc");
     t.getClaim().setValidUntil(123L);
     t.getClaim().setIsSuperUser(true);
@@ -69,6 +72,7 @@ public class TicketUtilTest {
     // two different
     Ticket t = new Ticket();
     t.setClaim(new TicketClaim());
+    t.getClaim().setTicketId(RUuidUtil.toRUuid(UUID.randomUUID()));
     t.getClaim().setUsername("abc");
     t.getClaim().setValidUntil(123L);
     t.getClaim().setIsSuperUser(false);
@@ -76,6 +80,7 @@ public class TicketUtilTest {
 
     Ticket t2 = new Ticket();
     t2.setClaim(new TicketClaim());
+    t.getClaim().setTicketId(RUuidUtil.toRUuid(UUID.randomUUID()));
     t2.getClaim().setUsername("def");
     t2.getClaim().setValidUntil(789L);
     t2.getClaim().setIsSuperUser(false);

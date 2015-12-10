@@ -24,9 +24,10 @@ namespace java org.diqube.remote.query.thrift
 include "${diqube.thrift.dependencies}/base.thrift"
 
 struct TicketClaim {
-    1: string username,
-    2: bool isSuperUser,
-    3: i64 validUntil
+    1: base.RUUID ticketId,
+    2: string username,
+    3: bool isSuperUser,
+    4: i64 validUntil
 }
 
 struct Ticket {
@@ -38,6 +39,11 @@ struct Ticket {
 
 struct OptionalString {
     1: optional string value
+}
+
+struct TicketInfo {
+    1: base.RUUID ticketId,
+    2: i64 validUntil
 }
 
 service IdentityService {
@@ -66,9 +72,32 @@ service IdentityService {
 
     void deleteUser(1: Ticket ticket, 2: string username) 
         throws (1: base.AuthenticationException authenticationException, 2: base.AuthorizationException authorizationException)
+        
+    // Register a node that implements IdentityCallbackService to be informed about anything interesting.
+    // Node should unregsiter itself.
+    // Node will be automatically deregistered after 1h, re-register accordingly.
+    
+    // Note that the callback might not be actually called in case no cluster node can communicate with the callback.
+    // The callback there _has to_ call #getInvalidTickets() regularily to fill up its internal list of invalid tickets.
+    void registerCallback(1: base.RNodeAddress nodeAddress)
+    
+    void unregisterCallback(1: base.RNodeAddress nodeAddress)
+    
+    // Retruns the Tickets that are marked invalid. Note that tickets that are invalid because of values in their claim 
+    // ("validUntil"), might not be returned by this method, although these Tickets might have been used in calls to 
+    // #logout.
+    // If a client relies on knowing the invalid tickets and cannot call this method (e.g. because of a network 
+    // partition) it should not accept ANY ticket anymore, since it does not know the current list of invalid tickets.
+    // This returns only "TicketInfo"s instead of full tickets, so possible attackers cannot simply register and learn
+    // about usernames. Remember: This service is not integrity validated, so everybody can talk to this service, not 
+    // only diqube-servers.
+    list<TicketInfo> getInvalidTicketInfos()
 }
 
 
 service IdentityCallbackService {
-    oneway void ticketBecameInvalid(1: Ticket ticket)
+    // A specific ticket became invalid, although the "validUntil" might still be in the future. The ticket must not be
+    // accepted any more.
+    // Note that this method might be called multiple times with the same ticket!
+    oneway void ticketBecameInvalid(1: TicketInfo ticketInfo)
 }

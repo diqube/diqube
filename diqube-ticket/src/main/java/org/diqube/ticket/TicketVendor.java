@@ -20,11 +20,14 @@
  */
 package org.diqube.ticket;
 
+import java.util.UUID;
+
 import javax.inject.Inject;
 
 import org.diqube.config.Config;
 import org.diqube.config.ConfigKey;
 import org.diqube.context.AutoInstatiate;
+import org.diqube.remote.base.util.RUuidUtil;
 import org.diqube.remote.query.thrift.Ticket;
 import org.diqube.remote.query.thrift.TicketClaim;
 
@@ -60,6 +63,7 @@ public class TicketVendor {
     long newTicketTimeout = System.currentTimeMillis() + ticketTimeoutMin * 60 * 1_000L;
     Ticket t = new Ticket();
     t.setClaim(new TicketClaim());
+    t.getClaim().setTicketId(RUuidUtil.toRUuid(UUID.randomUUID()));
     t.getClaim().setUsername(username);
     t.getClaim().setValidUntil(newTicketTimeout);
     t.getClaim().setIsSuperUser(isSuperUser);

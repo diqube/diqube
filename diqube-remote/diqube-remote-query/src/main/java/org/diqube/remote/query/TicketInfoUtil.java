@@ -18,31 +18,20 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.im;
+package org.diqube.remote.query;
 
-import javax.inject.Inject;
-
-import org.diqube.consensus.ConsensusStateMachineImplementation;
-import org.diqube.ticket.TicketValidityService;
-
-import io.atomix.copycat.server.Commit;
+import org.diqube.remote.query.thrift.Ticket;
+import org.diqube.remote.query.thrift.TicketInfo;
 
 /**
- * Implementation of {@link LogoutStateMachine}
  *
  * @author Bastian Gloeckle
  */
-@ConsensusStateMachineImplementation
-public class LogoutStateMachineImplementation implements LogoutStateMachine {
-
-  @Inject
-  private TicketValidityService ticketValidityService;
-
-  @Override
-  public void logout(Commit<Logout> commit) {
-    ticketValidityService.markTicketAsInvalid(commit.operation().getTicket());
-
-    commit.clean();
+public class TicketInfoUtil {
+  public static TicketInfo fromTicket(Ticket t) {
+    TicketInfo res = new TicketInfo();
+    res.setTicketId(t.getClaim().getTicketId());
+    res.setValidUntil(t.getClaim().getValidUntil());
+    return res;
   }
-
 }

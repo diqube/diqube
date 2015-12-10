@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
@@ -52,15 +53,24 @@ import org.diqube.context.AutoInstatiate;
 import org.diqube.im.IdentityStateMachine.DeleteUser;
 import org.diqube.im.IdentityStateMachine.GetUser;
 import org.diqube.im.IdentityStateMachine.SetUser;
-import org.diqube.im.LogoutStateMachine.Logout;
+import org.diqube.im.callback.IdentityCallbackRegistryStateMachine;
+import org.diqube.im.callback.IdentityCallbackRegistryStateMachine.Register;
+import org.diqube.im.callback.IdentityCallbackRegistryStateMachine.Unregister;
+import org.diqube.im.callback.IdentityCallbackRegistryStateMachineImplementation;
+import org.diqube.im.logout.LogoutStateMachine;
+import org.diqube.im.logout.LogoutStateMachine.GetInvalidTickets;
+import org.diqube.im.logout.LogoutStateMachine.Logout;
 import org.diqube.im.thrift.v1.SPermission;
 import org.diqube.im.thrift.v1.SUser;
 import org.diqube.remote.base.thrift.AuthenticationException;
 import org.diqube.remote.base.thrift.AuthorizationException;
+import org.diqube.remote.base.thrift.RNodeAddress;
+import org.diqube.remote.query.TicketInfoUtil;
 import org.diqube.remote.query.thrift.IdentityCallbackService;
 import org.diqube.remote.query.thrift.IdentityService;
 import org.diqube.remote.query.thrift.OptionalString;
 import org.diqube.remote.query.thrift.Ticket;
+import org.diqube.remote.query.thrift.TicketInfo;
 import org.diqube.ticket.TicketSignatureService;
 import org.diqube.ticket.TicketUtil;
 import org.diqube.ticket.TicketValidityService;
@@ -68,6 +78,8 @@ import org.diqube.ticket.TicketVendor;
 import org.diqube.util.BouncyCastleUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Sets;
 
 /**
  * Implementation of an identity service.
@@ -114,6 +126,9 @@ public class IdentityHandler implements IdentityService.Iface {
 
   @Inject
   private TicketSignatureService ticketSignatureService;
+
+  @Inject
+  private IdentityCallbackRegistryStateMachineImplementation callbackRegistry;
 
   @Override
   public Ticket login(String userName, String password) throws AuthenticationException, TException {
@@ -162,14 +177,17 @@ public class IdentityHandler implements IdentityService.Iface {
       // requests.
       throw new TException("Ticket signaure invalid.");
 
-    // quickly (but unreliably) distribute the logout to all known cluster nodes first
-    for (NodeAddress addr : clusterLayout.getNodesInsecure()) {
+    ticketValidityService.markTicketAsInvalid(TicketInfoUtil.fromTicket(ticket));
+
+    // quickly (but unreliably) distribute the logout to all known cluster nodes and all interested callbacks.
+    for (NodeAddress addr : Sets.union(clusterLayout.getNodesInsecure(),
+        callbackRegistry.getRegisteredNodesInsecure())) {
       if (addr.equals(ourNodeAddressProvider.getOurNodeAddress()))
         continue;
 
       try (Connection<IdentityCallbackService.Iface> con =
           connectionPool.reserveConnection(IdentityCallbackService.Iface.class, addr.createRemote(), null)) {
-        con.getService().ticketBecameInvalid(ticket);
+        con.getService().ticketBecameInvalid(TicketInfoUtil.fromTicket(ticket));
       } catch (ConnectionException | IOException e) {
         // swallow, as we distribute the information reliably using the state machine below.
       } catch (InterruptedException e) {
@@ -178,11 +196,11 @@ public class IdentityHandler implements IdentityService.Iface {
       }
     }
 
-    // then: distribute logout reliably (but probably slower) across the consensus cluster
+    // then: distribute logout reliably (but probably slower) across the consensus cluster. This will again ensure that
+    // all registered callbacks are called accordingly.
     try (ClosableProvider<LogoutStateMachine> p = consensusClient.getStateMachineClient(LogoutStateMachine.class)) {
       p.getClient().logout(Logout.local(ticket));
     }
-    // TODO #71 inform nodes like UI servers of the logout.
   }
 
   @Override
@@ -372,6 +390,32 @@ public class IdentityHandler implements IdentityService.Iface {
     }
   }
 
+  @Override
+  public void registerCallback(RNodeAddress nodeAddress) throws TException {
+    try (ClosableProvider<IdentityCallbackRegistryStateMachine> p =
+        consensusClient.getStateMachineClient(IdentityCallbackRegistryStateMachine.class)) {
+      p.getClient().register(Register.local(nodeAddress, System.currentTimeMillis()));
+    }
+  }
+
+  @Override
+  public void unregisterCallback(RNodeAddress nodeAddress) throws TException {
+    try (ClosableProvider<IdentityCallbackRegistryStateMachine> p =
+        consensusClient.getStateMachineClient(IdentityCallbackRegistryStateMachine.class)) {
+      p.getClient().unregister(Unregister.local(nodeAddress));
+    }
+  }
+
+  @Override
+  public List<TicketInfo> getInvalidTicketInfos() throws TException {
+    List<Ticket> invalidTickets;
+    try (ClosableProvider<LogoutStateMachine> p = consensusClient.getStateMachineClient(LogoutStateMachine.class)) {
+      invalidTickets = p.getClient().getInvalidTickets(GetInvalidTickets.local());
+    }
+
+    return invalidTickets.stream().map(t -> TicketInfoUtil.fromTicket(t)).collect(Collectors.toList());
+  }
+
   private void internalSetUserPassword(SUser user, String newPassword) throws TException {
     BouncyCastleUtil.ensureInitialized();
 
@@ -390,4 +434,5 @@ public class IdentityHandler implements IdentityService.Iface {
     user.getPassword().setHash(newHash);
     user.getPassword().setSalt(newSalt);
   }
+
 }

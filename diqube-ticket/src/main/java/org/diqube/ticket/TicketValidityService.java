@@ -27,6 +27,7 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
@@ -34,6 +35,7 @@ import org.diqube.context.AutoInstatiate;
 import org.diqube.remote.base.thrift.AuthenticationException;
 import org.diqube.remote.query.thrift.Ticket;
 import org.diqube.remote.query.thrift.TicketClaim;
+import org.diqube.remote.query.thrift.TicketInfo;
 import org.diqube.util.Pair;
 
 /**
@@ -44,14 +46,16 @@ import org.diqube.util.Pair;
 @AutoInstatiate
 public class TicketValidityService {
 
-  /** Milliseconds duration of timeouts the cleanup method should not remove on cleanup */
-  private static final long CLEANUP_NO_REMOVE_MOST_RECENT_MS = 10 * 60 * 1_000L; // 10 mins
+  /**
+   * Milliseconds duration of timeouts the cleanup method should not remove Tickets that would be invalid because of
+   * their claims (valid until)
+   */
+  public static final long CLEANUP_NO_REMOVE_MOST_RECENT_MS = 10 * 60 * 1_000L; // 10 mins
 
   /**
-   * From {@link TicketClaim#getValidUntil()} to {@link TicketClaim#getUsername()} of tickets that have been marked
-   * invalid.
+   * From {@link TicketClaim#getValidUntil()} to {@link TicketInfo} of tickets that have been marked invalid.
    */
-  private NavigableMap<Long, Set<String>> invalidTickets = new ConcurrentSkipListMap<>();
+  private NavigableMap<Long, Set<TicketInfo>> invalidTickets = new ConcurrentSkipListMap<>();
 
   /** Internal strategy on when to try to execute cleanup. Do this randomly in 1-2% of calls by default. */
   private CleanupStrategy cleanupStrategy = () -> ThreadLocalRandom.current().nextInt(128) < 2;
@@ -104,21 +108,58 @@ public class TicketValidityService {
    * @return true if Ticket is valid.
    */
   public boolean isTicketValid(Pair<Ticket, byte[]> deserializedTicket) {
+    return isTicketValid(deserializedTicket, false, false);
+  }
+
+  /**
+   * Internal method: Check validity with optionally disabling specific checks.
+   * 
+   * @param deserializedTicket
+   *          Result of {@link TicketUtil#deserialize(ByteBuffer)}
+   * @param ignoreInvalidatedTickets
+   *          true if the list of invalidated tickets (= tickets that logged out) should be ignored.
+   * @param ignoreSignature
+   *          true if the signature should not be checked.
+   * @return <code>true</code> if valid according to the parameters.
+   */
+  private boolean isTicketValid(Pair<Ticket, byte[]> deserializedTicket, boolean ignoreInvalidatedTickets,
+      boolean ignoreSignature) {
     Ticket t = deserializedTicket.getLeft();
 
     if (timestampProvider.now() > t.getClaim().getValidUntil())
       // "now" is after "valid until"
       return false;
 
-    Set<String> userNamesInvalid = invalidTickets.get(t.getClaim().getValidUntil());
-    if (userNamesInvalid != null && userNamesInvalid.contains(t.getClaim().getUsername()))
-      // Ticket was marked as invalid (e.g. logout)
-      return false;
+    if (!ignoreInvalidatedTickets) {
+      Set<TicketInfo> ticketsInvalid = invalidTickets.get(t.getClaim().getValidUntil());
+      if (ticketsInvalid != null) {
+        boolean ticketIdInvalid = ticketsInvalid.stream()
+            .anyMatch(invalidTicket -> invalidTicket.getTicketId().equals(t.getClaim().getTicketId()));
+
+        if (ticketIdInvalid)
+          // Ticket was marked as invalid (e.g. logout)
+          return false;
+      }
+    }
 
     if (cleanupStrategy.shouldCleanup())
       executeCleanup();
 
-    return ticketSignatureService.isValidTicketSignature(deserializedTicket);
+    return ignoreSignature || ticketSignatureService.isValidTicketSignature(deserializedTicket);
+  }
+
+  /**
+   * Check if given {@link Ticket} is valid, when ignoring the local "invalidated ticket" list (= ignore the list of
+   * {@link Ticket}s that have logged out but would otherwise be valid).
+   *
+   * <p>
+   * <b>Only call this method when you're sure you want to ignore logged out tickets!</b> You most likely want to use
+   * {@link #isTicketValid(Ticket)}!
+   * 
+   * @return <code>true</code> if ticket is valid when ignoring locally logged out tickets.
+   */
+  public boolean isTicketValidIgnoringInvalidatedTickets(Ticket t) {
+    return isTicketValid(TicketUtil.deserialize(ByteBuffer.wrap(TicketUtil.serialize(t))), true, false);
   }
 
   /**
@@ -140,14 +181,21 @@ public class TicketValidityService {
    * <p>
    * This should be called if a user logged out for example.
    */
-  public void markTicketAsInvalid(Ticket ticket) {
-    if (timestampProvider.now() > ticket.getClaim().getValidUntil())
-      // Ticket is invalid already.
-      return;
+  public void markTicketAsInvalid(TicketInfo ticketInfo) {
+    Set<TicketInfo> ticketInfosInvalid =
+        invalidTickets.computeIfAbsent(ticketInfo.getValidUntil(), k -> new ConcurrentSkipListSet<>());
+    ticketInfosInvalid.add(ticketInfo);
+  }
 
-    Set<String> userNamesInvalid =
-        invalidTickets.computeIfAbsent(ticket.getClaim().getValidUntil(), k -> new ConcurrentSkipListSet<>());
-    userNamesInvalid.add(ticket.getClaim().getUsername());
+  /**
+   * @return All {@link TicketInfo}s currently marked as invalid. Note that tickets that were passed to
+   *         {@link #markTicketAsInvalid(TicketInfo)} will be cleaned up from time to time, if their "valid until" value
+   *         has passed. So this method might not return those Tickets that because invalid because of the values of
+   *         their claim anyway.
+   */
+  public Set<TicketInfo> getInvalidTicketInfos() {
+    Set<TicketInfo> res = invalidTickets.values().stream().flatMap(s -> s.stream()).collect(Collectors.toSet());
+    return res;
   }
 
   private void executeCleanup() {

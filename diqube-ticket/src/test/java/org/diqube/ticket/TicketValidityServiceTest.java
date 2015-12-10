@@ -23,9 +23,12 @@ package org.diqube.ticket;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 import org.diqube.context.Profiles;
+import org.diqube.remote.base.util.RUuidUtil;
+import org.diqube.remote.query.TicketInfoUtil;
 import org.diqube.remote.query.thrift.Ticket;
 import org.diqube.remote.query.thrift.TicketClaim;
 import org.diqube.ticket.TicketRsaKeyFileProvider.IOExceptionSupplier;
@@ -74,6 +77,7 @@ public class TicketValidityServiceTest {
       // GIVEN
       Ticket t = new Ticket();
       t.setClaim(new TicketClaim());
+      t.getClaim().setTicketId(RUuidUtil.toRUuid(UUID.randomUUID()));
       t.getClaim().setUsername("abc");
       t.getClaim().setValidUntil(123);
       t.getClaim().setIsSuperUser(false);
@@ -81,7 +85,7 @@ public class TicketValidityServiceTest {
       ticketSignatureService.signTicket(t);
 
       // WHEN
-      ticketValidityService.markTicketAsInvalid(t);
+      ticketValidityService.markTicketAsInvalid(TicketInfoUtil.fromTicket(t));
       boolean isValid = ticketValidityService.isTicketValid(t);
 
       // THEN
@@ -100,6 +104,7 @@ public class TicketValidityServiceTest {
       // GIVEN
       Ticket t = new Ticket();
       t.setClaim(new TicketClaim());
+      t.getClaim().setTicketId(RUuidUtil.toRUuid(UUID.randomUUID()));
       t.getClaim().setUsername("abc");
       t.getClaim().setValidUntil(123);
       t.getClaim().setIsSuperUser(false);
@@ -125,6 +130,7 @@ public class TicketValidityServiceTest {
       // GIVEN
       Ticket t = new Ticket();
       t.setClaim(new TicketClaim());
+      t.getClaim().setTicketId(RUuidUtil.toRUuid(UUID.randomUUID()));
       t.getClaim().setUsername("abc");
       t.getClaim().setValidUntil(123);
       t.getClaim().setIsSuperUser(false);

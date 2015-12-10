@@ -25,7 +25,7 @@ import javax.inject.Inject;
 import org.apache.thrift.TException;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.remote.query.thrift.IdentityCallbackService;
-import org.diqube.remote.query.thrift.Ticket;
+import org.diqube.remote.query.thrift.TicketInfo;
 
 /**
  * Implementation of the {@link IdentityCallbackService}.
@@ -39,8 +39,8 @@ public class IdentityCallbackHandler implements IdentityCallbackService.Iface {
   private TicketValidityService validityService;
 
   @Override
-  public void ticketBecameInvalid(Ticket ticket) throws TException {
-    validityService.markTicketAsInvalid(ticket);
+  public void ticketBecameInvalid(TicketInfo ticketInfo) throws TException {
+    validityService.markTicketAsInvalid(ticketInfo);
   }
 
 }

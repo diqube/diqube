@@ -24,9 +24,11 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 import org.diqube.context.Profiles;
+import org.diqube.remote.base.util.RUuidUtil;
 import org.diqube.remote.query.thrift.Ticket;
 import org.diqube.remote.query.thrift.TicketClaim;
 import org.diqube.ticket.TicketRsaKeyFileProvider.IOExceptionSupplier;
@@ -90,6 +92,7 @@ public class TicketSignatureServiceTest {
       // GIVEN
       Ticket t = new Ticket();
       t.setClaim(new TicketClaim());
+      t.getClaim().setTicketId(RUuidUtil.toRUuid(UUID.randomUUID()));
       t.getClaim().setUsername("abc");
       t.getClaim().setValidUntil(123);
       t.getClaim().setIsSuperUser(false);
@@ -114,6 +117,7 @@ public class TicketSignatureServiceTest {
       // GIVEN
       Ticket t = new Ticket();
       t.setClaim(new TicketClaim());
+      t.getClaim().setTicketId(RUuidUtil.toRUuid(UUID.randomUUID()));
       t.getClaim().setUsername("abc");
       t.getClaim().setValidUntil(123);
       t.getClaim().setIsSuperUser(false);
@@ -138,6 +142,7 @@ public class TicketSignatureServiceTest {
       // GIVEN
       Ticket t = new Ticket();
       t.setClaim(new TicketClaim());
+      t.getClaim().setTicketId(RUuidUtil.toRUuid(UUID.randomUUID()));
       t.getClaim().setUsername("abc");
       t.getClaim().setValidUntil(123);
       t.getClaim().setIsSuperUser(false);
@@ -168,6 +173,7 @@ public class TicketSignatureServiceTest {
       // GIVEN
       Ticket t = new Ticket();
       t.setClaim(new TicketClaim());
+      t.getClaim().setTicketId(RUuidUtil.toRUuid(UUID.randomUUID()));
       t.getClaim().setUsername("abc");
       t.getClaim().setValidUntil(123);
       t.getClaim().setIsSuperUser(false);
@@ -198,6 +204,7 @@ public class TicketSignatureServiceTest {
       // GIVEN
       Ticket t = new Ticket();
       t.setClaim(new TicketClaim());
+      t.getClaim().setTicketId(RUuidUtil.toRUuid(UUID.randomUUID()));
       t.getClaim().setUsername("abc");
       t.getClaim().setValidUntil(123);
       t.getClaim().setIsSuperUser(false);
@@ -226,6 +233,7 @@ public class TicketSignatureServiceTest {
       // GIVEN
       Ticket t = new Ticket();
       t.setClaim(new TicketClaim());
+      t.getClaim().setTicketId(RUuidUtil.toRUuid(UUID.randomUUID()));
       t.getClaim().setUsername("abc");
       t.getClaim().setValidUntil(123);
       t.getClaim().setIsSuperUser(false);
