@@ -103,7 +103,7 @@ class MasterQueryExecutor {
 
   private QueryRegistry queryRegistry;
 
-  private int numberOfRemotesTriggered = -1;
+  private AtomicInteger numberOfRemotesTriggered = new AtomicInteger(100);
   private AtomicInteger percentDoneRemotesSum = new AtomicInteger(0);
 
   private ExecutionPercentage masterExecutionPercentage;
@@ -205,7 +205,7 @@ class MasterQueryExecutor {
 
     planBuilder.withRemotesTriggeredListener(new RemotesTriggeredListener() {
       @Override
-      public void numberOfRemotesTriggered(int numberOfRemotes) {
+      public void numberOfRemotesTriggered(AtomicInteger numberOfRemotes) {
         numberOfRemotesTriggered = numberOfRemotes;
       }
     });
@@ -289,7 +289,7 @@ class MasterQueryExecutor {
             if (lastIntermediaryResultSent == null || !table.equals(lastIntermediaryResultSent)) {
               short percentDone =
                   (short) ((percentDoneRemotesSum.get() + masterExecutionPercentage.calculatePercentDone())
-                      / (numberOfRemotesTriggered + 1));
+                      / (numberOfRemotesTriggered.get() + 1));
               callback.intermediaryResultTableAvailable(table, percentDone);
               lastIntermediaryResultSent = table;
               lastIntermediaryResultSentNanoTime = System.nanoTime();

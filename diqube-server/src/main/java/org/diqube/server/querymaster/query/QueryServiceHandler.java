@@ -291,7 +291,7 @@ public class QueryServiceHandler implements Iface {
 
               // wait some time in case the last remote did not yet provide its statistics.
               int count = 0;
-              while (remoteStats.size() != remoteExecutionStepHolder.getValue().getNumberOfRemotesTriggerdOverall()) {
+              while (remoteStats.size() != remoteExecutionStepHolder.getValue().getNumberOfRemotesTriggeredOverall()) {
                 count++;
                 synchronized (remoteStatsWait) {
                   try {
@@ -307,7 +307,7 @@ public class QueryServiceHandler implements Iface {
               }
 
               // only proceed if we now really collected all stats.
-              if (remoteStats.size() == remoteExecutionStepHolder.getValue().getNumberOfRemotesTriggerdOverall()) {
+              if (remoteStats.size() == remoteExecutionStepHolder.getValue().getNumberOfRemotesTriggeredOverall()) {
                 MasterQueryStatisticsMerger statMerger = new MasterQueryStatisticsMerger(masterPlan, remotePlan);
 
                 RQueryStatistics finalStats = statMerger

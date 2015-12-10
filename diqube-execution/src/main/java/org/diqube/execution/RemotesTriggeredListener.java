@@ -20,6 +20,8 @@
  */
 package org.diqube.execution;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.diqube.execution.steps.ExecuteRemotePlanOnShardsStep;
 
 /**
@@ -32,7 +34,8 @@ public interface RemotesTriggeredListener {
   /**
    * Informs about the number of remotes to which the remote execution plan will be distributed to.
    * 
-   * This method is called before actually distributing the work.
+   * This method is called before actually distributing the work, the {@link AtomicInteger} might update during
+   * execution (e.g. if the connection to a remote is lost)!
    */
-  public void numberOfRemotesTriggered(int numberOfRemotes);
+  public void numberOfRemotesTriggered(AtomicInteger numberOfRemotes);
 }

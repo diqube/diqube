@@ -165,7 +165,7 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
     }
   };
 
-  private int numberOfRemotesInformed;
+  private AtomicInteger numberOfRemotesInformed = new AtomicInteger();
 
   private OurNodeAddressProvider ourNodeAddressProvider;
 
@@ -231,7 +231,7 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
       @Override
       public void connectionDied(String cause) {
         // one remote won't be able to fulfill our request :/
-        remotesDone.incrementAndGet();
+        numberOfRemotesInformed.decrementAndGet();
         // TODO #37: Warn user.
         logger.warn(
             "A remote node died, but it would have contained information for query "
@@ -240,7 +240,7 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
       }
     };
 
-    numberOfRemotesInformed = remoteNodes.size();
+    numberOfRemotesInformed.set(remoteNodes.size());
     remotesTriggeredListeners.forEach(l -> l.numberOfRemotesTriggered(numberOfRemotesInformed));
 
     queryRegistry.addQueryResultHandler(QueryUuid.getCurrentQueryUuid(), resultHandler);
@@ -267,7 +267,7 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
               "Remote node {} is not online anymore, but it would have contained information for query "
                   + "{} execution {}. The information will not be available to the user therefore.",
               remoteAddr, QueryUuid.getCurrentQueryUuid(), QueryUuid.getCurrentExecutionUuid());
-          remotesDone.incrementAndGet();
+          numberOfRemotesInformed.decrementAndGet();
           // TODO #37: We should inform the user about this situation.
         } catch (InterruptedException e1) {
           logger.trace("Interrupted while waiting for a new connection.");
@@ -279,7 +279,7 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
       // TODO #89: Ensure completion of query even if a node dies.
 
       // wait until done
-      while (remotesDone.get() < numberOfRemotesInformed && exceptionMessage == null) {
+      while (remotesDone.get() < numberOfRemotesInformed.get() && exceptionMessage == null) {
         synchronized (wait) {
           try {
             wait.wait(1000);
@@ -304,15 +304,19 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
   }
 
   /**
-   * @return The addresses of those query remotes that this step triggered an execution on. Might be <code>null</code>
-   *         or empty. Only valid before this step is done.
+   * @return The addresses of those query remotes that this step triggered an execution on (not including the possible
+   *         "local remote"). Might be <code>null</code> or empty. Only valid before this step is done.
    */
   public Collection<RNodeAddress> getRemotesActive() {
     return remotesActive;
   }
 
-  public int getNumberOfRemotesTriggerdOverall() {
-    return numberOfRemotesInformed;
+  /**
+   * @return Number of remotes (including the potential local one) that have been asked to execute something. This value
+   *         might change during execution if for example one node dies.
+   */
+  public int getNumberOfRemotesTriggeredOverall() {
+    return numberOfRemotesInformed.get();
   }
 
   @Override
