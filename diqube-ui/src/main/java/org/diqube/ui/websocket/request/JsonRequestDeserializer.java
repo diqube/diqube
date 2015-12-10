@@ -67,6 +67,9 @@ import com.google.common.reflect.ClassPath.ClassInfo;
  * 
  * <p>
  * If the command has a method annotated with {@link PostConstruct}, it will be called accordingly.
+ * 
+ * <p>
+ * This class will validate the {@link Ticket} if one is provided and provide a corresponding {@link JsonCommand}.
  *
  * @author Bastian Gloeckle
  */
@@ -93,7 +96,11 @@ public class JsonRequestDeserializer {
   private ObjectMapper mapper = new ObjectMapper(jsonFactory);
 
   /**
-   * Deserialize an arbitrary {@link JsonRequest}
+   * Deserialize an arbitrary {@link JsonRequest}.
+   * 
+   * <p>
+   * This method validates the {@link Ticket} if one is provided in the JSON. If the ticket is invalid, the returned
+   * {@link JsonRequest} will have a command that simply fails.
    * 
    * @param clientJson
    *          The JSON provided by the client which contains information about the request to be built.

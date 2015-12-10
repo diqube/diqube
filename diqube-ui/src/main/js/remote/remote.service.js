@@ -153,6 +153,7 @@
             me.cleanupRequest(requestId);
           } else if (status === "authenticationException") {
             $log.warn("Server did not accept our ticket. Executing automatic logout.");
+            me.cleanupRequest(requestId);
             loginStateService.logoutSuccessful();
           }
         }

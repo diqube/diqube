@@ -22,7 +22,7 @@
 
 (function() {
   angular.module("diqube.login-state").service("loginStateService",
-      [ "$log", "$cookies", "$location", function loginStateProvider($log, $cookies, $location) {
+      [ "$log", "$cookies", "$location", "$window", function loginStateProvider($log, $cookies, $location, $window) {
         var me = this;
         
         me.getTicket = getTicket;
@@ -62,7 +62,9 @@
         function logoutSuccessful() {
           me.ticket = undefined;
           $cookies.remove("DiqubeTicket");
-          $location.path("/");
+          // use $window to force reload of current page. If using $location, $route might choose to not update because
+          // we are on the target page already.
+          $window.location.href = $window.location.href;
         }
         
         function getTicket() {

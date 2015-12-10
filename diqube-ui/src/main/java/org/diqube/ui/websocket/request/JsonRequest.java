@@ -223,6 +223,7 @@ public class JsonRequest {
       } catch (IOException | JsonPayloadSerializerException e2) {
         throw new RuntimeException("Could not serialize authentication exception result.", e2);
       }
+      cleanup();
       return;
     } catch (RuntimeException e) {
       sendException(e);
