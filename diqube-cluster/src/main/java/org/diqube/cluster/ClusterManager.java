@@ -28,7 +28,10 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -53,6 +56,7 @@ import org.diqube.consensus.DiqubeCopycatServer;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.context.InjectOptional;
 import org.diqube.listeners.ClusterManagerListener;
+import org.diqube.listeners.DiqubeGracefulShutdownListener;
 import org.diqube.listeners.ServingListener;
 import org.diqube.listeners.TableLoadListener;
 import org.diqube.listeners.providers.LoadedTablesProvider;
@@ -75,8 +79,9 @@ import com.google.common.collect.Iterables;
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
-public class ClusterManager implements ServingListener, TableLoadListener, OurNodeAddressStringProvider,
-    ClusterNodeStatusDetailListener, OurNodeAddressProvider, ConsensusClusterNodeAddressProvider {
+public class ClusterManager
+    implements ServingListener, TableLoadListener, OurNodeAddressStringProvider, ClusterNodeStatusDetailListener,
+    OurNodeAddressProvider, ConsensusClusterNodeAddressProvider, DiqubeGracefulShutdownListener {
   private static final Logger logger = LoggerFactory.getLogger(ClusterManager.class);
 
   private static final String OUR_HOST_AUTOMATIC = "*";
@@ -160,6 +165,25 @@ public class ClusterManager implements ServingListener, TableLoadListener, OurNo
   public void cleanup() {
     if (executorService != null)
       executorService.shutdownNow();
+  }
+
+  @Override
+  public void serverAboutToShutdown() {
+    // try to gracefully tell the ClusterLayout that we're gone. If it does not work within a second, skip it. The other
+    // nodes might then try to submit stuff to our node, but will soon discover that we're down and remove us from the
+    // ClusterLayout themselves.
+    try {
+      logger.debug("Trying to remove ourselves from the cluster layout, as we're shutting down...");
+      executorService.submit(() -> {
+        try (ClosableProvider<ClusterLayoutStateMachine> p =
+            consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class)) {
+          p.getClient().removeNode(RemoveNode.local(ourHostAddr));
+        }
+      }).get(1, TimeUnit.SECONDS);
+    } catch (TimeoutException | InterruptedException | ExecutionException e) {
+      logger.warn("Could not deregister from cluster layout gracefully. The other cluster nodes might show exceptions "
+          + "about this soon, but the cluster should recover.", e);
+    }
   }
 
   private List<NodeAddress> parseClusterNodes(String clusterNodes) {

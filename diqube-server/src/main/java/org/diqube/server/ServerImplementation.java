@@ -38,6 +38,7 @@ import org.diqube.connection.integrity.IntegrityCheckingProtocol;
 import org.diqube.connection.integrity.IntegritySecretHelper;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.context.InjectOptional;
+import org.diqube.listeners.DiqubeGracefulShutdownListener;
 import org.diqube.listeners.ServingListener;
 import org.diqube.remote.cluster.ClusterConsensusServiceConstants;
 import org.diqube.remote.cluster.ClusterFlattenServiceConstants;
@@ -123,6 +124,9 @@ public class ServerImplementation {
   @InjectOptional
   private List<ServingListener> servingListeners;
 
+  @InjectOptional
+  private List<DiqubeGracefulShutdownListener> gracefulShutdownListeners;
+
   private TThreadedSelectorServer server;
 
   public void serve(Runnable shutdownContextRunnable) {
@@ -138,6 +142,10 @@ public class ServerImplementation {
       @Override
       public void run() {
         logger.info("Shutting down server...");
+        if (gracefulShutdownListeners != null) {
+          logger.debug("Executing graceful shutdown listeners...");
+          gracefulShutdownListeners.forEach(l -> l.serverAboutToShutdown());
+        }
         logger.debug("Stopping all local beans...");
         shutdownContextRunnable.run();
         logger.debug("Stopping thrift server...");
