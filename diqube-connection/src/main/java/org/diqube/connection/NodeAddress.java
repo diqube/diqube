@@ -22,8 +22,8 @@ package org.diqube.connection;
 
 import java.io.Serializable;
 
-import org.diqube.remote.base.thrift.RNodeAddress;
-import org.diqube.remote.base.util.RNodeAddressUtil;
+import org.diqube.thrift.base.thrift.RNodeAddress;
+import org.diqube.thrift.base.util.RNodeAddressUtil;
 import org.diqube.util.Pair;
 
 /**

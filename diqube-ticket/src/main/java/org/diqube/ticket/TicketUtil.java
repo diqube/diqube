@@ -33,7 +33,7 @@ import org.apache.thrift.transport.TIOStreamTransport;
 import org.apache.thrift.transport.TTransport;
 import org.diqube.remote.query.thrift.Ticket;
 import org.diqube.remote.query.thrift.TicketClaim;
-import org.diqube.thriftutil.RememberingTransport;
+import org.diqube.thrift.util.RememberingTransport;
 import org.diqube.util.Pair;
 
 /**

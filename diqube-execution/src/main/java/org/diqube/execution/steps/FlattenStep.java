@@ -31,7 +31,7 @@ import org.diqube.execution.exception.ExecutablePlanExecutionException;
 import org.diqube.flatten.QueryMasterFlattenService;
 import org.diqube.flatten.QueryMasterFlattenService.FlattenException;
 import org.diqube.queries.QueryRegistry;
-import org.diqube.remote.base.thrift.RNodeAddress;
+import org.diqube.thrift.base.thrift.RNodeAddress;
 import org.diqube.util.Pair;
 
 /**

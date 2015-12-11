@@ -21,8 +21,8 @@
 package org.diqube.remote.cluster;
 
 import org.apache.thrift.protocol.TMultiplexedProtocol;
-import org.diqube.remote.base.services.DiqubeThriftService;
 import org.diqube.remote.cluster.thrift.ClusterFlattenService;
+import org.diqube.thrift.base.services.DiqubeThriftService;
 
 /**
  * Constants to be used when using {@link ClusterFlattenService}.

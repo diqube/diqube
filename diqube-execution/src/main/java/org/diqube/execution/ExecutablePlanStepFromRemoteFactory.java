@@ -51,12 +51,12 @@ import org.diqube.function.FunctionFactory;
 import org.diqube.loader.columnshard.ColumnShardBuilderFactory;
 import org.diqube.name.RepeatedColumnNameGenerator;
 import org.diqube.queries.QueryRegistry;
-import org.diqube.remote.base.thrift.RValue;
-import org.diqube.remote.base.util.RValueUtil;
 import org.diqube.remote.cluster.thrift.RColOrValue;
 import org.diqube.remote.cluster.thrift.RExecutionPlanStep;
 import org.diqube.remote.cluster.thrift.RExecutionPlanStepDetailsOrderCol;
 import org.diqube.remote.cluster.thrift.RExecutionPlanStepDetailsRowId;
+import org.diqube.thrift.base.thrift.RValue;
+import org.diqube.thrift.base.util.RValueUtil;
 import org.diqube.util.ColumnOrValue;
 import org.diqube.util.Pair;
 

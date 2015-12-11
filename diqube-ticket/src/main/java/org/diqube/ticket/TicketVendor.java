@@ -27,9 +27,9 @@ import javax.inject.Inject;
 import org.diqube.config.Config;
 import org.diqube.config.ConfigKey;
 import org.diqube.context.AutoInstatiate;
-import org.diqube.remote.base.util.RUuidUtil;
 import org.diqube.remote.query.thrift.Ticket;
 import org.diqube.remote.query.thrift.TicketClaim;
+import org.diqube.thrift.base.util.RUuidUtil;
 
 /**
  * Creates new {@link Ticket}s for authenticated users.

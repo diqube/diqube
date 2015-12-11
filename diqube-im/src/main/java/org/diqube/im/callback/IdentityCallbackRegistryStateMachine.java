@@ -25,8 +25,8 @@ import java.util.List;
 import org.diqube.consensus.ConsensusMethod;
 import org.diqube.consensus.ConsensusStateMachine;
 import org.diqube.consensus.DiqubeConsensusUtil;
-import org.diqube.remote.base.thrift.RNodeAddress;
 import org.diqube.remote.query.thrift.IdentityCallbackService;
+import org.diqube.thrift.base.thrift.RNodeAddress;
 
 import io.atomix.copycat.client.Command;
 import io.atomix.copycat.client.Query;

@@ -21,7 +21,7 @@
 package org.diqube.connection;
 
 import org.apache.thrift.transport.TTransport;
-import org.diqube.remote.base.services.DiqubeThriftServiceInfoManager.DiqubeThriftServiceInfo;
+import org.diqube.thrift.base.services.DiqubeThriftServiceInfoManager.DiqubeThriftServiceInfo;
 import org.mockito.Mockito;
 
 /**

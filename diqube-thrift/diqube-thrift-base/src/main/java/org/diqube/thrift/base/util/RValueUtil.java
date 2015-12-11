@@ -18,23 +18,36 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.remote.base.util;
+package org.diqube.thrift.base.util;
 
-import java.util.UUID;
-
-import org.diqube.remote.base.thrift.RUUID;
+import org.diqube.thrift.base.thrift.RValue;
 
 /**
- * Utility methods for {@link RUUID}.
  *
  * @author Bastian Gloeckle
  */
-public class RUuidUtil {
-  public static RUUID toRUuid(UUID uuid) {
-    return new RUUID(uuid.getLeastSignificantBits(), uuid.getMostSignificantBits());
+public class RValueUtil {
+  public static RValue createRValue(Object value) {
+    RValue res = new RValue();
+    if (value instanceof String)
+      res.setStrValue((String) value);
+    else if (value instanceof Long)
+      res.setLongValue((Long) value);
+    else if (value instanceof Double)
+      res.setDoubleValue((Double) value);
+    else
+      return null;
+    return res;
   }
 
-  public static UUID toUuid(RUUID ruuid) {
-    return new UUID(ruuid.getUpper(), ruuid.getLower());
+  public static Object createValue(RValue value) {
+    Object res;
+    if (value.isSetStrValue())
+      res = value.getStrValue();
+    else if (value.isSetLongValue())
+      res = value.getLongValue();
+    else
+      res = value.getDoubleValue();
+    return res;
   }
 }

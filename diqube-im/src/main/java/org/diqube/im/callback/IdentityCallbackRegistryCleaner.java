@@ -41,7 +41,7 @@ import org.diqube.consensus.DiqubeCopycatClient.ClosableProvider;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.im.callback.IdentityCallbackRegistryStateMachine.Unregister;
 import org.diqube.im.callback.IdentityCallbackRegistryStateMachineImplementation.IdentityCallbackRegistryListener;
-import org.diqube.remote.base.thrift.RNodeAddress;
+import org.diqube.thrift.base.thrift.RNodeAddress;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

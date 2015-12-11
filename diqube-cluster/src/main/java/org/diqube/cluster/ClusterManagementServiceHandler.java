@@ -33,8 +33,8 @@ import org.diqube.consensus.DiqubeCopycatClient;
 import org.diqube.consensus.DiqubeCopycatClient.ClosableProvider;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.listeners.providers.LoadedTablesProvider;
-import org.diqube.remote.base.thrift.RNodeAddress;
 import org.diqube.remote.cluster.thrift.ClusterManagementService;
+import org.diqube.thrift.base.thrift.RNodeAddress;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

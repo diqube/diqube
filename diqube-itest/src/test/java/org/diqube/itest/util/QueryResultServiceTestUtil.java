@@ -36,7 +36,6 @@ import org.apache.thrift.transport.TNonblockingServerSocket;
 import org.apache.thrift.transport.TTransportException;
 import org.diqube.itest.control.ServerControl.ServerAddr;
 import org.diqube.itest.util.ClusterFlattenServiceTestUtil.TestClusterFlattenService;
-import org.diqube.remote.base.thrift.RUUID;
 import org.diqube.remote.query.KeepAliveServiceConstants;
 import org.diqube.remote.query.QueryResultServiceConstants;
 import org.diqube.remote.query.thrift.KeepAliveService;
@@ -45,6 +44,7 @@ import org.diqube.remote.query.thrift.QueryService;
 import org.diqube.remote.query.thrift.RQueryException;
 import org.diqube.remote.query.thrift.RQueryStatistics;
 import org.diqube.remote.query.thrift.RResultTable;
+import org.diqube.thrift.base.thrift.RUUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

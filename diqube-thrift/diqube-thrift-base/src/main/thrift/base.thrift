@@ -19,7 +19,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-namespace java org.diqube.remote.base.thrift
+namespace java org.diqube.thrift.base.thrift
 
 
 union RNodeAddress {

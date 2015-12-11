@@ -48,11 +48,11 @@ import org.diqube.executionenv.ExecutionEnvironmentFactory;
 import org.diqube.executionenv.FlattenedTableInstanceManager;
 import org.diqube.executionenv.TableRegistry;
 import org.diqube.queries.QueryUuid.QueryUuidThreadState;
-import org.diqube.remote.base.util.RUuidUtil;
 import org.diqube.remote.cluster.thrift.RExecutionPlan;
 import org.diqube.remote.cluster.thrift.RExecutionPlanStep;
 import org.diqube.remote.cluster.thrift.RExecutionPlanStepDataType;
 import org.diqube.remote.cluster.thrift.RExecutionPlanStepType;
+import org.diqube.thrift.base.util.RUuidUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

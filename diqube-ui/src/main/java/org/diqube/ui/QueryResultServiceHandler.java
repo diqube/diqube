@@ -26,10 +26,10 @@ import javax.inject.Inject;
 
 import org.apache.thrift.TException;
 import org.diqube.context.AutoInstatiate;
-import org.diqube.remote.base.thrift.RUUID;
-import org.diqube.remote.base.util.RUuidUtil;
 import org.diqube.remote.query.thrift.QueryResultService;
 import org.diqube.remote.query.thrift.QueryResultService.Iface;
+import org.diqube.thrift.base.thrift.RUUID;
+import org.diqube.thrift.base.util.RUuidUtil;
 import org.diqube.remote.query.thrift.RQueryException;
 import org.diqube.remote.query.thrift.RQueryStatistics;
 import org.diqube.remote.query.thrift.RResultTable;

@@ -32,11 +32,11 @@ import javax.inject.Inject;
 
 import org.apache.thrift.TException;
 import org.diqube.context.AutoInstatiate;
-import org.diqube.remote.base.thrift.RNodeAddress;
-import org.diqube.remote.base.thrift.RUUID;
-import org.diqube.remote.base.util.RUuidUtil;
 import org.diqube.remote.cluster.thrift.ClusterConsensusService;
 import org.diqube.remote.cluster.thrift.RConnectionUnknownException;
+import org.diqube.thrift.base.thrift.RNodeAddress;
+import org.diqube.thrift.base.thrift.RUUID;
+import org.diqube.thrift.base.util.RUuidUtil;
 
 import io.atomix.catalyst.util.concurrent.CatalystThreadFactory;
 import io.atomix.catalyst.util.concurrent.ThreadContext;

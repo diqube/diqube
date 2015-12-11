@@ -26,12 +26,12 @@
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.diqube</groupId>
-    <artifactId>diqube-remote</artifactId>
+    <artifactId>diqube-thrift</artifactId>
     <version>1-SNAPSHOT</version>
   </parent>
-  <artifactId>diqube-remote-base</artifactId>
+  <artifactId>diqube-thrift-base</artifactId>
   <packaging>jar</packaging>
-  <name>diqube - Remote (Base)</name>
+  <name>diqube - Thrift Base</name>
   <url>http://www.diqube.org</url>
 
   <build>
@@ -47,7 +47,7 @@
           </execution>
         </executions>
       </plugin>
-      <!-- Do not enable dependency plugin, as this would copy diqube-remote-base, which we're building currently! -->
+      <!-- Do not enable dependency plugin, as this would copy diqube-thrift-base, which we're building currently! -->
       <!-- <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>

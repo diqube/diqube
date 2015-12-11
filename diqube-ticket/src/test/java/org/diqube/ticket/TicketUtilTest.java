@@ -23,9 +23,9 @@ package org.diqube.ticket;
 import java.nio.ByteBuffer;
 import java.util.UUID;
 
-import org.diqube.remote.base.util.RUuidUtil;
 import org.diqube.remote.query.thrift.Ticket;
 import org.diqube.remote.query.thrift.TicketClaim;
+import org.diqube.thrift.base.util.RUuidUtil;
 import org.diqube.util.Pair;
 import org.testng.Assert;
 import org.testng.annotations.Test;

@@ -61,9 +61,9 @@ import org.diqube.listeners.ServingListener;
 import org.diqube.listeners.TableLoadListener;
 import org.diqube.listeners.providers.LoadedTablesProvider;
 import org.diqube.listeners.providers.OurNodeAddressStringProvider;
-import org.diqube.remote.base.thrift.RNodeAddress;
 import org.diqube.remote.cluster.thrift.ClusterManagementService;
 import org.diqube.threads.ExecutorManager;
+import org.diqube.thrift.base.thrift.RNodeAddress;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

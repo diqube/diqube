@@ -41,7 +41,6 @@
   <url>http://www.diqube.org</url>
 
   <modules>
-    <module>diqube-remote-base</module>
     <module>diqube-remote-cluster</module>
     <module>diqube-remote-query</module>
   </modules>

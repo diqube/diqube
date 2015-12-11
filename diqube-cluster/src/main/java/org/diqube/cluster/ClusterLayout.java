@@ -36,7 +36,7 @@ import org.diqube.consensus.DiqubeConsensusStateMachineClientInterruptedExceptio
 import org.diqube.consensus.DiqubeCopycatClient;
 import org.diqube.consensus.DiqubeCopycatClient.ClosableProvider;
 import org.diqube.context.AutoInstatiate;
-import org.diqube.remote.base.thrift.RNodeAddress;
+import org.diqube.thrift.base.thrift.RNodeAddress;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

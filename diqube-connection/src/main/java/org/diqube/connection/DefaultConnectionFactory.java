@@ -31,9 +31,9 @@ import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.diqube.connection.integrity.IntegrityCheckingProtocol;
 import org.diqube.connection.integrity.IntegritySecretHelper;
-import org.diqube.remote.base.services.DiqubeThriftServiceInfoManager.DiqubeThriftServiceInfo;
-import org.diqube.remote.base.thrift.RNodeAddress;
-import org.diqube.thriftutil.RememberingTransport;
+import org.diqube.thrift.base.services.DiqubeThriftServiceInfoManager.DiqubeThriftServiceInfo;
+import org.diqube.thrift.base.thrift.RNodeAddress;
+import org.diqube.thrift.util.RememberingTransport;
 
 /**
  * Default implementation for {@link ConnectionFactory}.

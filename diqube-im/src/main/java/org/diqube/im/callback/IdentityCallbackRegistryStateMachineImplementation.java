@@ -41,7 +41,7 @@ import org.diqube.file.internaldb.InternalDbFileReader.ReadException;
 import org.diqube.file.internaldb.InternalDbFileWriter;
 import org.diqube.file.internaldb.InternalDbFileWriter.WriteException;
 import org.diqube.im.thrift.v1.SCallback;
-import org.diqube.remote.base.thrift.RNodeAddress;
+import org.diqube.thrift.base.thrift.RNodeAddress;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

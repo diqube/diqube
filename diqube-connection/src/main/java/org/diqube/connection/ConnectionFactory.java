@@ -20,8 +20,8 @@
  */
 package org.diqube.connection;
 
-import org.diqube.remote.base.services.DiqubeThriftServiceInfoManager.DiqubeThriftServiceInfo;
-import org.diqube.remote.base.thrift.RNodeAddress;
+import org.diqube.thrift.base.services.DiqubeThriftServiceInfoManager.DiqubeThriftServiceInfo;
+import org.diqube.thrift.base.thrift.RNodeAddress;
 
 /**
  * Factory for new connections to other machines.

@@ -25,7 +25,7 @@ import java.io.IOException;
 import javax.inject.Inject;
 
 import org.diqube.context.AutoInstatiate;
-import org.diqube.remote.base.thrift.RNodeAddress;
+import org.diqube.thrift.base.thrift.RNodeAddress;
 import org.springframework.context.ApplicationContext;
 
 /**

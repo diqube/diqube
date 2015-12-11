@@ -102,7 +102,7 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>diqube-remote-base</artifactId>
+      <artifactId>diqube-thrift-base</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>

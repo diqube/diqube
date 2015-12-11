@@ -32,10 +32,10 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 
 import org.diqube.context.AutoInstatiate;
-import org.diqube.remote.base.thrift.AuthenticationException;
 import org.diqube.remote.query.thrift.Ticket;
 import org.diqube.remote.query.thrift.TicketClaim;
 import org.diqube.remote.query.thrift.TicketInfo;
+import org.diqube.thrift.base.thrift.AuthenticationException;
 import org.diqube.util.Pair;
 
 /**

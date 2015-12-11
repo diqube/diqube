@@ -62,7 +62,7 @@ import org.diqube.remote.query.thrift.KeepAliveService;
 import org.diqube.remote.query.thrift.QueryService;
 import org.diqube.server.thrift.ThriftServer;
 import org.diqube.threads.ExecutorManager;
-import org.diqube.thriftutil.RememberingTransport;
+import org.diqube.thrift.util.RememberingTransport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

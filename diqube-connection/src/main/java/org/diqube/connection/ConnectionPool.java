@@ -47,10 +47,10 @@ import org.diqube.connection.integrity.IntegritySecretHelper;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.context.InjectOptional;
 import org.diqube.queries.QueryUuid;
-import org.diqube.remote.base.services.DiqubeThriftServiceInfoManager;
-import org.diqube.remote.base.services.DiqubeThriftServiceInfoManager.DiqubeThriftServiceInfo;
-import org.diqube.remote.base.thrift.RNodeAddress;
 import org.diqube.remote.query.thrift.KeepAliveService;
+import org.diqube.thrift.base.services.DiqubeThriftServiceInfoManager;
+import org.diqube.thrift.base.services.DiqubeThriftServiceInfoManager.DiqubeThriftServiceInfo;
+import org.diqube.thrift.base.thrift.RNodeAddress;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

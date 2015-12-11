@@ -22,9 +22,9 @@ package org.diqube.remote.cluster;
 
 import org.diqube.data.column.ColumnType;
 import org.diqube.function.IntermediaryResult;
-import org.diqube.remote.base.util.RValueUtil;
 import org.diqube.remote.cluster.thrift.RColumnType;
 import org.diqube.remote.cluster.thrift.RIntermediateAggregationResult;
+import org.diqube.thrift.base.util.RValueUtil;
 
 /**
  * Util for {@link RIntermediateAggregationResult}

@@ -25,7 +25,7 @@ import java.util.UUID;
 
 import org.diqube.execution.ExecutablePlanStep;
 import org.diqube.execution.steps.AbstractThreadedExecutablePlanStep;
-import org.diqube.remote.base.thrift.RNodeAddress;
+import org.diqube.thrift.base.thrift.RNodeAddress;
 
 /**
  * Abstract base class of {@link TableFlattenedConsumer}s that handles calling the {@link ExecutablePlanStep} correctly

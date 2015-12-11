@@ -21,9 +21,9 @@
 package org.diqube.tool.im;
 
 import org.apache.thrift.TException;
-import org.diqube.remote.base.thrift.AuthenticationException;
-import org.diqube.remote.base.thrift.AuthorizationException;
 import org.diqube.remote.query.thrift.IdentityService.Iface;
+import org.diqube.thrift.base.thrift.AuthenticationException;
+import org.diqube.thrift.base.thrift.AuthorizationException;
 import org.diqube.remote.query.thrift.Ticket;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

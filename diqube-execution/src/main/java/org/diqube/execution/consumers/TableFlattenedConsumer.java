@@ -24,7 +24,7 @@ import java.util.Collection;
 import java.util.UUID;
 
 import org.diqube.execution.consumers.GenericConsumer.IdentifyingConsumerClass;
-import org.diqube.remote.base.thrift.RNodeAddress;
+import org.diqube.thrift.base.thrift.RNodeAddress;
 
 /**
  * A consumer that is informed as soon as a table is fully flattened.

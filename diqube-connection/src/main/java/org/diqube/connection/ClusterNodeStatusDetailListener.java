@@ -20,7 +20,7 @@
  */
 package org.diqube.connection;
 
-import org.diqube.remote.base.thrift.RNodeAddress;
+import org.diqube.thrift.base.thrift.RNodeAddress;
 
 /**
  * Listener that is informed as soon as someone found that a specific cluster node died or is alive.

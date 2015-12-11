@@ -18,10 +18,10 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.remote.base.util;
+package org.diqube.thrift.base.util;
 
-import org.diqube.remote.base.thrift.RNodeAddress;
-import org.diqube.remote.base.thrift.RNodeDefaultAddress;
+import org.diqube.thrift.base.thrift.RNodeAddress;
+import org.diqube.thrift.base.thrift.RNodeDefaultAddress;
 import org.diqube.util.Pair;
 
 /**

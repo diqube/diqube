@@ -28,12 +28,12 @@ import org.diqube.connection.ConnectionException;
 import org.diqube.connection.ConnectionFactory;
 import org.diqube.connection.SocketListener;
 import org.diqube.itest.control.ServerControl;
-import org.diqube.remote.base.services.DiqubeThriftServiceInfoManager;
 import org.diqube.remote.cluster.thrift.ClusterFlattenService;
 import org.diqube.remote.cluster.thrift.ClusterManagementService;
 import org.diqube.remote.query.thrift.IdentityService;
 import org.diqube.remote.query.thrift.KeepAliveService;
 import org.diqube.remote.query.thrift.QueryService;
+import org.diqube.thrift.base.services.DiqubeThriftServiceInfoManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

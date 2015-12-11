@@ -23,15 +23,15 @@ package org.diqube.server.execution.util;
 import java.util.Map;
 
 import org.apache.thrift.TException;
-import org.diqube.remote.base.thrift.RNodeAddress;
-import org.diqube.remote.base.thrift.RUUID;
-import org.diqube.remote.base.thrift.RValue;
 import org.diqube.remote.cluster.thrift.ClusterQueryService;
 import org.diqube.remote.cluster.thrift.RClusterQueryStatistics;
 import org.diqube.remote.cluster.thrift.RExecutionException;
 import org.diqube.remote.cluster.thrift.RExecutionPlan;
 import org.diqube.remote.cluster.thrift.ROldNewIntermediateAggregationResult;
 import org.diqube.server.queryremote.query.ClusterQueryServiceHandler;
+import org.diqube.thrift.base.thrift.RNodeAddress;
+import org.diqube.thrift.base.thrift.RUUID;
+import org.diqube.thrift.base.thrift.RValue;
 
 /**
  * A {@link ClusterQueryService} that simply does nothing. Usable for unit tests, if the original

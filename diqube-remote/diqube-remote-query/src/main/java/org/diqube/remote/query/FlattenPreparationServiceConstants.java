@@ -21,8 +21,8 @@
 package org.diqube.remote.query;
 
 import org.apache.thrift.protocol.TMultiplexedProtocol;
-import org.diqube.remote.base.services.DiqubeThriftService;
 import org.diqube.remote.query.thrift.FlattenPreparationService;
+import org.diqube.thrift.base.services.DiqubeThriftService;
 
 /**
  * Constants to be used when using {@link FlattenPreparationService}

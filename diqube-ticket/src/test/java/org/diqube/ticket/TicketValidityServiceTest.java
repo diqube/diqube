@@ -27,10 +27,10 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 import org.diqube.context.Profiles;
-import org.diqube.remote.base.util.RUuidUtil;
 import org.diqube.remote.query.TicketInfoUtil;
 import org.diqube.remote.query.thrift.Ticket;
 import org.diqube.remote.query.thrift.TicketClaim;
+import org.diqube.thrift.base.util.RUuidUtil;
 import org.diqube.ticket.TicketRsaKeyFileProvider.IOExceptionSupplier;
 import org.diqube.util.Triple;
 import org.springframework.beans.factory.support.RootBeanDefinition;

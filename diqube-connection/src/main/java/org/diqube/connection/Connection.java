@@ -26,8 +26,8 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.thrift.transport.TTransport;
-import org.diqube.remote.base.services.DiqubeThriftServiceInfoManager.DiqubeThriftServiceInfo;
-import org.diqube.remote.base.thrift.RNodeAddress;
+import org.diqube.thrift.base.services.DiqubeThriftServiceInfoManager.DiqubeThriftServiceInfo;
+import org.diqube.thrift.base.thrift.RNodeAddress;
 
 /**
  * A connection to a server.
