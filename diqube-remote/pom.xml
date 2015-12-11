@@ -48,43 +48,6 @@
 
   <build>
     <plugins>
-      <!-- Validate that Thrift compiler is available. -->
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-antrun-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>validate-thrift-compiler-available</id>
-            <phase>validate</phase>
-            <goals>
-              <goal>run</goal>
-            </goals>
-            <configuration>
-              <target>
-                <echo message="Verifying availability of Apache Thrift compiler..." />
-                <fail message="Thrift compiler not found. Set property thrift.executable in your settings.xml.">
-                  <condition>
-                    <not>
-                      <isset property="thrift.executable" />
-                    </not>
-                  </condition>
-                </fail>
-                <echo message="Verifying version of Apache Thrift compiler (${thrift.version} needed)..." />
-                <exec executable="${thrift.executable}" outputproperty="thrift.actual.version">
-                  <arg value="--version" />
-                </exec>
-                <fail message="Thrift compiler found, but wrong version. Need version ${thrift.version}!">
-                  <condition>
-                    <not>
-                      <equals arg1="${thrift.version.executable.string}" arg2="${thrift.actual.version}" />
-                    </not>
-                  </condition>
-                </fail>
-              </target>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
       <plugin>
         <groupId>com.mycila</groupId>
         <artifactId>license-maven-plugin</artifactId>

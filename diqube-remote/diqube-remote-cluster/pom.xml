@@ -40,76 +40,44 @@
 
   <build>
     <plugins>
+      <!-- START: thrift compilation -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-antrun-plugin</artifactId>
-        <configuration>
-          <skip>true</skip>
-        </configuration>
+        <executions>
+          <execution>
+            <id>thrift</id>
+            <phase>validate</phase>
+          </execution>
+        </executions>
       </plugin>
-      <!-- extract base.thrift -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>
         <executions>
           <execution>
-            <id>unpack-thrift-base</id>
+            <id>thrift</id>
             <phase>generate-sources</phase>
-            <goals>
-              <goal>unpack</goal>
-            </goals>
-            <configuration>
-              <artifactItems>
-                <artifactItem>
-                  <groupId>${project.groupId}</groupId>
-                  <artifactId>diqube-remote-base</artifactId>
-                  <version>${project.version}</version>
-                  <type>jar</type>
-                  <outputDirectory>${diqube.thrift.dependencies}</outputDirectory>
-                  <includes>**/*.thrift</includes>
-                </artifactItem>
-              </artifactItems>
-            </configuration>
           </execution>
         </executions>
       </plugin>
-      <!-- copy & filter query.thrift -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-resources-plugin</artifactId>
         <executions>
           <execution>
-            <id>filter-thrift-resource</id>
+            <id>thrift</id>
             <phase>generate-sources</phase>
-            <goals>
-              <goal>copy-resources</goal>
-            </goals>
-            <configuration>
-              <resources>
-                <resource>
-                  <directory>${basedir}/src/main/thrift</directory>
-                  <filtering>true</filtering>
-                </resource>
-              </resources>
-              <outputDirectory>${project.build.directory}/thrift</outputDirectory>
-            </configuration>
           </execution>
         </executions>
       </plugin>
       <plugin>
-        <!-- see https://github.com/dtrott/maven-thrift-plugin -->
         <groupId>org.apache.thrift.tools</groupId>
         <artifactId>maven-thrift-plugin</artifactId>
         <executions>
           <execution>
-            <id>thrift-sources</id>
+            <id>thrift</id>
             <phase>generate-sources</phase>
-            <goals>
-              <goal>compile</goal>
-            </goals>
-            <configuration>
-              <thriftSourceRoot>${project.build.directory}/thrift</thriftSourceRoot>
-            </configuration>
           </execution>
         </executions>
       </plugin>
@@ -118,19 +86,12 @@
         <artifactId>build-helper-maven-plugin</artifactId>
         <executions>
           <execution>
-            <id>add-source</id>
+            <id>thrift</id>
             <phase>generate-sources</phase>
-            <goals>
-              <goal>add-source</goal>
-            </goals>
-            <configuration>
-              <sources>
-                <source>target/generated-sources/thrift</source>
-              </sources>
-            </configuration>
           </execution>
         </executions>
       </plugin>
+      <!-- END: thrift compilation -->
     </plugins>
   </build>
 

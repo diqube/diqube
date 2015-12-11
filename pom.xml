@@ -98,6 +98,8 @@
     <hadoop.version>2.7.1</hadoop.version>
     <copycat.version>1.0.0-beta4</copycat.version>
     <bouncycastle.version>1.52</bouncycastle.version>
+    
+    <diqube.thrift.dependencies>${project.build.directory}/diqube-thrift-dep</diqube.thrift.dependencies>
   </properties>
 
   <build>
@@ -113,33 +115,9 @@
           </configuration>
         </plugin>
         <plugin>
-          <!-- see https://github.com/dtrott/maven-thrift-plugin -->
-          <groupId>org.apache.thrift.tools</groupId>
-          <artifactId>maven-thrift-plugin</artifactId>
-          <version>0.1.11</version>
-          <configuration>
-            <thriftExecutable>${thrift.executable}</thriftExecutable>
-          </configuration>
-        </plugin>
-        <plugin>
           <groupId>org.antlr</groupId>
           <artifactId>antlr4-maven-plugin</artifactId>
           <version>4.5</version>
-        </plugin>
-        <plugin>
-          <groupId>org.codehaus.mojo</groupId>
-          <artifactId>build-helper-maven-plugin</artifactId>
-          <version>1.9.1</version>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-antrun-plugin</artifactId>
-          <version>1.7</version>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-resources-plugin</artifactId>
-          <version>2.7</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -175,11 +153,6 @@
               </property>
             </properties>
           </configuration>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-dependency-plugin</artifactId>
-          <version>2.10</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -290,6 +263,147 @@
             </lifecycleMappingMetadata>
           </configuration>
         </plugin>
+        
+        
+        <!-- Plugin configuration needed if project contains .thrift files and they need compilation. Enable all the
+             following plugins in such a project (because they are disabled here by default). Enable using the correct 
+             "phase" value. 
+             Note that all plugins have an execution "thrift". -->
+        <!-- Validate that Thrift compiler is available. -->
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-antrun-plugin</artifactId>
+          <version>1.7</version>
+          <executions>
+            <execution>
+              <id>thrift</id>
+              <phase>none</phase>
+              <!-- <phase>validate</phase> -->
+              <goals>
+                <goal>run</goal>
+              </goals>
+              <configuration>
+                <target>
+                  <echo message="Verifying availability of Apache Thrift compiler..." />
+                  <fail message="Thrift compiler not found. Set property thrift.executable in your settings.xml.">
+                    <condition>
+                      <not>
+                        <isset property="thrift.executable" />
+                      </not>
+                    </condition>
+                  </fail>
+                  <echo message="Verifying version of Apache Thrift compiler (${thrift.version} needed)..." />
+                  <exec executable="${thrift.executable}" outputproperty="thrift.actual.version">
+                    <arg value="--version" />
+                  </exec>
+                  <fail message="Thrift compiler found, but wrong version. Need version ${thrift.version}!">
+                    <condition>
+                      <not>
+                        <equals arg1="${thrift.version.executable.string}" arg2="${thrift.actual.version}" />
+                      </not>
+                    </condition>
+                  </fail>
+                </target>
+              </configuration>
+            </execution>
+          </executions>
+        </plugin>
+        <!-- extract base.thrift from diqube-remote-base -->
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-dependency-plugin</artifactId>
+          <version>2.10</version>
+          <executions>
+            <execution>
+              <id>thrift</id>
+              <phase>none</phase>
+              <!-- <phase>generate-sources</phase> -->
+              <goals>
+                <goal>unpack</goal>
+              </goals>
+              <configuration>
+                <artifactItems>
+                  <artifactItem>
+                    <groupId>${project.groupId}</groupId>
+                    <artifactId>diqube-remote-base</artifactId>
+                    <version>${project.version}</version>
+                    <type>jar</type>
+                    <outputDirectory>${diqube.thrift.dependencies}</outputDirectory>
+                    <includes>**/*.thrift</includes>
+                  </artifactItem>
+                </artifactItems>
+              </configuration>
+            </execution>
+          </executions>
+        </plugin>
+        <!-- copy & filter .thrift files of current project. -->
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-resources-plugin</artifactId>
+          <version>2.7</version>
+          <executions>
+            <execution>
+              <id>thrift</id>
+              <phase>none</phase>
+              <!-- <phase>generate-sources</phase> -->
+              <goals>
+                <goal>copy-resources</goal>
+              </goals>
+              <configuration>
+                <resources>
+                  <resource>
+                    <directory>${basedir}/src/main/thrift</directory>
+                    <filtering>true</filtering>
+                  </resource>
+                </resources>
+                <outputDirectory>${project.build.directory}/thrift</outputDirectory>
+              </configuration>
+            </execution>
+          </executions>
+        </plugin>
+        <!-- Compile thrift files. See https://github.com/dtrott/maven-thrift-plugin -->
+        <plugin>
+          <groupId>org.apache.thrift.tools</groupId>
+          <artifactId>maven-thrift-plugin</artifactId>
+          <version>0.1.11</version>
+          <executions>
+            <execution>
+              <id>thrift</id>
+              <phase>none</phase>
+              <!-- <phase>generate-sources</phase> -->
+              <goals>
+                <goal>compile</goal>
+              </goals>
+              <configuration>
+                <thriftExecutable>${thrift.executable}</thriftExecutable>
+                <thriftSourceRoot>${project.build.directory}/thrift</thriftSourceRoot>
+              </configuration>
+            </execution>
+          </executions>
+        </plugin>
+        <!-- Add generated sources to project -->
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>build-helper-maven-plugin</artifactId>
+          <version>1.9.1</version>
+          <executions>
+            <execution>
+              <id>thrift</id>
+              <phase>none</phase>
+              <!-- <phase>generate-sources</phase> -->
+              <goals>
+                <goal>add-source</goal>
+              </goals>
+              <configuration>
+                <sources>
+                  <source>target/generated-sources/thrift</source>
+                </sources>
+              </configuration>
+            </execution>
+          </executions>
+        </plugin>
+        <!-- END Thrift plugins. -->
+        
       </plugins>
     </pluginManagement>
     <plugins>
