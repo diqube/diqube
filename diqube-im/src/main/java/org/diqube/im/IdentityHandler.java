@@ -109,7 +109,7 @@ public class IdentityHandler implements IdentityService.Iface {
   private String superuserPassword;
 
   @Config(ConfigKey.TICKET_USE_STRONG_RANDOM)
-  private String useStrongRandomConigValue;
+  private String useStrongRandomConfigValue;
   private boolean useStrongRandom;
 
   @Inject
@@ -141,13 +141,14 @@ public class IdentityHandler implements IdentityService.Iface {
 
   @PostConstruct
   public void initialize() {
-    useStrongRandom = useStrongRandomConigValue != null && useStrongRandomConigValue.toLowerCase().trim().equals(TRUE);
+    useStrongRandom =
+        useStrongRandomConfigValue != null && useStrongRandomConfigValue.toLowerCase().trim().equals(TRUE);
+
     if (useStrongRandom)
       logger.info("Using STRONG random to calculate new salts for hashing passwords. Ensure that the system "
           + "provides enough strong randomness!");
     else
-      logger.info("Using normal random to calculate new salts for hashing passwords. Ensure that the system "
-          + "provides enough strong randomness!");
+      logger.info("Using normal random to calculate new salts for hashing passwords.");
   }
 
   @Override

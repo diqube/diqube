@@ -95,8 +95,7 @@ public class LoginLogoutIntegrationTest extends AbstractDiqubeIntegrationTest {
       p.setProperty(ConfigKey.SUPERUSER_PASSWORD, ROOT_PASSWORD);
     });
 
-    try (
-        TestIdentityCallbackService callbackService = IdentityCallbackServiceTestUtil.createIdentityCallbackService()) {
+    try (TestIdentityCallbackService callbackServ = IdentityCallbackServiceTestUtil.createIdentityCallbackService()) {
       serverControl.get(0).getSerivceTestUtil().identityService(identityService -> {
         Ticket rootTicket = identityService.login(ROOT_USER, ROOT_PASSWORD);
         Assert.assertNotNull(rootTicket, "Expected valid rootTicket");
@@ -105,16 +104,16 @@ public class LoginLogoutIntegrationTest extends AbstractDiqubeIntegrationTest {
         Ticket testTicket = identityService.login(TEST_USER, TEST_PASSWORD);
         Assert.assertNotNull(testTicket, "Expected valid testTicket");
 
-        identityService.registerCallback(callbackService.getThisServicesAddr().toRNodeAddress());
+        identityService.registerCallback(callbackServ.getThisServicesAddr().toRNodeAddress());
         identityService.logout(testTicket);
 
         // we should receive the invalidation event at least twice: Once the quick-send in IdentityHandler#logout and
         // then the one when the logout is being applied to LogoutStateMachine!
         new Waiter().waitUntil("Logout event captured on callback service (twice)", 10, 200,
-            () -> callbackService.getInvalidTickets().size() >= 2);
+            () -> callbackServ.getInvalidTickets().size() >= 2);
 
         // validate correct ticket was invalidated
-        Set<TicketInfo> invalidTicketSet = new HashSet<>(callbackService.getInvalidTickets());
+        Set<TicketInfo> invalidTicketSet = new HashSet<>(callbackServ.getInvalidTickets());
         Assert.assertEquals(invalidTicketSet.size(), 1, "Expected correct number of distinct invalid tickets.");
 
         TicketInfo invalidInfo = invalidTicketSet.iterator().next();
