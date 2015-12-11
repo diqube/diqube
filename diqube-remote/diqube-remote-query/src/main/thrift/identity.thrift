@@ -73,6 +73,8 @@ service IdentityService {
     void deleteUser(1: Ticket ticket, 2: string username) 
         throws (1: base.AuthenticationException authenticationException, 2: base.AuthorizationException authorizationException)
         
+    string getEmail(1: Ticket ticket, 2: string username)
+        
     // Register a node that implements IdentityCallbackService to be informed about anything interesting.
     // Node should unregsiter itself.
     // Node will be automatically deregistered after 1h, re-register accordingly.

@@ -257,6 +257,8 @@ public class IdentityHandler implements IdentityService.Iface {
 
     try (ClosableProvider<IdentityStateMachine> p = consensusClient.getStateMachineClient(IdentityStateMachine.class)) {
       SUser user = p.getClient().getUser(GetUser.local(username));
+      if (user == null)
+        throw new TException("User does not exist");
 
       internalSetUserPassword(user, newPassword);
 
@@ -280,6 +282,8 @@ public class IdentityHandler implements IdentityService.Iface {
 
     try (ClosableProvider<IdentityStateMachine> p = consensusClient.getStateMachineClient(IdentityStateMachine.class)) {
       SUser user = p.getClient().getUser(GetUser.local(username));
+      if (user == null)
+        throw new TException("User does not exist");
 
       user.setEmail(newEmail);
 
@@ -303,6 +307,8 @@ public class IdentityHandler implements IdentityService.Iface {
 
     try (ClosableProvider<IdentityStateMachine> p = consensusClient.getStateMachineClient(IdentityStateMachine.class)) {
       SUser user = p.getClient().getUser(GetUser.local(username));
+      if (user == null)
+        throw new TException("User does not exist");
 
       if (!user.isSetPermissions())
         user.setPermissions(new ArrayList<>());
@@ -348,6 +354,8 @@ public class IdentityHandler implements IdentityService.Iface {
 
     try (ClosableProvider<IdentityStateMachine> p = consensusClient.getStateMachineClient(IdentityStateMachine.class)) {
       SUser user = p.getClient().getUser(GetUser.local(username));
+      if (user == null)
+        throw new TException("User does not exist");
 
       if (!user.isSetPermissions())
         return;
@@ -389,6 +397,9 @@ public class IdentityHandler implements IdentityService.Iface {
     try (ClosableProvider<IdentityStateMachine> p = consensusClient.getStateMachineClient(IdentityStateMachine.class)) {
       user = p.getClient().getUser(GetUser.local(username));
     }
+    if (user == null)
+      throw new TException("User does not exist");
+
     if (!user.isSetPermissions())
       return new HashMap<>();
 
@@ -442,6 +453,26 @@ public class IdentityHandler implements IdentityService.Iface {
     try (ClosableProvider<IdentityStateMachine> p = consensusClient.getStateMachineClient(IdentityStateMachine.class)) {
       p.getClient().deleteUser(DeleteUser.local(username));
     }
+  }
+
+  @Override
+  public String getEmail(Ticket ticket, String username) throws TException {
+    ticketValidityService.validateTicket(ticket);
+
+    if (!ticket.getClaim().getUsername().equals(username) && !permissionCheck.isSuperuser(ticket))
+      throw new AuthorizationException();
+
+    if (permissionCheck.isSuperuser(username))
+      throw new TException("Cannot query permissions of superuser.");
+
+    SUser user;
+    try (ClosableProvider<IdentityStateMachine> p = consensusClient.getStateMachineClient(IdentityStateMachine.class)) {
+      user = p.getClient().getUser(GetUser.local(username));
+    }
+    if (user == null)
+      throw new TException("User does not exist");
+
+    return user.getEmail();
   }
 
   @Override

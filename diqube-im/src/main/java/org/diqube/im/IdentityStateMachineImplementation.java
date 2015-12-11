@@ -76,6 +76,7 @@ public class IdentityStateMachineImplementation implements IdentityStateMachine 
     Commit<?> prev = previous.put(commit.operation().getUser().getUsername(), commit);
 
     String username = commit.operation().getUser().getUsername();
+    logger.info("Adjusting user '{}'...", username);
     users.put(username, commit.operation().getUser());
     storeCurrentUsers(commit.index());
 
@@ -95,8 +96,9 @@ public class IdentityStateMachineImplementation implements IdentityStateMachine 
 
   @Override
   public void deleteUser(Commit<DeleteUser> commit) {
-    Commit<?> prev = previous.put(commit.operation().getUserName(), commit);
+    Commit<?> prev = previous.remove(commit.operation().getUserName());
     String username = commit.operation().getUserName();
+    logger.info("Deleting user '{}'...", username);
     users.remove(username);
     storeCurrentUsers(commit.index());
 
