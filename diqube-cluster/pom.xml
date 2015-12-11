@@ -34,10 +34,6 @@
   <name>diqube - Cluster</name>
   <url>http://www.diqube.org</url>
 
-  <properties>
-    <diqube.thrift.dependencies>${project.build.directory}/diqube-thrift-dep</diqube.thrift.dependencies>
-  </properties>
-  
   <build>
     <plugins>
       <!-- START: thrift compilation -->

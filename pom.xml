@@ -99,6 +99,7 @@
     <copycat.version>1.0.0-beta4</copycat.version>
     <bouncycastle.version>1.52</bouncycastle.version>
     
+    <!-- Folder where .thrift dependencies are unpacked to. Used in .thrift files to reference those dependencies. -->
     <diqube.thrift.dependencies>${project.build.directory}/diqube-thrift-dep</diqube.thrift.dependencies>
   </properties>
 
