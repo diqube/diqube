@@ -21,8 +21,6 @@
 package org.diqube.im;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -34,6 +32,10 @@ import org.diqube.config.Config;
 import org.diqube.config.DerivedConfigKey;
 import org.diqube.consensus.ConsensusStateMachineImplementation;
 import org.diqube.context.InjectOptional;
+import org.diqube.file.internaldb.InternalDbFileReader;
+import org.diqube.file.internaldb.InternalDbFileReader.ReadException;
+import org.diqube.file.internaldb.InternalDbFileWriter;
+import org.diqube.file.internaldb.InternalDbFileWriter.WriteException;
 import org.diqube.im.thrift.v1.SUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,8 +51,8 @@ import io.atomix.copycat.server.Commit;
 public class IdentityStateMachineImplementation implements IdentityStateMachine {
   private static final Logger logger = LoggerFactory.getLogger(IdentityStateMachineImplementation.class);
 
-  private static final String FILE_PREFIX = "identity-";
-  private static final String FILE_SUFFIX = ".bak";
+  private static final String INTERNALDB_FILE_PREFIX = "identity-";
+  private static final String INTERNALDB_DATA_TYPE = "identities_v1";
 
   @Config(DerivedConfigKey.FINAL_INTERNAL_DB_DIR)
   private String internalDbDir;
@@ -58,17 +60,33 @@ public class IdentityStateMachineImplementation implements IdentityStateMachine 
   private ConcurrentMap<String, Commit<?>> previous = new ConcurrentHashMap<>();
   private ConcurrentMap<String, SUser> users = new ConcurrentHashMap<>();
 
-  private File internalDbDirFile;
-
   @InjectOptional
   private List<UserChangedListener> userChangedListeners;
 
+  private InternalDbFileWriter<SUser> internalDbFileWriter;
+
   @PostConstruct
   public void initialize() {
-    internalDbDirFile = new File(internalDbDir);
+    File internalDbDirFile = new File(internalDbDir);
     if (!internalDbDirFile.exists())
       if (!internalDbDirFile.mkdirs())
         throw new RuntimeException("Could not create directory " + internalDbDir);
+
+    try {
+      InternalDbFileReader<SUser> internalDbFileReader = new InternalDbFileReader<>(INTERNALDB_DATA_TYPE,
+          INTERNALDB_FILE_PREFIX, internalDbDirFile, () -> new SUser());
+      List<SUser> users = internalDbFileReader.readNewest();
+      if (users != null)
+        for (SUser user : users) {
+          this.users.put(user.getUsername(), user);
+        }
+      else
+        logger.info("No internaldb for identities available");
+    } catch (ReadException e) {
+      throw new RuntimeException("Could not load identities file", e);
+    }
+
+    internalDbFileWriter = new InternalDbFileWriter<>(INTERNALDB_DATA_TYPE, INTERNALDB_FILE_PREFIX, internalDbDirFile);
   }
 
   @Override
@@ -111,20 +129,13 @@ public class IdentityStateMachineImplementation implements IdentityStateMachine 
   }
 
   private void storeCurrentUsers(long newestCommitId) {
-    File[] filesToDelete =
-        internalDbDirFile.listFiles((dir, name) -> name.startsWith(FILE_PREFIX) && name.endsWith(FILE_SUFFIX));
-
-    File newFile = new File(internalDbDirFile, FILE_PREFIX + String.format("%020d", newestCommitId) + FILE_SUFFIX);
-
-    List<SUser> writeUsers = new ArrayList<>(users.values());
     try {
-      IdentityFileWriter writer = new IdentityFileWriter(newFile.getName(), new FileOutputStream(newFile), writeUsers);
-      if (writer.write()) {
-        for (File f : filesToDelete)
-          f.delete();
-      }
-    } catch (FileNotFoundException e) {
-      logger.error("Error while writing identities file", e);
+      internalDbFileWriter.write(newestCommitId, new ArrayList<>(users.values()));
+    } catch (WriteException e) {
+      logger.error("Could not write identites internaldb file!", e);
+      // this is an error, but we try to continue anyway. When the file is missing, the node might not be able to
+      // recover correctly, but for now we can keep working. The admin might want to copy a internaldb file from a
+      // different node.
     }
   }
 

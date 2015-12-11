@@ -21,27 +21,9 @@
 
 namespace java org.diqube.im.thrift.v1
 
-struct SIdentitiesHeader {
-    1: i32 version
-}
+include "${diqube.thrift.dependencies}/base.thrift"
 
-struct SPassword {
-    1: binary hash,
-    2: binary salt
-}
-
-struct SPermission {
-    1: string permissionName,
-    2: optional list<string> objects
-}
-
-struct SUser {
-    1: string username,
-    2: string email,
-    3: SPassword password,
-    4: optional list<SPermission> permissions
-}
-
-struct SIdentities {
-    1: list<SUser> users
+struct SCallback {
+    1: base.RNodeAddress callbackAddr,
+    2: i64 registeredAt
 }

@@ -23,6 +23,8 @@ package org.diqube.tool.im.internal;
 import org.diqube.connection.NodeAddress;
 import org.diqube.connection.OurNodeAddressProvider;
 import org.diqube.context.AutoInstatiate;
+import org.diqube.context.Profiles;
+import org.springframework.context.annotation.Profile;
 
 /**
  * An {@link OurNodeAddressProvider} that returns an invalid node address since diqube-tool does not open any ports.
@@ -30,6 +32,7 @@ import org.diqube.context.AutoInstatiate;
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
+@Profile(Profiles.TOOL)
 public class ToolOurNodeAddressProvider implements OurNodeAddressProvider {
 
   @Override

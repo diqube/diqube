@@ -20,14 +20,26 @@
  */
 package org.diqube.cluster;
 
+import java.io.File;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import javax.annotation.PostConstruct;
+
+import org.diqube.cluster.thrift.v1.SClusterNodeTables;
+import org.diqube.config.Config;
+import org.diqube.config.DerivedConfigKey;
 import org.diqube.connection.NodeAddress;
 import org.diqube.consensus.ConsensusStateMachineImplementation;
+import org.diqube.file.internaldb.InternalDbFileReader;
+import org.diqube.file.internaldb.InternalDbFileReader.ReadException;
+import org.diqube.file.internaldb.InternalDbFileWriter;
+import org.diqube.file.internaldb.InternalDbFileWriter.WriteException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,8 +54,40 @@ import io.atomix.copycat.server.Commit;
 public class ClusterLayoutStateMachineImplementation implements ClusterLayoutStateMachine {
   private static final Logger logger = LoggerFactory.getLogger(ClusterLayoutStateMachineImplementation.class);
 
+  private static final String INTERNALDB_FILE_PREFIX = "clusterlayout-";
+  private static final String INTERNALDB_DATA_TYPE = "clusterlayout_v1";
+
   private Map<NodeAddress, Commit<?>> previousCommand = new ConcurrentHashMap<>();
   private Map<NodeAddress, Set<String>> tables = new ConcurrentHashMap<>();
+
+  @Config(DerivedConfigKey.FINAL_INTERNAL_DB_DIR)
+  private String internalDbDir;
+
+  private InternalDbFileWriter<SClusterNodeTables> internalDbFileWriter;
+
+  @PostConstruct
+  public void initialize() {
+    File internalDbDirFile = new File(internalDbDir);
+    if (!internalDbDirFile.exists())
+      if (!internalDbDirFile.mkdirs())
+        throw new RuntimeException("Could not create directory " + internalDbDir);
+
+    try {
+      InternalDbFileReader<SClusterNodeTables> internalDbFileReader = new InternalDbFileReader<>(INTERNALDB_DATA_TYPE,
+          INTERNALDB_FILE_PREFIX, internalDbDirFile, () -> new SClusterNodeTables());
+      List<SClusterNodeTables> tableInfos = internalDbFileReader.readNewest();
+      if (tableInfos != null)
+        for (SClusterNodeTables tableInfo : tableInfos) {
+          this.tables.put(new NodeAddress(tableInfo.getNodeAddr()), new HashSet<>(tableInfo.getTables()));
+        }
+      else
+        logger.info("No internaldb for cluster layout available");
+    } catch (ReadException e) {
+      throw new RuntimeException("Could not load cluster layout file", e);
+    }
+
+    internalDbFileWriter = new InternalDbFileWriter<>(INTERNALDB_DATA_TYPE, INTERNALDB_FILE_PREFIX, internalDbDirFile);
+  }
 
   @Override
   public void setTablesOfNode(Commit<SetTablesOfNode> commit) {
@@ -51,6 +95,8 @@ public class ClusterLayoutStateMachineImplementation implements ClusterLayoutSta
 
     logger.info("New tables for node {}: {}", commit.operation().getNode(), commit.operation().getTables());
     tables.put(commit.operation().getNode(), new HashSet<>(commit.operation().getTables()));
+
+    writeCurrentLayoutToInternalDb(commit.index());
 
     if (prev != null)
       prev.clean();
@@ -63,8 +109,11 @@ public class ClusterLayoutStateMachineImplementation implements ClusterLayoutSta
     logger.info("Node removed from cluster layout: {}", commit.operation().getNode());
     tables.remove(commit.operation().getNode());
 
+    writeCurrentLayoutToInternalDb(commit.index());
+
     if (prev != null)
       prev.clean();
+    commit.clean();
   }
 
   @Override
@@ -110,4 +159,21 @@ public class ClusterLayoutStateMachineImplementation implements ClusterLayoutSta
     return new HashSet<>(tables.keySet());
   }
 
+  private void writeCurrentLayoutToInternalDb(long consensusIndex) {
+    List<SClusterNodeTables> res = new ArrayList<>();
+    for (Entry<NodeAddress, Set<String>> e : tables.entrySet()) {
+      SClusterNodeTables newObj = new SClusterNodeTables();
+      newObj.setNodeAddr(e.getKey().createRemote());
+      newObj.setTables(new ArrayList<>(e.getValue()));
+      res.add(newObj);
+    }
+    try {
+      internalDbFileWriter.write(consensusIndex, new ArrayList<>(res));
+    } catch (WriteException e1) {
+      logger.error("Could not write cluster layout internaldb file!", e1);
+      // this is an error, but we try to continue anyway. When the file is missing, the node might not be able to
+      // recover correctly, but for now we can keep working. The admin might want to copy a internaldb file from a
+      // different node.
+    }
+  }
 }

@@ -41,12 +41,17 @@ public class Profiles {
   public static final String CONFIG = "Config";
 
   /**
+   * Profile for use only by diqube-tool.
+   */
+  public static final String TOOL = "Tool";
+
+  /**
    * All profiles, but not including {@link #NEW_DATA_WATCHER}.
    */
   public static final String[] ALL_BUT_NEW_DATA_WATCHER = new String[] { CONFIG };
 
   /**
-   * All profiles.
+   * All default profiles.
    */
   public static final String[] ALL = new String[] { NEW_DATA_WATCHER, CONFIG };
 

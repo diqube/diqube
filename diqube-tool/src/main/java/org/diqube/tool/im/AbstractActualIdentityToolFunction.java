@@ -101,7 +101,7 @@ public abstract class AbstractActualIdentityToolFunction {
 
   private void open() {
     dataContext = new AnnotationConfigApplicationContext();
-    dataContext.getEnvironment().setActiveProfiles(Profiles.ALL_BUT_NEW_DATA_WATCHER);
+    dataContext.getEnvironment().setActiveProfiles(Profiles.CONFIG, Profiles.TOOL);
     dataContext.scan("org.diqube");
     dataContext.refresh();
 

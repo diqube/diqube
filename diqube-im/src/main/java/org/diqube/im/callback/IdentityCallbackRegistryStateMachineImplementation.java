@@ -20,17 +20,30 @@
  */
 package org.diqube.im.callback;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import javax.annotation.PostConstruct;
+
+import org.diqube.config.Config;
+import org.diqube.config.DerivedConfigKey;
 import org.diqube.connection.NodeAddress;
 import org.diqube.consensus.ConsensusStateMachineImplementation;
 import org.diqube.context.InjectOptional;
+import org.diqube.file.internaldb.InternalDbFileReader;
+import org.diqube.file.internaldb.InternalDbFileReader.ReadException;
+import org.diqube.file.internaldb.InternalDbFileWriter;
+import org.diqube.file.internaldb.InternalDbFileWriter.WriteException;
+import org.diqube.im.thrift.v1.SCallback;
 import org.diqube.remote.base.thrift.RNodeAddress;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.atomix.copycat.server.Commit;
 
@@ -41,12 +54,45 @@ import io.atomix.copycat.server.Commit;
  */
 @ConsensusStateMachineImplementation
 public class IdentityCallbackRegistryStateMachineImplementation implements IdentityCallbackRegistryStateMachine {
+  private static final Logger logger =
+      LoggerFactory.getLogger(IdentityCallbackRegistryStateMachineImplementation.class);
+
+  private static final String INTERNALDB_FILE_PREFIX = "identitycallback-";
+  private static final String INTERNALDB_DATA_TYPE = "identitycallbacks_v1";
 
   private Map<RNodeAddress, Long> registered = new ConcurrentHashMap<>();
   private Map<RNodeAddress, Commit<?>> lastCommit = new ConcurrentHashMap<>();
 
   @InjectOptional
   private List<IdentityCallbackRegistryListener> listeners;
+
+  @Config(DerivedConfigKey.FINAL_INTERNAL_DB_DIR)
+  private String internalDbDir;
+  private InternalDbFileWriter<SCallback> internalDbFileWriter;
+
+  @PostConstruct
+  public void initialize() {
+    File internalDbDirFile = new File(internalDbDir);
+    if (!internalDbDirFile.exists())
+      if (!internalDbDirFile.mkdirs())
+        throw new RuntimeException("Could not create directory " + internalDbDir);
+
+    try {
+      InternalDbFileReader<SCallback> internalDbFileReader = new InternalDbFileReader<>(INTERNALDB_DATA_TYPE,
+          INTERNALDB_FILE_PREFIX, internalDbDirFile, () -> new SCallback());
+      List<SCallback> callbacks = internalDbFileReader.readNewest();
+      if (callbacks != null)
+        for (SCallback callback : callbacks) {
+          this.registered.put(callback.getCallbackAddr(), callback.getRegisteredAt());
+        }
+      else
+        logger.info("No internaldb for callbacks available");
+    } catch (ReadException e) {
+      throw new RuntimeException("Could not load callbacks file", e);
+    }
+
+    internalDbFileWriter = new InternalDbFileWriter<>(INTERNALDB_DATA_TYPE, INTERNALDB_FILE_PREFIX, internalDbDirFile);
+  }
 
   @Override
   public void register(Commit<Register> commit) {
@@ -55,6 +101,8 @@ public class IdentityCallbackRegistryStateMachineImplementation implements Ident
     RNodeAddress callbackNode = commit.operation().getCallbackNode();
     long registerTime = commit.operation().getRegisterTimeMs();
     registered.put(callbackNode, registerTime);
+
+    writeCurrentCallbacksToInternalDb(commit.index());
 
     if (prev != null)
       prev.clean();
@@ -70,6 +118,8 @@ public class IdentityCallbackRegistryStateMachineImplementation implements Ident
     RNodeAddress callbackNode = commit.operation().getCallbackNode();
     Long lastRegisterTime = registered.remove(callbackNode); // null in case unregister was called for already
                                                              // unregistered node!
+
+    writeCurrentCallbacksToInternalDb(commit.index());
 
     if (lastWriteCommit != null)
       lastWriteCommit.clean();
@@ -96,6 +146,20 @@ public class IdentityCallbackRegistryStateMachineImplementation implements Ident
     Set<NodeAddress> res = new HashSet<>();
     registered.keySet().forEach(node -> res.add(new NodeAddress(node)));
     return res;
+  }
+
+  private void writeCurrentCallbacksToInternalDb(long consensusIndex) {
+    List<SCallback> callbacks = new ArrayList<>();
+    for (Entry<RNodeAddress, Long> e : registered.entrySet())
+      callbacks.add(new SCallback(e.getKey(), e.getValue()));
+    try {
+      internalDbFileWriter.write(consensusIndex, callbacks);
+    } catch (WriteException e1) {
+      logger.error("Could not write callbacks internaldb file!", e1);
+      // this is an error, but we try to continue anyway. When the file is missing, the node might not be able to
+      // recover correctly, but for now we can keep working. The admin might want to copy a internaldb file from a
+      // different node.
+    }
   }
 
   /* package */ Long getCurrentRegisterTime(RNodeAddress callbackNode) {

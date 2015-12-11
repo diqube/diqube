@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.diqube.context.Profiles;
 import org.diqube.file.DiqubeFileFactory;
 import org.diqube.file.DiqubeFileReader;
 import org.diqube.file.DiqubeFileWriter;
@@ -57,7 +58,7 @@ public class MergeImplementation {
 
   public void merge() {
     try (AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext()) {
-      // do not enable newDataWatcher and/or Config.
+      ctx.getEnvironment().setActiveProfiles(Profiles.CONFIG, Profiles.TOOL);
       ctx.scan("org.diqube");
       ctx.refresh();
 

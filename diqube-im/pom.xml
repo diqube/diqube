@@ -34,6 +34,10 @@
   <name>diqube - IM (simple Identity Management)</name>
   <url>http://www.diqube.org</url>
 
+  <properties>
+    <diqube.thrift.dependencies>${project.build.directory}/diqube-thrift-dep</diqube.thrift.dependencies>
+  </properties>
+
   <build>
     <plugins>
       <!-- Validate that Thrift compiler is available. -->
@@ -73,6 +77,55 @@
           </execution>
         </executions>
       </plugin>
+      <!-- extract base.thrift -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>unpack-thrift-base</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>unpack</goal>
+            </goals>
+            <configuration>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>${project.groupId}</groupId>
+                  <artifactId>diqube-remote-base</artifactId>
+                  <version>${project.version}</version>
+                  <type>jar</type>
+                  <outputDirectory>${diqube.thrift.dependencies}</outputDirectory>
+                  <includes>**/*.thrift</includes>
+                </artifactItem>
+              </artifactItems>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <!-- copy & filter query.thrift -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-resources-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>filter-thrift-resource</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
+            <configuration>
+              <resources>
+                <resource>
+                  <directory>${basedir}/src/main/thrift</directory>
+                  <filtering>true</filtering>
+                </resource>
+              </resources>
+              <outputDirectory>${project.build.directory}/thrift</outputDirectory>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
       <!-- see https://github.com/dtrott/maven-thrift-plugin -->
       <plugin>
         <groupId>org.apache.thrift.tools</groupId>
@@ -84,6 +137,9 @@
             <goals>
               <goal>compile</goal>
             </goals>
+            <configuration>
+              <thriftSourceRoot>${project.build.directory}/thrift</thriftSourceRoot>
+            </configuration>
           </execution>
         </executions>
       </plugin>
@@ -154,6 +210,11 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>diqube-cache</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>diqube-file</artifactId>
       <version>${project.version}</version>
     </dependency>
     

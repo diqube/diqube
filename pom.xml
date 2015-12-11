@@ -320,6 +320,8 @@
                 <exclude>diqube-ui/node_modules/**</exclude>
                 <exclude>diqube-ui/node/**</exclude>
                 <exclude>**/*.pem</exclude>
+                <exclude>**/*.ready</exclude>
+                <exclude>**/internaldb/**</exclude>
               </excludes>
               <mapping>
                 <g4>DOUBLESLASH_STYLE</g4>

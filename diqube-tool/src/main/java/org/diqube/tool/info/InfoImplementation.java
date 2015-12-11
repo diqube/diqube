@@ -26,6 +26,7 @@ import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileChannel.MapMode;
 
+import org.diqube.context.Profiles;
 import org.diqube.file.DiqubeFileFactory;
 import org.diqube.file.DiqubeFileReader;
 import org.diqube.util.BigByteBuffer;
@@ -47,7 +48,7 @@ public class InfoImplementation {
 
   public void printInfo() {
     try (AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext()) {
-      // do not enable newDataWatcher and/or Config.
+      ctx.getEnvironment().setActiveProfiles(Profiles.CONFIG, Profiles.TOOL);
       ctx.scan("org.diqube");
       ctx.refresh();
 

@@ -20,6 +20,7 @@
  */
 package org.diqube.im.logout;
 
+import java.io.File;
 import java.io.IOException;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.ArrayList;
@@ -36,6 +37,8 @@ import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 
 import org.apache.thrift.TException;
+import org.diqube.config.Config;
+import org.diqube.config.DerivedConfigKey;
 import org.diqube.connection.ConnectionException;
 import org.diqube.connection.ConnectionOrLocalHelper;
 import org.diqube.connection.NodeAddress;
@@ -45,6 +48,10 @@ import org.diqube.consensus.DiqubeConsensusStateMachineClientInterruptedExceptio
 import org.diqube.consensus.DiqubeCopycatClient;
 import org.diqube.consensus.DiqubeCopycatClient.ClosableProvider;
 import org.diqube.context.InjectOptional;
+import org.diqube.file.internaldb.InternalDbFileReader;
+import org.diqube.file.internaldb.InternalDbFileReader.ReadException;
+import org.diqube.file.internaldb.InternalDbFileWriter;
+import org.diqube.file.internaldb.InternalDbFileWriter.WriteException;
 import org.diqube.im.callback.IdentityCallbackRegistryStateMachine;
 import org.diqube.im.callback.IdentityCallbackRegistryStateMachine.GetAllRegistered;
 import org.diqube.remote.base.thrift.RNodeAddress;
@@ -67,9 +74,15 @@ import io.atomix.copycat.server.Commit;
 public class LogoutStateMachineImplementation implements LogoutStateMachine {
   private static final Logger logger = LoggerFactory.getLogger(LogoutStateMachineImplementation.class);
 
+  private static final String INTERNALDB_FILE_PREFIX = "logout-";
+  private static final String INTERNALDB_DATA_TYPE = "logout_v1";
+
   private Set<Ticket> invalidTickets = new ConcurrentSkipListSet<>();
 
   private Map<Ticket, Commit<?>> previousCommit = new ConcurrentHashMap<>();
+
+  @Config(DerivedConfigKey.FINAL_INTERNAL_DB_DIR)
+  private String internalDbDir;
 
   @Inject
   private TicketValidityService ticketValidityService;
@@ -88,6 +101,8 @@ public class LogoutStateMachineImplementation implements LogoutStateMachine {
 
   private ExecutorService executorService;
 
+  private InternalDbFileWriter<Ticket> internalDbFileWriter;
+
   @PostConstruct
   public void initialize() {
     executorService = executorManager.newCachedThreadPoolWithMax("logout-state-machine-async-worker-%d",
@@ -101,6 +116,27 @@ public class LogoutStateMachineImplementation implements LogoutStateMachine {
                 e);
           }
         }, 5);
+
+    File internalDbDirFile = new File(internalDbDir);
+    if (!internalDbDirFile.exists())
+      if (!internalDbDirFile.mkdirs())
+        throw new RuntimeException("Could not create directory " + internalDbDir);
+
+    try {
+      InternalDbFileReader<Ticket> internalDbFileReader = new InternalDbFileReader<>(INTERNALDB_DATA_TYPE,
+          INTERNALDB_FILE_PREFIX, internalDbDirFile, () -> new Ticket());
+      List<Ticket> tickets = internalDbFileReader.readNewest();
+      if (tickets != null)
+        for (Ticket ticket : tickets) {
+          this.invalidTickets.add(ticket);
+        }
+      else
+        logger.info("No internaldb for logouts available");
+    } catch (ReadException e) {
+      throw new RuntimeException("Could not load logouts file", e);
+    }
+
+    internalDbFileWriter = new InternalDbFileWriter<>(INTERNALDB_DATA_TYPE, INTERNALDB_FILE_PREFIX, internalDbDirFile);
   }
 
   @PreDestroy
@@ -117,6 +153,8 @@ public class LogoutStateMachineImplementation implements LogoutStateMachine {
 
     ticketValidityService.markTicketAsInvalid(TicketInfoUtil.fromTicket(t));
     invalidTickets.add(t);
+
+    writeCurrentLogoutsToInternalDb(commit.index());
 
     // inform all registered callbacks, but do this asynchronously. This is needed since we use a consensus client here
     // again which might conenct to the local node: We would end up in a deadlock, since the local consensus server is
@@ -172,9 +210,22 @@ public class LogoutStateMachineImplementation implements LogoutStateMachine {
 
     invalidTickets.remove(t);
 
+    writeCurrentLogoutsToInternalDb(commit.index());
+
     if (prev != null)
       prev.clean();
     commit.clean();
+  }
+
+  private void writeCurrentLogoutsToInternalDb(long consensusIndex) {
+    try {
+      internalDbFileWriter.write(consensusIndex, new ArrayList<>(invalidTickets));
+    } catch (WriteException e1) {
+      logger.error("Could not write logouts internaldb file!", e1);
+      // this is an error, but we try to continue anyway. When the file is missing, the node might not be able to
+      // recover correctly, but for now we can keep working. The admin might want to copy a internaldb file from a
+      // different node.
+    }
   }
 
   /**

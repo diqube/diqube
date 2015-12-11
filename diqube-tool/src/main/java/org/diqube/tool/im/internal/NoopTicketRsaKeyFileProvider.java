@@ -26,8 +26,10 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import org.diqube.context.AutoInstatiate;
+import org.diqube.context.Profiles;
 import org.diqube.ticket.TicketRsaKeyFileProvider;
 import org.diqube.util.Triple;
+import org.springframework.context.annotation.Profile;
 
 /**
  * Noop {@link TicketRsaKeyFileProvider} for diqube-tool, as this does not validate tickets anyhow.
@@ -35,6 +37,7 @@ import org.diqube.util.Triple;
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
+@Profile(Profiles.TOOL)
 public class NoopTicketRsaKeyFileProvider implements TicketRsaKeyFileProvider {
 
   @Override
