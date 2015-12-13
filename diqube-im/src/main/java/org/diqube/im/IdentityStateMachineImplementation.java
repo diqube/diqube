@@ -20,22 +20,13 @@
  */
 package org.diqube.im;
 
-import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import javax.annotation.PostConstruct;
-
-import org.diqube.config.Config;
-import org.diqube.config.DerivedConfigKey;
+import org.diqube.consensus.AbstractConsensusStateMachine;
 import org.diqube.consensus.ConsensusStateMachineImplementation;
 import org.diqube.context.InjectOptional;
-import org.diqube.file.internaldb.InternalDbFileReader;
-import org.diqube.file.internaldb.InternalDbFileReader.ReadException;
-import org.diqube.file.internaldb.InternalDbFileWriter;
-import org.diqube.file.internaldb.InternalDbFileWriter.WriteException;
 import org.diqube.im.thrift.v1.SUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,14 +39,12 @@ import io.atomix.copycat.server.Commit;
  * @author Bastian Gloeckle
  */
 @ConsensusStateMachineImplementation
-public class IdentityStateMachineImplementation implements IdentityStateMachine {
+public class IdentityStateMachineImplementation extends AbstractConsensusStateMachine<SUser>
+    implements IdentityStateMachine {
   private static final Logger logger = LoggerFactory.getLogger(IdentityStateMachineImplementation.class);
 
   private static final String INTERNALDB_FILE_PREFIX = "identity-";
   private static final String INTERNALDB_DATA_TYPE = "identities_v1";
-
-  @Config(DerivedConfigKey.FINAL_INTERNAL_DB_DIR)
-  private String internalDbDir;
 
   private ConcurrentMap<String, Commit<?>> previous = new ConcurrentHashMap<>();
   private ConcurrentMap<String, SUser> users = new ConcurrentHashMap<>();
@@ -63,30 +52,16 @@ public class IdentityStateMachineImplementation implements IdentityStateMachine 
   @InjectOptional
   private List<UserChangedListener> userChangedListeners;
 
-  private InternalDbFileWriter<SUser> internalDbFileWriter;
+  public IdentityStateMachineImplementation() {
+    super(INTERNALDB_FILE_PREFIX, INTERNALDB_DATA_TYPE, () -> new SUser());
+  }
 
-  @PostConstruct
-  public void initialize() {
-    File internalDbDirFile = new File(internalDbDir);
-    if (!internalDbDirFile.exists())
-      if (!internalDbDirFile.mkdirs())
-        throw new RuntimeException("Could not create directory " + internalDbDir);
-
-    try {
-      InternalDbFileReader<SUser> internalDbFileReader = new InternalDbFileReader<>(INTERNALDB_DATA_TYPE,
-          INTERNALDB_FILE_PREFIX, internalDbDirFile, () -> new SUser());
-      List<SUser> users = internalDbFileReader.readNewest();
-      if (users != null)
-        for (SUser user : users) {
-          this.users.put(user.getUsername(), user);
-        }
-      else
-        logger.info("No internaldb for identities available");
-    } catch (ReadException e) {
-      throw new RuntimeException("Could not load identities file", e);
-    }
-
-    internalDbFileWriter = new InternalDbFileWriter<>(INTERNALDB_DATA_TYPE, INTERNALDB_FILE_PREFIX, internalDbDirFile);
+  @Override
+  protected void doInitialize(List<SUser> entriesLoadedFromInternalDb) {
+    if (entriesLoadedFromInternalDb != null)
+      for (SUser u : entriesLoadedFromInternalDb) {
+        users.put(u.getUsername(), u);
+      }
   }
 
   @Override
@@ -96,7 +71,7 @@ public class IdentityStateMachineImplementation implements IdentityStateMachine 
     String username = commit.operation().getUser().getUsername();
     logger.info("Adjusting user '{}'...", username);
     users.put(username, commit.operation().getUser());
-    storeCurrentUsers(commit.index());
+    writeCurrentStateToInternalDb(commit.index(), users.values());
 
     if (prev != null)
       prev.clean();
@@ -118,7 +93,7 @@ public class IdentityStateMachineImplementation implements IdentityStateMachine 
     String username = commit.operation().getUserName();
     logger.info("Deleting user '{}'...", username);
     users.remove(username);
-    storeCurrentUsers(commit.index());
+    writeCurrentStateToInternalDb(commit.index(), users.values());
 
     if (prev != null)
       prev.clean();
@@ -126,17 +101,6 @@ public class IdentityStateMachineImplementation implements IdentityStateMachine 
 
     if (userChangedListeners != null)
       userChangedListeners.forEach(l -> l.userChanged(username));
-  }
-
-  private void storeCurrentUsers(long newestCommitId) {
-    try {
-      internalDbFileWriter.write(newestCommitId, new ArrayList<>(users.values()));
-    } catch (WriteException e) {
-      logger.error("Could not write identites internaldb file!", e);
-      // this is an error, but we try to continue anyway. When the file is missing, the node might not be able to
-      // recover correctly, but for now we can keep working. The admin might want to copy a internaldb file from a
-      // different node.
-    }
   }
 
 }

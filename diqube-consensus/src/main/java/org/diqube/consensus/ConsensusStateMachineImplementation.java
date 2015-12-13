@@ -37,6 +37,9 @@ import org.diqube.context.AutoInstatiate;
  * <p>
  * Note that all classes annotated with this annotation are {@link AutoInstatiate}.
  *
+ * <p>
+ * Classes might want to subclass {@link AbstractConsensusStateMachine}.
+ *
  * @author Bastian Gloeckle
  */
 @Retention(RetentionPolicy.RUNTIME)
