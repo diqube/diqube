@@ -39,7 +39,7 @@ import javax.inject.Inject;
 import org.diqube.consensus.internal.DiqubeCatalystSerializer;
 import org.diqube.consensus.internal.DiqubeCatalystTransport;
 import org.diqube.context.AutoInstatiate;
-import org.diqube.listeners.DiqubeConsensusListener;
+import org.diqube.listeners.ConsensusListener;
 import org.diqube.util.CloseableNoException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,13 +54,14 @@ import io.atomix.copycat.client.RecoveryStrategies;
 import io.atomix.copycat.server.Commit;
 
 /**
- * Provides a {@link RaftClient} which can be used to interact with the consensus cluster.
+ * Provides client-side implementations of all {@link ConsensusStateMachine} interfaces: When the corresponding methods
+ * are called, the operations are distributed in the consensus cluster.
  *
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
-public class DiqubeCopycatClient implements DiqubeConsensusListener {
-  private static final Logger logger = LoggerFactory.getLogger(DiqubeCopycatClient.class);
+public class ConsensusClient implements ConsensusListener {
+  private static final Logger logger = LoggerFactory.getLogger(ConsensusClient.class);
 
   @Inject
   private DiqubeCatalystTransport transport;
@@ -69,10 +70,10 @@ public class DiqubeCopycatClient implements DiqubeConsensusListener {
   private DiqubeCatalystSerializer serializer;
 
   @Inject
-  private DiqubeConsensusStateMachineManager stateMachineManager;
+  private ConsensusStateMachineManager stateMachineManager;
 
   @Inject
-  private DiqubeCopycatServer copycatServer;
+  private ConsensusServer copycatServer;
 
   private ReentrantReadWriteLock consensusInitializedWaitingLock = new ReentrantReadWriteLock();
   private Deque<CompletableFuture<Void>> consensusWaitingFutures = new ConcurrentLinkedDeque<>();
@@ -108,8 +109,8 @@ public class DiqubeCopycatClient implements DiqubeConsensusListener {
    * cluster became fully available again until the methods return!
    * 
    * <p>
-   * The returned object might throw {@link DiqubeConsensusStateMachineClientInterruptedException} on each method call,
-   * since pure {@link InterruptedException}s cannot be thrown through the proxy. Be sure to catch them and throw the
+   * The returned object might throw {@link ConsensusStateMachineClientInterruptedException} on each method call, since
+   * pure {@link InterruptedException}s cannot be thrown through the proxy. Be sure to catch them and throw the
    * encapsulated {@link InterruptedException}.
    * 
    * @param stateMachineInterface
@@ -158,7 +159,7 @@ public class DiqubeCopycatClient implements DiqubeConsensusListener {
           try {
             Thread.sleep(random.nextLong(targetSleepMs - deltaMs, targetSleepMs + deltaMs));
           } catch (InterruptedException e) {
-            throw new DiqubeConsensusStateMachineClientInterruptedException("Interrupted while waiting", e);
+            throw new ConsensusStateMachineClientInterruptedException("Interrupted while waiting", e);
           }
 
           // In case we did not succeed, we fully re-create the RaftClient. Copycat seems to open a connection to a
@@ -168,7 +169,7 @@ public class DiqubeCopycatClient implements DiqubeConsensusListener {
           // The CopycatClient then might not choose another node to connect to, but always the same one, leaving us
           // with no successful ClientSession. We therefore clean all state the client might have by simply recreating
           // it fully (and initializing it with the currently active nodes in the consensus cluster which are retrieved
-          // from DiqubeCopycatServer).
+          // from ConsensusServer).
           // It could have been that copycat did not connect to new servers, because diqube had a buggy implementation
           // of catyst client/connection. But even then,, it is meaningful to recreate the client once and then, as the
           // nodes that are in the cluster might change and we'd like to initialize the client session freshly.

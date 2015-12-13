@@ -20,22 +20,24 @@
  */
 package org.diqube.consensus;
 
-import org.diqube.consensus.DiqubeCopycatServer.ConsensusStorageProvider;
-
-import io.atomix.copycat.server.storage.Storage;
-import io.atomix.copycat.server.storage.StorageLevel;
-
 /**
+ * A {@link RuntimeException} that encapsulates an {@link InterruptedException} that was thrown while interacting with
+ * the consensus cluster through an object returned by {@link ConsensusClient#getStateMachineClient(Class)}.
  *
  * @author Bastian Gloeckle
  */
-public class DiqubeCopycatServerTestUtil {
-  public static void configureMemoryOnlyStorage(DiqubeCopycatServer server) {
-    server.setConsensusStorageProvider(new ConsensusStorageProvider(null) {
-      @Override
-      public Storage createStorage() {
-        return Storage.builder().withStorageLevel(StorageLevel.MEMORY).build();
-      }
-    });
+public class ConsensusStateMachineClientInterruptedException extends RuntimeException {
+  private static final long serialVersionUID = 1L;
+
+  private final InterruptedException interruptedException;
+
+  public ConsensusStateMachineClientInterruptedException(String msg, InterruptedException e) {
+    super(msg);
+    this.interruptedException = e;
   }
+
+  public InterruptedException getInterruptedException() {
+    return interruptedException;
+  }
+
 }

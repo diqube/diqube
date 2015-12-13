@@ -26,8 +26,8 @@ import javax.inject.Inject;
 import org.diqube.cache.ConstantTimeCache;
 import org.diqube.config.Config;
 import org.diqube.config.ConfigKey;
-import org.diqube.consensus.DiqubeCopycatClient;
-import org.diqube.consensus.DiqubeCopycatClient.ClosableProvider;
+import org.diqube.consensus.ConsensusClient;
+import org.diqube.consensus.ConsensusClient.ClosableProvider;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.im.IdentityStateMachine.GetUser;
 import org.diqube.im.thrift.v1.SUser;
@@ -48,7 +48,7 @@ public class CachingConsensusSUserProvider implements SUserProvider, IdentitySta
   private int cacheSec;
 
   @Inject
-  private DiqubeCopycatClient consensusClient;
+  private ConsensusClient consensusClient;
 
   private ConstantTimeCache<String, Long, SUser> userCache;
 

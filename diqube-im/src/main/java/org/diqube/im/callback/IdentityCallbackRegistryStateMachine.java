@@ -24,7 +24,7 @@ import java.util.List;
 
 import org.diqube.consensus.ConsensusMethod;
 import org.diqube.consensus.ConsensusStateMachine;
-import org.diqube.consensus.DiqubeConsensusUtil;
+import org.diqube.consensus.ConsensusUtil;
 import org.diqube.remote.query.thrift.IdentityCallbackService;
 import org.diqube.thrift.base.thrift.RNodeAddress;
 
@@ -79,7 +79,7 @@ public interface IdentityCallbackRegistryStateMachine {
       Register res = new Register();
       res.callbackNode = callbackNode;
       res.registerTimeMs = registerTimeMs;
-      return DiqubeConsensusUtil.localCommit(res);
+      return ConsensusUtil.localCommit(res);
     }
   }
 
@@ -95,7 +95,7 @@ public interface IdentityCallbackRegistryStateMachine {
     public static Commit<Unregister> local(RNodeAddress callbackNode) {
       Unregister res = new Unregister();
       res.callbackNode = callbackNode;
-      return DiqubeConsensusUtil.localCommit(res);
+      return ConsensusUtil.localCommit(res);
     }
 
     @Override
@@ -114,7 +114,7 @@ public interface IdentityCallbackRegistryStateMachine {
 
     public static Commit<GetAllRegistered> local() {
       GetAllRegistered res = new GetAllRegistered();
-      return DiqubeConsensusUtil.localCommit(res);
+      return ConsensusUtil.localCommit(res);
     }
   }
 }

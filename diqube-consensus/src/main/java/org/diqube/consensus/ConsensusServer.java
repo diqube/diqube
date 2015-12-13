@@ -48,7 +48,7 @@ import org.diqube.consensus.internal.DiqubeCatalystTransport;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.context.InjectOptional;
 import org.diqube.listeners.ClusterManagerListener;
-import org.diqube.listeners.DiqubeConsensusListener;
+import org.diqube.listeners.ConsensusListener;
 import org.diqube.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,8 +77,8 @@ import io.atomix.copycat.server.storage.StorageLevel;
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
-public class DiqubeCopycatServer implements ClusterManagerListener {
-  private static final Logger logger = LoggerFactory.getLogger(DiqubeCopycatServer.class);
+public class ConsensusServer implements ClusterManagerListener {
+  private static final Logger logger = LoggerFactory.getLogger(ConsensusServer.class);
 
   @Inject
   private OurNodeAddressProvider ourNodeAddressProvider;
@@ -93,7 +93,7 @@ public class DiqubeCopycatServer implements ClusterManagerListener {
   private DiqubeCatalystSerializer serializer;
 
   @InjectOptional
-  private List<DiqubeConsensusListener> listeners;
+  private List<ConsensusListener> listeners;
 
   @Config(DerivedConfigKey.FINAL_CONSENSUS_DATA_DIR)
   private String consensusDataDir;
@@ -102,7 +102,7 @@ public class DiqubeCopycatServer implements ClusterManagerListener {
   private int keepAliveMs;
 
   @Inject
-  private DiqubeConsensusStateMachineManager stateMachineManager;
+  private ConsensusStateMachineManager stateMachineManager;
 
   @Inject
   private ApplicationContext beanContext;

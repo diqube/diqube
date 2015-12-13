@@ -35,9 +35,9 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 
-import org.diqube.consensus.DiqubeConsensusStateMachineClientInterruptedException;
-import org.diqube.consensus.DiqubeCopycatClient;
-import org.diqube.consensus.DiqubeCopycatClient.ClosableProvider;
+import org.diqube.consensus.ConsensusStateMachineClientInterruptedException;
+import org.diqube.consensus.ConsensusClient;
+import org.diqube.consensus.ConsensusClient.ClosableProvider;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.im.callback.IdentityCallbackRegistryStateMachine.Unregister;
 import org.diqube.im.callback.IdentityCallbackRegistryStateMachineImplementation.IdentityCallbackRegistryListener;
@@ -65,7 +65,7 @@ public class IdentityCallbackRegistryCleaner implements IdentityCallbackRegistry
   private IdentityCallbackRegistryStateMachineImplementation registry;
 
   @Inject
-  private DiqubeCopycatClient consensusClient;
+  private ConsensusClient consensusClient;
 
   private CheckThread thread;
 
@@ -152,7 +152,7 @@ public class IdentityCallbackRegistryCleaner implements IdentityCallbackRegistry
               consensusClient.getStateMachineClient(IdentityCallbackRegistryStateMachine.class)) {
             for (RNodeAddress addr : callbackNodesToUnregister)
               p.getClient().unregister(Unregister.local(addr));
-          } catch (DiqubeConsensusStateMachineClientInterruptedException e) {
+          } catch (ConsensusStateMachineClientInterruptedException e) {
             // interrupted, exit quietly.
             return;
           } catch (RuntimeException e) {

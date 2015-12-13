@@ -49,10 +49,10 @@ import org.diqube.connection.ConnectionPool;
 import org.diqube.connection.NodeAddress;
 import org.diqube.connection.OurNodeAddressProvider;
 import org.diqube.consensus.ConsensusClusterNodeAddressProvider;
-import org.diqube.consensus.DiqubeConsensusStateMachineClientInterruptedException;
-import org.diqube.consensus.DiqubeCopycatClient;
-import org.diqube.consensus.DiqubeCopycatClient.ClosableProvider;
-import org.diqube.consensus.DiqubeCopycatServer;
+import org.diqube.consensus.ConsensusStateMachineClientInterruptedException;
+import org.diqube.consensus.ConsensusClient;
+import org.diqube.consensus.ConsensusClient.ClosableProvider;
+import org.diqube.consensus.ConsensusServer;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.context.InjectOptional;
 import org.diqube.listeners.ClusterManagerListener;
@@ -113,10 +113,10 @@ public class ClusterManager
   private ClusterLayout clusterLayout;
 
   @Inject
-  private DiqubeCopycatClient consensusClient;
+  private ConsensusClient consensusClient;
 
   @Inject
-  private DiqubeCopycatServer consensusServer;
+  private ConsensusServer consensusServer;
 
   @Inject
   private LoadedTablesProvider loadedTablesProvider;
@@ -317,7 +317,7 @@ public class ClusterManager
           } else
             logger.trace("Cluster node died. No need to distribute information since that node was unknown to the "
                 + "consensus cluster anyway.");
-        } catch (InterruptedException | DiqubeConsensusStateMachineClientInterruptedException e) {
+        } catch (InterruptedException | ConsensusStateMachineClientInterruptedException e) {
           // exit quietly.
         }
       });

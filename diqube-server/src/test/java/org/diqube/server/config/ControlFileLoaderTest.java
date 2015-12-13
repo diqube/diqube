@@ -31,8 +31,8 @@ import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.function.Function;
 
-import org.diqube.consensus.DiqubeCopycatServer;
-import org.diqube.consensus.DiqubeCopycatServerTestUtil;
+import org.diqube.consensus.ConsensusServer;
+import org.diqube.consensus.ConsensusServerTestUtil;
 import org.diqube.context.Profiles;
 import org.diqube.data.table.TableFactory;
 import org.diqube.data.table.TableShard;
@@ -100,7 +100,7 @@ public class ControlFileLoaderTest {
 
     // simulate "cluster initialized", although we do not start our local server. But we need to get the consensus
     // running!
-    DiqubeCopycatServerTestUtil.configureMemoryOnlyStorage(dataContext.getBean(DiqubeCopycatServer.class));
+    ConsensusServerTestUtil.configureMemoryOnlyStorage(dataContext.getBean(ConsensusServer.class));
     dataContext.getBeansOfType(ClusterManagerListener.class).values().forEach(l -> l.clusterInitialized());
 
     tableRegistry = dataContext.getBean(TableRegistry.class);

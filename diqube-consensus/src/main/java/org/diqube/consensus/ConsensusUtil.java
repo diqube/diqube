@@ -30,10 +30,10 @@ import io.atomix.copycat.server.Commit;
  *
  * @author Bastian Gloeckle
  */
-public class DiqubeConsensusUtil {
+public class ConsensusUtil {
   /**
    * @return A {@link Commit} object which only contains an {@link Operation} - ONLY TO BE USED FOR ACCESSING OBJECTS
-   *         CREATED WITH {@link DiqubeCopycatClient#getStateMachineClient(Class)}.
+   *         CREATED WITH {@link ConsensusClient#getStateMachineClient(Class)}.
    */
   public static <T extends Operation<?>> Commit<T> localCommit(T obj) {
     return new LocalCommit<>(obj);

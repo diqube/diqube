@@ -49,8 +49,8 @@ import org.diqube.connection.ConnectionException;
 import org.diqube.connection.ConnectionPool;
 import org.diqube.connection.NodeAddress;
 import org.diqube.connection.OurNodeAddressProvider;
-import org.diqube.consensus.DiqubeCopycatClient;
-import org.diqube.consensus.DiqubeCopycatClient.ClosableProvider;
+import org.diqube.consensus.ConsensusClient;
+import org.diqube.consensus.ConsensusClient.ClosableProvider;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.im.IdentityStateMachine.DeleteUser;
 import org.diqube.im.IdentityStateMachine.GetUser;
@@ -113,7 +113,7 @@ public class IdentityHandler implements IdentityService.Iface {
   private boolean useStrongRandom;
 
   @Inject
-  private DiqubeCopycatClient consensusClient;
+  private ConsensusClient consensusClient;
 
   @Inject
   private TicketVendor ticketVendor;

@@ -26,7 +26,7 @@ import java.util.Set;
 import org.diqube.connection.NodeAddress;
 import org.diqube.consensus.ConsensusMethod;
 import org.diqube.consensus.ConsensusStateMachine;
-import org.diqube.consensus.DiqubeConsensusUtil;
+import org.diqube.consensus.ConsensusUtil;
 
 import io.atomix.copycat.client.Command;
 import io.atomix.copycat.client.Query;
@@ -81,7 +81,7 @@ public interface ClusterLayoutStateMachine {
 
     public static Commit<GetAllTablesServed> local() {
       GetAllTablesServed res = new GetAllTablesServed();
-      return DiqubeConsensusUtil.localCommit(res);
+      return ConsensusUtil.localCommit(res);
     }
   }
 
@@ -102,7 +102,7 @@ public interface ClusterLayoutStateMachine {
     public static Commit<IsNodeKnown> local(NodeAddress node) {
       IsNodeKnown res = new IsNodeKnown();
       res.node = node;
-      return DiqubeConsensusUtil.localCommit(res);
+      return ConsensusUtil.localCommit(res);
     }
   }
 
@@ -116,7 +116,7 @@ public interface ClusterLayoutStateMachine {
 
     public static Commit<GetAllNodes> local() {
       GetAllNodes res = new GetAllNodes();
-      return DiqubeConsensusUtil.localCommit(res);
+      return ConsensusUtil.localCommit(res);
     }
   }
 
@@ -137,7 +137,7 @@ public interface ClusterLayoutStateMachine {
     public static Commit<FindNodesServingTable> local(String tableName) {
       FindNodesServingTable res = new FindNodesServingTable();
       res.tableName = tableName;
-      return DiqubeConsensusUtil.localCommit(res);
+      return ConsensusUtil.localCommit(res);
     }
   }
 
@@ -157,7 +157,7 @@ public interface ClusterLayoutStateMachine {
     public static Commit<RemoveNode> local(NodeAddress node) {
       RemoveNode res = new RemoveNode();
       res.node = node;
-      return DiqubeConsensusUtil.localCommit(res);
+      return ConsensusUtil.localCommit(res);
     }
   }
 
@@ -178,7 +178,7 @@ public interface ClusterLayoutStateMachine {
       SetTablesOfNode res = new SetTablesOfNode();
       res.node = node;
       res.tables = tables;
-      return DiqubeConsensusUtil.localCommit(res);
+      return ConsensusUtil.localCommit(res);
     }
   }
 }

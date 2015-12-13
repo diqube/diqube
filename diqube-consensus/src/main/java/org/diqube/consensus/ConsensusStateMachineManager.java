@@ -52,8 +52,8 @@ import io.atomix.copycat.server.Commit;
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
-public class DiqubeConsensusStateMachineManager {
-  private static final Logger logger = LoggerFactory.getLogger(DiqubeConsensusStateMachineManager.class);
+public class ConsensusStateMachineManager {
+  private static final Logger logger = LoggerFactory.getLogger(ConsensusStateMachineManager.class);
   private static final String BASE_PKG = "org.diqube";
 
   /**

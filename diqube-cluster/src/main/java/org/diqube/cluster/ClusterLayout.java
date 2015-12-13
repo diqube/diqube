@@ -32,9 +32,9 @@ import org.diqube.cluster.ClusterLayoutStateMachine.GetAllNodes;
 import org.diqube.cluster.ClusterLayoutStateMachine.GetAllTablesServed;
 import org.diqube.cluster.ClusterLayoutStateMachine.IsNodeKnown;
 import org.diqube.connection.NodeAddress;
-import org.diqube.consensus.DiqubeConsensusStateMachineClientInterruptedException;
-import org.diqube.consensus.DiqubeCopycatClient;
-import org.diqube.consensus.DiqubeCopycatClient.ClosableProvider;
+import org.diqube.consensus.ConsensusStateMachineClientInterruptedException;
+import org.diqube.consensus.ConsensusClient;
+import org.diqube.consensus.ConsensusClient.ClosableProvider;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.thrift.base.thrift.RNodeAddress;
 import org.slf4j.Logger;
@@ -52,7 +52,7 @@ public class ClusterLayout {
   private static final Logger logger = LoggerFactory.getLogger(ClusterLayout.class);
 
   @Inject
-  private DiqubeCopycatClient consensusClient;
+  private ConsensusClient consensusClient;
 
   @Inject
   private ClusterLayoutStateMachineImplementation clusterLayoutStateMachineImplementation;
@@ -74,7 +74,7 @@ public class ClusterLayout {
 
       return new HashSet<>(p.getClient().getAllNodes(GetAllNodes.local()));
 
-    } catch (DiqubeConsensusStateMachineClientInterruptedException e) {
+    } catch (ConsensusStateMachineClientInterruptedException e) {
       logger.error("Interrupted.", e);
       throw e.getInterruptedException();
     }
@@ -90,7 +90,7 @@ public class ClusterLayout {
 
       return p.getClient().isNodeKnown(IsNodeKnown.local(addr));
 
-    } catch (DiqubeConsensusStateMachineClientInterruptedException e) {
+    } catch (ConsensusStateMachineClientInterruptedException e) {
       logger.error("Interrupted.", e);
       throw e.getInterruptedException();
     }
@@ -105,7 +105,7 @@ public class ClusterLayout {
       Set<NodeAddress> res = p.getClient().findNodesServingTable(FindNodesServingTable.local(table));
 
       return res.stream().map(addr -> addr.createRemote()).collect(Collectors.toSet());
-    } catch (DiqubeConsensusStateMachineClientInterruptedException e) {
+    } catch (ConsensusStateMachineClientInterruptedException e) {
       logger.error("Interrupted.", e);
       throw e.getInterruptedException();
     }
@@ -120,7 +120,7 @@ public class ClusterLayout {
 
       return p.getClient().getAllTablesServed(GetAllTablesServed.local());
 
-    } catch (DiqubeConsensusStateMachineClientInterruptedException e) {
+    } catch (ConsensusStateMachineClientInterruptedException e) {
       logger.error("Interrupted.", e);
       throw e.getInterruptedException();
     }

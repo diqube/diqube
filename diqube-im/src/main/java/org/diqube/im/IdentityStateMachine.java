@@ -22,7 +22,7 @@ package org.diqube.im;
 
 import org.diqube.consensus.ConsensusMethod;
 import org.diqube.consensus.ConsensusStateMachine;
-import org.diqube.consensus.DiqubeConsensusUtil;
+import org.diqube.consensus.ConsensusUtil;
 import org.diqube.im.thrift.v1.SUser;
 
 import io.atomix.copycat.client.Command;
@@ -69,7 +69,7 @@ public interface IdentityStateMachine {
     public static Commit<DeleteUser> local(String userName) {
       DeleteUser res = new DeleteUser();
       res.userName = userName;
-      return DiqubeConsensusUtil.localCommit(res);
+      return ConsensusUtil.localCommit(res);
     }
 
     @Override
@@ -90,7 +90,7 @@ public interface IdentityStateMachine {
     public static Commit<SetUser> local(SUser user) {
       SetUser res = new SetUser();
       res.user = user;
-      return DiqubeConsensusUtil.localCommit(res);
+      return ConsensusUtil.localCommit(res);
     }
   }
 
@@ -111,7 +111,7 @@ public interface IdentityStateMachine {
     public static Commit<GetUser> local(String userName) {
       GetUser res = new GetUser();
       res.userName = userName;
-      return DiqubeConsensusUtil.localCommit(res);
+      return ConsensusUtil.localCommit(res);
     }
   }
 

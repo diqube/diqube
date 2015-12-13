@@ -24,7 +24,7 @@ import java.util.List;
 
 import org.diqube.consensus.ConsensusMethod;
 import org.diqube.consensus.ConsensusStateMachine;
-import org.diqube.consensus.DiqubeConsensusUtil;
+import org.diqube.consensus.ConsensusUtil;
 import org.diqube.remote.query.thrift.IdentityCallbackService;
 import org.diqube.remote.query.thrift.Ticket;
 
@@ -70,7 +70,7 @@ public interface LogoutStateMachine {
     public static Commit<Logout> local(Ticket ticket) {
       Logout res = new Logout();
       res.ticket = ticket;
-      return DiqubeConsensusUtil.localCommit(res);
+      return ConsensusUtil.localCommit(res);
     }
   }
 
@@ -86,7 +86,7 @@ public interface LogoutStateMachine {
     public static Commit<CleanLogoutTicket> local(Ticket ticket) {
       CleanLogoutTicket res = new CleanLogoutTicket();
       res.ticket = ticket;
-      return DiqubeConsensusUtil.localCommit(res);
+      return ConsensusUtil.localCommit(res);
     }
 
     @Override
@@ -104,7 +104,7 @@ public interface LogoutStateMachine {
     }
 
     public static Commit<GetInvalidTickets> local() {
-      return DiqubeConsensusUtil.localCommit(new GetInvalidTickets());
+      return ConsensusUtil.localCommit(new GetInvalidTickets());
     }
   }
 }

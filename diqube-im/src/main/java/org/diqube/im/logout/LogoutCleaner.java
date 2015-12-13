@@ -32,9 +32,9 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 
-import org.diqube.consensus.DiqubeConsensusStateMachineClientInterruptedException;
-import org.diqube.consensus.DiqubeCopycatClient;
-import org.diqube.consensus.DiqubeCopycatClient.ClosableProvider;
+import org.diqube.consensus.ConsensusStateMachineClientInterruptedException;
+import org.diqube.consensus.ConsensusClient;
+import org.diqube.consensus.ConsensusClient.ClosableProvider;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.im.logout.LogoutStateMachine.CleanLogoutTicket;
 import org.diqube.im.logout.LogoutStateMachineImplementation.LogoutStateMachineListener;
@@ -58,7 +58,7 @@ public class LogoutCleaner implements LogoutStateMachineListener {
   private static final long MAX_POLL_SEC = 120; // 4 min
 
   @Inject
-  private DiqubeCopycatClient consensusClient;
+  private ConsensusClient consensusClient;
 
   private LogoutCleanupThread thread;
 
@@ -118,7 +118,7 @@ public class LogoutCleaner implements LogoutStateMachineListener {
               p.getClient().cleanLogoutTicket(CleanLogoutTicket.local(t));
 
             timeoutedTickets.clear();
-          } catch (DiqubeConsensusStateMachineClientInterruptedException e) {
+          } catch (ConsensusStateMachineClientInterruptedException e) {
             // exit quietly
             return;
           } catch (RuntimeException e) {

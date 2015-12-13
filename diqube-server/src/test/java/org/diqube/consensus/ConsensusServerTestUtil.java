@@ -18,12 +18,24 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.listeners;
+package org.diqube.consensus;
+
+import org.diqube.consensus.ConsensusServer.ConsensusStorageProvider;
+
+import io.atomix.copycat.server.storage.Storage;
+import io.atomix.copycat.server.storage.StorageLevel;
 
 /**
  *
  * @author Bastian Gloeckle
  */
-public interface DiqubeConsensusListener {
-  public void consensusInitialized();
+public class ConsensusServerTestUtil {
+  public static void configureMemoryOnlyStorage(ConsensusServer server) {
+    server.setConsensusStorageProvider(new ConsensusStorageProvider(null) {
+      @Override
+      public Storage createStorage() {
+        return Storage.builder().withStorageLevel(StorageLevel.MEMORY).build();
+      }
+    });
+  }
 }

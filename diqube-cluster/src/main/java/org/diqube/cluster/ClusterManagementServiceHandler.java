@@ -29,8 +29,8 @@ import javax.inject.Inject;
 import org.apache.thrift.TException;
 import org.diqube.cluster.ClusterLayoutStateMachine.SetTablesOfNode;
 import org.diqube.connection.OurNodeAddressProvider;
-import org.diqube.consensus.DiqubeCopycatClient;
-import org.diqube.consensus.DiqubeCopycatClient.ClosableProvider;
+import org.diqube.consensus.ConsensusClient;
+import org.diqube.consensus.ConsensusClient.ClosableProvider;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.listeners.providers.LoadedTablesProvider;
 import org.diqube.remote.cluster.thrift.ClusterManagementService;
@@ -51,7 +51,7 @@ public class ClusterManagementServiceHandler implements ClusterManagementService
   private ClusterLayout clusterLayout;
 
   @Inject
-  private DiqubeCopycatClient consensusClient;
+  private ConsensusClient consensusClient;
 
   @Inject
   private OurNodeAddressProvider ourNodeAddressProvider;

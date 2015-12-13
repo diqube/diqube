@@ -41,9 +41,9 @@ import org.diqube.connection.NodeAddress;
 import org.diqube.connection.ServiceProvider;
 import org.diqube.consensus.AbstractConsensusStateMachine;
 import org.diqube.consensus.ConsensusStateMachineImplementation;
-import org.diqube.consensus.DiqubeConsensusStateMachineClientInterruptedException;
-import org.diqube.consensus.DiqubeCopycatClient;
-import org.diqube.consensus.DiqubeCopycatClient.ClosableProvider;
+import org.diqube.consensus.ConsensusStateMachineClientInterruptedException;
+import org.diqube.consensus.ConsensusClient;
+import org.diqube.consensus.ConsensusClient.ClosableProvider;
 import org.diqube.context.InjectOptional;
 import org.diqube.im.callback.IdentityCallbackRegistryStateMachine;
 import org.diqube.im.callback.IdentityCallbackRegistryStateMachine.GetAllRegistered;
@@ -82,7 +82,7 @@ public class LogoutStateMachineImplementation extends AbstractConsensusStateMach
   private ConnectionOrLocalHelper connectionOrLocalHelper;
 
   @Inject
-  private DiqubeCopycatClient consensusClient;
+  private ConsensusClient consensusClient;
 
   @InjectOptional
   private List<LogoutStateMachineListener> listeners;
@@ -141,7 +141,7 @@ public class LogoutStateMachineImplementation extends AbstractConsensusStateMach
         List<RNodeAddress> addrs = p.getClient().getAllRegistered(GetAllRegistered.local());
 
         addrs.forEach(a -> callbackAddresses.add(new NodeAddress(a)));
-      } catch (DiqubeConsensusStateMachineClientInterruptedException e) {
+      } catch (ConsensusStateMachineClientInterruptedException e) {
         // quietly exit
         return;
       } catch (RuntimeException e) {

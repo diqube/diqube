@@ -18,26 +18,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.consensus;
+package org.diqube.listeners;
 
 /**
- * A {@link RuntimeException} that encapsulates an {@link InterruptedException} that was thrown while interacting with
- * the consensus cluster through an object returned by {@link DiqubeCopycatClient#getStateMachineClient(Class)}.
  *
  * @author Bastian Gloeckle
  */
-public class DiqubeConsensusStateMachineClientInterruptedException extends RuntimeException {
-  private static final long serialVersionUID = 1L;
-
-  private final InterruptedException interruptedException;
-
-  public DiqubeConsensusStateMachineClientInterruptedException(String msg, InterruptedException e) {
-    super(msg);
-    this.interruptedException = e;
-  }
-
-  public InterruptedException getInterruptedException() {
-    return interruptedException;
-  }
-
+public interface ConsensusListener {
+  public void consensusInitialized();
 }
