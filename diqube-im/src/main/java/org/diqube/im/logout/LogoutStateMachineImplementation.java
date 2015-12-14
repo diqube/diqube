@@ -37,13 +37,12 @@ import javax.inject.Inject;
 import org.apache.thrift.TException;
 import org.diqube.connection.ConnectionException;
 import org.diqube.connection.ConnectionOrLocalHelper;
-import org.diqube.connection.NodeAddress;
 import org.diqube.connection.ServiceProvider;
 import org.diqube.consensus.AbstractConsensusStateMachine;
-import org.diqube.consensus.ConsensusStateMachineImplementation;
-import org.diqube.consensus.ConsensusStateMachineClientInterruptedException;
 import org.diqube.consensus.ConsensusClient;
 import org.diqube.consensus.ConsensusClient.ClosableProvider;
+import org.diqube.consensus.ConsensusStateMachineClientInterruptedException;
+import org.diqube.consensus.ConsensusStateMachineImplementation;
 import org.diqube.context.InjectOptional;
 import org.diqube.im.callback.IdentityCallbackRegistryStateMachine;
 import org.diqube.im.callback.IdentityCallbackRegistryStateMachine.GetAllRegistered;
@@ -135,12 +134,12 @@ public class LogoutStateMachineImplementation extends AbstractConsensusStateMach
     // again which might conenct to the local node: We would end up in a deadlock, since the local consensus server is
     // executign something already. It is not vital that the callbacks are called synchrounously anyway.
     executorService.execute(() -> {
-      Set<NodeAddress> callbackAddresses = new HashSet<>();
+      Set<RNodeAddress> callbackAddresses = new HashSet<>();
       try (ClosableProvider<IdentityCallbackRegistryStateMachine> p =
           consensusClient.getStateMachineClient(IdentityCallbackRegistryStateMachine.class)) {
         List<RNodeAddress> addrs = p.getClient().getAllRegistered(GetAllRegistered.local());
 
-        addrs.forEach(a -> callbackAddresses.add(new NodeAddress(a)));
+        addrs.forEach(a -> callbackAddresses.add(a));
       } catch (ConsensusStateMachineClientInterruptedException e) {
         // quietly exit
         return;
@@ -152,9 +151,9 @@ public class LogoutStateMachineImplementation extends AbstractConsensusStateMach
       // note that here again we might not reach all registered callbacks (e.g. because of network partitions). The
       // callbacks must poll a fresh list of invalidated tickets periodically and should not accept any tickets if the
       // can't reach the cluster.
-      for (NodeAddress callbackAddr : callbackAddresses) {
-        try (ServiceProvider<IdentityCallbackService.Iface> p = connectionOrLocalHelper
-            .getService(IdentityCallbackService.Iface.class, callbackAddr.createRemote(), null)) {
+      for (RNodeAddress callbackAddr : callbackAddresses) {
+        try (ServiceProvider<IdentityCallbackService.Iface> p =
+            connectionOrLocalHelper.getService(IdentityCallbackService.Iface.class, callbackAddr, null)) {
 
           p.getService().ticketBecameInvalid(TicketInfoUtil.fromTicket(t));
 

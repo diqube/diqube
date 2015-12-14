@@ -46,12 +46,9 @@ import org.diqube.remote.query.thrift.QueryService;
 import org.diqube.remote.query.thrift.RQueryException;
 import org.diqube.thrift.base.thrift.AuthenticationException;
 import org.diqube.thrift.base.thrift.AuthorizationException;
-import org.diqube.thrift.base.thrift.RNodeAddress;
-import org.diqube.thrift.base.thrift.RNodeHttpAddress;
 import org.diqube.thrift.base.thrift.Ticket;
 import org.diqube.thrift.base.util.RUuidUtil;
 import org.diqube.ui.DiqubeServletConfig;
-import org.diqube.ui.ThriftServlet;
 import org.diqube.ui.UiQueryRegistry;
 import org.diqube.util.Pair;
 import org.slf4j.Logger;
@@ -196,7 +193,7 @@ public abstract class AbstractCommandClusterInteraction implements CommandCluste
 
       queryClient.asyncExecuteQuery(ticket, RUuidUtil.toRUuid(queryUuid), //
           diql, //
-          true, createOurAddress());
+          true, config.createClusterResponseAddr());
       logger.info("Started executing new query {} on server {}", queryUuid, node);
       return queryUuid;
     } catch (RQueryException e) {
@@ -206,13 +203,6 @@ public abstract class AbstractCommandClusterInteraction implements CommandCluste
     } catch (TException e) {
       return null;
     }
-  }
-
-  private RNodeAddress createOurAddress() {
-    RNodeAddress res = new RNodeAddress();
-    res.setHttpAddr(new RNodeHttpAddress());
-    res.getHttpAddr().setUrl(config.getClusterResponseAddr() + ThriftServlet.URL_PATTERN);
-    return res;
   }
 
   /**

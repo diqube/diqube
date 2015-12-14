@@ -26,6 +26,9 @@ import org.apache.thrift.TException;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.remote.query.thrift.IdentityCallbackService;
 import org.diqube.remote.query.thrift.TicketInfo;
+import org.diqube.thrift.base.util.RUuidUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Implementation of the {@link IdentityCallbackService}.
@@ -34,6 +37,7 @@ import org.diqube.remote.query.thrift.TicketInfo;
  */
 @AutoInstatiate
 public class IdentityCallbackHandler implements IdentityCallbackService.Iface {
+  private static final Logger logger = LoggerFactory.getLogger(IdentityCallbackHandler.class);
 
   @Inject
   private TicketValidityService validityService;
@@ -41,6 +45,8 @@ public class IdentityCallbackHandler implements IdentityCallbackService.Iface {
   @Override
   public void ticketBecameInvalid(TicketInfo ticketInfo) throws TException {
     validityService.markTicketAsInvalid(ticketInfo);
+    logger.info("Marked ticket {}, valid until {} as invalid.", RUuidUtil.toUuid(ticketInfo.getTicketId()),
+        ticketInfo.getValidUntil());
   }
 
 }

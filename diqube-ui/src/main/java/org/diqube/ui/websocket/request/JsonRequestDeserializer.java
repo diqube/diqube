@@ -39,6 +39,7 @@ import org.diqube.thrift.base.thrift.AuthenticationException;
 import org.diqube.thrift.base.thrift.Ticket;
 import org.diqube.ticket.TicketUtil;
 import org.diqube.ticket.TicketValidityService;
+import org.diqube.ui.ticket.TicketsAcceptableProvider;
 import org.diqube.ui.websocket.request.commands.CommandInformation;
 import org.diqube.ui.websocket.request.commands.JsonCommand;
 import org.diqube.ui.websocket.result.JsonResult;
@@ -92,6 +93,9 @@ public class JsonRequestDeserializer {
   @Inject
   private TicketValidityService ticketValidityService;
 
+  @Inject
+  private TicketsAcceptableProvider ticketsAcceptableProvider;
+
   private JsonFactory jsonFactory = new JsonFactory();
   private ObjectMapper mapper = new ObjectMapper(jsonFactory);
 
@@ -134,21 +138,33 @@ public class JsonRequestDeserializer {
 
       Ticket t = null;
       if (requestTreeRoot.get(JSON_TICKET) != null) {
-        String ticketBase64 = requestTreeRoot.get(JSON_TICKET).textValue();
-        byte[] ticketSerialized = BaseEncoding.base64().decode(ticketBase64);
-        Pair<Ticket, byte[]> p = TicketUtil.deserialize(ByteBuffer.wrap(ticketSerialized));
-        // ensure that ticket is valid. If not, reject request directly.
-        if (!ticketValidityService.isTicketValid(p)) {
-          logger.warn("Invalid ticket provided by client.");
+        if (!ticketsAcceptableProvider.areTicketsAcceptable()) {
+          // currently we do not accept any ticket, because we were not able to reach diqube-servers recently.
           cmd = new JsonCommand() {
             @Override
             public void execute(Ticket ticket, CommandResultHandler resultHandler,
                 CommandClusterInteraction clusterInteraction) throws RuntimeException, AuthenticationException {
-              throw new AuthenticationException("Ticket invalid.");
+              throw new AuthenticationException("UI server does not accept any tickets currently because it was "
+                  + "not able to reach any diqube server. Retry shortly.");
             }
           };
-        } else
-          t = p.getLeft();
+        } else {
+          String ticketBase64 = requestTreeRoot.get(JSON_TICKET).textValue();
+          byte[] ticketSerialized = BaseEncoding.base64().decode(ticketBase64);
+          Pair<Ticket, byte[]> p = TicketUtil.deserialize(ByteBuffer.wrap(ticketSerialized));
+          // ensure that ticket is valid. If not, reject request directly.
+          if (!ticketValidityService.isTicketValid(p)) {
+            logger.warn("Invalid ticket provided by client.");
+            cmd = new JsonCommand() {
+              @Override
+              public void execute(Ticket ticket, CommandResultHandler resultHandler,
+                  CommandClusterInteraction clusterInteraction) throws RuntimeException, AuthenticationException {
+                throw new AuthenticationException("Ticket invalid.");
+              }
+            };
+          } else
+            t = p.getLeft();
+        }
       }
 
       wireInjectFieldsAndCallPostConstruct(cmd);

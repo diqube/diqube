@@ -47,7 +47,6 @@ import org.diqube.config.ConfigKey;
 import org.diqube.connection.Connection;
 import org.diqube.connection.ConnectionException;
 import org.diqube.connection.ConnectionPool;
-import org.diqube.connection.NodeAddress;
 import org.diqube.connection.OurNodeAddressProvider;
 import org.diqube.consensus.ConsensusClient;
 import org.diqube.consensus.ConsensusClient.ClosableProvider;
@@ -74,6 +73,7 @@ import org.diqube.thrift.base.thrift.AuthenticationException;
 import org.diqube.thrift.base.thrift.AuthorizationException;
 import org.diqube.thrift.base.thrift.RNodeAddress;
 import org.diqube.thrift.base.thrift.Ticket;
+import org.diqube.thrift.base.util.RUuidUtil;
 import org.diqube.ticket.TicketSignatureService;
 import org.diqube.ticket.TicketUtil;
 import org.diqube.ticket.TicketValidityService;
@@ -192,10 +192,13 @@ public class IdentityHandler implements IdentityService.Iface {
       throw new AuthenticationException("Invalid credentials.");
     }
 
-    logger.info("User '{}' logged in successfully!", userName);
-
     // authenticated successfully!
-    return ticketVendor.createDefaultTicketForUser(userName, false);
+    Ticket res = ticketVendor.createDefaultTicketForUser(userName, false);
+
+    logger.info("User '{}' logged in successfully! Returning new ticket {} valid until {}.", userName,
+        RUuidUtil.toUuid(res.getClaim().getTicketId()), res.getClaim().getValidUntil());
+
+    return res;
   }
 
   @Override
@@ -215,13 +218,14 @@ public class IdentityHandler implements IdentityService.Iface {
     ticketValidityService.markTicketAsInvalid(TicketInfoUtil.fromTicket(ticket));
 
     // quickly (but unreliably) distribute the logout to all known cluster nodes and all interested callbacks.
-    for (NodeAddress addr : Sets.union(clusterLayout.getNodesInsecure(),
+    for (RNodeAddress addr : Sets.union(
+        clusterLayout.getNodesInsecure().stream().map(addr -> addr.createRemote()).collect(Collectors.toSet()),
         callbackRegistry.getRegisteredNodesInsecure())) {
       if (addr.equals(ourNodeAddressProvider.getOurNodeAddress()))
         continue;
 
       try (Connection<IdentityCallbackService.Iface> con =
-          connectionPool.reserveConnection(IdentityCallbackService.Iface.class, addr.createRemote(), null)) {
+          connectionPool.reserveConnection(IdentityCallbackService.Iface.class, addr, null)) {
         con.getService().ticketBecameInvalid(TicketInfoUtil.fromTicket(ticket));
       } catch (ConnectionException | IOException e) {
         // swallow, as we distribute the information reliably using the state machine below.
@@ -237,8 +241,8 @@ public class IdentityHandler implements IdentityService.Iface {
       p.getClient().logout(Logout.local(ticket));
     }
 
-    logger.info("Logout of user '{}', ticket valid until {} successful.", ticket.getClaim().getUsername(),
-        ticket.getClaim().getValidUntil());
+    logger.info("Logout of user '{}', ticket {}, valid until {} successful.", ticket.getClaim().getUsername(),
+        RUuidUtil.toUuid(ticket.getClaim().getTicketId()), ticket.getClaim().getValidUntil());
   }
 
   @Override

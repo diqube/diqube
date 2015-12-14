@@ -62,12 +62,22 @@ public class WebSocketEndpoint {
   public void onOpen(Session session, EndpointConfig config) {
     ApplicationContext ctx = (ApplicationContext) config.getUserProperties().get(PROP_BEAN_CONTEXT);
     session.getUserProperties().put(PROP_BEAN_CONTEXT, ctx);
+
+    for (WebSocketEndpointListener listener : ctx.getBeansOfType(WebSocketEndpointListener.class).values()) {
+      listener.socketOpened();
+    }
   }
 
   @OnMessage
   public void onMessage(String msg, Session session) throws Exception {
     try {
       logger.trace("Received message on session {}: {}", session, msg);
+
+      for (WebSocketEndpointListener listener : getBeanCtx(session).getBeansOfType(WebSocketEndpointListener.class)
+          .values()) {
+        listener.socketMessage();
+      }
+
       JsonRequestDeserializer deserializer = getBeanCtx(session).getBean(JsonRequestDeserializer.class);
       JsonRequestRegistry requestRegistry = getBeanCtx(session).getBean(JsonRequestRegistry.class);
       JsonRequest request = deserializer.deserialize(msg, session);
@@ -103,5 +113,14 @@ public class WebSocketEndpoint {
 
   private ApplicationContext getBeanCtx(Session session) {
     return (ApplicationContext) session.getUserProperties().get(PROP_BEAN_CONTEXT);
+  }
+
+  /**
+   * Listener that is informed about activity on the websocket.
+   */
+  public static interface WebSocketEndpointListener {
+    public void socketOpened();
+
+    public void socketMessage();
   }
 }

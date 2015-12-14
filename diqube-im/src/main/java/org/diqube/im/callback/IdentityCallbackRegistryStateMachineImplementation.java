@@ -28,7 +28,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.diqube.connection.NodeAddress;
 import org.diqube.consensus.AbstractConsensusStateMachine;
 import org.diqube.consensus.ConsensusStateMachineImplementation;
 import org.diqube.context.InjectOptional;
@@ -127,10 +126,8 @@ public class IdentityCallbackRegistryStateMachineImplementation extends Abstract
    * @return The list of callbacks this node currently knows of. This list might be incomplete or contain elements that
    *         were already unregistered!
    */
-  public Set<NodeAddress> getRegisteredNodesInsecure() {
-    Set<NodeAddress> res = new HashSet<>();
-    registered.keySet().forEach(node -> res.add(new NodeAddress(node)));
-    return res;
+  public Set<RNodeAddress> getRegisteredNodesInsecure() {
+    return new HashSet<>(registered.keySet());
   }
 
   /* package */ Long getCurrentRegisterTime(RNodeAddress callbackNode) {

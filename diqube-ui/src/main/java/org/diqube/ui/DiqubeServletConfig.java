@@ -28,6 +28,8 @@ import javax.servlet.ServletContext;
 
 import org.diqube.context.AutoInstatiate;
 import org.diqube.context.InjectOptional;
+import org.diqube.thrift.base.thrift.RNodeAddress;
+import org.diqube.thrift.base.thrift.RNodeHttpAddress;
 import org.diqube.thrift.base.thrift.Ticket;
 import org.diqube.util.Pair;
 
@@ -48,9 +50,11 @@ public class DiqubeServletConfig {
   public static final String INIT_PARAM_TICKET_PUBLIC_KEY_PEM = "diqube.ticketPublicKeyPem";
   public static final String INIT_PARAM_TICKET_PUBLIC_KEY_PEM_ALT1 = "diqube.ticketPublicKeyPemAlt1";
   public static final String INIT_PARAM_TICKET_PUBLIC_KEY_PEM_ALT2 = "diqube.ticketPublicKeyPemAlt2";
+  public static final String INIT_PARAM_LOGOUT_TICKET_FETCH_SEC = "diqube.logoutTicketFetchSec";
 
   public static final String DEFAULT_CLUSTER = "localhost:5101";
   public static final String DEFAULT_CLUSTER_RESPONSE = "http://localhost:8080";
+  public static final String DEFAULT_LOGOUT_TICKET_FETCH_SEC = "120";
 
   @InjectOptional
   private List<ServletConfigListener> servletConfigListeners;
@@ -61,6 +65,7 @@ public class DiqubeServletConfig {
   private String ticketPublicKeyPem;
   private String ticketPublicKeyPemAlt1;
   private String ticketPublicKeyPemAlt2;
+  private long logoutTicketFetchSec;
 
   /* package */ void initialize(ServletContext ctx) {
     String clusterLocation = ctx.getInitParameter(INIT_PARAM_CLUSTER);
@@ -86,6 +91,11 @@ public class DiqubeServletConfig {
     ticketPublicKeyPemAlt1 = ctx.getInitParameter(INIT_PARAM_TICKET_PUBLIC_KEY_PEM_ALT1);
     ticketPublicKeyPemAlt2 = ctx.getInitParameter(INIT_PARAM_TICKET_PUBLIC_KEY_PEM_ALT2);
 
+    String logoutTicketFetchSecString = ctx.getInitParameter(INIT_PARAM_LOGOUT_TICKET_FETCH_SEC);
+    if (logoutTicketFetchSecString == null)
+      logoutTicketFetchSecString = DEFAULT_LOGOUT_TICKET_FETCH_SEC;
+    logoutTicketFetchSec = Long.parseLong(logoutTicketFetchSecString);
+
     if (servletConfigListeners != null)
       servletConfigListeners.forEach(l -> l.servletConfigurationAvailable());
   }
@@ -104,6 +114,16 @@ public class DiqubeServletConfig {
    */
   public String getClusterResponseAddr() {
     return clusterResponseAddr;
+  }
+
+  /**
+   * @return A new instance of {@link RNodeAddress} that contains {@link #getClusterResponseAddr()}.
+   */
+  public RNodeAddress createClusterResponseAddr() {
+    RNodeAddress res = new RNodeAddress();
+    res.setHttpAddr(new RNodeHttpAddress());
+    res.getHttpAddr().setUrl(getClusterResponseAddr() + ThriftServlet.URL_PATTERN);
+    return res;
   }
 
   /**
@@ -127,6 +147,16 @@ public class DiqubeServletConfig {
    */
   public String getTicketPublicKeyPemAlt2() {
     return ticketPublicKeyPemAlt2;
+  }
+
+  /**
+   * @return Duration in seconds after which a current list of logged out {@link Ticket}s should be fetched from a
+   *         diqube-server. If logged out tickets cannot be fetched, the UI will not accept any {@link Ticket} anymore
+   *         until connection is re-established! Note that the longer this time is, the longer the UI might accept
+   *         tickets which actually have logged out already!
+   */
+  public long getLogoutTicketFetchSec() {
+    return logoutTicketFetchSec;
   }
 
   /**

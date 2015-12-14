@@ -34,10 +34,13 @@ import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.protocol.TProtocolFactory;
 import org.apache.thrift.server.TServlet;
+import org.diqube.remote.query.IdentityCallbackServiceConstants;
 import org.diqube.remote.query.KeepAliveServiceConstants;
 import org.diqube.remote.query.QueryResultServiceConstants;
+import org.diqube.remote.query.thrift.IdentityCallbackService;
 import org.diqube.remote.query.thrift.KeepAliveService;
 import org.diqube.remote.query.thrift.QueryResultService;
+import org.diqube.ticket.IdentityCallbackHandler;
 import org.springframework.context.ApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
 
@@ -53,7 +56,7 @@ public class ThriftServlet extends TServlet {
   /** make sure this matches the web.xml. */
   public static final String URL_PATTERN = "/t";
 
-  private static final short NUMBER_OF_PROCESSORS = 2;
+  private static final short NUMBER_OF_PROCESSORS = 3;
 
   private static ThreadLocal<ApplicationContext> validAppContext = new ThreadLocal<>();
   private static ThreadLocal<Integer> initializedDelegates = new ThreadLocal<>();
@@ -72,7 +75,9 @@ public class ThriftServlet extends TServlet {
             handler -> new QueryResultService.Processor<QueryResultService.Iface>(handler)));
     res.registerProcessor(KeepAliveServiceConstants.SERVICE_NAME, new LazyBindingProcessorProvider<>(
         KeepAliveServiceHandler.class, handler -> new KeepAliveService.Processor<KeepAliveService.Iface>(handler)));
-
+    res.registerProcessor(IdentityCallbackServiceConstants.SERVICE_NAME,
+        new LazyBindingProcessorProvider<>(IdentityCallbackHandler.class,
+            handler -> new IdentityCallbackService.Processor<IdentityCallbackService.Iface>(handler)));
     // when adding new processors, update NUMBER_OF_PROCESSORS
 
     return res;
