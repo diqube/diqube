@@ -30,6 +30,8 @@ import org.diqube.connection.SocketListener;
 import org.diqube.itest.control.ServerControl;
 import org.diqube.remote.cluster.thrift.ClusterFlattenService;
 import org.diqube.remote.cluster.thrift.ClusterManagementService;
+import org.diqube.remote.query.thrift.ClusterInformationService;
+import org.diqube.remote.query.thrift.FlattenPreparationService;
 import org.diqube.remote.query.thrift.IdentityService;
 import org.diqube.remote.query.thrift.KeepAliveService;
 import org.diqube.remote.query.thrift.QueryService;
@@ -84,6 +86,27 @@ public class ServiceTestUtil {
   }
 
   /**
+   * Open a connection to the {@link ClusterInformationService} of a specific node and then execute something.
+   * 
+   * @throws RuntimeException
+   *           if anything goes wrong.
+   */
+  public void clusterInfoService(RemoteConsumer<ClusterInformationService.Iface> execute) {
+    try (Connection<ClusterInformationService.Iface> con = connectionFactory.createConnection(
+        diqubeThriftServiceInfoManager.getServiceInfo(ClusterInformationService.Iface.class),
+        server.getAddr().toRNodeAddress(), SOCKET_LISTENER)) {
+
+      logger.info("Opened connection to ClusterInformationService at {}.", server.getAddr());
+      execute.accept(con.getService());
+      logger.info("Closing connection to ClusterInformationService at {}.", server.getAddr());
+
+    } catch (TException | ConnectionException | IOException e) {
+      logger.error("Exception while accessing ClusterInformationService of {}", server.getAddr(), e);
+      throw new RuntimeException("Exception while accessing ClusterInformationService of " + server.getAddr(), e);
+    }
+  }
+
+  /**
    * Open a connection to the {@link QueryService} of a specific node and then execute something.
    * 
    * @throws RuntimeException
@@ -99,6 +122,27 @@ public class ServiceTestUtil {
       logger.info("Closing connection to QueryService at {}.", server.getAddr());
 
     } catch (TException | ConnectionException | IOException e) {
+      logger.error("Exception while accessing QueryService of {}", server.getAddr(), e);
+      throw new RuntimeException("Exception while accessing QueryService of " + server.getAddr(), e);
+    }
+  }
+
+  /**
+   * Open a connection to the {@link QueryService} of a specific node and then execute something.
+   * 
+   * @throws RuntimeException
+   *           if anything on the connection goes wrong.
+   */
+  public void queryServiceThrowException(RemoteConsumer<QueryService.Iface> execute) throws TException {
+    try (Connection<QueryService.Iface> con =
+        connectionFactory.createConnection(diqubeThriftServiceInfoManager.getServiceInfo(QueryService.Iface.class),
+            server.getAddr().toRNodeAddress(), SOCKET_LISTENER)) {
+
+      logger.info("Opened connection to QueryService at {}.", server.getAddr());
+      execute.accept(con.getService());
+      logger.info("Closing connection to QueryService at {}.", server.getAddr());
+
+    } catch (ConnectionException | IOException e) {
       logger.error("Exception while accessing QueryService of {}", server.getAddr(), e);
       throw new RuntimeException("Exception while accessing QueryService of " + server.getAddr(), e);
     }
@@ -148,6 +192,28 @@ public class ServiceTestUtil {
   }
 
   /**
+   * Open a connection to the {@link FlattenPreparationService} of a specific node and then execute something.
+   * 
+   * @throws RuntimeException
+   *           if anything on the connection goes wrong.
+   */
+  public void flattenPreparationServiceThrowException(RemoteConsumer<FlattenPreparationService.Iface> execute)
+      throws TException {
+    try (Connection<FlattenPreparationService.Iface> con = connectionFactory.createConnection(
+        diqubeThriftServiceInfoManager.getServiceInfo(FlattenPreparationService.Iface.class),
+        server.getAddr().toRNodeAddress(), SOCKET_LISTENER)) {
+
+      logger.info("Opened connection to FlattenPreparationService at {}.", server.getAddr());
+      execute.accept(con.getService());
+      logger.info("Closing connection to FlattenPreparationService at {}.", server.getAddr());
+
+    } catch (ConnectionException | IOException e) {
+      logger.error("Exception while accessing FlattenPreparationService of {}", server.getAddr(), e);
+      throw new RuntimeException("Exception while accessing FlattenPreparationService of " + server.getAddr(), e);
+    }
+  }
+
+  /**
    * Open a connection to the {@link IdentityService} of a specific node and then execute something.
    * 
    * @throws RuntimeException
@@ -163,8 +229,7 @@ public class ServiceTestUtil {
       logger.info("Closing connection to IdentityService at {}.", server.getAddr());
 
     } catch (TException | ConnectionException | IOException e) {
-      // no logging here, as we use this to test if server is up -> we will have this case very often, but we do not
-      // want to see that many stacktraces in the log...
+      logger.error("Exception while accessing IdentityService of {}", server.getAddr(), e);
       throw new RuntimeException("Exception while accessing IdentityService of " + server.getAddr(), e);
     }
   }

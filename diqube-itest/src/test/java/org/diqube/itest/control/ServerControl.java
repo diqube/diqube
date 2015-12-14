@@ -397,9 +397,13 @@ public class ServerControl implements LogfileSaver {
    * Logs in the root user (the superuser) and returns a valid ticket.
    */
   public Ticket loginSuperuser() {
+    return login(ROOT_USER, ROOT_PASSWORD);
+  }
+
+  public Ticket login(String username, String password) {
     CompletableFuture<Ticket> f = new CompletableFuture<>();
     getSerivceTestUtil().identityService(identityService -> {
-      f.complete(identityService.login(ROOT_USER, ROOT_PASSWORD));
+      f.complete(identityService.login(username, password));
     });
     try {
       return f.get();

@@ -29,6 +29,8 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import org.diqube.itest.control.ServerControl.ServerAddr;
+import org.diqube.tool.im.IdentityToolFunction;
 import org.diqube.tool.merge.Merge;
 import org.diqube.tool.transpose.Transpose;
 import org.slf4j.Logger;
@@ -92,13 +94,47 @@ public class ToolControl {
     executeTool("merge", cmd, outputFile);
   }
 
+  /**
+   * Execute "im" function using diqube-tool.
+   */
+  public void im(ServerAddr serverAddr, String function, String loginUser, String loginPassword, String paramUser,
+      String paramPassword, String paramEmail, String paramPermission, String paramPermissionObject) {
+    logger.info(
+        "Starting im function '{}' with params: loginUser={}, loginPassword={}, paramUser={}, paramPassword={}, "
+            + "paramEmail={}, paramPermission={}, paramPermissionObject={} on server={}",
+        function, loginUser, loginPassword, paramUser, paramPassword, paramEmail, paramPermission,
+        paramPermissionObject, serverAddr);
+
+    List<String> cmd = new ArrayList<>();
+    cmd.addAll(Arrays.asList("java", "-jar", toolJarFile.getAbsolutePath(), IdentityToolFunction.FUNCTION_NAME, "-s",
+        serverAddr.toString(), "-f", function));
+
+    if (loginUser != null)
+      cmd.addAll(Arrays.asList("-lu", loginUser));
+    if (loginPassword != null)
+      cmd.addAll(Arrays.asList("-lp", loginPassword));
+    if (paramUser != null)
+      cmd.addAll(Arrays.asList("-u", paramUser));
+    if (paramPassword != null)
+      cmd.addAll(Arrays.asList("-p", paramPassword));
+    if (paramEmail != null)
+      cmd.addAll(Arrays.asList("-e", paramEmail));
+    if (paramPermission != null)
+      cmd.addAll(Arrays.asList("-a", paramPermission));
+    if (paramPermissionObject != null)
+      cmd.addAll(Arrays.asList("-o", paramPermissionObject));
+
+    executeTool("im", cmd, null);
+  }
+
   private void executeTool(String processDescription, List<String> cmd, File outputFile) {
-    try {
-      Files.deleteIfExists(outputFile.toPath());
-    } catch (IOException e) {
-      throw new RuntimeException("Could not delete output file before starting the " + processDescription + " process: "
-          + outputFile.getAbsolutePath(), e);
-    }
+    if (outputFile != null)
+      try {
+        Files.deleteIfExists(outputFile.toPath());
+      } catch (IOException e) {
+        throw new RuntimeException("Could not delete output file before starting the " + processDescription
+            + " process: " + outputFile.getAbsolutePath(), e);
+      }
 
     ProcessBuilder processBuilder = new ProcessBuilder(cmd).inheritIO();
 
@@ -126,7 +162,9 @@ public class ToolControl {
     logger.info("====================================================");
     Assert.assertEquals(p.exitValue(), 0,
         "Expected the '" + processDescription + "' sub-process to exit with a non-error exit value.");
-    Assert.assertTrue(outputFile.exists(),
-        "Expected that the '" + processDescription + "' actually created the output file, but it did not.");
+
+    if (outputFile != null)
+      Assert.assertTrue(outputFile.exists(),
+          "Expected that the '" + processDescription + "' actually created the output file, but it did not.");
   }
 }

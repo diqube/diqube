@@ -32,6 +32,7 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.diqube.remote.query.thrift.IdentityService;
 import org.diqube.tool.ToolFunction;
 import org.diqube.tool.ToolFunctionName;
 import org.diqube.tool.info.Info;
@@ -43,7 +44,7 @@ import com.google.common.reflect.ClassPath;
 import com.google.common.reflect.ClassPath.ClassInfo;
 
 /**
- * 
+ * Tool function that interacts with {@link IdentityService}.
  *
  * @author Bastian Gloeckle
  */
