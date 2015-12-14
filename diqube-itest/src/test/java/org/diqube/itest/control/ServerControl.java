@@ -33,6 +33,8 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Properties;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -51,6 +53,7 @@ import org.diqube.server.NewDataWatcher;
 import org.diqube.thrift.base.services.DiqubeThriftServiceInfoManager;
 import org.diqube.thrift.base.thrift.RNodeAddress;
 import org.diqube.thrift.base.thrift.RNodeDefaultAddress;
+import org.diqube.thrift.base.thrift.Ticket;
 import org.diqube.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,6 +71,9 @@ public class ServerControl implements LogfileSaver {
   private static final String LOGBACK_DEFAULT_CONFIG_CLASSPATH = "/server/logback.default.xml";
   private static final String TICKET_PEM_CLASSPATH = "/server/ticket.pem";
   private static final String TICKET_PEM_PASSWORD = "diqube";
+
+  public static final String ROOT_PASSWORD = "diqube";
+  public static final String ROOT_USER = "root";
 
   private File serverJarFile;
   private File workDir;
@@ -142,6 +148,8 @@ public class ServerControl implements LogfileSaver {
       serverProp.setProperty(ConfigKey.MESSAGE_INTEGRITY_SECRET, serverMacKey);
       serverProp.setProperty(ConfigKey.TICKET_RSA_PRIVATE_KEY_PEM_FILE, ticketPem.getAbsolutePath());
       serverProp.setProperty(ConfigKey.TICKET_RSA_PRIVATE_KEY_PASSWORD, TICKET_PEM_PASSWORD);
+      serverProp.setProperty(ConfigKey.SUPERUSER, ROOT_USER);
+      serverProp.setProperty(ConfigKey.SUPERUSER_PASSWORD, ROOT_PASSWORD);
       if (serverPropertiesAdjust != null)
         serverPropertiesAdjust.accept(serverProp);
 
@@ -383,6 +391,21 @@ public class ServerControl implements LogfileSaver {
 
   public byte[] getServerMacKey() {
     return serverMacKey.getBytes(Charset.forName("UTF-8"));
+  }
+
+  /**
+   * Logs in the root user (the superuser) and returns a valid ticket.
+   */
+  public Ticket loginSuperuser() {
+    CompletableFuture<Ticket> f = new CompletableFuture<>();
+    getSerivceTestUtil().identityService(identityService -> {
+      f.complete(identityService.login(ROOT_USER, ROOT_PASSWORD));
+    });
+    try {
+      return f.get();
+    } catch (InterruptedException | ExecutionException e) {
+      throw new RuntimeException("Could not login!", e);
+    }
   }
 
   /**

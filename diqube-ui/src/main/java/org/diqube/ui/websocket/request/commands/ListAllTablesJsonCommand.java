@@ -23,7 +23,7 @@ package org.diqube.ui.websocket.request.commands;
 import java.util.List;
 
 import org.apache.thrift.TException;
-import org.diqube.remote.query.thrift.Ticket;
+import org.diqube.thrift.base.thrift.Ticket;
 import org.diqube.ui.websocket.request.CommandClusterInteraction;
 import org.diqube.ui.websocket.request.CommandResultHandler;
 import org.diqube.ui.websocket.result.TableNameListJsonResult;
@@ -47,9 +47,13 @@ public class ListAllTablesJsonCommand implements JsonCommand {
   @Override
   public void execute(Ticket ticket, CommandResultHandler resultHandler, CommandClusterInteraction clusterInteraction)
       throws RuntimeException {
+
+    if (ticket == null)
+      throw new RuntimeException("Not logged in.");
+
     List<String> tables;
     try {
-      tables = clusterInteraction.getClusterInformationService().getAvailableTables();
+      tables = clusterInteraction.getClusterInformationService().getAvailableTables(ticket);
     } catch (TException e) {
       throw new RuntimeException("Could not get list of tables", e);
     }

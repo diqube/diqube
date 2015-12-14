@@ -35,6 +35,7 @@ import org.diqube.itest.util.Waiter;
 import org.diqube.server.NewDataWatcher;
 import org.diqube.thrift.base.thrift.RUUID;
 import org.diqube.thrift.base.thrift.RValue;
+import org.diqube.thrift.base.thrift.Ticket;
 import org.diqube.thrift.base.util.RUuidUtil;
 import org.diqube.thrift.base.util.RValueUtil;
 import org.slf4j.Logger;
@@ -72,12 +73,14 @@ public class FlattenIntegrationTest extends AbstractDiqubeIntegrationTest {
     serverControl.get(0).deploy(cp(DATA0_CONTROL_FILE), cp(DATA0_JSON_FILE));
     serverControl.get(1).deploy(cp(DATA6_CONTROL_FILE), cp(DATA6_JSON_FILE));
 
+    Ticket ticket = serverControl.get(0).loginSuperuser();
+
     // WHEN: query
     try (TestQueryResultService queryRes = QueryResultServiceTestUtil.createQueryResultService()) {
       RUUID queryUuid = RUuidUtil.toRUuid(UUID.randomUUID());
       logger.info("Executing query {}", RUuidUtil.toUuid(queryUuid));
       serverControl.get(0).getSerivceTestUtil()
-          .queryService((queryService) -> queryService.asyncExecuteQuery(queryUuid,
+          .queryService((queryService) -> queryService.asyncExecuteQuery(ticket, queryUuid,
               "select a.b, count() from flatten(" + TABLE + ", a[*]) group by a.b order by a.b asc", true,
               queryRes.getThisServicesAddr().toRNodeAddress()));
 
@@ -109,7 +112,7 @@ public class FlattenIntegrationTest extends AbstractDiqubeIntegrationTest {
       RUUID queryUuid = RUuidUtil.toRUuid(UUID.randomUUID());
       logger.info("Executing query {}", RUuidUtil.toUuid(queryUuid));
       serverControl.get(0).getSerivceTestUtil()
-          .queryService((queryService) -> queryService.asyncExecuteQuery(queryUuid,
+          .queryService((queryService) -> queryService.asyncExecuteQuery(ticket, queryUuid,
               "select a.b, count() from flatten(" + TABLE + ", a[*]) group by a.b order by a.b asc", true,
               queryRes.getThisServicesAddr().toRNodeAddress()));
 

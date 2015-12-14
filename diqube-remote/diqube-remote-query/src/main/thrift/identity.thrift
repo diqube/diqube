@@ -23,20 +23,6 @@ namespace java org.diqube.remote.query.thrift
 
 include "${diqube.thrift.dependencies}/base.thrift"
 
-struct TicketClaim {
-    1: base.RUUID ticketId,
-    2: string username,
-    3: bool isSuperUser,
-    4: i64 validUntil
-}
-
-struct Ticket {
-    // IMPORTANT: TicketUtil depends on this ordering, as it records the bytes of a serialized Ticket used to describe
-    // the TicketClaim! Those bytes are then used to calculate the signature.
-    1: TicketClaim claim,
-    2: binary signature
-}
-
 struct OptionalString {
     1: optional string value
 }
@@ -47,33 +33,33 @@ struct TicketInfo {
 }
 
 service IdentityService {
-    Ticket login(1: string user, 2: string password) 
+    base.Ticket login(1: string user, 2: string password) 
         throws (1: base.AuthenticationException authenticationException)
     
-    oneway void logout(1: Ticket ticket)
+    oneway void logout(1: base.Ticket ticket)
     
-    void changePassword(1: Ticket ticket, 2: string username, 3: string newPassword) 
+    void changePassword(1: base.Ticket ticket, 2: string username, 3: string newPassword) 
         throws (1: base.AuthenticationException authenticationException, 2: base.AuthorizationException authorizationException)
         
-    void changeEmail(1: Ticket ticket, 2: string username, 3: string newEmail) 
+    void changeEmail(1: base.Ticket ticket, 2: string username, 3: string newEmail) 
         throws (1: base.AuthenticationException authenticationException, 2: base.AuthorizationException authorizationException)
                 
-    void addPermission(1: Ticket ticket, 2: string username, 3: string permission, 4: OptionalString object)
+    void addPermission(1: base.Ticket ticket, 2: string username, 3: string permission, 4: OptionalString object)
         throws (1: base.AuthenticationException authenticationException, 2: base.AuthorizationException authorizationException)
         
-    void removePermission(1: Ticket ticket, 2: string username, 3: string permission, 4: OptionalString object)
+    void removePermission(1: base.Ticket ticket, 2: string username, 3: string permission, 4: OptionalString object)
         throws (1: base.AuthenticationException authenticationException, 2: base.AuthorizationException authorizationException)
      
-    map<string, list<string>> getPermissions(1: Ticket ticket, 2: string username)
+    map<string, list<string>> getPermissions(1: base.Ticket ticket, 2: string username)
         throws (1: base.AuthenticationException authenticationException, 2: base.AuthorizationException authorizationException)
 
-    void createUser(1: Ticket ticket, 2: string username, 3: string email, 4: string password) 
+    void createUser(1: base.Ticket ticket, 2: string username, 3: string email, 4: string password) 
         throws (1: base.AuthenticationException authenticationException, 2: base.AuthorizationException authorizationException)
 
-    void deleteUser(1: Ticket ticket, 2: string username) 
+    void deleteUser(1: base.Ticket ticket, 2: string username) 
         throws (1: base.AuthenticationException authenticationException, 2: base.AuthorizationException authorizationException)
         
-    string getEmail(1: Ticket ticket, 2: string username)
+    string getEmail(1: base.Ticket ticket, 2: string username)
         
     // Register a node that implements IdentityCallbackService to be informed about anything interesting.
     // Node should unregsiter itself.

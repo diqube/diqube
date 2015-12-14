@@ -33,7 +33,7 @@ import org.diqube.remote.query.thrift.IdentityService;
 import org.diqube.remote.query.thrift.IdentityService.Iface;
 import org.diqube.thrift.base.thrift.AuthenticationException;
 import org.diqube.thrift.base.thrift.AuthorizationException;
-import org.diqube.remote.query.thrift.Ticket;
+import org.diqube.thrift.base.thrift.Ticket;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;

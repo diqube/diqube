@@ -41,7 +41,7 @@ import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.diqube.remote.query.thrift.QueryResultService.Iface;
 import org.diqube.thrift.base.thrift.AuthenticationException;
-import org.diqube.remote.query.thrift.Ticket;
+import org.diqube.thrift.base.thrift.Ticket;
 import org.diqube.ui.DiqubeServletConfig;
 import org.diqube.ui.UiQueryRegistry;
 import org.diqube.ui.websocket.request.commands.AsyncJsonCommand;
@@ -116,6 +116,10 @@ public class JsonRequest {
 
   private Ticket ticket;
 
+  /**
+   * @param ticket
+   *          <code>null</code> or a {@link Ticket} which has been validated already.
+   */
   /* package */ JsonRequest(Session session, Ticket ticket, String requestId, JsonCommand jsonCommand,
       JsonRequestRegistry requestRegistry) {
     this.session = session;
@@ -127,7 +131,7 @@ public class JsonRequest {
 
   @PostConstruct
   public void initialize() {
-    commandClusterInteraction = new AbstractCommandClusterInteraction(config) {
+    commandClusterInteraction = new AbstractCommandClusterInteraction(config, ticket) {
       @Override
       protected void registerQueryThriftResultCallback(Pair<String, Short> node, UUID queryUuid, Iface resultHandler) {
         queryResultRegistry.registerThriftResultCallback(session, requestId, node, queryUuid, resultHandler);

@@ -22,7 +22,7 @@ package org.diqube.ui.websocket.result;
 
 import javax.validation.constraints.NotNull;
 
-import org.diqube.remote.query.thrift.Ticket;
+import org.diqube.thrift.base.thrift.Ticket;
 import org.diqube.ticket.TicketUtil;
 
 import com.fasterxml.jackson.annotation.JsonProperty;

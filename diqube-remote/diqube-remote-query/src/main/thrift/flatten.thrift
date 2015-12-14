@@ -28,5 +28,7 @@ exception RFlattenPreparationException {
 }
 
 service FlattenPreparationService {
-  void prepareForQueriesOnFlattenedTable(1:string tableName, 2: string flattenBy) throws (1: RFlattenPreparationException flattenPreparationException)
+  void prepareForQueriesOnFlattenedTable(1: base.Ticket ticket, 2:string tableName, 3: string flattenBy) 
+    throws (1: RFlattenPreparationException flattenPreparationException, 2: base.AuthenticationException authenticationException, 3:base.AuthorizationException authorizationException)
+
 }

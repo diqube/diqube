@@ -22,23 +22,19 @@ package org.diqube.itest.tests;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.UUID;
 
 import org.diqube.itest.AbstractDiqubeIntegrationTest;
 import org.diqube.itest.annotations.NeedsServer;
-import org.diqube.itest.control.ServerControl.ServerAddr;
 import org.diqube.itest.util.QueryResultServiceTestUtil;
 import org.diqube.itest.util.QueryResultServiceTestUtil.TestQueryResultService;
 import org.diqube.itest.util.Waiter;
 import org.diqube.itest.util.Waiter.WaitTimeoutException;
 import org.diqube.server.NewDataWatcher;
-import org.diqube.thrift.base.thrift.RNodeAddress;
 import org.diqube.thrift.base.thrift.RUUID;
 import org.diqube.thrift.base.thrift.RValue;
+import org.diqube.thrift.base.thrift.Ticket;
 import org.diqube.thrift.base.util.RUuidUtil;
 import org.diqube.thrift.base.util.RValueUtil;
 import org.diqube.util.Pair;
@@ -46,8 +42,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
-
-import com.google.common.collect.Iterables;
 
 /**
  * Tests simple deployments of data to a cluster.
@@ -73,12 +67,14 @@ public class SimpleServerDeployIntegrationTest extends AbstractDiqubeIntegration
     // WHEN
     serverControl.get(0).deploy(cp(AGE_0_CONTROL_FILE), cp(AGE_JSON_FILE));
 
+    Ticket ticket = serverControl.get(0).loginSuperuser();
+
     // THEN
     try (TestQueryResultService queryRes = QueryResultServiceTestUtil.createQueryResultService()) {
       RUUID queryUuid = RUuidUtil.toRUuid(UUID.randomUUID());
       logger.info("Executing query {}", RUuidUtil.toUuid(queryUuid));
       serverControl.get(0).getSerivceTestUtil()
-          .queryService((queryService) -> queryService.asyncExecuteQuery(queryUuid,
+          .queryService((queryService) -> queryService.asyncExecuteQuery(ticket, queryUuid,
               "select age, count() from age group by age order by count() desc", true,
               queryRes.getThisServicesAddr().toRNodeAddress()));
 
@@ -110,12 +106,14 @@ public class SimpleServerDeployIntegrationTest extends AbstractDiqubeIntegration
     serverControl.get(0).deploy(cp(AGE_0_CONTROL_FILE), cp(AGE_JSON_FILE));
     serverControl.get(1).deploy(cp(AGE_11_CONTROL_FILE), cp(AGE_JSON_FILE));
 
+    Ticket ticket = serverControl.get(0).loginSuperuser();
+
     // THEN
     try (TestQueryResultService queryRes = QueryResultServiceTestUtil.createQueryResultService()) {
       RUUID queryUuid = RUuidUtil.toRUuid(UUID.randomUUID());
       logger.info("Executing query {}", RUuidUtil.toUuid(queryUuid));
       serverControl.get(0).getSerivceTestUtil()
-          .queryService((queryService) -> queryService.asyncExecuteQuery(queryUuid,
+          .queryService((queryService) -> queryService.asyncExecuteQuery(ticket, queryUuid,
               "select age, count() from age group by age order by count() desc", true,
               queryRes.getThisServicesAddr().toRNodeAddress()));
 
@@ -148,12 +146,14 @@ public class SimpleServerDeployIntegrationTest extends AbstractDiqubeIntegration
     serverControl.get(0).start();
     serverControl.get(0).waitUntilDeployed(cp(AGE_0_CONTROL_FILE));
 
+    Ticket ticket = serverControl.get(0).loginSuperuser();
+
     // THEN
     try (TestQueryResultService queryRes = QueryResultServiceTestUtil.createQueryResultService()) {
       RUUID queryUuid = RUuidUtil.toRUuid(UUID.randomUUID());
       logger.info("Executing query {}", RUuidUtil.toUuid(queryUuid));
       serverControl.get(0).getSerivceTestUtil()
-          .queryService((queryService) -> queryService.asyncExecuteQuery(queryUuid,
+          .queryService((queryService) -> queryService.asyncExecuteQuery(ticket, queryUuid,
               "select age, count() from age group by age order by count() desc", true,
               queryRes.getThisServicesAddr().toRNodeAddress()));
 
@@ -185,12 +185,14 @@ public class SimpleServerDeployIntegrationTest extends AbstractDiqubeIntegration
     serverControl.get(0).deploy(cp(AGE_0_CONTROL_FILE), cp(AGE_JSON_FILE));
     serverControl.get(1).deploy(cp(AGE_11_CONTROL_FILE), cp(AGE_JSON_FILE));
 
+    Ticket ticket = serverControl.get(0).loginSuperuser();
+
     // THEN results from both cluster nodes
     try (TestQueryResultService queryRes = QueryResultServiceTestUtil.createQueryResultService()) {
       RUUID queryUuid = RUuidUtil.toRUuid(UUID.randomUUID());
       logger.info("Executing query {}", RUuidUtil.toUuid(queryUuid));
       serverControl.get(0).getSerivceTestUtil()
-          .queryService((queryService) -> queryService.asyncExecuteQuery(queryUuid,
+          .queryService((queryService) -> queryService.asyncExecuteQuery(ticket, queryUuid,
               "select age, count() from age group by age order by count() desc", true,
               queryRes.getThisServicesAddr().toRNodeAddress()));
 
@@ -222,7 +224,7 @@ public class SimpleServerDeployIntegrationTest extends AbstractDiqubeIntegration
       RUUID queryUuid = RUuidUtil.toRUuid(UUID.randomUUID());
       logger.info("Executing query {}", RUuidUtil.toUuid(queryUuid));
       serverControl.get(0).getSerivceTestUtil()
-          .queryService((queryService) -> queryService.asyncExecuteQuery(queryUuid,
+          .queryService((queryService) -> queryService.asyncExecuteQuery(ticket, queryUuid,
               "select age, count() from age group by age order by count() desc", true,
               queryRes.getThisServicesAddr().toRNodeAddress()));
 
@@ -254,12 +256,14 @@ public class SimpleServerDeployIntegrationTest extends AbstractDiqubeIntegration
     serverControl.get(0).deploy(cp(AGE_0_CONTROL_FILE), cp(AGE_JSON_FILE));
     serverControl.get(0).deploy(cp(AGE_11_CONTROL_FILE), cp(AGE_JSON_FILE));
 
+    Ticket ticket = serverControl.get(0).loginSuperuser();
+
     // THEN
     try (TestQueryResultService queryRes = QueryResultServiceTestUtil.createQueryResultService()) {
       RUUID queryUuid = RUuidUtil.toRUuid(UUID.randomUUID());
       logger.info("Executing query {}", RUuidUtil.toUuid(queryUuid));
       serverControl.get(0).getSerivceTestUtil()
-          .queryService((queryService) -> queryService.asyncExecuteQuery(queryUuid,
+          .queryService((queryService) -> queryService.asyncExecuteQuery(ticket, queryUuid,
               "select age, count() from age group by age order by count() desc", true,
               queryRes.getThisServicesAddr().toRNodeAddress()));
 
@@ -291,7 +295,7 @@ public class SimpleServerDeployIntegrationTest extends AbstractDiqubeIntegration
       RUUID queryUuid = RUuidUtil.toRUuid(UUID.randomUUID());
       logger.info("Executing query {}", RUuidUtil.toUuid(queryUuid));
       serverControl.get(0).getSerivceTestUtil()
-          .queryService((queryService) -> queryService.asyncExecuteQuery(queryUuid,
+          .queryService((queryService) -> queryService.asyncExecuteQuery(ticket, queryUuid,
               "select age, count() from age group by age order by count() desc", true,
               queryRes.getThisServicesAddr().toRNodeAddress()));
 
@@ -330,18 +334,6 @@ public class SimpleServerDeployIntegrationTest extends AbstractDiqubeIntegration
     serverControl.get(0).deploy(cp(AGE_10_CONTROL_FILE), cp(AGE_JSON_FILE));
 
     // THEN WaitTimeoutException is thrown as the control file cannot be deployed.
-  }
-
-  private Map<ServerAddr, List<String>> toServerAddrCurrentMap(
-      Map<RNodeAddress, Map<Long, List<String>>> clusterLayout) {
-    Map<ServerAddr, List<String>> res = new HashMap<>();
-
-    for (Entry<RNodeAddress, Map<Long, List<String>>> e : clusterLayout.entrySet()) {
-      ServerAddr addr = new ServerAddr(e.getKey().getDefaultAddr().getHost(), e.getKey().getDefaultAddr().getPort());
-      res.put(addr, Iterables.getOnlyElement(e.getValue().values()));
-    }
-
-    return res;
   }
 
 }

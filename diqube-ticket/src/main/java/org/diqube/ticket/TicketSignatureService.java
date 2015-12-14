@@ -31,7 +31,7 @@ import org.bouncycastle.crypto.params.RSAKeyParameters;
 import org.bouncycastle.crypto.params.RSAPrivateCrtKeyParameters;
 import org.bouncycastle.crypto.signers.RSADigestSigner;
 import org.diqube.context.AutoInstatiate;
-import org.diqube.remote.query.thrift.Ticket;
+import org.diqube.thrift.base.thrift.Ticket;
 import org.diqube.util.Pair;
 
 /**

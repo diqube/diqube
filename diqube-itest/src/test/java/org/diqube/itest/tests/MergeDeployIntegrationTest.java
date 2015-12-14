@@ -37,6 +37,7 @@ import org.diqube.itest.util.Waiter;
 import org.diqube.server.NewDataWatcher;
 import org.diqube.thrift.base.thrift.RUUID;
 import org.diqube.thrift.base.thrift.RValue;
+import org.diqube.thrift.base.thrift.Ticket;
 import org.diqube.thrift.base.util.RUuidUtil;
 import org.diqube.thrift.base.util.RValueUtil;
 import org.diqube.util.Pair;
@@ -74,6 +75,8 @@ public class MergeDeployIntegrationTest extends AbstractDiqubeIntegrationTest {
     // deploy both non-transposed and transposed data
     serverControl.get(0).deploy(cp(AGE_CONTROL_FILE), work(AGE_DIQUBE_MERGED_FILE));
 
+    Ticket ticket = serverControl.get(0).loginSuperuser();
+
     Set<Pair<Long, Long>> expected = new HashSet<>();
     expected.add(new Pair<>(5L, 10L));
     expected.add(new Pair<>(3L, 6L));
@@ -84,7 +87,7 @@ public class MergeDeployIntegrationTest extends AbstractDiqubeIntegrationTest {
       RUUID queryUuid = RUuidUtil.toRUuid(UUID.randomUUID());
       logger.info("Executing query {}", RUuidUtil.toUuid(queryUuid));
       serverControl.get(0).getSerivceTestUtil()
-          .queryService((queryService) -> queryService.asyncExecuteQuery(queryUuid,
+          .queryService((queryService) -> queryService.asyncExecuteQuery(ticket, queryUuid,
               "select age, count() from " + AGE_TABLE + " group by age", true,
               queryRes.getThisServicesAddr().toRNodeAddress()));
 

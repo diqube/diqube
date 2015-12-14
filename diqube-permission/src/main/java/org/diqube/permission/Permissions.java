@@ -18,31 +18,24 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.ui.websocket.request.commands;
-
-import org.diqube.thrift.base.thrift.Ticket;
-import org.diqube.ui.websocket.request.CommandClusterInteraction;
-import org.diqube.ui.websocket.request.CommandResultHandler;
+package org.diqube.permission;
 
 /**
- * Cancels the execution of the request that was executed with the same reuqestId.
- *
- * <p>
- * Sends following results:
- * <ul>
- * <li>none
- * </ul>
+ * Permissions in diqube.
  * 
+ * <p>
+ * A user managed in diqube-im can have multiple permissions. Each permission can optionally have "objects" attached, in
+ * which case the permission is valid only for the given objects. Note that each permission is either object-based or
+ * not. See the JavaDoc of each permission.
+ *
  * @author Bastian Gloeckle
  */
-@CommandInformation(name = CancelJsonCommand.NAME)
-public class CancelJsonCommand implements JsonCommand {
-  public static final String NAME = "cancel";
-
-  @Override
-  public void execute(Ticket ticket, CommandResultHandler resultHandler, CommandClusterInteraction clusterInteraction)
-      throws RuntimeException {
-    // currently only queries can be cancelled.
-    clusterInteraction.cancelQuery();
-  }
+public class Permissions {
+  /**
+   * Permission to access specific tables.
+   * 
+   * <p>
+   * This permission needs "objects", which in turn are the table names the user has access to.
+   */
+  public static final String TABLE_ACCESS = "table_access";
 }

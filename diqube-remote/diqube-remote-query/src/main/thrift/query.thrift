@@ -34,11 +34,16 @@ exception RQueryException {
 }
 
 service QueryService {
-  void asyncExecuteQuery(1: base.RUUID queryRUuid, 
-                         2: string diql, 
-                         3: bool sendPartialUpdates, 
-                         4: base.RNodeAddress resultAddress) throws (1: RQueryException queryException)
-  void cancelQueryExecution(1: base.RUUID queryRUuid)
+  void asyncExecuteQuery(1: base.Ticket ticket,
+                         2: base.RUUID queryRUuid, 
+                         3: string diql, 
+                         4: bool sendPartialUpdates, 
+                         5: base.RNodeAddress resultAddress) 
+       throws (1: RQueryException queryException, 2: base.AuthenticationException authenticationException, 3:base.AuthorizationException authorizationException)
+       
+  // Note: has to be sent to the same node that also received the asyncExecuteQuery call!
+  void cancelQueryExecution(1: base.Ticket ticket, 2: base.RUUID queryRUuid) 
+       throws (1: base.AuthenticationException authenticationException, 2:base.AuthorizationException authorizationException)
 }
 
 struct RQueryStatisticsDetails {

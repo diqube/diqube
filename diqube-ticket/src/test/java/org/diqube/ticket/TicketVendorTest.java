@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import org.diqube.context.Profiles;
-import org.diqube.remote.query.thrift.Ticket;
+import org.diqube.thrift.base.thrift.Ticket;
 import org.diqube.ticket.TicketRsaKeyFileProvider.IOExceptionSupplier;
 import org.diqube.util.Triple;
 import org.springframework.beans.factory.support.RootBeanDefinition;

@@ -23,8 +23,8 @@ package org.diqube.ui.websocket.request.commands;
 import javax.validation.constraints.NotNull;
 
 import org.apache.thrift.TException;
-import org.diqube.remote.query.thrift.Ticket;
 import org.diqube.thrift.base.thrift.AuthenticationException;
+import org.diqube.thrift.base.thrift.Ticket;
 import org.diqube.ui.websocket.request.CommandClusterInteraction;
 import org.diqube.ui.websocket.request.CommandResultHandler;
 import org.diqube.ui.websocket.result.TicketJsonResult;

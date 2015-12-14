@@ -20,8 +20,8 @@
  */
 package org.diqube.ui.websocket.request.commands;
 
-import org.diqube.remote.query.thrift.Ticket;
 import org.diqube.thrift.base.thrift.AuthenticationException;
+import org.diqube.thrift.base.thrift.Ticket;
 import org.diqube.ui.websocket.request.CommandClusterInteraction;
 import org.diqube.ui.websocket.request.CommandResultHandler;
 import org.diqube.ui.websocket.request.JsonRequestDeserializer;
@@ -51,10 +51,9 @@ public interface JsonCommand {
    * to call this.
    * 
    * @param ticket
-   *          The ticket identifying the user. <code>null</code> if user is not logged in. The ticket is typically not
-   *          validated anyhow, but one can safely fail a command if it needs a ticket and none is there. Otherwise
-   *          probably the diqube-server will fail the request. Note that the validity of the Ticket was verified
-   *          already before the ticket is passed to any JsonCommand, but anyhow, the ticket might be rejected.
+   *          The ticket identifying the user. <code>null</code> if user is not logged in. Note that the validity of the
+   *          Ticket (if one is available) was verified already before the ticket is passed to any JsonCommand, but
+   *          anyhow, the ticket might be rejected. If a command needs the ticket, it should check if it is != null.
    * @param resultHandler
    *          Can be called to send any results to the client.
    * @param clusterInteraction

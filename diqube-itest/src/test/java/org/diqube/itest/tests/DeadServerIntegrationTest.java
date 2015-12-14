@@ -33,6 +33,7 @@ import org.diqube.itest.util.Waiter;
 import org.diqube.server.NewDataWatcher;
 import org.diqube.thrift.base.thrift.RUUID;
 import org.diqube.thrift.base.thrift.RValue;
+import org.diqube.thrift.base.thrift.Ticket;
 import org.diqube.thrift.base.util.RUuidUtil;
 import org.diqube.thrift.base.util.RValueUtil;
 import org.diqube.util.Pair;
@@ -66,12 +67,14 @@ public class DeadServerIntegrationTest extends AbstractDiqubeIntegrationTest {
     serverControl.get(1).deploy(cp(DOUBLEVAL_10_CONTROL_FILE), cp(DOUBLEVAL_JSON_FILE));
     serverControl.get(2).deploy(cp(DOUBLEVAL_20_CONTROL_FILE), cp(DOUBLEVAL_JSON_FILE));
 
+    Ticket ticket = serverControl.get(0).loginSuperuser();
+
     // THEN receive results from all three remotes
     try (TestQueryResultService queryRes = QueryResultServiceTestUtil.createQueryResultService()) {
       RUUID queryUuid = RUuidUtil.toRUuid(UUID.randomUUID());
       logger.info("Executing query {}", RUuidUtil.toUuid(queryUuid));
       serverControl.get(0).getSerivceTestUtil()
-          .queryService((queryService) -> queryService.asyncExecuteQuery(queryUuid,
+          .queryService((queryService) -> queryService.asyncExecuteQuery(ticket, queryUuid,
               "select v, count() from " + DOUBLEVAL_TABLE + " group by v order by count() desc, v desc", true,
               queryRes.getThisServicesAddr().toRNodeAddress()));
 
@@ -109,7 +112,7 @@ public class DeadServerIntegrationTest extends AbstractDiqubeIntegrationTest {
       RUUID queryUuid = RUuidUtil.toRUuid(UUID.randomUUID());
       logger.info("Executing query {}", RUuidUtil.toUuid(queryUuid));
       serverControl.get(0).getSerivceTestUtil()
-          .queryService((queryService) -> queryService.asyncExecuteQuery(queryUuid,
+          .queryService((queryService) -> queryService.asyncExecuteQuery(ticket, queryUuid,
               "select v, count() from " + DOUBLEVAL_TABLE + " group by v order by count() desc, v desc", true,
               queryRes.getThisServicesAddr().toRNodeAddress()));
 
@@ -148,7 +151,7 @@ public class DeadServerIntegrationTest extends AbstractDiqubeIntegrationTest {
       RUUID queryUuid = RUuidUtil.toRUuid(UUID.randomUUID());
       logger.info("Executing query {}", RUuidUtil.toUuid(queryUuid));
       serverControl.get(0).getSerivceTestUtil()
-          .queryService((queryService) -> queryService.asyncExecuteQuery(queryUuid,
+          .queryService((queryService) -> queryService.asyncExecuteQuery(ticket, queryUuid,
               "select v, count() from " + DOUBLEVAL_TABLE + " group by v order by count() desc, v desc", true,
               queryRes.getThisServicesAddr().toRNodeAddress()));
 

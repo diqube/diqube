@@ -26,7 +26,7 @@ import org.diqube.consensus.ConsensusMethod;
 import org.diqube.consensus.ConsensusStateMachine;
 import org.diqube.consensus.ConsensusUtil;
 import org.diqube.remote.query.thrift.IdentityCallbackService;
-import org.diqube.remote.query.thrift.Ticket;
+import org.diqube.thrift.base.thrift.Ticket;
 
 import io.atomix.copycat.client.Command;
 import io.atomix.copycat.client.Query;

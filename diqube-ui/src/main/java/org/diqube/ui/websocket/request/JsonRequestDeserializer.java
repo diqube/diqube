@@ -35,8 +35,8 @@ import javax.inject.Inject;
 import javax.websocket.Session;
 
 import org.diqube.context.AutoInstatiate;
-import org.diqube.remote.query.thrift.Ticket;
 import org.diqube.thrift.base.thrift.AuthenticationException;
+import org.diqube.thrift.base.thrift.Ticket;
 import org.diqube.ticket.TicketUtil;
 import org.diqube.ticket.TicketValidityService;
 import org.diqube.ui.websocket.request.commands.CommandInformation;

@@ -20,8 +20,8 @@
  */
 package org.diqube.remote.query;
 
-import org.diqube.remote.query.thrift.Ticket;
 import org.diqube.remote.query.thrift.TicketInfo;
+import org.diqube.thrift.base.thrift.Ticket;
 
 /**
  *

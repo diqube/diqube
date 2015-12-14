@@ -36,6 +36,7 @@ import org.diqube.itest.util.TestDataGenerator;
 import org.diqube.itest.util.Waiter;
 import org.diqube.server.NewDataWatcher;
 import org.diqube.thrift.base.thrift.RUUID;
+import org.diqube.thrift.base.thrift.Ticket;
 import org.diqube.thrift.base.util.RUuidUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,6 +68,8 @@ public class QueryTimeoutIntegrationTest extends AbstractDiqubeIntegrationTest {
     serverControl.get(0).start(prop -> prop.setProperty(ConfigKey.QUERY_EXECUTION_TIMEOUT_SECONDS, "1"));
     serverControl.get(0).deploy(cp(BIG_CONTROL_FILE), work(BIG_DATA_FILE_WORK));
 
+    Ticket ticket = serverControl.get(0).loginSuperuser();
+
     // THEN
     try (TestQueryResultService queryRes = QueryResultServiceTestUtil.createQueryResultService()) {
       UUID queryUuid = UUID.randomUUID();
@@ -74,7 +77,7 @@ public class QueryTimeoutIntegrationTest extends AbstractDiqubeIntegrationTest {
       logger.info("Executing query {}", RUuidUtil.toUuid(queryRUuid));
       // execute a long-running query. It should just take longer than the timeout we set above...
       serverControl.get(0).getSerivceTestUtil()
-          .queryService((queryService) -> queryService.asyncExecuteQuery(queryRUuid,
+          .queryService((queryService) -> queryService.asyncExecuteQuery(ticket, queryRUuid,
               "select avg(add(a[*].a[*], 1)), avg(add(a[*].b[*], 1)), avg(add(b[*].a[*], 1)) from " + BIG_TABLE, true,
               queryRes.getThisServicesAddr().toRNodeAddress()));
 

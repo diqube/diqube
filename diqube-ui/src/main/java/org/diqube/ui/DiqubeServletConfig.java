@@ -28,7 +28,7 @@ import javax.servlet.ServletContext;
 
 import org.diqube.context.AutoInstatiate;
 import org.diqube.context.InjectOptional;
-import org.diqube.remote.query.thrift.Ticket;
+import org.diqube.thrift.base.thrift.Ticket;
 import org.diqube.util.Pair;
 
 /**

@@ -30,6 +30,7 @@ import org.diqube.itest.util.QueryResultServiceTestUtil.TestQueryResultService;
 import org.diqube.itest.util.Waiter;
 import org.diqube.server.NewDataWatcher;
 import org.diqube.thrift.base.thrift.RUUID;
+import org.diqube.thrift.base.thrift.Ticket;
 import org.diqube.thrift.base.util.RUuidUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,12 +59,14 @@ public class DiqlExecutionIntegrationTest extends AbstractDiqubeIntegrationTest 
     serverControl.get(0).deploy(cp(AGE_0_CONTROL_FILE), cp(AGE_JSON_FILE));
     serverControl.get(0).deploy(cp(AGE_11_CONTROL_FILE), cp(AGE_JSON_FILE));
 
+    Ticket ticket = serverControl.get(0).loginSuperuser();
+
     // THEN
     try (TestQueryResultService queryRes = QueryResultServiceTestUtil.createQueryResultService()) {
       RUUID queryUuid = RUuidUtil.toRUuid(UUID.randomUUID());
       logger.info("Executing query {}", RUuidUtil.toUuid(queryUuid));
       serverControl.get(0).getSerivceTestUtil()
-          .queryService((queryService) -> queryService.asyncExecuteQuery(queryUuid,
+          .queryService((queryService) -> queryService.asyncExecuteQuery(ticket, queryUuid,
               "select age, count() from age where add(age, 1) > 100 group by age", true,
               queryRes.getThisServicesAddr().toRNodeAddress()));
 
@@ -84,12 +87,14 @@ public class DiqlExecutionIntegrationTest extends AbstractDiqubeIntegrationTest 
     serverControl.get(0).deploy(cp(AGE_0_CONTROL_FILE), cp(AGE_JSON_FILE));
     serverControl.get(0).deploy(cp(AGE_11_CONTROL_FILE), cp(AGE_JSON_FILE));
 
+    Ticket ticket = serverControl.get(0).loginSuperuser();
+
     // THEN
     try (TestQueryResultService queryRes = QueryResultServiceTestUtil.createQueryResultService()) {
       RUUID queryUuid = RUuidUtil.toRUuid(UUID.randomUUID());
       logger.info("Executing query {}", RUuidUtil.toUuid(queryUuid));
       serverControl.get(0).getSerivceTestUtil()
-          .queryService((queryService) -> queryService.asyncExecuteQuery(queryUuid,
+          .queryService((queryService) -> queryService.asyncExecuteQuery(ticket, queryUuid,
               "select age, count() from age group by age having count() > 100", true,
               queryRes.getThisServicesAddr().toRNodeAddress()));
 

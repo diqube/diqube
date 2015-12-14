@@ -22,7 +22,7 @@ package org.diqube.ui.websocket.request.commands.analysis;
 
 import javax.inject.Inject;
 
-import org.diqube.remote.query.thrift.Ticket;
+import org.diqube.thrift.base.thrift.Ticket;
 import org.diqube.ui.AnalysisRegistry;
 import org.diqube.ui.analysis.UiAnalysis;
 import org.diqube.ui.websocket.request.CommandClusterInteraction;

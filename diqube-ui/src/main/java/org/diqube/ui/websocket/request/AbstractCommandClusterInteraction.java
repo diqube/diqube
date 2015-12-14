@@ -42,11 +42,12 @@ import org.diqube.remote.query.thrift.FlattenPreparationService;
 import org.diqube.remote.query.thrift.IdentityService;
 import org.diqube.remote.query.thrift.QueryResultService;
 import org.diqube.remote.query.thrift.QueryResultService.Iface;
-import org.diqube.thrift.base.thrift.RNodeAddress;
-import org.diqube.thrift.base.thrift.RNodeHttpAddress;
-import org.diqube.thrift.base.util.RUuidUtil;
 import org.diqube.remote.query.thrift.QueryService;
 import org.diqube.remote.query.thrift.RQueryException;
+import org.diqube.thrift.base.thrift.RNodeAddress;
+import org.diqube.thrift.base.thrift.RNodeHttpAddress;
+import org.diqube.thrift.base.thrift.Ticket;
+import org.diqube.thrift.base.util.RUuidUtil;
 import org.diqube.ui.DiqubeServletConfig;
 import org.diqube.ui.ThriftServlet;
 import org.diqube.ui.UiQueryRegistry;
@@ -64,8 +65,15 @@ public abstract class AbstractCommandClusterInteraction implements CommandCluste
 
   private DiqubeServletConfig config;
 
-  /* package */ AbstractCommandClusterInteraction(DiqubeServletConfig config) {
+  private Ticket ticket;
+
+  /**
+   * @param ticket
+   *          <code>null</code> or a {@link Ticket} that has been validated already.
+   */
+  /* package */ AbstractCommandClusterInteraction(DiqubeServletConfig config, Ticket ticket) {
     this.config = config;
+    this.ticket = ticket;
   }
 
   @Override
@@ -86,6 +94,9 @@ public abstract class AbstractCommandClusterInteraction implements CommandCluste
 
   @Override
   public void cancelQuery() {
+    if (ticket == null)
+      throw new RuntimeException("Not logged in.");
+
     Pair<UUID, Pair<String, Short>> queryUuidAndAddrPair = findQueryUuidAndServerAddr();
 
     UUID queryUuid = queryUuidAndAddrPair.getLeft();
@@ -102,7 +113,7 @@ public abstract class AbstractCommandClusterInteraction implements CommandCluste
       transport.open();
 
       logger.info("Sending request to cancel query {} to the diqube server at {}.", queryUuid, serverAddr);
-      queryClient.cancelQueryExecution(RUuidUtil.toRUuid(queryUuid));
+      queryClient.cancelQueryExecution(ticket, RUuidUtil.toRUuid(queryUuid));
     } catch (TException e) {
       logger.warn("Could not cancel execution of query {} although requested by user.", queryUuidAndAddrPair);
     } finally {
@@ -168,6 +179,9 @@ public abstract class AbstractCommandClusterInteraction implements CommandCluste
   }
 
   private UUID sendDiqlQuery(Pair<String, Short> node, String diql, QueryResultService.Iface resultHandler) {
+    if (ticket == null)
+      throw new RuntimeException("Not logged in.");
+
     QueryService.Iface queryClient =
         openConnection(QueryService.Client.class, QueryServiceConstants.SERVICE_NAME, node);
 
@@ -178,7 +192,7 @@ public abstract class AbstractCommandClusterInteraction implements CommandCluste
     try {
       registerQueryThriftResultCallback(node, queryUuid, resultHandler);
 
-      queryClient.asyncExecuteQuery(RUuidUtil.toRUuid(queryUuid), //
+      queryClient.asyncExecuteQuery(ticket, RUuidUtil.toRUuid(queryUuid), //
           diql, //
           true, createOurAddress());
       logger.info("Started executing new query {} on server {}", queryUuid, node);

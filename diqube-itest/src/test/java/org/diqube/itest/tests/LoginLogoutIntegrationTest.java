@@ -31,9 +31,9 @@ import org.diqube.itest.annotations.NeedsServer;
 import org.diqube.itest.util.IdentityCallbackServiceTestUtil;
 import org.diqube.itest.util.IdentityCallbackServiceTestUtil.TestIdentityCallbackService;
 import org.diqube.itest.util.Waiter;
-import org.diqube.remote.query.thrift.Ticket;
 import org.diqube.remote.query.thrift.TicketInfo;
 import org.diqube.thrift.base.thrift.AuthenticationException;
+import org.diqube.thrift.base.thrift.Ticket;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

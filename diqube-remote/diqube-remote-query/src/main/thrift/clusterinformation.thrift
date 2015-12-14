@@ -24,5 +24,5 @@ namespace java org.diqube.remote.query.thrift
 include "${diqube.thrift.dependencies}/base.thrift"
 
 service ClusterInformationService {
-  list<string> getAvailableTables()
+  list<string> getAvailableTables(1: base.Ticket ticket) throws (1: base.AuthenticationException authenticationException)
 }

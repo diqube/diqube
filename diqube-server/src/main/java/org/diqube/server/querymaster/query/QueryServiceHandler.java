@@ -25,8 +25,10 @@ import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.Executor;
@@ -39,13 +41,20 @@ import javax.inject.Inject;
 import org.apache.thrift.TException;
 import org.diqube.connection.Connection;
 import org.diqube.connection.ConnectionException;
-import org.diqube.connection.ConnectionOrLocalHelper;
 import org.diqube.connection.ConnectionPool;
 import org.diqube.connection.SocketListener;
 import org.diqube.context.AutoInstatiate;
+import org.diqube.diql.DiqlParseUtil;
 import org.diqube.diql.ParseException;
+import org.diqube.diql.antlr.DiqlParser.DiqlStmtContext;
+import org.diqube.diql.request.ExecutionRequest;
+import org.diqube.diql.request.FromRequest;
+import org.diqube.diql.visitors.SelectStmtVisitor;
 import org.diqube.execution.ExecutablePlan;
 import org.diqube.execution.steps.ExecuteRemotePlanOnShardsStep;
+import org.diqube.name.FunctionBasedColumnNameBuilderFactory;
+import org.diqube.name.RepeatedColumnNameGenerator;
+import org.diqube.permission.TableAccessPermissionUtil;
 import org.diqube.plan.ExecutionPlanBuilderFactory;
 import org.diqube.plan.exception.ValidationException;
 import org.diqube.queries.QueryRegistry;
@@ -62,9 +71,13 @@ import org.diqube.remote.query.thrift.RQueryStatistics;
 import org.diqube.remote.query.thrift.RResultTable;
 import org.diqube.server.util.ExecutablePlanQueryStatsUtil;
 import org.diqube.threads.ExecutorManager;
+import org.diqube.thrift.base.thrift.AuthenticationException;
+import org.diqube.thrift.base.thrift.AuthorizationException;
 import org.diqube.thrift.base.thrift.RNodeAddress;
 import org.diqube.thrift.base.thrift.RUUID;
+import org.diqube.thrift.base.thrift.Ticket;
 import org.diqube.thrift.base.util.RUuidUtil;
+import org.diqube.ticket.TicketValidityService;
 import org.diqube.util.Holder;
 import org.diqube.util.Triple;
 import org.slf4j.Logger;
@@ -97,11 +110,22 @@ public class QueryServiceHandler implements Iface {
   private QueryUuidProvider queryUuidProvider;
 
   @Inject
-  private ConnectionOrLocalHelper connectionOrLocalHelper;
+  private TicketValidityService ticketValidityService;
+
+  @Inject
+  private TableAccessPermissionUtil tableAccessPermissionUtil;
+
+  @Inject
+  private RepeatedColumnNameGenerator repeatedColumnNameGenerator;
+
+  @Inject
+  private FunctionBasedColumnNameBuilderFactory functionBasedColumnNameBuilderFactory;
 
   private ExecutorService cancelExecutors;
 
   private Set<UUID> toCancelQueries = new ConcurrentSkipListSet<>();
+
+  private Map<UUID, String> queryUserNames = new ConcurrentHashMap<>();
 
   @PostConstruct
   public void initialize() {
@@ -127,8 +151,17 @@ public class QueryServiceHandler implements Iface {
    * {@link #asyncExecuteQuery(RUUID, String, boolean, RNodeAddress)} was called!
    */
   @Override
-  public void cancelQueryExecution(RUUID queryRUuid) throws TException {
+  public void cancelQueryExecution(Ticket ticket, RUUID queryRUuid)
+      throws TException, AuthenticationException, AuthorizationException {
+    ticketValidityService.validateTicket(ticket);
+
     UUID queryUuid = RUuidUtil.toUuid(queryRUuid);
+
+    if (!ticket.getClaim().isIsSuperUser() && (!queryUserNames.containsKey(queryUuid)
+        || !queryUserNames.get(queryUuid).equals(ticket.getClaim().getUsername())))
+      // use can cancel his own queries, superuser can cancel all.
+      throw new AuthorizationException();
+
     logger.info("Received request to cancel query {}. Cancelling.", queryUuid);
 
     toCancelQueries.add(queryUuid);
@@ -156,11 +189,19 @@ public class QueryServiceHandler implements Iface {
    * the given {@link RNodeAddress}.
    */
   @Override
-  public void asyncExecuteQuery(RUUID queryRUuid, String diql, boolean sendPartialUpdates, RNodeAddress resultAddress)
-      throws TException, RQueryException {
+  public void asyncExecuteQuery(Ticket ticket, RUUID queryRUuid, String diql, boolean sendPartialUpdates,
+      RNodeAddress resultAddress) throws TException, RQueryException, AuthenticationException, AuthorizationException {
+    ticketValidityService.validateTicket(ticket);
+
+    FromRequest fromRequest = parseFromRequest(diql);
+    if (fromRequest == null || !tableAccessPermissionUtil.hasAccessToTable(ticket, fromRequest.getTable()))
+      throw new AuthorizationException();
+
     UUID queryUuid = RUuidUtil.toUuid(queryRUuid);
     logger.info("Async query {}, partial {}, resultAddress {}: {}",
         new Object[] { queryUuid, sendPartialUpdates, resultAddress, diql });
+
+    queryUserNames.put(queryUuid, ticket.getClaim().getUsername());
 
     UUID executionUuid = queryUuidProvider.createNewExecutionUuid(queryUuid, "master-" + queryUuid);
 
@@ -183,20 +224,23 @@ public class QueryServiceHandler implements Iface {
           cancelExecutionOnTriggeredRemotes(queryRUuid, remoteExecutionStepHolder.getValue());
 
         queryRegistry.cleanupQueryFully(queryUuid);
+        queryUserNames.remove(queryUuid);
         // kill all executions, also remote ones.
         executorManager.shutdownEverythingOfQuery(queryUuid);
       }
     };
 
     Connection<QueryResultService.Iface> resultConnection;
+    QueryResultService.Iface resultService;
     try {
       resultConnection =
           connectionPool.reserveConnection(QueryResultService.Iface.class, resultAddress, resultSocketListener);
-    } catch (ConnectionException | InterruptedException e) {
+      resultService = resultConnection.getService();
+    } catch (ConnectionException | InterruptedException | IllegalStateException e) {
+      queryUserNames.remove(queryUuid);
       logger.error("Could not open connection to result node", e);
       throw new RQueryException("Could not open connection to result node: " + e.getMessage());
     }
-    QueryResultService.Iface resultService = resultConnection.getService();
 
     QueryExceptionHandler exceptionHandler = new QueryExceptionHandler() {
       @Override
@@ -220,6 +264,7 @@ public class QueryServiceHandler implements Iface {
         // shutdown everything.
         connectionPool.releaseConnection(resultConnection);
         queryRegistry.cleanupQueryFully(queryUuid);
+        queryUserNames.remove(queryUuid);
         // kill all executions, also remote ones.
         executorManager.shutdownEverythingOfQuery(queryUuid);
       }
@@ -273,6 +318,7 @@ public class QueryServiceHandler implements Iface {
             // be sure to clean up everything.
             connectionPool.releaseConnection(resultConnection);
             queryRegistry.cleanupQueryFully(queryUuid);
+            queryUserNames.remove(queryUuid);
             // kill all executions, also remote ones. THis will kill our thread, too.
             executorManager.shutdownEverythingOfQuery(queryUuid);
           }
@@ -348,6 +394,7 @@ public class QueryServiceHandler implements Iface {
             // be sure to clean up everything.
             connectionPool.releaseConnection(resultConnection);
             queryRegistry.cleanupQueryFully(queryUuid);
+            queryUserNames.remove(queryUuid);
             // kill all executions, also remote ones. This will kill our thread, too.
             executorManager.shutdownEverythingOfQuery(queryUuid);
           }
@@ -361,6 +408,7 @@ public class QueryServiceHandler implements Iface {
       connectionPool.releaseConnection(resultConnection);
       queryRegistry.cleanupQueryFully(queryUuid);
       toCancelQueries.remove(queryUuid);
+      queryUserNames.remove(queryUuid);
       return;
     }
 
@@ -376,6 +424,7 @@ public class QueryServiceHandler implements Iface {
       logger.warn("Exception while preparing the query execution of {}: {}", queryUuid, e.getMessage());
       connectionPool.releaseConnection(resultConnection);
       queryRegistry.cleanupQueryFully(queryUuid);
+      queryUserNames.remove(queryUuid);
       throw new RQueryException(e.getMessage());
     }
 
@@ -408,4 +457,13 @@ public class QueryServiceHandler implements Iface {
       logger.trace("Cannot cancel execution on remotes. remoteNodesActive: {}", remoteNodesActive);
   }
 
+  /**
+   * Parse given diql and return the {@link FromRequest}.
+   */
+  private FromRequest parseFromRequest(String diql) {
+    DiqlStmtContext sqlStmt = DiqlParseUtil.parseWithAntlr(diql);
+    ExecutionRequest executionRequest =
+        sqlStmt.accept(new SelectStmtVisitor(repeatedColumnNameGenerator, functionBasedColumnNameBuilderFactory));
+    return executionRequest.getFromRequest();
+  }
 }

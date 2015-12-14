@@ -53,6 +53,21 @@ union RValue {
 }
 
 
+struct TicketClaim {
+    1: RUUID ticketId,
+    2: string username,
+    3: bool isSuperUser,
+    4: i64 validUntil
+}
+
+struct Ticket {
+    // IMPORTANT: TicketUtil depends on this ordering, as it records the bytes of a serialized Ticket used to describe
+    // the TicketClaim! Those bytes are then used to calculate the signature.
+    1: TicketClaim claim,
+    2: binary signature
+}
+
+
 exception AuthenticationException {
     1: string msg 
 }

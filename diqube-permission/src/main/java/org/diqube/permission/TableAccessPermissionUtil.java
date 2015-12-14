@@ -18,38 +18,29 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.cluster;
-
-import java.util.ArrayList;
-import java.util.List;
+package org.diqube.permission;
 
 import javax.inject.Inject;
 
-import org.apache.thrift.TException;
 import org.diqube.context.AutoInstatiate;
-import org.diqube.remote.query.thrift.ClusterInformationService;
+import org.diqube.thrift.base.thrift.Ticket;
 
 /**
- * Handler for the service that clients can use to get information about the cluster of diqube-servers.
+ * Utility class for {@link Permissions#TABLE_ACCESS}.
  *
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
-public class ClusterInformationServiceHandler implements ClusterInformationService.Iface {
-
+public class TableAccessPermissionUtil {
   @Inject
-  private ClusterLayout clusterLayout;
+  private PermissionsUtil permissionsUtil;
 
   /**
-   * Lists the names of the tables that are currently available in the diqube-server cluster.
+   * @param ticket
+   *          Must have been validated before!
    */
-  @Override
-  public List<String> getAvailableTables() throws TException {
-    try {
-      // TODO #48: We should not use the ClusterLayout for this, but the new to-be-created information on table data.
-      return new ArrayList<>(clusterLayout.getAllTablesServed());
-    } catch (InterruptedException e) {
-      throw new TException("Interrupted", e);
-    }
+  public boolean hasAccessToTable(Ticket ticket, String tableName) {
+    return permissionsUtil.hasPermission(ticket, Permissions.TABLE_ACCESS, tableName);
   }
+
 }

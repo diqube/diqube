@@ -33,7 +33,7 @@ import org.diqube.diql.request.ExecutionRequest;
 import org.diqube.diql.visitors.SelectStmtVisitor;
 import org.diqube.name.FunctionBasedColumnNameBuilderFactory;
 import org.diqube.name.RepeatedColumnNameGenerator;
-import org.diqube.remote.query.thrift.Ticket;
+import org.diqube.thrift.base.thrift.Ticket;
 import org.diqube.ui.AnalysisRegistry;
 import org.diqube.ui.analysis.AnalysisFactory;
 import org.diqube.ui.analysis.UiAnalysis;
@@ -92,6 +92,9 @@ public class CreateAnalysisJsonCommand implements JsonCommand {
   @Override
   public void execute(Ticket ticket, CommandResultHandler resultHandler, CommandClusterInteraction clusterInteraction)
       throws RuntimeException {
+    if (ticket == null)
+      throw new RuntimeException("Not logged in.");
+
     UiAnalysis res = factory.createAnalysis(UUID.randomUUID().toString(), name, table);
 
     registry.registerUiAnalysis(res);
@@ -106,7 +109,8 @@ public class CreateAnalysisJsonCommand implements JsonCommand {
         String origTableName = executionRequest.getFromRequest().getTable();
         String flattenBy = executionRequest.getFromRequest().getFlattenByField();
         try {
-          clusterInteraction.getFlattenPreparationService().prepareForQueriesOnFlattenedTable(origTableName, flattenBy);
+          clusterInteraction.getFlattenPreparationService().prepareForQueriesOnFlattenedTable(ticket, origTableName,
+              flattenBy);
         } catch (TException e) {
           logger.warn("Could not prepare flattening of '{}' by '{}' for new analysis {}", origTableName, flattenBy,
               res.getId());

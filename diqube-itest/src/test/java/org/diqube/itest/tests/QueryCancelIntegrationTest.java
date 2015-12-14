@@ -46,6 +46,7 @@ import org.diqube.remote.cluster.thrift.RExecutionPlan;
 import org.diqube.remote.query.thrift.QueryService;
 import org.diqube.server.NewDataWatcher;
 import org.diqube.thrift.base.thrift.RUUID;
+import org.diqube.thrift.base.thrift.Ticket;
 import org.diqube.thrift.base.util.RUuidUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -81,6 +82,8 @@ public class QueryCancelIntegrationTest extends AbstractDiqubeIntegrationTest {
     serverControl.get(0).deploy(cp(BIG_CONTROL_FILE), work(BIG_DATA_FILE_WORK));
     serverControl.get(1).deploy(cp(BIG2_CONTROL_FILE), work(BIG_DATA_FILE_WORK));
 
+    Ticket ticket = serverControl.get(0).loginSuperuser();
+
     // THEN
     try (TestQueryResultService queryRes = QueryResultServiceTestUtil.createQueryResultService()) {
       String diqlQuery =
@@ -90,8 +93,8 @@ public class QueryCancelIntegrationTest extends AbstractDiqubeIntegrationTest {
       RUUID queryRUuid = RUuidUtil.toRUuid(queryUuid);
       logger.info("Executing query {}", RUuidUtil.toUuid(queryRUuid));
       // execute a long-running query. It should just take longer than the timeout we set above...
-      serverControl.get(0).getSerivceTestUtil().queryService((queryService) -> queryService
-          .asyncExecuteQuery(queryRUuid, diqlQuery, true, queryRes.getThisServicesAddr().toRNodeAddress()));
+      serverControl.get(0).getSerivceTestUtil().queryService((queryService) -> queryService.asyncExecuteQuery(ticket,
+          queryRUuid, diqlQuery, true, queryRes.getThisServicesAddr().toRNodeAddress()));
 
       new Waiter().waitUntil("Remote worker threads start showing up", 2, 300,
           () -> threadDumpContainsString(serverControl.get(0), "query-remote-worker-" + queryUuid.toString()) && //
@@ -100,7 +103,7 @@ public class QueryCancelIntegrationTest extends AbstractDiqubeIntegrationTest {
       // now remotes are running. Cancel execution.
       logger.info("Canceling query {}", queryUuid);
       serverControl.get(0).getSerivceTestUtil()
-          .queryService(queryService -> queryService.cancelQueryExecution(queryRUuid));
+          .queryService(queryService -> queryService.cancelQueryExecution(ticket, queryRUuid));
 
       // now /all/ threads should be cancelled within a short amount of time, both the ones of query master and the ones
       // of query remotes.

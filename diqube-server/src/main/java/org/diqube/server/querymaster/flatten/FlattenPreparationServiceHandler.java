@@ -29,9 +29,14 @@ import org.apache.thrift.TException;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.flatten.QueryMasterFlattenService;
 import org.diqube.flatten.QueryMasterFlattenService.QueryMasterFlattenCallback;
+import org.diqube.permission.TableAccessPermissionUtil;
 import org.diqube.remote.query.thrift.FlattenPreparationService;
 import org.diqube.remote.query.thrift.RFlattenPreparationException;
+import org.diqube.thrift.base.thrift.AuthenticationException;
+import org.diqube.thrift.base.thrift.AuthorizationException;
 import org.diqube.thrift.base.thrift.RNodeAddress;
+import org.diqube.thrift.base.thrift.Ticket;
+import org.diqube.ticket.TicketValidityService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,9 +54,20 @@ public class FlattenPreparationServiceHandler implements FlattenPreparationServi
   @Inject
   private QueryMasterFlattenService queryMasterFlattenService;
 
+  @Inject
+  private TicketValidityService ticketValidityService;
+
+  @Inject
+  private TableAccessPermissionUtil tableAccessPermissionUtil;
+
   @Override
-  public void prepareForQueriesOnFlattenedTable(String tableName, String flattenBy)
-      throws RFlattenPreparationException, TException {
+  public void prepareForQueriesOnFlattenedTable(Ticket ticket, String tableName, String flattenBy)
+      throws RFlattenPreparationException, TException, AuthenticationException, AuthorizationException {
+    ticketValidityService.validateTicket(ticket);
+
+    if (!tableAccessPermissionUtil.hasAccessToTable(ticket, tableName))
+      throw new AuthorizationException();
+
     // start to asynchronously flatten the table, do not care about results.
     queryMasterFlattenService.flattenAsync(tableName, flattenBy, new QueryMasterFlattenCallback() {
       @Override
