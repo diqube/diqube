@@ -62,7 +62,7 @@ public class LoginJsonCommand implements JsonCommand {
     try {
       newTicket = clusterInteraction.getIdentityService().login(username, password);
     } catch (AuthenticationException e) {
-      throw new RuntimeException(e.getMsg(), e);
+      throw new RuntimeException(e.getMessage(), e);
     } catch (TException e) {
       throw new RuntimeException("Could not login.", e);
     }

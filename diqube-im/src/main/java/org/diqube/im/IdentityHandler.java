@@ -199,14 +199,14 @@ public class IdentityHandler implements IdentityService.Iface {
   }
 
   @Override
-  public void logout(Ticket ticket) throws TException {
+  public void logout(Ticket ticket) throws TException, AuthorizationException {
     if (!ticketSignatureService
         .isValidTicketSignature(TicketUtil.deserialize(ByteBuffer.wrap(TicketUtil.serialize(ticket))))) {
       // filter out tickets with invalid signature, since we do not want to let users flood the consensus cluster with
       // requests.
       logger.info("Someone tried to logout with an invalid ticket. Username provided in ticket is '{}'",
           ticket.getClaim().getUsername());
-      throw new TException("Ticket signaure invalid.");
+      throw new AuthorizationException("Ticket signaure invalid.");
     }
 
     logger.info("Logging out user '{}', ticket valid until {}", ticket.getClaim().getUsername(),
@@ -250,7 +250,7 @@ public class IdentityHandler implements IdentityService.Iface {
       throw new AuthorizationException();
 
     if (permissionCheck.isSuperuser(username))
-      throw new TException("Superuser password cannot be changed. Change in configuration of server.");
+      throw new AuthorizationException("Superuser password cannot be changed. Change in configuration of server.");
 
     logger.info("Password of user '{}' is being changed, authorized by ticket of '{}'", username,
         ticket.getClaim().getUsername());
@@ -258,7 +258,7 @@ public class IdentityHandler implements IdentityService.Iface {
     try (ClosableProvider<IdentityStateMachine> p = consensusClient.getStateMachineClient(IdentityStateMachine.class)) {
       SUser user = p.getClient().getUser(GetUser.local(username));
       if (user == null)
-        throw new TException("User does not exist");
+        throw new AuthorizationException("User does not exist");
 
       internalSetUserPassword(user, newPassword);
 
@@ -275,7 +275,7 @@ public class IdentityHandler implements IdentityService.Iface {
       throw new AuthorizationException();
 
     if (!permissionCheck.isSuperuser(username))
-      throw new TException("Superuser password cannot be changed. Change in configuration of server.");
+      throw new AuthorizationException("Superuser password cannot be changed. Change in configuration of server.");
 
     logger.info("E-Mail of user '{}' is being changed, authorized by ticket of '{}'", username,
         ticket.getClaim().getUsername());
@@ -283,7 +283,7 @@ public class IdentityHandler implements IdentityService.Iface {
     try (ClosableProvider<IdentityStateMachine> p = consensusClient.getStateMachineClient(IdentityStateMachine.class)) {
       SUser user = p.getClient().getUser(GetUser.local(username));
       if (user == null)
-        throw new TException("User does not exist");
+        throw new AuthorizationException("User does not exist");
 
       user.setEmail(newEmail);
 
@@ -300,7 +300,7 @@ public class IdentityHandler implements IdentityService.Iface {
       throw new AuthorizationException();
 
     if (permissionCheck.isSuperuser(username))
-      throw new TException("Superuser permissions cannot be changed.");
+      throw new AuthorizationException("Superuser permissions cannot be changed.");
 
     logger.info("Permission ({}/{}) is added to user '{}', authorized by ticket of '{}'", permission, object, username,
         ticket.getClaim().getUsername());
@@ -308,7 +308,7 @@ public class IdentityHandler implements IdentityService.Iface {
     try (ClosableProvider<IdentityStateMachine> p = consensusClient.getStateMachineClient(IdentityStateMachine.class)) {
       SUser user = p.getClient().getUser(GetUser.local(username));
       if (user == null)
-        throw new TException("User does not exist");
+        throw new AuthorizationException("User does not exist");
 
       if (!user.isSetPermissions())
         user.setPermissions(new ArrayList<>());
@@ -347,7 +347,7 @@ public class IdentityHandler implements IdentityService.Iface {
       throw new AuthorizationException();
 
     if (permissionCheck.isSuperuser(username))
-      throw new TException("Superuser permissions cannot be changed.");
+      throw new AuthorizationException("Superuser permissions cannot be changed.");
 
     logger.info("Permission ({}/{}) is removed from user '{}', authorized by ticket of '{}'", permission, object,
         username, ticket.getClaim().getUsername());
@@ -355,7 +355,7 @@ public class IdentityHandler implements IdentityService.Iface {
     try (ClosableProvider<IdentityStateMachine> p = consensusClient.getStateMachineClient(IdentityStateMachine.class)) {
       SUser user = p.getClient().getUser(GetUser.local(username));
       if (user == null)
-        throw new TException("User does not exist");
+        throw new AuthorizationException("User does not exist");
 
       if (!user.isSetPermissions())
         return;
@@ -391,14 +391,14 @@ public class IdentityHandler implements IdentityService.Iface {
       throw new AuthorizationException();
 
     if (permissionCheck.isSuperuser(username))
-      throw new TException("Cannot query permissions of superuser.");
+      throw new AuthorizationException("Cannot query permissions of superuser.");
 
     SUser user;
     try (ClosableProvider<IdentityStateMachine> p = consensusClient.getStateMachineClient(IdentityStateMachine.class)) {
       user = p.getClient().getUser(GetUser.local(username));
     }
     if (user == null)
-      throw new TException("User does not exist");
+      throw new AuthorizationException("User does not exist");
 
     if (!user.isSetPermissions())
       return new HashMap<>();
@@ -423,7 +423,7 @@ public class IdentityHandler implements IdentityService.Iface {
       throw new AuthorizationException();
 
     if (permissionCheck.isSuperuser(username))
-      throw new TException("Superuser permissions cannot be changed.");
+      throw new AuthorizationException("Superuser permissions cannot be changed.");
 
     logger.info("User '{}' is being created, authorized by ticket of '{}'", username, ticket.getClaim().getUsername());
 
@@ -446,7 +446,7 @@ public class IdentityHandler implements IdentityService.Iface {
       throw new AuthorizationException();
 
     if (permissionCheck.isSuperuser(username))
-      throw new TException("Superuser cannot be deleted.");
+      throw new AuthorizationException("Superuser cannot be deleted.");
 
     logger.info("User '{}' is being deleted, authorized by ticket of '{}'", username, ticket.getClaim().getUsername());
 
@@ -463,14 +463,14 @@ public class IdentityHandler implements IdentityService.Iface {
       throw new AuthorizationException();
 
     if (permissionCheck.isSuperuser(username))
-      throw new TException("Cannot query permissions of superuser.");
+      throw new AuthorizationException("Cannot query permissions of superuser.");
 
     SUser user;
     try (ClosableProvider<IdentityStateMachine> p = consensusClient.getStateMachineClient(IdentityStateMachine.class)) {
       user = p.getClient().getUser(GetUser.local(username));
     }
     if (user == null)
-      throw new TException("User does not exist");
+      throw new AuthorizationException("User does not exist");
 
     return user.getEmail();
   }

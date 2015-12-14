@@ -69,9 +69,9 @@ struct Ticket {
 
 
 exception AuthenticationException {
-    1: string msg 
+    1: string message 
 }
 
 exception AuthorizationException {
-    1: string msg 
+    1: string message 
 }

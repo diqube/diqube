@@ -36,7 +36,7 @@ service IdentityService {
     base.Ticket login(1: string user, 2: string password) 
         throws (1: base.AuthenticationException authenticationException)
     
-    oneway void logout(1: base.Ticket ticket)
+    void logout(1: base.Ticket ticket) throws (1: base.AuthenticationException authenticationException)
     
     void changePassword(1: base.Ticket ticket, 2: string username, 3: string newPassword) 
         throws (1: base.AuthenticationException authenticationException, 2: base.AuthorizationException authorizationException)

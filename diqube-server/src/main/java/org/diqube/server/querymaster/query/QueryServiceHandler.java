@@ -161,6 +161,7 @@ public class QueryServiceHandler implements Iface {
         || !queryUserNames.get(queryUuid).equals(ticket.getClaim().getUsername())))
       // use can cancel his own queries, superuser can cancel all.
       throw new AuthorizationException();
+    queryUserNames.remove(queryUuid);
 
     logger.info("Received request to cancel query {}. Cancelling.", queryUuid);
 
@@ -194,8 +195,11 @@ public class QueryServiceHandler implements Iface {
     ticketValidityService.validateTicket(ticket);
 
     FromRequest fromRequest = parseFromRequest(diql);
-    if (fromRequest == null || !tableAccessPermissionUtil.hasAccessToTable(ticket, fromRequest.getTable()))
-      throw new AuthorizationException();
+    if (fromRequest == null)
+      throw new RQueryException("No FROM specified.");
+    if (!tableAccessPermissionUtil.hasAccessToTable(ticket, fromRequest.getTable()))
+      throw new AuthorizationException(
+          "Table '" + fromRequest.getTable() + "' does not exist or user has no permission to access it.");
 
     UUID queryUuid = RUuidUtil.toUuid(queryRUuid);
     logger.info("Async query {}, partial {}, resultAddress {}: {}",

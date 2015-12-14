@@ -44,6 +44,8 @@ import org.diqube.remote.query.thrift.QueryResultService;
 import org.diqube.remote.query.thrift.QueryResultService.Iface;
 import org.diqube.remote.query.thrift.QueryService;
 import org.diqube.remote.query.thrift.RQueryException;
+import org.diqube.thrift.base.thrift.AuthenticationException;
+import org.diqube.thrift.base.thrift.AuthorizationException;
 import org.diqube.thrift.base.thrift.RNodeAddress;
 import org.diqube.thrift.base.thrift.RNodeHttpAddress;
 import org.diqube.thrift.base.thrift.Ticket;
@@ -199,6 +201,8 @@ public abstract class AbstractCommandClusterInteraction implements CommandCluste
       return queryUuid;
     } catch (RQueryException e) {
       throw new RuntimeException(e.getMessage());
+    } catch (AuthenticationException | AuthorizationException e) {
+      throw new RuntimeException(e.getClass().getSimpleName() + ": " + e.getMessage());
     } catch (TException e) {
       return null;
     }

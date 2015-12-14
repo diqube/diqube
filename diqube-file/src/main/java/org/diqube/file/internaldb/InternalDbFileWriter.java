@@ -84,6 +84,14 @@ public class InternalDbFileWriter<T extends TBase<?, ?>> {
 
         for (File f : filesToDelete) {
           logger.info("Deleting old internaldb file '{}'", f.getAbsolutePath());
+
+          if (InternalDbFileUtil.parseCommitIndex(f, filenamePrefix, FILENAME_SUFFIX) > consensusCommitIndex)
+            // This could mean that consensus replays some commits during startup. That replay might be broken, if e.g.
+            // SerializationExceptions happen during the process and the classes of the serialized objects changed (=
+            // new version installed?).
+            logger.warn("Overwriting a presumably newer version of an {} internalDb file with an older version.",
+                dataType);
+
           f.delete();
         }
       } catch (TException e) {

@@ -24,7 +24,7 @@ namespace java org.diqube.remote.cluster.thrift
 include "${diqube.thrift.dependencies}/base.thrift"
 
 exception RConnectionUnknownException {
-  1: string msg
+  1: string message
 }
 
 service ClusterConsensusService {

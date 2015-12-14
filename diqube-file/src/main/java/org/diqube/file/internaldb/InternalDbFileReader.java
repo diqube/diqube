@@ -120,11 +120,9 @@ public class InternalDbFileReader<T extends TBase<?, ?>> {
     if (allDbFiles.length == 1) {
       return allDbFiles[0];
     } else {
-      OptionalLong maxId =
-          Stream.of(allDbFiles)
-              .map(f -> f.getName().substring(filenamePrefix.length(),
-                  f.getName().length() - InternalDbFileWriter.FILENAME_SUFFIX.length()))
-              .mapToLong(Long::parseLong).max();
+      OptionalLong maxId = Stream.of(allDbFiles)
+          .mapToLong(f -> InternalDbFileUtil.parseCommitIndex(f, filenamePrefix, InternalDbFileWriter.FILENAME_SUFFIX))
+          .max();
       if (!maxId.isPresent())
         throw new ReadException("Could not identify maximum internaldb file of type " + dataType);
       File dbFile = Stream.of(allDbFiles)

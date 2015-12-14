@@ -54,7 +54,7 @@ public class PermissionsUtil {
     if (user == null || !user.isSetPermissions())
       return false;
     for (SPermission perm : user.getPermissions()) {
-      if (perm.equals(permission)) {
+      if (perm.getPermissionName().equals(permission)) {
         // if permission is restricted to objects, user does not have "object-free" permission.
         if (perm.isSetObjects() && !perm.getObjects().isEmpty())
           return false;
@@ -80,7 +80,7 @@ public class PermissionsUtil {
     if (user == null || !user.isSetPermissions())
       return false;
     for (SPermission perm : user.getPermissions()) {
-      if (perm.equals(permission)) {
+      if (perm.getPermissionName().equals(permission)) {
         // if permission is not restricted to objects, user does not have "object" permission.
         if (!perm.isSetObjects() || perm.getObjects().isEmpty())
           return false;
