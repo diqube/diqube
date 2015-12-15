@@ -55,6 +55,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
 import io.atomix.catalyst.transport.Address;
+import io.atomix.copycat.client.CopycatClient;
 import io.atomix.copycat.client.Operation;
 import io.atomix.copycat.client.RaftClient;
 import io.atomix.copycat.server.CopycatServer;
@@ -213,6 +214,15 @@ public class ConsensusServer implements ClusterManagerListener {
    */
   public boolean isLeader() {
     return copycatServer != null && copycatServer.state().equals(State.LEADER);
+  }
+
+  /**
+   * @return <code>true</code> if it looks like the consensus cluster is working as expected. May return
+   *         <code>false</code> in case of a network partition etc, basically if there is no leader currently. Note that
+   *         in the latter case, no {@link CopycatClient} activity will succeed probably.
+   */
+  public boolean clusterSeemsFunctional() {
+    return copycatServer != null && copycatServer.leader() != null;
   }
 
   /* package */ Collection<Address> getClusterMembers() {

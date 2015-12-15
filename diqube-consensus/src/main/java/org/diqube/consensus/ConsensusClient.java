@@ -73,7 +73,7 @@ public class ConsensusClient implements ConsensusListener {
   private ConsensusStateMachineManager stateMachineManager;
 
   @Inject
-  private ConsensusServer copycatServer;
+  private ConsensusServer consensusServer;
 
   private ReentrantReadWriteLock consensusInitializedWaitingLock = new ReentrantReadWriteLock();
   private Deque<CompletableFuture<Void>> consensusWaitingFutures = new ConcurrentLinkedDeque<>();
@@ -84,13 +84,13 @@ public class ConsensusClient implements ConsensusListener {
    * The {@link RaftClientProvider} which is capable of recreating the client.
    * 
    * <p>
-   * When recreating the client, always use the most up-to-date list of cluster members from {@link #copycatServer}.
+   * When recreating the client, always use the most up-to-date list of cluster members from {@link #consensusServer}.
    */
-  private RaftClientProvider raftClientProvider = new RaftClientProvider(
-      () -> CopycatClient.builder(copycatServer.getClusterMembers()).withTransport(transport).withSerializer(serializer)
-          // connect to any server.
-          .withConnectionStrategy(ConnectionStrategies.ANY) //
-          .withRecoveryStrategy(RecoveryStrategies.RECOVER).build());
+  private RaftClientProvider raftClientProvider = new RaftClientProvider(() -> CopycatClient
+      .builder(consensusServer.getClusterMembers()).withTransport(transport).withSerializer(serializer)
+      // connect to any server.
+      .withConnectionStrategy(ConnectionStrategies.ANY) //
+      .withRecoveryStrategy(RecoveryStrategies.RECOVER).build());
 
   /**
    * Creates and returns an object implementing the given stateMachineInterface which will, when methods are called,
@@ -115,8 +115,10 @@ public class ConsensusClient implements ConsensusListener {
    * 
    * @param stateMachineInterface
    *          Interface which has the {@link ConsensusStateMachine} annotation.
+   * @throws IllegalStateException
+   *           In case the consensus cluster seems to be not available currently.
    */
-  public <T> ClosableProvider<T> getStateMachineClient(Class<T> stateMachineInterface) {
+  public <T> ClosableProvider<T> getStateMachineClient(Class<T> stateMachineInterface) throws IllegalStateException {
     // only execute this after consensus server was initialized fully!
     waitUntilConsensusServerIsInitialized();
 
@@ -152,12 +154,14 @@ public class ConsensusClient implements ConsensusListener {
             logger.error("Could not open copycat client/submit something to consensus cluster! Will retry shortly.", e);
           }
           ThreadLocalRandom random = ThreadLocalRandom.current();
-          long targetSleepMs = copycatServer.getElectionTimeoutMs() / 3;
+          long targetSleepMs = consensusServer.getElectionTimeoutMs() / 3;
           long deltaMs = targetSleepMs / 10;
 
           // sleep random time, from 10% below "target" to 10% above "target".
           try {
-            Thread.sleep(random.nextLong(targetSleepMs - deltaMs, targetSleepMs + deltaMs));
+            long waitTime = random.nextLong(targetSleepMs - deltaMs, targetSleepMs + deltaMs);
+            logger.trace("Waiting {} ms...", waitTime);
+            Thread.sleep(waitTime);
           } catch (InterruptedException e) {
             throw new ConsensusStateMachineClientInterruptedException("Interrupted while waiting", e);
           }
@@ -174,16 +178,27 @@ public class ConsensusClient implements ConsensusListener {
           // of catyst client/connection. But even then,, it is meaningful to recreate the client once and then, as the
           // nodes that are in the cluster might change and we'd like to initialize the client session freshly.
 
+          logger.trace("Restarting consensus client...");
           raftClientProvider.close(); // unregister
+          logger.trace("Restarting consensus client (2)...");
           raftClientProvider.recreateClient().join(); // recreate, wait until recreated.
+          logger.trace("Restarting consensus client (3)...");
           raftClientProvider.registerUsage(); // register again (if another thread started recreation, this will block!)
+          logger.trace("Restarting consensus client (4)...");
           raftClient = raftClientProvider.getClient(); // get new client.
+          logger.trace("Restarting consensus client done.");
         }
       }
     };
 
     @SuppressWarnings("unchecked")
     T proxy = (T) Proxy.newProxyInstance(this.getClass().getClassLoader(), new Class<?>[] { stateMachineInterface }, h);
+
+    if (!consensusServer.clusterSeemsFunctional()) {
+      logger.error("Consensus cluster seems to not be available. Is there an ongoing network partition?");
+      throw new IllegalStateException(
+          "Consensus cluster seems to not be available. Is there an ongoing network partition?");
+    }
 
     // initial registration, will unregister on #close!
     raftClientProvider.registerUsage();
@@ -251,7 +266,7 @@ public class ConsensusClient implements ConsensusListener {
      * If != null then someone requested to reopen the RaftClient and this future will be completed, once the new client
      * is created.
      */
-    private volatile CompletableFuture<Void> newClientFuture;
+    private volatile CompletableFuture<RaftClient> newClientFuture;
 
     private Supplier<RaftClient> clientFactory;
     private volatile RaftClient currentClient;
@@ -266,8 +281,8 @@ public class ConsensusClient implements ConsensusListener {
      * @return A {@link CompletableFuture} that will be completed as soon as the new client is available. The returned
      *         future will never be completed exceptionally.
      */
-    /* package */ CompletableFuture<Void> recreateClient() {
-      CompletableFuture<Void> f = newClientFuture;
+    /* package */ CompletableFuture<RaftClient> recreateClient() {
+      CompletableFuture<RaftClient> f = newClientFuture;
       if (f != null)
         return f;
 
@@ -278,7 +293,7 @@ public class ConsensusClient implements ConsensusListener {
 
         newClientFuture = new CompletableFuture<>();
 
-        CompletableFuture<Void> newFuture = newClientFuture;
+        CompletableFuture<RaftClient> newFuture = newClientFuture;
 
         if (useCount.get() == 0) {
           // trigger execution of opening new client.
@@ -300,10 +315,11 @@ public class ConsensusClient implements ConsensusListener {
         // double checked locking
         try {
           if (useCount.get() == 0 && newClientFuture != null) {
-            logger.debug("Recreating consensus client...");
+            logger.debug("(Re)creating consensus client...");
             // close old client and create a new one.
             try {
-              currentClient.close().join();
+              if (currentClient != null)
+                currentClient.close().join();
             } catch (CompletionException e) {
               logger.warn("Could not close old consensus client", e);
               // swallow otherwise, there's nothing we can do...
@@ -311,8 +327,8 @@ public class ConsensusClient implements ConsensusListener {
 
             currentClient = clientFactory.get();
 
-            logger.debug("Consensus client recreated.");
-            newClientFuture.complete(null);
+            logger.debug("Consensus client (re)created.");
+            newClientFuture.complete(currentClient);
             newClientFuture = null;
           }
         } finally {
@@ -329,16 +345,24 @@ public class ConsensusClient implements ConsensusListener {
     public RaftClient getClient() {
       // save without locking, because this is only called if useCount > 0
 
+      RaftClient res = currentClient;
+
       // lazily create client, as on instantiation we cannot create it, since consensus server is not ready and the
       // factory needs that!
-      if (currentClient == null) {
-        synchronized (this) {
-          if (currentClient == null)
-            currentClient = clientFactory.get();
+      while (res == null) {
+        res = currentClient;
+        if (res == null) {
+          CompletableFuture<RaftClient> c = newClientFuture;
+          close();
+          if (c == null)
+            c = recreateClient();
+          c.join();
+          registerUsage();
+          res = currentClient;
         }
       }
 
-      return currentClient;
+      return res;
     }
 
     /**
@@ -356,7 +380,7 @@ public class ConsensusClient implements ConsensusListener {
     /* package */ void shutdown() {
       lock.writeLock().lock();
       try {
-        logger.trace("Cleaning up copycat client...");
+        logger.trace("Cleaning up consensus client...");
         currentClient.close().join();
         currentClient = null;
       } finally {
