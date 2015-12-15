@@ -91,7 +91,7 @@ public class ClusterLayoutStateMachineImplementation extends AbstractConsensusSt
 
   @Override
   public void removeNode(Commit<RemoveNode> commit) {
-    Commit<?> prev = previousCommand.put(commit.operation().getNode(), commit);
+    Commit<?> prev = previousCommand.remove(commit.operation().getNode());
 
     logger.info("Node removed from cluster layout: {}", commit.operation().getNode());
     tables.remove(commit.operation().getNode());

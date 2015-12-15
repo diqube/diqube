@@ -250,6 +250,7 @@ public class ConsensusServer implements ClusterManagerListener {
               try {
                 targetMethod.invoke(targetBean, t);
               } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+                logger.error("Could not invoke state machine method", e);
                 throw new DiqubeStateExceptionExecutionException("Could not invoke state machine method", e);
               }
             }
@@ -261,6 +262,7 @@ public class ConsensusServer implements ClusterManagerListener {
               try {
                 return targetMethod.invoke(targetBean, t);
               } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+                logger.error("Could not invoke state machine method", e);
                 throw new DiqubeStateExceptionExecutionException("Could not invoke state machine method", e);
               }
             }
