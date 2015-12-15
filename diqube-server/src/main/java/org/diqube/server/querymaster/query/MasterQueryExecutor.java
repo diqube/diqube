@@ -31,8 +31,11 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -274,10 +277,28 @@ class MasterQueryExecutor {
         return;
       }
 
-      if (valuesDone.get() && orderedDone.get() && havingDone.get() && planFuture.isDone()) {
-        queryRegistry.removeRemotePercentHanlder(queryUuid, remotePercentHandler);
-        callback.finalResultTableAvailable(createRResultTableFromCurrentValues());
-        return;
+      if (valuesDone.get() && orderedDone.get() && havingDone.get()) {
+        // we need to wait until "planFuture" is done, too. We though do not have a "notify" on that object, we
+        // therefore try to poll it quickly (should not take too long, as valuesDone == true already).
+        while (true) {
+          try {
+            planFuture.get(10, TimeUnit.MILLISECONDS);
+
+            if (planFuture.isDone()) {
+              queryRegistry.removeRemotePercentHanlder(queryUuid, remotePercentHandler);
+              callback.finalResultTableAvailable(createRResultTableFromCurrentValues());
+              return;
+            }
+          } catch (TimeoutException e) {
+            // swallow, retry.
+          } catch (InterruptedException e) {
+            logger.trace("Interrupted while waiting for plan to be executed", e);
+            return;
+          } catch (RuntimeException | ExecutionException e) {
+            callback.exception(e);
+            return;
+          }
+        }
       }
 
       if (createIntermediaryUpdates && thereAreUpdates) {
