@@ -285,16 +285,18 @@ class MasterQueryExecutor {
             planFuture.get(10, TimeUnit.MILLISECONDS);
 
             if (planFuture.isDone()) {
-              queryRegistry.removeRemotePercentHanlder(queryUuid, remotePercentHandler);
+              queryRegistry.removeRemotePercentHandler(queryUuid, remotePercentHandler);
               callback.finalResultTableAvailable(createRResultTableFromCurrentValues());
               return;
             }
           } catch (TimeoutException e) {
             // swallow, retry.
           } catch (InterruptedException e) {
+            queryRegistry.removeRemotePercentHandler(queryUuid, remotePercentHandler);
             logger.trace("Interrupted while waiting for plan to be executed", e);
             return;
           } catch (RuntimeException | ExecutionException e) {
+            queryRegistry.removeRemotePercentHandler(queryUuid, remotePercentHandler);
             callback.exception(e);
             return;
           }

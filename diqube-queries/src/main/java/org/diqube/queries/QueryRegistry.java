@@ -100,7 +100,7 @@ public class QueryRegistry {
   /**
    * Add a handler for percentages that were reported by remotes.
    * 
-   * Be sure to call {@link #removeRemotePercentHanlder(UUID, QueryPercentHandler)}.
+   * Be sure to call {@link #removeRemotePercentHandler(UUID, QueryPercentHandler)}.
    */
   public void addRemotePercentHandler(UUID queryUuid, QueryPercentHandler percentHandler) {
     synchronized (percentHandlers) {
@@ -113,7 +113,7 @@ public class QueryRegistry {
   /**
    * Removes a {@link QueryPercentHandler} and releases any reserved resources.
    */
-  public void removeRemotePercentHanlder(UUID queryUuid, QueryPercentHandler percentHandler) {
+  public void removeRemotePercentHandler(UUID queryUuid, QueryPercentHandler percentHandler) {
     if (percentHandlers.containsKey(queryUuid)) {
       synchronized (percentHandlers) {
         if (percentHandlers.containsKey(queryUuid)) {
