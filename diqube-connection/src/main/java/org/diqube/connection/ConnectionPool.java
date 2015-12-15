@@ -725,7 +725,7 @@ public class ConnectionPool implements ClusterNodeStatusDetailListener {
 
     @Override
     public void run() {
-      // TODO #86: Disable keep-alives for nodes that have a consensus server, as then the consensus will do the
+      // TODO #93: Disable keep-alives for nodes that have a consensus server, as then the consensus will do the
       // keep-alives!
       int sleepTime = Math.max(IntMath.gcd(keepAliveMs, connectionIdleTimeMs), 1000);
 

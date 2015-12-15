@@ -333,11 +333,10 @@ public class ClusterFlattenServiceHandler implements ClusterFlattenService.Iface
    * This though contains even another small but important thing: If two query masters decide to flatten something at
    * the same time, part of the query remotes would receive the request from the first master first and the other part
    * of the query remotes would receive the request from the second master first. Therefore the query remotes would not
-   * work on the same "flatten request ID". As we do not have a consensus algorithm implemented yet, there is no simple
-   * solution to this problem, but to simply fail the flattening process. This happens when each query remote tries to
-   * inform the other flatteners about its results: It will retry for 10s and if after 10s not all flatteners did accept
-   * that information (which is bound to the request ID), the flatten will fail. It is required that each query master
-   * retries, though, and therefore the next request of the query master should succeed. TODO #86
+   * work on the same "flatten request ID". In that case, we simply fail the flattening process. This happens when each
+   * query remote tries to inform the other flatteners about its results: It will retry for 10s and if after 10s not all
+   * flatteners did accept that information (which is bound to the request ID), the flatten will fail. It is required
+   * that each query master retries, though, and therefore the next request of the query master should succeed.
    * 
    * <p>
    * And even more: When one flattening is completed and a different query later requests the same flattening, we re-use
