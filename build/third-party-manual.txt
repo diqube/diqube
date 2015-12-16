@@ -63,3 +63,6 @@
 
     MIT License (Chart.js) [chartjs-mit.txt]:
         * Chart.js, http://www.chartjs.org/
+        
+    MIT License (momentjs) [momentjs-mit.txt]:
+        * momentjs, http://www.momentjs.com

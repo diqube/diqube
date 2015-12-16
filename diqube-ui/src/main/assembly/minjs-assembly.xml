@@ -90,6 +90,10 @@
       <source>bower_components/Chart.js/Chart.min.js</source>
       <destName>bower_components/Chart.js/Chart.js</destName>
     </file>
+    <file>
+      <source>bower_components/moment/min/moment-with-locales.min.js</source>
+      <destName>bower_components/moment/min/moment-with-locales.js</destName>
+    </file>
        
     <!-- Font awesome -->
     <file>
