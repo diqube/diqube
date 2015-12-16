@@ -90,28 +90,24 @@
             }, 0, false);
             
             function updateData() {
-              var targetData, targetLabels;
-              if ($scope.chart) {
-                // update chart directly.
-                $scope.chart.data.datasets[0].data = [];
-                targetData = $scope.chart.data.datasets[0].data;
-                $scope.chart.data.labels = [];
-                targetLabels = $scope.chart.data.labels;
-              } else {
-                // store data in "initialData" in case this is called before we have a chart.
-                $scope.initialData = [];
-                targetData = $scope.initialData;
-                $scope.initialLabels = [];
-                targetLabels = $scope.initialLabels;
-              }
+              var targetData = [];
+              var targetLabels = [];
               
               for (var idx in $scope.query.$results.rows) {
                 targetData.push($scope.query.$results.rows[idx][1]);
                 targetLabels.push($scope.query.$results.rows[idx][0]);
               }
               
-              if ($scope.chart)
+              if ($scope.chart) {
+                // update chart directly.
+                $scope.chart.data.datasets[0].data = targetData;
+                $scope.chart.data.labels = targetLabels;
                 $scope.chart.update();
+              } else {
+                // store data in "initialData" in case this is called before we have a chart.
+                $scope.initialData = targetData;
+                $scope.initialLabels = targetLabels;
+              }
             }
           }
         };

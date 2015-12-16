@@ -32,8 +32,8 @@ import java.util.stream.Collectors;
 
 import org.diqube.diql.request.ExecutionRequest;
 import org.diqube.diql.request.FunctionRequest;
-import org.diqube.diql.request.ResolveValueRequest;
 import org.diqube.diql.request.FunctionRequest.Type;
+import org.diqube.diql.request.ResolveValueRequest;
 import org.diqube.execution.ColumnVersionManager;
 import org.diqube.execution.ColumnVersionManagerFactory;
 import org.diqube.execution.ExecutablePlan;
@@ -319,6 +319,8 @@ public class ExecutionPlanner {
     boolean rowAggregateFunctionsAvailable = columnInfo.values().stream()
         .anyMatch(colInfo -> colInfo.getType().equals(FunctionRequest.Type.AGGREGATION_ROW));
     if (executionRequest.getGroup() != null && rowAggregateFunctionsAvailable) {
+      // TODO #37: Query is probably wrong if it has "group" but no aggregation_row funcs. Inform user.
+
       // We are grouping and executing aggregation functions, that means that cluster nodes will reply with group
       // intermediary updates to the query master.
       // The groupIds used by the cluster nodes though are the row IDs of one of the rows contained in a group - which
