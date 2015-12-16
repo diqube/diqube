@@ -104,7 +104,7 @@
               <li class="list-group-item slice-disjunction-value {{ $first ? 'slice-disjunction-value-first' : 'slice-disjunction-value-show-or' }}" 
                   ng-repeat="val in dis.disjunctionValues track by $index">
                 <span class="has-feedback form-group slice-value-group {{ isDisjunctionValueValid(val) === true ? 'has-success' : '' }} {{ isDisjunctionValueValid(val) === false ? 'has-error' : '' }}">
-                  <input type="text" class="form-control"
+                  <input type="text" class="form-control slice-edit-value"
                     placeholder="Value" ng-model="dis.disjunctionValues[$index]">
                   <span ng-if="isDisjunctionValueValid(val) === true" class="fa fa-check form-control-feedback"></span>
                   <span ng-if="isDisjunctionValueValid(val) === false" class="fa fa-exclamation-triangle form-control-feedback"></span>

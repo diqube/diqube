@@ -152,6 +152,9 @@ textarea.diql-full {
 
 .query .alert {
   margin-bottom: 0px;
+  /* Alert may contain column names which may be very long. Ensure that they are broken if too long. */
+  word-break: break-word;
+  word-wrap:break-word;
 }
 
 .query .progress {
@@ -384,6 +387,12 @@ textarea.diql-full {
   color: #999;
 }
 
+.slices .slice-disjunction-field {
+  /* If text gets too long, break it! */
+  word-wrap:break-word;
+  word-break: break-word;
+}
+
 .slices .edit-slice .slice-value-group {
 	display: flex;
 }
@@ -411,6 +420,12 @@ textarea.diql-full {
   justify-content: flex-start;
 }
 
+.slices .edit-slice .slice-disjunction-field span {
+	/* If text gets too long, break it! */
+	word-wrap:break-word;
+  word-break: break-word;
+}
+
 .slices .edit-slice .slice-add-field-td {
 	display: flex;
 	align-items: center;
@@ -430,6 +445,12 @@ textarea.diql-full {
   border-width: 0px 0;
   border-radius: 0;
 }
+
+.slices .slice .table .slice-disjunction-value-td .slice-edit-value {
+	/* Ensure there's always enough space to type the value. */
+  min-width: 300px;
+}
+
 
 .slice.remove-slice .panel-body {
   display:flex;
