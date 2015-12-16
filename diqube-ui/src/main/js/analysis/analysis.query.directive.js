@@ -22,7 +22,8 @@
   "use strict";
 
   angular.module("diqube.analysis").directive("diqubeQuery",
-      [ "analysisService", "$timeout", "$log", "analysisStateService", function(analysisService, $timeout, $log, analysisStateService) {
+      [ "analysisService", "$timeout", "$log", "analysisStateService", "$window", 
+      function(analysisService, $timeout, $log, analysisStateService, $window) {
         return {
           restrict: "E",
           scope: {
@@ -79,19 +80,11 @@
                 executeQuery();
               }
             });
-            
-            function createDisplayProperties() {
-              $scope.displayWidth = "";
-              
-              if ($scope.query.displayType === "barchart")
-                $scope.displayWidth = "width: 600px";
-            }
 
             function integrateQueryResults(results) {
               $scope.$apply(function() {
                 if (!$scope.editMode)
                   $scope.exception = results.exception;
-                createDisplayProperties();
               });
             }
             
@@ -126,7 +119,11 @@
                   var textarea = $("textarea", element);
                   // resize text area so it does not need to be scrolled from the beginning...
                   textarea.height(textarea[0].scrollHeight + 10);
-                  textarea.width(textarea[0].scrollWidth + 10);
+                  var newWidth = textarea[0].scrollWidth + 10;
+                  if (newWidth > $window.innerWidth / 2)
+                    // let width at max be half of the window size. User can resize manually and has scrolling...
+                    newWidth = $window.innerWidth / 2;
+                  textarea.width(newWidth);
                 }, 0, false);
                 $scope.nameValid = true;
                 $scope.diqlValid = true;

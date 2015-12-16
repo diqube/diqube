@@ -45,7 +45,7 @@
     {{ exception }}
   </div>
   
-  <div ng-if="query.$results && !exception && query.$results.rows" style="{{ displayWidth }}">
+  <div ng-if="query.$results && !exception && query.$results.rows">
     <table ng-if="query.displayType === 'table'" class="table table-hover table-condensed">
       <thead>
         <tr>
