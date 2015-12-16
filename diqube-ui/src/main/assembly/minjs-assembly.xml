@@ -47,14 +47,6 @@
       <destName>bower_components/angular-cookies/angular-cookies.js</destName>
     </file>
     <file>
-      <source>bower_components/angular-nvd3/dist/angular-nvd3.min.js</source>
-      <destName>bower_components/angular-nvd3/dist/angular-nvd3.js</destName>
-    </file>
-    <file>
-      <source>bower_components/d3/d3.min.js</source>
-      <destName>bower_components/d3/d3.js</destName>
-    </file>
-    <file>
       <source>bower_components/html5-boilerplate/dist/css/main.css</source>
       <destName>bower_components/html5-boilerplate/dist/css/main.css</destName>
     </file>
@@ -69,14 +61,6 @@
     <file>
       <source>bower_components/ng-websocket/ng-websocket.js</source>
       <destName>bower_components/ng-websocket/ng-websocket.js</destName>
-    </file>
-    <file>
-      <source>bower_components/nvd3/build/nv.d3.min.js</source>
-      <destName>bower_components/nvd3/build/nv.d3.js</destName>
-    </file>
-    <file>
-      <source>bower_components/nvd3/build/nv.d3.min.css</source>
-      <destName>bower_components/nvd3/build/nv.d3.css</destName>
     </file>
     <file>
       <source>bower_components/node-uuid/uuid.js</source>
@@ -101,6 +85,10 @@
     <file>
       <source>bower_components/jquery/dist/jquery.min.js</source>
       <destName>bower_components/jquery/dist/jquery.js</destName>
+    </file>
+    <file>
+      <source>bower_components/Chart.js/Chart.min.js</source>
+      <destName>bower_components/Chart.js/Chart.js</destName>
     </file>
        
     <!-- Font awesome -->

@@ -20,7 +20,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -->
-<nvd3 ng-attr-id="{{ nvd3HtmlId }}"
-          options="options"
-          data="data"
-          api="api"></nvd3>
+<div style="width: {{chartWidth}}px; height: {{ chartHeight }}px;">
+  <canvas id="{{ chartHtmlId }}"></canvas>
+</div>

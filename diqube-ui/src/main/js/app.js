@@ -27,7 +27,6 @@
                                "angular-toArrayFilter",
                                "ui.bootstrap",
                                "ui.bootstrap.collapse",
-                               "nvd3",
                                "diqube.route", 
                                "diqube.about",
                                "diqube.login-state",
