@@ -101,7 +101,7 @@ public class HsqlUiDatabase implements UiDatabase {
       password = "";
 
     try {
-      connection = DriverManager.getConnection(location, "SA", "");
+      connection = DriverManager.getConnection(location, username, password);
       if (doSetupCalls) {
         // see http://www.hsqldb.org/doc/guide/dbproperties-chapt.html
         try (Statement stmt = connection.createStatement()) {

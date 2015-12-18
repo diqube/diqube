@@ -76,8 +76,16 @@
         
         function loadAnalysis(id, version) {
           if (!me.loadedAnalysis || me.loadedAnalysis.id != id || (version && me.loadedAnalysis.version != version)) {
-            // TODO #72: preserve all query results that are still valid, if only a new version of a analysis is loaded.
             return new Promise(function(resolve, reject) {
+              var previousAnalysis;
+              
+              if (me.loadedAnalysis && me.loadedAnalysis.id === id)
+                // we load "only" a different version of the same analysis. We could be able to preserve some query
+                // results below, so store the previous analysis for comparison!
+                previousAnalysis = me.loadedAnalysis;
+              else
+                previousAnalysis = undefined;
+              
               me.loadedAnalysis = undefined;
               me.newestVersionOfAnalysis = undefined;
               
@@ -89,6 +97,9 @@
                         // in case we loaded the newest version or version loading had an exception.
                         me.newestVersionOfAnalysis = data.analysis.version;
                       me.setLoadedAnalysis(data.analysis);
+                      if (previousAnalysis)
+                        // try to preserve some query results.
+                        preserveResultsOfPreviousAnalysis(previousAnalysis, me.loadedAnalysis);
                       resolve(me.loadedAnalysis);
                     }
                   }
@@ -665,6 +676,69 @@
         function initializeReceivedSlice(slice) {
           if (!slice.sliceDisjunctions)
             slice.sliceDisjunctions = [];
+        }
+        
+        /**
+         * Tries to preserve some query results. This is meaningful if the previousAnalysis is actually just a
+         * different version of the same analysis, which means that a lot of queries might actually be equal and we do
+         * not need to calculate them anymore. This method identifies the queries that are the same between two analysis
+         * and copies potentially available results to the new one.
+         */
+        function preserveResultsOfPreviousAnalysis(previousAnalysis, newAnalysis) {
+          if (!previousAnalysis || !newAnalysis)
+            return;
+          if (previousAnalysis.id !== newAnalysis.id)
+            // does make sense to only compare two versions of the same analysis.
+            return;
+          
+          var equalSliceIds = []; // "equal" means: same restrictions. If the name is different, that does not matter.
+          for (var prevSliceIdx in previousAnalysis.slices) {
+            var prevSlice = previousAnalysis.slices[prevSliceIdx];
+            var newSlices = newAnalysis.slices.filter(function (s) { return s.id === prevSlice.id; });
+            if (newSlices && newSlices.length) {
+              var newSlice = newSlices[0];
+              
+              // ok, we have a slice with the same ID in prev and new.
+              if (angular.equals(prevSlice.sliceDisjunctions, newSlice.sliceDisjunctions) && 
+                  angular.equals(prevSlice.manualConjunction, newSlice.manualConjunction))
+                equalSliceIds.push(prevSlice.id);
+            }
+          }
+          
+          var preservedQueryResults = 0;
+          
+          for (var prevQubeIdx in previousAnalysis.qubes) {
+            var prevQube = previousAnalysis.qubes[prevQubeIdx];
+            if (equalSliceIds.indexOf(prevQube.sliceId) > -1) {
+              var newQubes = newAnalysis.qubes.filter(function (q) { return q.id === prevQube.id; });
+              if (newQubes && newQubes.length) {
+                // Ok, we found a qube that (1) has a slice that is equal in prev and new and (2) that is available in prev and new.
+                var newQube = newQubes[0];
+                
+                for (var prevQueryIdx in prevQube.queries) {
+                  var prevQuery = prevQube.queries[prevQueryIdx];
+                  
+                  if (!prevQuery.$results)
+                    // if we do not have any results, we will not be able to copy anything, therefore skip right away.
+                    continue;
+                  
+                  var newQueries = newQube.queries.filter(function (q) { return q.id === prevQuery.id; });
+                  if (newQueries && newQueries.length) {
+                    var newQuery = newQueries[0];
+                    // Ok, we found that both prev and new contain a query with the same Id.
+                    
+                    if (angular.equals(newQuery.diql, prevQuery.diql)) {
+                      // wohoo, we found equal queries in prev and new!
+                      newQuery.$results = prevQuery.$results;
+                      preservedQueryResults = preservedQueryResults + 1;
+                    }
+                  }
+                }
+              }
+            }
+          }
+          
+          $log.info("Preserved", preservedQueryResults, "query results when loading different version of same analysis.");
         }
       } ]);
 })();
