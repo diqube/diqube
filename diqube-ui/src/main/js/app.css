@@ -477,3 +477,11 @@ textarea.diql-full {
 .add-action {
 	
 }
+
+.diqube-drag-control {
+	font-size: small;
+	color: #333;
+  border-radius: 4px;
+  background: #6895b4; 
+  spacing: 2px;
+}

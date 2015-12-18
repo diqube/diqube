@@ -20,7 +20,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -->
-<div ng-if="!editMode && !removeMode" class="panel panel-default slice {{ additionalClass }}">
+<div ng-if="!editMode && !removeMode" class="panel panel-default slice {{ additionalClass }}" drop-target drop-accept="typeRestriction" drop-handler="drop(element)">
   <div class="panel-heading" ng-click="toggleCollapsed()">
     <span>{{ slice.name }}</span>
     <span class="slice-header-actions">

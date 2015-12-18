@@ -96,12 +96,13 @@ public class PlainQueryJsonCommand implements AsyncJsonCommand {
         sendResult(RUuidUtil.toUuid(queryRUuid), finalResult, 100);
       }
 
-      private void sendResult(UUID queryUuid, RResultTable finalResult, int percentComplete) {
+      private void sendResult(UUID queryUuid, RResultTable currentResult, int percentComplete) {
         TableJsonResult res = new TableJsonResult();
-        res.setColumnNames(finalResult.getColumnNames());
+        res.setColumnNames(currentResult.getColumnNames());
+        res.setColumnRequests(currentResult.getColumnRequests());
         List<List<Object>> rows = new ArrayList<>();
-        if (finalResult.isSetRows()) { // if result table is empty, there are no rows.
-          for (List<RValue> incomingResultRow : finalResult.getRows()) {
+        if (currentResult.isSetRows()) { // if result table is empty, there are no rows.
+          for (List<RValue> incomingResultRow : currentResult.getRows()) {
             List<Object> row =
                 incomingResultRow.stream().map(rValue -> RValueUtil.createValue(rValue)).collect(Collectors.toList());
             rows.add(row);

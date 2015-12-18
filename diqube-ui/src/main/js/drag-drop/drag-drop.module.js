@@ -21,5 +21,28 @@
 "use strict";
 
 (function() {
-  angular.module("diqube.analysis", [ "diqube.remote", "ui.bootstrap.collapse", "diqube.login-state", "diqube.drag-drop" ]);
+  angular.module("diqube.drag-drop", [ ]);
+})();
+
+var DragDropElement = (function() {
+  function DragDropElement() {
+    var me = this;
+    
+    me.type = undefined;
+    me.data = undefined;
+  }
+  
+  DragDropElement.TYPE_RESTRICTION = "typeRestriction";
+  
+  return DragDropElement;
+})();
+
+var DragDropRestrictionData = (function() {
+  function DragDropRestrictionData() {
+    var me = this;
+    
+    me.field = undefined;
+    me.value = undefined;
+  }
+  return DragDropRestrictionData;
 })();

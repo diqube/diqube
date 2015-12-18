@@ -169,6 +169,7 @@
   var testTableResult1 = function() { 
     return {
       columnNames: [ "colA", "colB" ],
+      columnRequests: [ "colA", "colB" ],
       rows: [
         [ 1, 1 ],
         [ 101, 101 ]
@@ -181,6 +182,7 @@
   var testTableResult2 = function () {
     return {
       columnNames: [ "colA", "colB" ],
+      columnRequests: [ "colA", "colB" ],
       rows: [
         [ 2, 2 ],
         [ 102, 102 ]
@@ -574,6 +576,7 @@
         expect(curIntermediateResult).toEqual({
           exception: undefined,
           columnNames: ["colA", "colB"],
+          columnRequests: ["colA", "colB"],
           rows: [
             [ 1, 1 ],
             [101, 101]
@@ -586,6 +589,7 @@
         expect(curIntermediateResult).toEqual({
           exception: undefined,
           columnNames: ["colA", "colB"],
+          columnRequests: ["colA", "colB"],
           rows: [
             [ 2, 2 ],
             [102, 102]
@@ -600,6 +604,7 @@
           expect(result).toEqual({
             exception: undefined,
             columnNames: ["colA", "colB"],
+            columnRequests: ["colA", "colB"],
             rows: [
               [ 2, 2 ],
               [102, 102]

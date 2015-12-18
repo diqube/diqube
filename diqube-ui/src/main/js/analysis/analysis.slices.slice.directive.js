@@ -60,6 +60,8 @@
             
             $scope.exception = undefined;
             
+            $scope.drop = drop;
+            
             // ===
 
             if (analysisStateService.pollOpenSliceInEditModeNextTime($scope.slice.id)) {
@@ -148,6 +150,30 @@
                   $scope.exception = text;
                 })
               })
+            }
+            
+            function drop(dragDropElement) {
+              var sliceCopy = angular.copy($scope.slice);
+              var availableDisjunctions = 
+                sliceCopy.sliceDisjunctions.filter(function (d) { return d.fieldName === dragDropElement.data.field });
+              
+              if (availableDisjunctions && availableDisjunctions.length) {
+                availableDisjunctions[0].disjunctionValues.push(dragDropElement.data.value);
+              } else {
+                sliceCopy.sliceDisjunctions.push({
+                  fieldName: dragDropElement.data.field,
+                  disjunctionValues: [ dragDropElement.data.value ]
+                });
+              }
+              
+              $scope.working = true;
+              analysisService.updateSlice(sliceCopy).then(function() {
+                $scope.working = false;
+              }).catch(function(text) {
+                $scope.working = false;
+                $scope.editException = text;
+              });
+              return true;
             }
           }
         };

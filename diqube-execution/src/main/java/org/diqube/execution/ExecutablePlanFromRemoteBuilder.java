@@ -213,7 +213,8 @@ public class ExecutablePlanFromRemoteBuilder {
     boolean isOrdered = plan.getSteps().stream().anyMatch(s -> s.getType().equals(RExecutionPlanStepType.ORDER));
     boolean isGrouped = plan.getSteps().stream().anyMatch(s -> s.getType().equals(RExecutionPlanStepType.GROUP));
 
-    return executablePlanFactory.createExecutablePlanInfo(selectedCols, isOrdered, isGrouped,
+    return executablePlanFactory.createExecutablePlanInfo(selectedCols,
+        null /* query remote does not provide requests */, isOrdered, isGrouped,
         false /* there cannot be a HAVING, because were on a query remote */);
   }
 

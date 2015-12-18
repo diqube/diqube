@@ -69,6 +69,7 @@ public class ResultValueVisitor extends DiqlBaseVisitor<List<ResolveValueRequest
 
     ResolveValueRequest res = new ResolveValueRequest();
     res.setResolve(anyValueResult);
+    res.setRequestString(ctx.getText());
 
     return new ArrayList<>(Arrays.asList(new ResolveValueRequest[] { res }));
   }

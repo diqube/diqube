@@ -81,9 +81,11 @@
     </div>
   </nav>
 
-  <div class="container-fluid">
-    <div ng-view></div>
-  </div>
+  <drag-control>
+    <div class="container-fluid">
+      <div ng-view></div>
+    </div>
+  </drag-control>
 
   <script src="bower_components/node-uuid/uuid.js"></script>
   <script src="bower_components/jquery/dist/jquery.js"></script>
@@ -98,10 +100,12 @@
   
   <script src="app.js"></script>
   <script src="route.js"></script>
+  <script src="drag-drop/drag-drop.module.js"></script>
   <script src="analysis/analysis.module.js"></script>
   <script src="login-state/login-state.module.js"></script>
   
   <script src="login-state/login-state.service.js"></script>
+  <script src="drag-drop/drag-drop.service.js"></script>
   <script src="remote/remote.service.js"></script>
   <script src="analysis/analysis.service.js"></script>
   <script src="analysis/analysis.state.service.js"></script>
@@ -121,5 +125,7 @@
   <script src="analysis/analysis.query.barchart.directive.js"></script>
   <script src="analysis/analysis.slices.directive.js"></script>
   <script src="analysis/analysis.slices.slice.directive.js"></script>
+  <script src="drag-drop/drop-target.directive.js"></script>
+  <script src="drag-drop/drag-control.directive.js"></script>
 </body>
 </html>

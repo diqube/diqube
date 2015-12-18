@@ -35,9 +35,20 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public class TableJsonResult implements JsonResult {
   public static final String TYPE = "table";
 
+  /**
+   * The final names of the columns that were selected (= output of the executed plan).
+   */
   @JsonProperty
   @NotNull
   public List<String> columnNames;
+
+  /**
+   * Strings of the select statement that lead to the selection of the {@link #columnNames}. Index corresponds to
+   * {@link #columnNames}.
+   */
+  @JsonProperty
+  @NotNull
+  public List<String> columnRequests;
 
   @JsonProperty
   @NotNull
@@ -57,6 +68,14 @@ public class TableJsonResult implements JsonResult {
 
   public void setPercentComplete(short percentComplete) {
     this.percentComplete = percentComplete;
+  }
+
+  public List<String> getColumnRequests() {
+    return columnRequests;
+  }
+
+  public void setColumnRequests(List<String> columnRequests) {
+    this.columnRequests = columnRequests;
   }
 
 }

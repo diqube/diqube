@@ -194,14 +194,20 @@ public class QueryServiceHandler implements Iface {
       RNodeAddress resultAddress) throws TException, RQueryException, AuthenticationException, AuthorizationException {
     ticketValidityService.validateTicket(ticket);
 
-    FromRequest fromRequest = parseFromRequest(diql);
-    if (fromRequest == null)
-      throw new RQueryException("No FROM specified.");
-    if (!tableAccessPermissionUtil.hasAccessToTable(ticket, fromRequest.getTable()))
-      throw new AuthorizationException(
-          "Table '" + fromRequest.getTable() + "' does not exist or user has no permission to access it.");
-
     UUID queryUuid = RUuidUtil.toUuid(queryRUuid);
+
+    try {
+      FromRequest fromRequest = parseFromRequest(diql);
+      if (fromRequest == null)
+        throw new RQueryException("No FROM specified.");
+      if (!tableAccessPermissionUtil.hasAccessToTable(ticket, fromRequest.getTable()))
+        throw new AuthorizationException(
+            "Table '" + fromRequest.getTable() + "' does not exist or user has no permission to access it.");
+    } catch (ParseException | ValidationException e) {
+      logger.warn("Exception while pre-parsing query in order to check authorization: {}", queryUuid, e.getMessage());
+      throw new RQueryException(e.getMessage());
+    }
+
     logger.info("Async query {}, partial {}, resultAddress {}: {}",
         new Object[] { queryUuid, sendPartialUpdates, resultAddress, diql });
 
@@ -464,7 +470,7 @@ public class QueryServiceHandler implements Iface {
   /**
    * Parse given diql and return the {@link FromRequest}.
    */
-  private FromRequest parseFromRequest(String diql) {
+  private FromRequest parseFromRequest(String diql) throws ParseException {
     DiqlStmtContext sqlStmt = DiqlParseUtil.parseWithAntlr(diql);
     ExecutionRequest executionRequest =
         sqlStmt.accept(new SelectStmtVisitor(repeatedColumnNameGenerator, functionBasedColumnNameBuilderFactory));

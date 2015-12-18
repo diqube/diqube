@@ -92,6 +92,7 @@
                       if (data.percentComplete >= query.$results.percentComplete) {
                         query.$results.rows = data.rows;
                         query.$results.columnNames = data.columnNames;
+                        query.$results.columnRequests = data.columnRequests;
                         query.$results.percentComplete = data.percentComplete;
                       }
                       if (intermediateResultsFn)

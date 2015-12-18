@@ -118,6 +118,8 @@ class MasterQueryExecutor {
     }
   };
 
+  private List<String> selectionRequests;
+
   public MasterQueryExecutor(ExecutorManager executorManager, ExecutionPlanBuilderFactory executionPlanBuildeFactory,
       QueryRegistry queryRegistry, MasterQueryExecutor.QueryExecutorCallback callback,
       boolean createIntermediaryUpdates) {
@@ -216,6 +218,7 @@ class MasterQueryExecutor {
     ExecutablePlan plan = planBuilder.build();
     selectedColumnsSet = new HashSet<>(plan.getInfo().getSelectedColumnNames());
     selectedColumns = plan.getInfo().getSelectedColumnNames();
+    selectionRequests = plan.getInfo().getSelectionRequests();
     isOrdered = plan.getInfo().isOrdered();
     isHaving = plan.getInfo().isHaving();
     if (!isOrdered)
@@ -346,6 +349,7 @@ class MasterQueryExecutor {
 
     RResultTable res = new RResultTable();
     res.setColumnNames(selectedColumns);
+    res.setColumnRequests(selectionRequests);
 
     if ((rowIds == null || rowIds.isEmpty()) && isOrdered)
       // return empty table. This could be the case if the result table is actually empty.

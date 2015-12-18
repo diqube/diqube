@@ -22,7 +22,7 @@
   "use strict";
   
   angular.module("diqube.analysis").directive("diqubeQueryBarChart",
-      [ "$timeout", "$log", function($timeout, $log) {
+      [ "$timeout", "$log", "dragDropService", function($timeout, $log, dragDropService) {
         return {
           restrict: "E",
           scope: {
@@ -37,14 +37,17 @@
             // ===
             
             $scope.$watch("query.$results.columnNames", updateData);
+            $scope.$watch("query.$results.columnRequests", updateData);
             $scope.$watch("query.$results.rows", updateData);
             
             $scope.chart = undefined;
             $scope.initialData = undefined;
             $scope.initialLabels = undefined;
             
+            $scope.fieldNameXAxis = undefined;
+            
             $timeout(function() {
-              var ctx = document.getElementById($scope.chartHtmlId);
+              var canvasHtmlObject = document.getElementById($scope.chartHtmlId);
               var data, labels;
               if ($scope.initialData) {
                 // we have initial data already, so use that!
@@ -57,7 +60,7 @@
                 data = [];
                 labels = [];
               }
-              $scope.chart = new Chart(ctx, {
+              $scope.chart = new Chart(canvasHtmlObject, {
                 type: "bar",
                 data: {
                     labels: labels,
@@ -87,11 +90,29 @@
                     maintainAspectRatio: false
                 }
               });
+              canvasHtmlObject.addEventListener("mousedown", function (event) {
+                var el = $scope.chart.getElementAtEvent(event);
+                if (el && el.length) {
+                  try {
+                    var draggedValue =  el[0]._view.label;
+                    if (draggedValue) {
+                      dragDropService.startDragRestriction($scope.fieldNameXAxis, draggedValue);
+                      
+                      event.stopPropagation();
+                      event.preventDefault();
+                    }
+                  } catch (err) {
+                    // swallow, apparently no valid drag operation.
+                  }
+                }
+              });
             }, 0, false);
             
             function updateData() {
               var targetData = [];
               var targetLabels = [];
+              
+              $scope.fieldNameXAxis = $scope.query.$results.columnRequests[0];
               
               for (var idx in $scope.query.$results.rows) {
                 targetData.push($scope.query.$results.rows[idx][1]);

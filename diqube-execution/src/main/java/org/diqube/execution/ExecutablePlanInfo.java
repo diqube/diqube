@@ -30,25 +30,40 @@ import java.util.List;
 public class ExecutablePlanInfo {
   private List<String> selectedColumnNames;
 
+  private List<String> selectionRequests;
+
   private boolean isOrdered;
 
   private boolean isGrouped;
 
   private boolean having;
 
-  /* package */ ExecutablePlanInfo(List<String> selectedColumnNames, boolean isOrdered, boolean isGrouped,
-      boolean having) {
+  /* package */ ExecutablePlanInfo(List<String> selectedColumnNames, List<String> selectionRequests, boolean isOrdered,
+      boolean isGrouped, boolean having) {
     this.selectedColumnNames = selectedColumnNames;
+    this.selectionRequests = selectionRequests;
     this.isOrdered = isOrdered;
     this.isGrouped = isGrouped;
     this.having = having;
   }
 
   /**
-   * @return Names of the columns that were requested as result in the query.
+   * @return Names of the columns that were requested as result in the query. These are the output column names of the
+   *         plan.
    */
   public List<String> getSelectedColumnNames() {
     return selectedColumnNames;
+  }
+
+  /**
+   * @return The selection requests that were provided in the query. The index corresponds to the elements returned in
+   *         {@link #getSelectedColumnNames()}. These are not the columnNames that are the output of the plan, but
+   *         rather the string that was used in the select statement that was used to request the corresponding output
+   *         column. This information will <b>NOT</b> be available on the query remotes, <code>null</code> will be
+   *         returned there!
+   */
+  public List<String> getSelectionRequests() {
+    return selectionRequests;
   }
 
   public boolean isOrdered() {

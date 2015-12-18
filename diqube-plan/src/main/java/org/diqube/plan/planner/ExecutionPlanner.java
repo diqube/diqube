@@ -406,11 +406,14 @@ public class ExecutionPlanner {
   private ExecutablePlanInfo createInfo(ExecutionRequest executionRequest) {
     List<String> selectedCols = executionRequest.getResolveValues().stream()
         .map(res -> res.getResolve().getColumnName()).collect(Collectors.toList());
+    List<String> selectionRequests =
+        executionRequest.getResolveValues().stream().map(res -> res.getRequestString()).collect(Collectors.toList());
 
     boolean isOrdered = executionRequest.getOrder() != null;
     boolean isGrouped = executionRequest.getGroup() != null;
     boolean having = executionRequest.getHaving() != null;
 
-    return executablePlanFactory.createExecutablePlanInfo(selectedCols, isOrdered, isGrouped, having);
+    return executablePlanFactory.createExecutablePlanInfo(selectedCols, selectionRequests, isOrdered, isGrouped,
+        having);
   }
 }

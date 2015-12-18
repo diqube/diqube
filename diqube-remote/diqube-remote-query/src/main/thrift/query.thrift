@@ -25,8 +25,9 @@ include "${diqube.thrift.dependencies}/base.thrift"
 
 
 struct RResultTable {
-  1: list<string> columnNames,
-  2: optional list<list<base.RValue>> rows
+  1: list<string> columnNames, // the final names of the result columns.
+  2: list<string> columnRequests, // the exact string that was used in the query to select the column. 
+  3: optional list<list<base.RValue>> rows
 }
 
 exception RQueryException {

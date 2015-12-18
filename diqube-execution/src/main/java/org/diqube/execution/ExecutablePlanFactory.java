@@ -113,9 +113,9 @@ public class ExecutablePlanFactory {
     return new ExecutablePlan(defaultEnv, steps, info, columnVersionManager);
   }
 
-  public ExecutablePlanInfo createExecutablePlanInfo(List<String> selectedColumnNames, boolean isOrdered,
-      boolean isGrouped, boolean having) {
-    return new ExecutablePlanInfo(selectedColumnNames, isOrdered, isGrouped, having);
+  public ExecutablePlanInfo createExecutablePlanInfo(List<String> selectedColumnNames, List<String> selectionRequests,
+      boolean isOrdered, boolean isGrouped, boolean having) {
+    return new ExecutablePlanInfo(selectedColumnNames, selectionRequests, isOrdered, isGrouped, having);
   }
 
   public ExecuteRemotePlanOnShardsStep createExecuteRemotePlanStep(int stepId, ExecutionEnvironment env,

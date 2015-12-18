@@ -31,7 +31,9 @@ import org.diqube.util.ColumnOrValue;
  * @author Bastian Gloeckle
  */
 public class ResolveValueRequest {
-  public ColumnOrValue resolve;
+  private ColumnOrValue resolve;
+
+  private String requestString;
 
   public ColumnOrValue getResolve() {
     return resolve;
@@ -41,10 +43,23 @@ public class ResolveValueRequest {
     this.resolve = resolve;
   }
 
+  /**
+   * @return plain string that was provided in the select statement that lead to resolving the {@link ColumnOrValue}
+   *         provided by {@link #getResolve()}.
+   */
+  public String getRequestString() {
+    return requestString;
+  }
+
+  public void setRequestString(String requestString) {
+    this.requestString = requestString;
+  }
+
   @Override
   public int hashCode() {
     final int prime = 31;
     int result = 1;
+    result = prime * result + ((requestString == null) ? 0 : requestString.hashCode());
     result = prime * result + ((resolve == null) ? 0 : resolve.hashCode());
     return result;
   }
@@ -58,6 +73,11 @@ public class ResolveValueRequest {
     if (!(obj instanceof ResolveValueRequest))
       return false;
     ResolveValueRequest other = (ResolveValueRequest) obj;
+    if (requestString == null) {
+      if (other.requestString != null)
+        return false;
+    } else if (!requestString.equals(other.requestString))
+      return false;
     if (resolve == null) {
       if (other.resolve != null)
         return false;

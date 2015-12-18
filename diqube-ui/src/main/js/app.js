@@ -28,6 +28,7 @@
                                "ui.bootstrap",
                                "ui.bootstrap.collapse",
                                "diqube.route", 
+                               "diqube.drag-drop", 
                                "diqube.about",
                                "diqube.login-state",
                                "diqube.login",
