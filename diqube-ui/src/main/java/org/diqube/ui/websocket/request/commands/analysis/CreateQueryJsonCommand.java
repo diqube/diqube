@@ -25,16 +25,12 @@ import java.util.UUID;
 import javax.inject.Inject;
 import javax.validation.constraints.NotNull;
 
-import org.diqube.thrift.base.thrift.Ticket;
-import org.diqube.ui.AnalysisRegistry;
 import org.diqube.ui.analysis.AnalysisFactory;
 import org.diqube.ui.analysis.UiAnalysis;
 import org.diqube.ui.analysis.UiQube;
 import org.diqube.ui.analysis.UiQuery;
-import org.diqube.ui.websocket.request.CommandClusterInteraction;
 import org.diqube.ui.websocket.request.CommandResultHandler;
 import org.diqube.ui.websocket.request.commands.CommandInformation;
-import org.diqube.ui.websocket.request.commands.JsonCommand;
 import org.diqube.ui.websocket.result.analysis.QueryJsonResult;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -52,13 +48,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * @author Bastian Gloeckle
  */
 @CommandInformation(name = CreateQueryJsonCommand.NAME)
-public class CreateQueryJsonCommand implements JsonCommand {
-
+public class CreateQueryJsonCommand extends AbstractAnalysisAdjustingJsonCommand {
   public static final String NAME = "createQuery";
-
-  @JsonProperty
-  @NotNull
-  public String analysisId;
 
   @JsonProperty
   @NotNull
@@ -76,18 +67,8 @@ public class CreateQueryJsonCommand implements JsonCommand {
   @Inject
   private AnalysisFactory factory;
 
-  @JsonIgnore
-  @Inject
-  private AnalysisRegistry registry;
-
   @Override
-  public void execute(Ticket ticket, CommandResultHandler resultHandler, CommandClusterInteraction clusterInteraction)
-      throws RuntimeException {
-    UiAnalysis analysis = registry.getAnalysis(analysisId);
-
-    if (analysis == null)
-      throw new RuntimeException("Analysis unknown: " + analysisId);
-
+  protected Runnable adjustAnalysis(UiAnalysis analysis, CommandResultHandler resultHandler) {
     UiQube qube = analysis.getQube(qubeId);
 
     if (qube == null)
@@ -97,7 +78,7 @@ public class CreateQueryJsonCommand implements JsonCommand {
 
     qube.getQueries().add(query);
 
-    resultHandler.sendData(new QueryJsonResult(query));
+    return () -> resultHandler.sendData(new QueryJsonResult(query, analysis.getVersion()));
   }
 
 }

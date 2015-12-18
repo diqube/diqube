@@ -58,7 +58,7 @@
          * @param query The query to execute
          * @param intermediateResultsFn function(resultsObj): called when intermediate results are available. Can be undefined. This will only be called asynchronously.
          */
-        function provideQueryResults(analysisId, qube, query, intermediateResultsFn) {
+        function provideQueryResults(analysisId, analysisVersion, qube, query, intermediateResultsFn) {
           if (query.$results !== undefined) {
             return new Promise(function(resolve, reject) {
               resolve(query.$results);
@@ -83,6 +83,7 @@
           return new Promise(function(resolve, reject) {
             var requestId = remoteService.execute("analysisQuery", 
                 { analysisId: analysisId,
+                  analysisVersion: analysisVersion,
                   qubeId: qube.id,
                   queryId: query.id
                 }, new (function() {

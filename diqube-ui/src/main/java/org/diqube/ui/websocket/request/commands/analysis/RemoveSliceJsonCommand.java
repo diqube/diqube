@@ -23,20 +23,15 @@ package org.diqube.ui.websocket.request.commands.analysis;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.inject.Inject;
 import javax.validation.constraints.NotNull;
 
-import org.diqube.thrift.base.thrift.Ticket;
-import org.diqube.ui.AnalysisRegistry;
 import org.diqube.ui.analysis.UiAnalysis;
 import org.diqube.ui.analysis.UiQube;
 import org.diqube.ui.analysis.UiSlice;
-import org.diqube.ui.websocket.request.CommandClusterInteraction;
 import org.diqube.ui.websocket.request.CommandResultHandler;
 import org.diqube.ui.websocket.request.commands.CommandInformation;
-import org.diqube.ui.websocket.request.commands.JsonCommand;
+import org.diqube.ui.websocket.result.analysis.AnalysisVersionJsonResult;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
@@ -45,35 +40,22 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * <p>
  * Sends following results:
  * <ul>
- * <li>none.
+ * <li>{@link AnalysisVersionJsonResult}
  * </ul>
  * 
  * @author Bastian Gloeckle
  */
 @CommandInformation(name = RemoveSliceJsonCommand.NAME)
-public class RemoveSliceJsonCommand implements JsonCommand {
+public class RemoveSliceJsonCommand extends AbstractAnalysisAdjustingJsonCommand {
 
   public static final String NAME = "removeSlice";
 
   @JsonProperty
   @NotNull
-  public String analysisId;
-
-  @JsonProperty
-  @NotNull
   public String sliceId;
 
-  @JsonIgnore
-  @Inject
-  private AnalysisRegistry registry;
-
   @Override
-  public void execute(Ticket ticket, CommandResultHandler resultHandler, CommandClusterInteraction clusterInteraction)
-      throws RuntimeException {
-    UiAnalysis analysis = registry.getAnalysis(analysisId);
-    if (analysis == null)
-      throw new RuntimeException("Unknown analysis: " + analysisId);
-
+  protected Runnable adjustAnalysis(UiAnalysis analysis, CommandResultHandler resultHandler) {
     UiSlice slice = analysis.getSlice(sliceId);
     if (slice == null)
       throw new RuntimeException("Unknown slice: " + sliceId);
@@ -91,6 +73,8 @@ public class RemoveSliceJsonCommand implements JsonCommand {
           "There is at least one qube that is still using slice '" + slice.getName() + "': " + qubeNames);
 
     analysis.getSlices().remove(slice);
+
+    return () -> resultHandler.sendData(new AnalysisVersionJsonResult(analysis.getVersion()));
   }
 
 }

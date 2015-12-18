@@ -42,6 +42,9 @@ public class CancelJsonCommand implements JsonCommand {
   @Override
   public void execute(Ticket ticket, CommandResultHandler resultHandler, CommandClusterInteraction clusterInteraction)
       throws RuntimeException {
+    if (ticket == null)
+      throw new RuntimeException("Not logged in.");
+
     // currently only queries can be cancelled.
     clusterInteraction.cancelQuery();
   }

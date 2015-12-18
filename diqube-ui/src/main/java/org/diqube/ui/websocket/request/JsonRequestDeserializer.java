@@ -178,35 +178,42 @@ public class JsonRequestDeserializer {
   }
 
   private void wireInjectFieldsAndCallPostConstruct(Object o) throws JsonPayloadDeserializerException {
-    for (Field f : o.getClass().getDeclaredFields()) {
-      Inject[] injects = f.getAnnotationsByType(Inject.class);
-      JsonIgnore[] jsonIgnores = f.getAnnotationsByType(JsonIgnore.class);
-      if (injects.length > 0 && jsonIgnores.length > 0) {
-        try {
-          Object value = beanContext.getBean(f.getType());
-          ReflectionUtils.makeAccessible(f);
+    Class<?> objectClass = o.getClass();
+    Class<?> curClass = o.getClass();
+    while (!curClass.equals(Object.class)) {
+      for (Field f : curClass.getDeclaredFields()) {
+        Inject[] injects = f.getAnnotationsByType(Inject.class);
+        JsonIgnore[] jsonIgnores = f.getAnnotationsByType(JsonIgnore.class);
+        if (injects.length > 0 && jsonIgnores.length > 0) {
           try {
-            f.set(o, value);
-            logger.trace("Wired object to {}#{}", o.getClass().getName(), f.getName());
-          } catch (IllegalArgumentException | IllegalAccessException e) {
-            logger.debug("Could not wire object to {}#{}", o.getClass(), f.getName(), e);
+            Object value = beanContext.getBean(f.getType());
+            ReflectionUtils.makeAccessible(f);
+            try {
+              f.set(o, value);
+              logger.trace("Wired object to {}#{}", objectClass.getName(), f.getName());
+            } catch (IllegalArgumentException | IllegalAccessException e) {
+              logger.debug("Could not wire object to {}#{}", objectClass, f.getName(), e);
+            }
+          } catch (NoSuchBeanDefinitionException e) {
+            logger.debug("Not wiring object to {}#{} because no corresponding bean available", objectClass,
+                f.getName());
           }
-        } catch (NoSuchBeanDefinitionException e) {
-          logger.debug("Not wiring object to {}#{} because no corresponding bean available", o.getClass(), f.getName());
         }
       }
-    }
 
-    for (Method m : o.getClass().getMethods()) {
-      if (Modifier.isPublic(m.getModifiers()) && m.isAnnotationPresent(PostConstruct.class)) {
-        if (m.getParameterCount() == 0 && m.getReturnType().equals(Void.TYPE)) {
-          try {
-            m.invoke(o);
-          } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-            throw new JsonPayloadDeserializerException("Could not invoke PostConstruct.", e);
+      for (Method m : curClass.getMethods()) {
+        if (Modifier.isPublic(m.getModifiers()) && m.isAnnotationPresent(PostConstruct.class)) {
+          if (m.getParameterCount() == 0 && m.getReturnType().equals(Void.TYPE)) {
+            try {
+              m.invoke(o);
+            } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+              throw new JsonPayloadDeserializerException("Could not invoke PostConstruct.", e);
+            }
           }
         }
       }
+
+      curClass = curClass.getSuperclass();
     }
   }
 

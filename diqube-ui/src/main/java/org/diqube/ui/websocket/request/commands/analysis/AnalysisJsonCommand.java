@@ -23,9 +23,10 @@ package org.diqube.ui.websocket.request.commands.analysis;
 import javax.inject.Inject;
 import javax.validation.constraints.NotNull;
 
+import org.diqube.thrift.base.thrift.AuthenticationException;
 import org.diqube.thrift.base.thrift.Ticket;
-import org.diqube.ui.AnalysisRegistry;
 import org.diqube.ui.analysis.UiAnalysis;
+import org.diqube.ui.db.UiDbProvider;
 import org.diqube.ui.websocket.request.CommandClusterInteraction;
 import org.diqube.ui.websocket.request.CommandResultHandler;
 import org.diqube.ui.websocket.request.commands.CommandInformation;
@@ -36,7 +37,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * Returns a specific analysis.
+ * Returns a specific analysis, no matter if it belongs to the tickets user or not.
  *
  * <p>
  * Sends following results:
@@ -55,16 +56,31 @@ public class AnalysisJsonCommand implements JsonCommand {
   @NotNull
   public String analysisId;
 
+  // if null, load newest version.
+  @JsonProperty
+  public Long analysisVersion;
+
   @JsonIgnore
   @Inject
-  public AnalysisRegistry registry;
+  public UiDbProvider dbProvider;
 
   @Override
   public void execute(Ticket ticket, CommandResultHandler resultHandler, CommandClusterInteraction clusterInteraction)
-      throws RuntimeException {
-    UiAnalysis analysis = registry.getAnalysis(analysisId);
+      throws RuntimeException, AuthenticationException {
+    if (ticket == null)
+      throw new RuntimeException("Not logged in.");
+
+    if (analysisVersion == null) {
+      analysisVersion = dbProvider.getDb().findNewestAnalysisVersion(analysisId);
+
+      if (analysisVersion == null)
+        throw new RuntimeException("Analysis not found: " + analysisId);
+    }
+
+    UiAnalysis analysis = dbProvider.getDb().loadAnalysisVersion(analysisId, analysisVersion);
+
     if (analysis == null)
-      throw new RuntimeException("Analysis not found: " + analysisId);
+      throw new RuntimeException("Analysis version not found: " + analysisId + " version " + analysisVersion);
 
     resultHandler.sendData(new AnalysisJsonResult(analysis));
   }

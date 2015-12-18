@@ -27,6 +27,8 @@
       id: "analysisId",
       table: "analysisTable",
       name: "analysisName",
+      user: "userName",
+      version: 0,
       qubes: [ {
         id: "qubeId1",
         name: "qubeName1",

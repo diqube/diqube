@@ -28,16 +28,12 @@ import javax.inject.Inject;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
-import org.diqube.thrift.base.thrift.Ticket;
-import org.diqube.ui.AnalysisRegistry;
 import org.diqube.ui.analysis.AnalysisFactory;
 import org.diqube.ui.analysis.UiAnalysis;
 import org.diqube.ui.analysis.UiSlice;
 import org.diqube.ui.analysis.UiSliceDisjunction;
-import org.diqube.ui.websocket.request.CommandClusterInteraction;
 import org.diqube.ui.websocket.request.CommandResultHandler;
 import org.diqube.ui.websocket.request.commands.CommandInformation;
-import org.diqube.ui.websocket.request.commands.JsonCommand;
 import org.diqube.ui.websocket.result.analysis.SliceJsonResult;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -55,13 +51,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * @author Bastian Gloeckle
  */
 @CommandInformation(name = CreateSliceJsonCommand.NAME)
-public class CreateSliceJsonCommand implements JsonCommand {
-
+public class CreateSliceJsonCommand extends AbstractAnalysisAdjustingJsonCommand {
   public static final String NAME = "createSlice";
-
-  @JsonProperty
-  @NotNull
-  public String analysisId;
 
   @JsonProperty
   @NotNull
@@ -80,25 +71,15 @@ public class CreateSliceJsonCommand implements JsonCommand {
   @Inject
   private AnalysisFactory factory;
 
-  @JsonIgnore
-  @Inject
-  private AnalysisRegistry registry;
-
   @Override
-  public void execute(Ticket ticket, CommandResultHandler resultHandler, CommandClusterInteraction clusterInteraction)
-      throws RuntimeException {
-    UiAnalysis analysis = registry.getAnalysis(analysisId);
-
-    if (analysis == null)
-      throw new RuntimeException("Analysis unknown: " + analysisId);
-
+  protected Runnable adjustAnalysis(UiAnalysis analysis, CommandResultHandler resultHandler) {
     UiSlice slice = factory.createSlice(UUID.randomUUID().toString(), name, new ArrayList<>());
     slice.setManualConjunction(manualConjunction);
     slice.getSliceDisjunctions().addAll(sliceDisjunctions);
 
     analysis.getSlices().add(slice);
 
-    resultHandler.sendData(new SliceJsonResult(slice));
+    return () -> resultHandler.sendData(new SliceJsonResult(slice, analysis.getVersion()));
   }
 
 }

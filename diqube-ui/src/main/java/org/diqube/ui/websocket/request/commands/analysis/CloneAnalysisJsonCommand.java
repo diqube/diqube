@@ -25,14 +25,6 @@ import java.util.UUID;
 import javax.inject.Inject;
 import javax.validation.constraints.NotNull;
 
-import org.apache.thrift.TException;
-import org.diqube.diql.DiqlParseUtil;
-import org.diqube.diql.ParseException;
-import org.diqube.diql.antlr.DiqlParser.DiqlStmtContext;
-import org.diqube.diql.request.ExecutionRequest;
-import org.diqube.diql.visitors.SelectStmtVisitor;
-import org.diqube.name.FunctionBasedColumnNameBuilderFactory;
-import org.diqube.name.RepeatedColumnNameGenerator;
 import org.diqube.thrift.base.thrift.Ticket;
 import org.diqube.ui.analysis.AnalysisFactory;
 import org.diqube.ui.analysis.UiAnalysis;
@@ -45,12 +37,13 @@ import org.diqube.ui.websocket.request.commands.JsonCommand;
 import org.diqube.ui.websocket.result.analysis.AnalysisJsonResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.SerializationUtils;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * Create a new {@link UiAnalysis}.
+ * Clones an analysis (of any user) to a new analysis of the current user.
  * 
  * <p>
  * Sends following results:
@@ -60,19 +53,19 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  *
  * @author Bastian Gloeckle
  */
-@CommandInformation(name = CreateAnalysisJsonCommand.NAME)
-public class CreateAnalysisJsonCommand implements JsonCommand {
-  private static final Logger logger = LoggerFactory.getLogger(CreateAnalysisJsonCommand.class);
+@CommandInformation(name = CloneAnalysisJsonCommand.NAME)
+public class CloneAnalysisJsonCommand implements JsonCommand {
+  private static final Logger logger = LoggerFactory.getLogger(CloneAnalysisJsonCommand.class);
 
-  public static final String NAME = "createAnalysis";
-
-  @JsonProperty
-  @NotNull
-  public String table;
+  public static final String NAME = "cloneAnalysis";
 
   @JsonProperty
   @NotNull
-  public String name;
+  public String analysisId;
+
+  @JsonProperty
+  @NotNull
+  public long analysisVersion;
 
   @JsonIgnore
   @Inject
@@ -82,52 +75,33 @@ public class CreateAnalysisJsonCommand implements JsonCommand {
   @Inject
   private UiDbProvider uiDbProvider;
 
-  @JsonIgnore
-  @Inject
-  private RepeatedColumnNameGenerator repeatedColumnNameGenerator;
-
-  @JsonIgnore
-  @Inject
-  private FunctionBasedColumnNameBuilderFactory functionBasedColumnNameBuilderFactory;
-
   @Override
   public void execute(Ticket ticket, CommandResultHandler resultHandler, CommandClusterInteraction clusterInteraction)
       throws RuntimeException {
     if (ticket == null)
       throw new RuntimeException("Not logged in.");
 
-    UiAnalysis res =
-        factory.createAnalysis(UUID.randomUUID().toString(), name, table, ticket.getClaim().getUsername(), 0L);
+    UiAnalysis originalAnalysis = uiDbProvider.getDb().loadAnalysisVersion(analysisId, analysisVersion);
+
+    if (originalAnalysis == null)
+      throw new RuntimeException("Analysis unknown: " + analysisId + " version " + analysisVersion);
+
+    byte[] serialized = SerializationUtils.serialize(originalAnalysis);
+    UiAnalysis newAnalysis = (UiAnalysis)SerializationUtils.deserialize(serialized);
+
+    newAnalysis.setId(UUID.randomUUID().toString());
+    newAnalysis.setUser(ticket.getClaim().getUsername());
+    newAnalysis.setVersion(0L);
+    newAnalysis.setName(originalAnalysis.getName() + " [cloned]");
 
     try {
-      uiDbProvider.getDb().storeAnalysisVersion(res);
+      uiDbProvider.getDb().storeAnalysisVersion(newAnalysis);
     } catch (StoreException e1) {
       logger.error("Could not store new analysis", e1);
       throw new RuntimeException("Could not store new analysis.", e1);
     }
 
-    try {
-      // check if "table" is a flattened table and if, ask the cluster to start flattening right away.
-      DiqlStmtContext stmtCtx = DiqlParseUtil.parseWithAntlr("select a from " + table);
-      ExecutionRequest executionRequest =
-          stmtCtx.accept(new SelectStmtVisitor(repeatedColumnNameGenerator, functionBasedColumnNameBuilderFactory));
-
-      if (executionRequest.getFromRequest().isFlattened()) {
-        String origTableName = executionRequest.getFromRequest().getTable();
-        String flattenBy = executionRequest.getFromRequest().getFlattenByField();
-        try {
-          clusterInteraction.getFlattenPreparationService().prepareForQueriesOnFlattenedTable(ticket, origTableName,
-              flattenBy);
-        } catch (TException e) {
-          logger.warn("Could not prepare flattening of '{}' by '{}' for new analysis {}", origTableName, flattenBy,
-              res.getId());
-        }
-      }
-    } catch (ParseException e) {
-      // swallow.
-    }
-
-    resultHandler.sendData(new AnalysisJsonResult(res));
+    resultHandler.sendData(new AnalysisJsonResult(newAnalysis));
   }
 
 }

@@ -43,12 +43,17 @@ public class QueryJsonResult implements JsonResult {
   @Valid
   public UiQuery query;
 
+  @JsonProperty
+  @NotNull
+  public long analysisVersion;
+
   // for tests only
   public QueryJsonResult() {
 
   }
 
-  public QueryJsonResult(UiQuery query) {
+  public QueryJsonResult(UiQuery query, long analysisVersion) {
     this.query = query;
+    this.analysisVersion = analysisVersion;
   }
 }

@@ -27,6 +27,18 @@
   {{ analysis.error }}
 </div>
 
+<div ng-if="analysis.showNewerVersionWarning()" class="alert alert-warning">
+  <b>Warning!</b> You are currently viewing an old version of this analysis. If you make any changes, that will then
+  become the newest version and you might lose (or be unable to find) the currently newest version any more. 
+  <a href="analysis/{{ analysis.analysisId }}#{{ analysis.newestVersionNumber() }}">Load the currently newest version 
+  ({{ analysis.newestVersionNumber() }}) now.</a>  
+</div>
+
+<div ng-if="analysis.showDifferentOwnerWarning()" class="alert alert-warning">
+  <b>Warning!</b> This analysis is owned by <b>{{ analysis.analysis.user }}</b>, which means you cannot adjust this analysis.
+  <a href ng-click="analysis.cloneAndLoadCurrentAnalysis()">Clone this version of the analysis for your own user.</a> 
+</div>
+
 <div ng-if="!analysis.error" class="analysis-container">
   <div class="container-fluid text-justify qube-container">
     <button class="btn btn-default add-qube-btn" ng-click="analysis.addQube()">

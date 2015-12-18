@@ -35,10 +35,11 @@
   
   describe("diqube.open-analysis module", function() {
     beforeEach(module("diqube.open-analysis"));
-    var $controller, $location;
-    beforeEach(inject(function(_$controller_, _$location_){
+    var $controller, $location, $timeout;
+    beforeEach(inject(function(_$controller_, _$location_, _$timeout_){
       $controller = _$controller_;
       $location = _$location_;
+      $timeout = _$timeout_;
     }));
     
     
@@ -146,6 +147,8 @@
         spyOn($location, 'path');
         
         controller.openAnalysis(testData1);
+        
+        $timeout.flush();
        
         expect($location.path).toHaveBeenCalledWith("analysis/testId");
       }));

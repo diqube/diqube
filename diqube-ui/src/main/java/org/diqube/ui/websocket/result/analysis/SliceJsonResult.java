@@ -43,12 +43,17 @@ public class SliceJsonResult implements JsonResult {
   @Valid
   private UiSlice slice;
 
+  @JsonProperty
+  @NotNull
+  private long analysisVersion;
+
   // for tests only
   public SliceJsonResult() {
 
   }
 
-  public SliceJsonResult(UiSlice slice) {
+  public SliceJsonResult(UiSlice slice, long analysisVersion) {
     this.slice = slice;
+    this.analysisVersion = analysisVersion;
   }
 }

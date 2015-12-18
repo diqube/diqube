@@ -22,8 +22,8 @@
 (function() {
   "use strict";
   angular.module("diqube.analysis").service("analysisService",
-      [ "$log", "$rootScope", "remoteService", "$timeout", "analysisStateService", "analysisExecutionService",
-      function analysisServiceProvider($log, $rootScope, remoteService, $timeout, analysisStateService, analysisExecutionService) {
+      [ "$log", "$rootScope", "remoteService", "$timeout", "analysisStateService", "analysisExecutionService", "$location",
+      function analysisServiceProvider($log, $rootScope, remoteService, $timeout, analysisStateService, analysisExecutionService, $location) {
         var me = this;
 
         me.loadedAnalysis = undefined;
@@ -45,6 +45,11 @@
         
         me.provideQueryResults = provideQueryResults;
         
+        // newest version number (on server) of the analysis ID of the analysis available in loadedAnalysis.
+        me.newestVersionOfAnalysis = undefined;
+        
+        me.cloneAndLoadCurrentAnalysis = cloneAndLoadCurrentAnalysis;
+        
         // =====
         
         me.initializeReceivedQube = initializeReceivedQube;
@@ -63,31 +68,99 @@
           for (var idx in me.loadedAnalysis.slices)
             me.initializeReceivedSlice(me.loadedAnalysis.slices[idx]);
           
+          // ensure the correct version in the analysis object and in the URL.
+          setCurrentAnalysisVersion(analysis.version);
+          
           $rootScope.$broadcast("analysis:loaded", analysis);
         }
         
-        function loadAnalysis(id) {
-          if (!me.loadedAnalysis || me.loadedAnalysis.id != id) {
+        function loadAnalysis(id, version) {
+          if (!me.loadedAnalysis || me.loadedAnalysis.id != id || (version && me.loadedAnalysis.version != version)) {
+            // TODO #72: preserve all query results that are still valid, if only a new version of a analysis is loaded.
             return new Promise(function(resolve, reject) {
-              remoteService.execute("analysis", { analysisId : id }, new (function() {
+              me.loadedAnalysis = undefined;
+              me.newestVersionOfAnalysis = undefined;
+              
+              var executeActualLoading = function() {
+                remoteService.execute("analysis", { analysisId : id, analysisVersion: version }, new (function() {
+                  this.data = function data_(dataType, data) {
+                    if (dataType === "analysis") {
+                      if (!me.newestVersionOfAnalysis)
+                        // in case we loaded the newest version or version loading had an exception.
+                        me.newestVersionOfAnalysis = data.analysis.version;
+                      me.setLoadedAnalysis(data.analysis);
+                      resolve(me.loadedAnalysis);
+                    }
+                  }
+                  this.exception = function exception_(text) {
+                    reject(text);
+                  }
+                })());
+              }
+              
+              if (version) {
+                // we do NOT load the newest version, but a specific one. Therefore: Check what the newest version is
+                // to make it available correctly in me.newestVersionOfAnalysis.
+                remoteService.execute("newestAnalysisVersion", { analysisId: id }, new function() {
+                  this.data = function data_(dataType, data) {
+                    if (dataType === "analysisVersion")
+                      me.newestVersionOfAnalysis = data.analysisVersion;
+                  }
+                  this.exception = function exception_(text) {
+                    // Hm, exception when checking version number. Assume we load the newest version, let 
+                    // me.newestVersionOfAnalysis stay undefined and executeActualLogging set it.
+                    executeActualLoading();
+                  }
+                  this.done = function done_() {
+                    executeActualLoading();
+                  }
+                }());
+              } else
+                executeActualLoading();
+            });
+          } else {
+            return new Promise(function(resolve, reject) {
+              $timeout(function() {
+                // loaded already, publish event anyway
+                $rootScope.$broadcast("analysis:loaded", me.loadedAnalysis);
+                resolve(me.loadedAnalysis);
+              }, 0, false);  
+            });
+          }
+        }
+        
+        /**
+         * Clones the currently loaded analysis version into an analysis that is owned by the currently logged in user.
+         * Will load the new analysis after it's created.
+         */
+        function cloneAndLoadCurrentAnalysis() {
+          if (!me.loadedAnalysis)
+            return new Promise(function(resolve, reject) {
+              resolve(undefined);
+            });
+          
+          return new Promise(function(resolve, reject) {
+            remoteService.execute("cloneAnalysis", { 
+              analysisId : me.loadedAnalysis.id, 
+              analysisVersion: me.loadedAnalysis.version }, 
+              new (function() {
                 this.data = function data_(dataType, data) {
                   if (dataType === "analysis") {
-                    me.setLoadedAnalysis(data.analysis);
-                    resolve(me.loadedAnalysis);
+                    // redirect using $location so everything (all controllers etc.) gets built fresh and the URL is 
+                    // correct.
+                    $timeout(function() {
+                      $location.hash(data.analysis.version);
+                      $location.path("analysis/" + data.analysis.id);
+                      $rootScope.$digest();
+                    }, 0, false);
+                    resolve(data.analysis);
                   }
                 }
                 this.exception = function exception_(text) {
                   reject(text);
                 }
               })());
-            });
-          } else {
-            // loaded already, publish event anyway
-            $rootScope.$broadcast("analysis:loaded", me.loadedAnalysis);
-            return new Promise(function(resolve, reject) {
-              resolve(me.loadedAnalysis);
-            });
-          }
+          });
         }
         
         function unloadAnalysis() {
@@ -103,6 +176,7 @@
           return new Promise(function(resolve, reject) {
             remoteService.execute("createQube", 
                 { analysisId: me.loadedAnalysis.id, 
+                  analysisVersion: me.loadedAnalysis.version,
                   name: name, 
                   sliceId: sliceId }, 
                 new (function() {
@@ -112,6 +186,7 @@
                     if (dataType === "qube") {
                       me.initializeReceivedQube(data.qube);
                       me.loadedAnalysis.qubes.push(data.qube);
+                      setCurrentAnalysisVersion(data.analysisVersion);
                       $rootScope.$broadcast("analysis:qubeAdded", data.qube);
                       resQube = data.qube;
                     }
@@ -133,7 +208,8 @@
           }
           return new Promise(function(resolve, reject) {
             remoteService.execute("createQuery", 
-                { analysisId: me.loadedAnalysis.id, 
+                { analysisId: me.loadedAnalysis.id,
+                  analysisVersion: me.loadedAnalysis.version,
                   name: name, 
                   qubeId: qubeId,
                   diql: diql }, 
@@ -145,6 +221,7 @@
                         return q.id === qubeId;
                       })[0];
                       qube.queries.push(data.query);
+                      setCurrentAnalysisVersion(data.analysisVersion);
                       
                       analysisStateService.markToOpenQueryInEditModeNextTime(data.query.id);
                       
@@ -169,7 +246,8 @@
           }
           return new Promise(function(resolve, reject) {
             remoteService.execute("createSlice", 
-                { analysisId: me.loadedAnalysis.id, 
+                { analysisId: me.loadedAnalysis.id,
+                  analysisVersion: me.loadedAnalysis.version,
                   name: name,
                   manualConjunction: manualConjunction,
                   sliceDisjunctions: sliceDisjunctions
@@ -179,6 +257,7 @@
                   this.data = function data_(dataType, data) {
                     if (dataType === "slice") {
                       me.loadedAnalysis.slices.push(data.slice);
+                      setCurrentAnalysisVersion(data.analysisVersion);
                       
                       analysisStateService.markToOpenSliceInEditModeNextTime(data.slice.id);
                       
@@ -207,7 +286,8 @@
          * @param intermediateResultsFn function(resultsObj): called when intermediate results are available. Can be undefined. This will only be called asynchronously.
          */
         function provideQueryResults(qube, query, intermediateResultsFn) {
-          return analysisExecutionService.provideQueryResults(me.loadedAnalysis.id, qube, query, intermediateResultsFn);
+          return analysisExecutionService.provideQueryResults(me.loadedAnalysis.id, me.loadedAnalysis.version, qube, 
+              query, intermediateResultsFn);
         }
         
         /**
@@ -229,6 +309,7 @@
             }
             remoteService.execute("updateQuery",
                 { analysisId: me.loadedAnalysis.id,
+                  analysisVersion: me.loadedAnalysis.version,
                   qubeId: qubeId,
                   newQuery: {
                     id: query.id,
@@ -239,8 +320,10 @@
                 }, new (function() {
                   var receivedQuery;
                   this.data = function data_(dataType, data) {
-                    if (dataType === "query")
+                    if (dataType === "query") {
                       receivedQuery = data.query;
+                      setCurrentAnalysisVersion(data.analysisVersion);
+                    }
                   }
                   this.exception = function exception_(text) {
                     reject(text);
@@ -296,11 +379,13 @@
             
             remoteService.execute("removeQuery", {
               analysisId: me.loadedAnalysis.id,
+              analysisVersion: me.loadedAnalysis.version,
               qubeId: qubeId,
               queryId: queryId
             }, new (function() {
-              this.done = function done_(dataType, data) {
-                // noop.
+              this.data = function data_(dataType, data) {
+                if (dataType === "analysisVersion")
+                  setCurrentAnalysisVersion(data.analysisVersion);
               }
               this.exception = function exception_(text) {
                 reject(text);
@@ -352,6 +437,7 @@
           return new Promise(function(resolve, reject) {
             remoteService.execute("updateQube",
                 { analysisId: me.loadedAnalysis.id,
+                  analysisVersion: me.loadedAnalysis.version,
                   qubeId: newQube.id,
                   qubeName: newQube.name,
                   sliceId: newQube.sliceId
@@ -360,6 +446,7 @@
                   this.data = function data_(dataType, data) {
                     if (dataType === "qube") {
                       receivedQube = data.qube;
+                      setCurrentAnalysisVersion(data.analysisVersion);
                     }
                   }
                   this.exception = function exception_(text) {
@@ -420,10 +507,12 @@
             
             remoteService.execute("removeQube", {
               analysisId: me.loadedAnalysis.id,
+              analysisVersion: me.loadedAnalysis.version,
               qubeId: qubeId,
             }, new (function() {
-              this.done = function done_(dataType, data) {
-                // noop.
+              this.data = function data_(dataType, data) {
+                if (dataType === "analysisVersion")
+                  setCurrentAnalysisVersion(data.analysisVersion);
               }
               this.exception = function exception_(text) {
                 reject(text);
@@ -466,12 +555,15 @@
           return new Promise(function(resolve, reject) {
             remoteService.execute("updateSlice",
                 { analysisId: me.loadedAnalysis.id,
+                  analysisVersion: me.loadedAnalysis.version,
                   slice: slice
                 }, new (function() {
                   var receivedSlice;
                   this.data = function data_(dataType, data) {
-                    if (dataType === "slice") 
+                    if (dataType === "slice") { 
                       receivedSlice = data.slice;
+                      setCurrentAnalysisVersion(data.analysisVersion);
+                    }
                   }
                   this.exception = function exception_(text) {
                     reject(text);
@@ -521,10 +613,12 @@
           return new Promise(function(resolve, reject) {
             remoteService.execute("removeSlice", {
               analysisId: me.loadedAnalysis.id,
+              analysisVersion: me.loadedAnalysis.version,
               sliceId: sliceId
             }, new (function() {
-              this.done = function done_(dataType, data) {
-                // noop.
+              this.data = function data_(dataType, data) {
+                if (dataType === "analysisVersion")
+                  setCurrentAnalysisVersion(data.analysisVersion);
               }
               this.exception = function exception_(text) {
                 reject(text);
@@ -554,6 +648,15 @@
           })
         }
  
+        function setCurrentAnalysisVersion(newVersion) {
+          me.loadedAnalysis.version = newVersion;
+          if (!me.newestVersionOfAnalysis || newVersion > me.newestVersionOfAnalysis)
+            me.newestVersionOfAnalysis = newVersion;
+          
+          $timeout(function() {
+            $location.hash(newVersion);
+          }, 1);
+        }
         
         function initializeReceivedQube(qube) {
           if (!qube.queries)

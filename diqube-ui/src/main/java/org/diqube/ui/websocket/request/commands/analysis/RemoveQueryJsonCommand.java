@@ -20,20 +20,15 @@
  */
 package org.diqube.ui.websocket.request.commands.analysis;
 
-import javax.inject.Inject;
 import javax.validation.constraints.NotNull;
 
-import org.diqube.thrift.base.thrift.Ticket;
-import org.diqube.ui.AnalysisRegistry;
 import org.diqube.ui.analysis.UiAnalysis;
 import org.diqube.ui.analysis.UiQube;
 import org.diqube.ui.analysis.UiQuery;
-import org.diqube.ui.websocket.request.CommandClusterInteraction;
 import org.diqube.ui.websocket.request.CommandResultHandler;
 import org.diqube.ui.websocket.request.commands.CommandInformation;
-import org.diqube.ui.websocket.request.commands.JsonCommand;
+import org.diqube.ui.websocket.result.analysis.AnalysisVersionJsonResult;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
@@ -42,19 +37,14 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * <p>
  * Sends following results:
  * <ul>
- * <li>none.
+ * <li>{@link AnalysisVersionJsonResult}.
  * </ul>
  * 
  * @author Bastian Gloeckle
  */
 @CommandInformation(name = RemoveQueryJsonCommand.NAME)
-public class RemoveQueryJsonCommand implements JsonCommand {
-
+public class RemoveQueryJsonCommand extends AbstractAnalysisAdjustingJsonCommand {
   public static final String NAME = "removeQuery";
-
-  @JsonProperty
-  @NotNull
-  public String analysisId;
 
   @JsonProperty
   @NotNull
@@ -64,17 +54,8 @@ public class RemoveQueryJsonCommand implements JsonCommand {
   @NotNull
   public String queryId;
 
-  @JsonIgnore
-  @Inject
-  private AnalysisRegistry registry;
-
   @Override
-  public void execute(Ticket ticket, CommandResultHandler resultHandler, CommandClusterInteraction clusterInteraction)
-      throws RuntimeException {
-    UiAnalysis analysis = registry.getAnalysis(analysisId);
-    if (analysis == null)
-      throw new RuntimeException("Unknown analysis: " + analysisId);
-
+  protected Runnable adjustAnalysis(UiAnalysis analysis, CommandResultHandler resultHandler) {
     UiQube qube = analysis.getQube(qubeId);
     if (qube == null)
       throw new RuntimeException("Unknown qube: " + qubeId);
@@ -84,6 +65,8 @@ public class RemoveQueryJsonCommand implements JsonCommand {
       throw new RuntimeException("Unknwon query: " + queryId);
 
     qube.getQueries().remove(query);
+
+    return () -> resultHandler.sendData(new AnalysisVersionJsonResult(analysis.getVersion()));
   }
 
 }

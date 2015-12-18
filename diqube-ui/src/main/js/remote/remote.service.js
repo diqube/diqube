@@ -72,7 +72,7 @@
             requestId: requestId, 
             command: commandName,
             commandData: cleanCmdData,
-            ticket: loginStateService.getTicket()
+            ticket: loginStateService.ticket
           });
           
           return requestId;

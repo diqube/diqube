@@ -48,7 +48,7 @@
                   me.isLoggingIn = false;
                   loginStateService.setStoreTicketInCookie(setCookie);
                   $rootScope.$broadcast("login:succeeded");
-                  loginStateService.loginSuccessful(data.ticket);
+                  loginStateService.loginSuccessful(data.ticket, data.username);
                 });
               }
             }

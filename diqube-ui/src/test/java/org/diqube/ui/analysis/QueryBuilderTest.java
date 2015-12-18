@@ -284,7 +284,7 @@ public class QueryBuilderTest {
 
   private UiAnalysis createAnalysis(String queryPartialDiql, String sliceManualConjunction,
       List<UiSliceDisjunction> sliceDisjunctions) {
-    UiAnalysis analysis = new UiAnalysis("analysisId", "analysis", TABLE);
+    UiAnalysis analysis = new UiAnalysis("analysisId", "analysis", TABLE, "testUser", 0L);
     UiSlice slice = new UiSlice("sliceId", "slice", sliceDisjunctions);
     slice.setManualConjunction(sliceManualConjunction);
     analysis.getSlices().add(slice);

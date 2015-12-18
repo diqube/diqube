@@ -62,7 +62,8 @@ public interface JsonCommand {
    * @throws RuntimeException
    *           is thrown if anything goes wrong.
    * @throws AuthenticationException
-   *           is thrown if the provided ticket is not valid/was rejected by diqube-server.
+   *           is thrown if the provided ticket is not valid/was rejected by diqube-server. This will lead to the
+   *           browser throwing away the ticket and requesting a re-login.
    */
   public abstract void execute(Ticket ticket, CommandResultHandler resultHandler,
       CommandClusterInteraction clusterInteraction) throws RuntimeException, AuthenticationException;

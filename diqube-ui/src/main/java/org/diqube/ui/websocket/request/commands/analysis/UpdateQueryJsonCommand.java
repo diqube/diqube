@@ -20,25 +20,19 @@
  */
 package org.diqube.ui.websocket.request.commands.analysis;
 
-import javax.inject.Inject;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
-import org.diqube.thrift.base.thrift.Ticket;
-import org.diqube.ui.AnalysisRegistry;
 import org.diqube.ui.analysis.QueryBuilder;
 import org.diqube.ui.analysis.QueryBuilder.QueryBuilderException;
 import org.diqube.ui.analysis.UiAnalysis;
 import org.diqube.ui.analysis.UiQube;
 import org.diqube.ui.analysis.UiQuery;
-import org.diqube.ui.websocket.request.CommandClusterInteraction;
 import org.diqube.ui.websocket.request.CommandResultHandler;
 import org.diqube.ui.websocket.request.commands.CommandInformation;
-import org.diqube.ui.websocket.request.commands.JsonCommand;
 import org.diqube.ui.websocket.result.analysis.QueryJsonResult;
 import org.springframework.util.SerializationUtils;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
@@ -53,13 +47,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * @author Bastian Gloeckle
  */
 @CommandInformation(name = UpdateQueryJsonCommand.NAME)
-public class UpdateQueryJsonCommand implements JsonCommand {
+public class UpdateQueryJsonCommand extends AbstractAnalysisAdjustingJsonCommand {
 
   public static final String NAME = "updateQuery";
-
-  @JsonProperty
-  @NotNull
-  public String analysisId;
 
   @JsonProperty
   @NotNull
@@ -70,17 +60,8 @@ public class UpdateQueryJsonCommand implements JsonCommand {
   @Valid
   public UiQuery newQuery;
 
-  @JsonIgnore
-  @Inject
-  private AnalysisRegistry registry;
-
   @Override
-  public void execute(Ticket ticket, CommandResultHandler resultHandler, CommandClusterInteraction clusterInteraction)
-      throws RuntimeException {
-    UiAnalysis analysis = registry.getAnalysis(analysisId);
-    if (analysis == null)
-      throw new RuntimeException("Unknown analysis: " + analysisId);
-
+  protected Runnable adjustAnalysis(UiAnalysis analysis, CommandResultHandler resultHandler) {
     UiQube qube = analysis.getQube(qubeId);
     if (qube == null)
       throw new RuntimeException("Unknown qube: " + qubeId);
@@ -109,7 +90,7 @@ public class UpdateQueryJsonCommand implements JsonCommand {
     query.setName(newQuery.getName());
     query.setDisplayType(newQuery.getDisplayType());
 
-    resultHandler.sendData(new QueryJsonResult(query));
+    return () -> resultHandler.sendData(new QueryJsonResult(query, analysis.getVersion()));
   }
 
 }

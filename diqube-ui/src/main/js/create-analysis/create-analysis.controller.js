@@ -110,6 +110,7 @@
                   $scope.$apply(function() {
                     me.isCreating = false;
                   });
+                  $location.hash("");
                   $location.path("analysis/" + analysisService.loadedAnalysis.id);
                 }
           })());

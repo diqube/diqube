@@ -47,6 +47,9 @@ diqube source code.
         * ASM Commons (org.ow2.asm:asm-commons:5.0.4 - http://asm.objectweb.org/asm-commons/)
         * ASM Core (org.ow2.asm:asm:5.0.4 - http://asm.objectweb.org/asm/)
 
+    BSD (HSQLDB) [hsqldb-bsd.txt]:
+        * HyperSQL Database (org.hsqldb:hsqldb:2.3.3 - http://hsqldb.org)
+
     BSD (abego) [abego-bsd.txt]:
         * abego TreeLayout Core (org.abego.treelayout:org.abego.treelayout.core:1.0.1 - http://code.google.com/p/treelayout/)
 

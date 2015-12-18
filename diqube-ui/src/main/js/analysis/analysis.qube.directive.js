@@ -71,7 +71,7 @@
             function addQuery() {
               analysisService.addQuery("New query", "", $scope.qube.id).catch(function(text) {
                 // TODO nicer error?
-                me.error = text;
+                $scope.error = text;
               });
             }
             

@@ -77,6 +77,9 @@ public class PlainQueryJsonCommand implements AsyncJsonCommand {
   @Override
   public void execute(Ticket ticket, CommandResultHandler resultHandler, CommandClusterInteraction clusterInteraction)
       throws RuntimeException {
+    if (ticket == null)
+      throw new RuntimeException("Not logged in.");
+
     clusterInteraction.executeDiqlQuery(diql, new QueryResultService.Iface() {
       @Override
       public void queryStatistics(RUUID queryRuuid, RQueryStatistics stats) throws TException {

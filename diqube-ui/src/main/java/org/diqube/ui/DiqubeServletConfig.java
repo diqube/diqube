@@ -31,7 +31,10 @@ import org.diqube.context.InjectOptional;
 import org.diqube.thrift.base.thrift.RNodeAddress;
 import org.diqube.thrift.base.thrift.RNodeHttpAddress;
 import org.diqube.thrift.base.thrift.Ticket;
+import org.diqube.ui.db.UiDatabase;
 import org.diqube.util.Pair;
+
+import com.google.common.collect.Sets;
 
 /**
  * Configuration for the diqube UI.
@@ -51,10 +54,18 @@ public class DiqubeServletConfig {
   public static final String INIT_PARAM_TICKET_PUBLIC_KEY_PEM_ALT1 = "diqube.ticketPublicKeyPemAlt1";
   public static final String INIT_PARAM_TICKET_PUBLIC_KEY_PEM_ALT2 = "diqube.ticketPublicKeyPemAlt2";
   public static final String INIT_PARAM_LOGOUT_TICKET_FETCH_SEC = "diqube.logoutTicketFetchSec";
+  public static final String INIT_PARAM_UI_DB_TYPE = "diqube.uiDbType";
+  public static final String INIT_PARAM_UI_DB_LOCATION = "diqube.uiDbLocation";
+  public static final String INIT_PARAM_UI_DB_USER = "diqube.uiDbUser";
+  public static final String INIT_PARAM_UI_DB_PASSWORD = "diqube.uiDbPassword";
+
+  public static final String UI_DB_TYPE_HSQLDB = "hsqldb";
 
   public static final String DEFAULT_CLUSTER = "localhost:5101";
   public static final String DEFAULT_CLUSTER_RESPONSE = "http://localhost:8080";
   public static final String DEFAULT_LOGOUT_TICKET_FETCH_SEC = "120";
+  public static final String DEFAULT_UI_DB_TYPE = UI_DB_TYPE_HSQLDB;
+  public static final String DEFAULT_UI_DB_LOCATION = "diqube-ui.db";
 
   @InjectOptional
   private List<ServletConfigListener> servletConfigListeners;
@@ -66,6 +77,10 @@ public class DiqubeServletConfig {
   private String ticketPublicKeyPemAlt1;
   private String ticketPublicKeyPemAlt2;
   private long logoutTicketFetchSec;
+  private String uiDbType;
+  private String uiDbLocation;
+  private String uiDbUser;
+  private String uiDbPassword;
 
   /* package */ void initialize(ServletContext ctx) {
     String clusterLocation = ctx.getInitParameter(INIT_PARAM_CLUSTER);
@@ -95,6 +110,19 @@ public class DiqubeServletConfig {
     if (logoutTicketFetchSecString == null)
       logoutTicketFetchSecString = DEFAULT_LOGOUT_TICKET_FETCH_SEC;
     logoutTicketFetchSec = Long.parseLong(logoutTicketFetchSecString);
+
+    uiDbType = ctx.getInitParameter(INIT_PARAM_UI_DB_TYPE);
+    if (uiDbType == null)
+      uiDbType = DEFAULT_UI_DB_TYPE;
+    if (!Sets.newHashSet(UI_DB_TYPE_HSQLDB).contains(uiDbType))
+      throw new RuntimeException("Unknown " + INIT_PARAM_UI_DB_TYPE + ": " + uiDbType);
+
+    uiDbLocation = ctx.getInitParameter(INIT_PARAM_UI_DB_LOCATION);
+    if (uiDbLocation == null)
+      uiDbLocation = DEFAULT_UI_DB_LOCATION;
+
+    uiDbUser = ctx.getInitParameter(INIT_PARAM_UI_DB_USER);
+    uiDbPassword = ctx.getInitParameter(INIT_PARAM_UI_DB_PASSWORD);
 
     if (servletConfigListeners != null)
       servletConfigListeners.forEach(l -> l.servletConfigurationAvailable());
@@ -157,6 +185,35 @@ public class DiqubeServletConfig {
    */
   public long getLogoutTicketFetchSec() {
     return logoutTicketFetchSec;
+  }
+
+  /**
+   * @return Type of the database the UI should use.
+   */
+  public String getUiDbType() {
+    return uiDbType;
+  }
+
+  /**
+   * @return DB-type dependent information on where the db is. Used in connection string. For more details, see JavaDoc
+   *         of implementation class of {@link UiDatabase}.
+   */
+  public String getUiDbLocation() {
+    return uiDbLocation;
+  }
+
+  /**
+   * @return Username to use to connect to UI DB. Optional, if needed by DB implementation.
+   */
+  public String getUiDbUser() {
+    return uiDbUser;
+  }
+
+  /**
+   * @return Password to use to connect to UI DB. Optional, if needed by DB implementation.
+   */
+  public String getUiDbPassword() {
+    return uiDbPassword;
   }
 
   /**

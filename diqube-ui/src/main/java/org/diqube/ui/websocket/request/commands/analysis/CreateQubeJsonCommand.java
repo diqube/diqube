@@ -25,16 +25,12 @@ import java.util.UUID;
 import javax.inject.Inject;
 import javax.validation.constraints.NotNull;
 
-import org.diqube.thrift.base.thrift.Ticket;
-import org.diqube.ui.AnalysisRegistry;
 import org.diqube.ui.analysis.AnalysisFactory;
 import org.diqube.ui.analysis.UiAnalysis;
 import org.diqube.ui.analysis.UiQube;
 import org.diqube.ui.analysis.UiSlice;
-import org.diqube.ui.websocket.request.CommandClusterInteraction;
 import org.diqube.ui.websocket.request.CommandResultHandler;
 import org.diqube.ui.websocket.request.commands.CommandInformation;
-import org.diqube.ui.websocket.request.commands.JsonCommand;
 import org.diqube.ui.websocket.result.analysis.QubeJsonResult;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -52,13 +48,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * @author Bastian Gloeckle
  */
 @CommandInformation(name = CreateQubeJsonCommand.NAME)
-public class CreateQubeJsonCommand implements JsonCommand {
-
+public class CreateQubeJsonCommand extends AbstractAnalysisAdjustingJsonCommand {
   public static final String NAME = "createQube";
-
-  @JsonProperty
-  @NotNull
-  private String analysisId;
 
   @JsonProperty
   @NotNull
@@ -70,20 +61,10 @@ public class CreateQubeJsonCommand implements JsonCommand {
 
   @Inject
   @JsonIgnore
-  private AnalysisRegistry registry;
-
-  @Inject
-  @JsonIgnore
   private AnalysisFactory factory;
 
   @Override
-  public void execute(Ticket ticket, CommandResultHandler resultHandler, CommandClusterInteraction clusterInteraction)
-      throws RuntimeException {
-    UiAnalysis analysis = registry.getAnalysis(analysisId);
-
-    if (analysis == null)
-      throw new RuntimeException("Unknown analysis: " + analysisId);
-
+  protected Runnable adjustAnalysis(UiAnalysis analysis, CommandResultHandler resultHandler) {
     UiSlice slice = analysis.getSlice(sliceId);
 
     if (slice == null)
@@ -94,7 +75,8 @@ public class CreateQubeJsonCommand implements JsonCommand {
 
     UiQube qube = factory.createQube(UUID.randomUUID().toString(), name, sliceId);
     analysis.getQubes().add(qube);
-    resultHandler.sendData(new QubeJsonResult(qube));
+
+    return () -> resultHandler.sendData(new QubeJsonResult(qube, analysis.getVersion()));
   }
 
 }

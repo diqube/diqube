@@ -576,6 +576,11 @@
         <artifactId>bcpkix-jdk15on</artifactId>
         <version>${bouncycastle.version}</version>
       </dependency>
+      <dependency>
+        <groupId>org.hsqldb</groupId>
+        <artifactId>hsqldb</artifactId>
+        <version>2.3.3</version>
+      </dependency>
       
       <!-- JSR-349 Validator -->
       <dependency>
@@ -689,6 +694,7 @@
                     <!-- "Expression Language" has CDDL or GPL2 with classpath exception -> choose GPL2 with classpath exception. -->
                     <licenseMerge>GPLv2 with classpath exception [gpl-20-classpath.txt]|CDDL + GPLv2 with classpath exception</licenseMerge>
                     <licenseMerge>Bouncy Castle Licence (MIT) [bouncycastle.txt]|Bouncy Castle Licence</licenseMerge>
+                    <licenseMerge>BSD (HSQLDB) [hsqldb-bsd.txt]|HSQLDB License, a BSD open source license</licenseMerge>
                     <!-- @formatter:on -->
                   </licenseMerges>
                 </configuration>

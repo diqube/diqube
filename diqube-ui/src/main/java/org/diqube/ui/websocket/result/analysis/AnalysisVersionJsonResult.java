@@ -18,46 +18,35 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.ui.websocket.request.commands.analysis;
+package org.diqube.ui.websocket.result.analysis;
 
 import javax.validation.constraints.NotNull;
 
 import org.diqube.ui.analysis.UiAnalysis;
-import org.diqube.ui.analysis.UiQube;
-import org.diqube.ui.websocket.request.CommandResultHandler;
-import org.diqube.ui.websocket.request.commands.CommandInformation;
-import org.diqube.ui.websocket.result.analysis.AnalysisVersionJsonResult;
+import org.diqube.ui.websocket.result.JsonResult;
+import org.diqube.ui.websocket.result.JsonResultDataType;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * Removes a qube.
- * 
- * <p>
- * Sends following results:
- * <ul>
- * <li>{@link AnalysisVersionJsonResult}
- * </ul>
- * 
+ * Result of a new version of an {@link UiAnalysis}.
+ *
  * @author Bastian Gloeckle
  */
-@CommandInformation(name = RemoveQubeJsonCommand.NAME)
-public class RemoveQubeJsonCommand extends AbstractAnalysisAdjustingJsonCommand {
-  public static final String NAME = "removeQube";
+@JsonResultDataType(AnalysisVersionJsonResult.DATA_TYPE)
+public class AnalysisVersionJsonResult implements JsonResult {
+  public static final String DATA_TYPE = "analysisVersion";
 
   @JsonProperty
   @NotNull
-  public String qubeId;
+  public long analysisVersion;
 
-  @Override
-  protected Runnable adjustAnalysis(UiAnalysis analysis, CommandResultHandler resultHandler) {
-    UiQube qube = analysis.getQube(qubeId);
-    if (qube == null)
-      throw new RuntimeException("Unknown qube: " + qubeId);
+  // for tests only
+  public AnalysisVersionJsonResult() {
 
-    analysis.getQubes().remove(qube);
-
-    return () -> resultHandler.sendData(new AnalysisVersionJsonResult(analysis.getVersion()));
   }
 
+  public AnalysisVersionJsonResult(long analysisVersion) {
+    this.analysisVersion = analysisVersion;
+  }
 }

@@ -31,6 +31,9 @@ module.exports = function(config) {
 	
 	// Override base config
 	config.set({
+    autoWatch : true,
+    singleRun : false,
+	  
 	  files: files,
 		browsers : ['Chrome']
 	});

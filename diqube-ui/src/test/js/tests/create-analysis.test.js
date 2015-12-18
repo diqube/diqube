@@ -31,6 +31,8 @@
       id: "analysisId",
       table: "analysisTable",
       name: "analysisName",
+      user: "userName",
+      version: 0,
       qubes: [],
       slices: []
     }

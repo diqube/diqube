@@ -24,13 +24,13 @@ import javax.inject.Inject;
 import javax.validation.constraints.NotNull;
 
 import org.diqube.thrift.base.thrift.Ticket;
-import org.diqube.ui.AnalysisRegistry;
 import org.diqube.ui.analysis.QueryBuilder;
 import org.diqube.ui.analysis.QueryBuilder.QueryBuilderException;
 import org.diqube.ui.analysis.UiAnalysis;
 import org.diqube.ui.analysis.UiQube;
 import org.diqube.ui.analysis.UiQuery;
 import org.diqube.ui.analysis.UiSlice;
+import org.diqube.ui.db.UiDbProvider;
 import org.diqube.ui.websocket.request.CommandClusterInteraction;
 import org.diqube.ui.websocket.request.CommandResultHandler;
 import org.diqube.ui.websocket.request.commands.AsyncJsonCommand;
@@ -65,6 +65,10 @@ public class AnalysisQueryJsonCommand implements AsyncJsonCommand {
 
   @JsonProperty
   @NotNull
+  public long analysisVersion;
+
+  @JsonProperty
+  @NotNull
   public String qubeId;
 
   @JsonProperty
@@ -73,14 +77,17 @@ public class AnalysisQueryJsonCommand implements AsyncJsonCommand {
 
   @JsonIgnore
   @Inject
-  private AnalysisRegistry registry;
+  private UiDbProvider uiDbProvider;
 
   private PlainQueryJsonCommand plainQueryJsonCommand;
 
   @Override
   public void execute(Ticket ticket, CommandResultHandler resultHandler, CommandClusterInteraction clusterInteraction)
       throws RuntimeException {
-    UiAnalysis analysis = registry.getAnalysis(analysisId);
+    if (ticket == null)
+      throw new RuntimeException("Not logged in.");
+
+    UiAnalysis analysis = uiDbProvider.getDb().loadAnalysisVersion(analysisId, analysisVersion);
     if (analysis == null)
       throw new RuntimeException("Analysis unknown: " + analysisId);
 

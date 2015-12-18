@@ -47,6 +47,10 @@ var MockedAnalysisService = (function() {
     
     me.provideQueryResults = provideQueryResults;
     
+    me.newestVersionOfAnalysis = undefined;
+    
+    me.cloneAndLoadCurrentAnalysis = cloneAndLoadCurrentAnalysis;
+    
     // ====
     
     function setLoadedAnalysis(analysis) {
@@ -65,9 +69,15 @@ var MockedAnalysisService = (function() {
         $rootScope.$broadcast("analysis:loaded", undefined);
     }
     
-    function loadAnalysis(id) {
+    function loadAnalysis(id, version) {
       return new Promise(function (resolve, reject) {
-        setLoadedAnalysis(analysisLoadFn(id));
+        setLoadedAnalysis(analysisLoadFn(id, version));
+        resolve(me.loadedAnalysis);
+      });
+    }
+    
+    function cloneAndLoadCurrentAnalysis() {
+      return new Promise(function (resolve, reject) {
         resolve(me.loadedAnalysis);
       });
     }

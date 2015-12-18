@@ -26,7 +26,8 @@ var MockedScope = (function() {
     
     // apply function simply calls the inner function, we do not need to digest anything etc.
     me.$apply = function(fn) {
-      fn();
+      if (typeof fn === "function")
+        fn();
     }
     
     me.events = [];

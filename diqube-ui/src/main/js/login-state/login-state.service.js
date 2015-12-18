@@ -25,7 +25,8 @@
       [ "$log", "$cookies", "$location", "$window", function loginStateProvider($log, $cookies, $location, $window) {
         var me = this;
         
-        me.getTicket = getTicket;
+        me.ticket = undefined; // ticket as to be used to make remote calls.
+        me.username = undefined; // username inside the ticket.
         me.loginSuccessful = loginSuccessful;
         me.logoutSuccessful = logoutSuccessful;
         me.setStoreTicketInCookie = setStoreTicketInCookie;
@@ -34,50 +35,52 @@
 
         // ==
 
-        me.ticket = undefined;
         me.isSecure = undefined;
-        me.initialize = initialize;
         me.returnPathAfterLogin = undefined;
         me.storeTicketInCookie = false;
+        me.initialize = initialize;
 
-        function loginSuccessful(ticket) {
+        // ticket: the serialized ticket. username: the username of the ticket.
+        function loginSuccessful(ticket, username) {
           me.ticket = ticket;
+          me.username = username;
           
           if (me.storeTicketInCookie) {
-            if (me.isSecure)
+            if (me.isSecure) {
               $cookies.put("DiqubeTicket", me.ticket, { secure: true });
-            else
+              $cookies.put("DiqubeUser", me.username, { secure: true });
+            } else {
               $cookies.put("DiqubeTicket", me.ticket);
-          } else
+              $cookies.put("DiqubeUser", me.username);
+            }
+          } else {
             $cookies.remove("DiqubeTicket");
+            $cookies.remove("DiqubeUser");
+          }
           
           if (me.returnPathAfterLogin) {
             var p = me.returnPathAfterLogin;
             me.returnPathAfterLogin = undefined;
             $location.path(p);
+            me.returnPathAfterLogin = undefined;
           } else 
             $location.path("/");
         }
         
         function logoutSuccessful() {
           me.ticket = undefined;
+          me.username = undefined;
+          me.returnPathAfterLogin = undefined;
+          
           $cookies.remove("DiqubeTicket");
-          // use $window to force reload of current page. If using $location, $route might choose to not update because
-          // we are on the target page already.
-          $window.location.href = $window.location.href;
-        }
-        
-        function getTicket() {
-          return me.ticket;
+          $cookies.remove("DiqubeUser");
+          // use JavaScript global "location" to reload the current page.
+          if (location)
+            location.reload();
         }
         
         function setStoreTicketInCookie(storeTicketInCookie) {
           me.storeTicketInCookie = storeTicketInCookie;
-        }
-        
-        function initialize() {
-          if ($cookies.get("DiqubeTicket"))
-            me.ticket = $cookies.get("DiqubeTicket");
         }
         
         function isTicketAvailable() {
@@ -92,8 +95,10 @@
         function initialize($location) {
           me.isSecure = $location.protocol().toLowerCase() === "https";
           var cookie = $cookies.get("DiqubeTicket");
-          if (cookie)
+          if (cookie) {
             me.ticket = cookie;
+            me.username = $cookies.get("DiqubeUser");
+          }
         }
         
       } ]).run([ "loginStateService", "$location", function loginStateRun(loginStateService, $location) {

@@ -31,8 +31,8 @@ import org.diqube.context.AutoInstatiate;
  */
 @AutoInstatiate
 public class AnalysisFactory {
-  public UiAnalysis createAnalysis(String id, String name, String table) {
-    return new UiAnalysis(id, name, table);
+  public UiAnalysis createAnalysis(String id, String name, String table, String user, long version) {
+    return new UiAnalysis(id, name, table, user, version);
   }
 
   public UiSlice createSlice(String id, String name, List<UiSliceDisjunction> disjunctions) {

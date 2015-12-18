@@ -23,8 +23,8 @@
   
 
   angular.module("diqube.open-analysis", [ "diqube.remote", "ui.bootstrap" ]).controller(
-      "OpenAnalysisCtrl", [ "remoteService",  "$location", "$scope", "$log", 
-      function(remoteService, $location, $scope, $log) {
+      "OpenAnalysisCtrl", [ "remoteService",  "$location", "$scope", "$log",  "$timeout",
+      function(remoteService, $location, $scope, $log, $timeout) {
         var me = this;
         
         me.text = "Open Analysis";
@@ -69,7 +69,10 @@
         function openAnalysis(item) {
           $log.info("Opening ", item);
           me.dropdownIsOpen = false; // close dropdown manually.
-          $location.path("analysis/" + item.id);
+          $timeout(function() {
+            $location.hash("");
+            $location.path("analysis/" + item.id);
+          }, 0, false);
         }
         
         reloadAnalysis();

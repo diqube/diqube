@@ -18,34 +18,20 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.ui;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+package org.diqube.ui.db;
 
 import org.diqube.context.AutoInstatiate;
-import org.diqube.ui.analysis.UiAnalysis;
+import org.diqube.ui.db.hsqldb.HsqlUiDatabase;
 
 /**
- * Registry for all available {@link UiAnalysis}s.
+ * Factory for {@link UiDatabase}s.
  *
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
-public class AnalysisRegistry {
-  private ConcurrentMap<String, UiAnalysis> analysis = new ConcurrentHashMap<>();
+public class UiDatabaseFactory {
 
-  public void registerUiAnalysis(UiAnalysis analysis) {
-    this.analysis.put(analysis.getId(), analysis);
-  }
-
-  public UiAnalysis getAnalysis(String id) {
-    return analysis.get(id);
-  }
-
-  public Collection<UiAnalysis> getAllAnalysis() {
-    return new ArrayList<>(analysis.values());
+  public HsqlUiDatabase createHsql(String location, String username, String password) {
+    return new HsqlUiDatabase(location, username, password);
   }
 }

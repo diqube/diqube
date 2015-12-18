@@ -23,22 +23,16 @@ package org.diqube.ui.websocket.request.commands.analysis;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.inject.Inject;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
-import org.diqube.thrift.base.thrift.Ticket;
-import org.diqube.ui.AnalysisRegistry;
 import org.diqube.ui.analysis.UiAnalysis;
 import org.diqube.ui.analysis.UiSlice;
 import org.diqube.ui.analysis.UiSliceDisjunction;
-import org.diqube.ui.websocket.request.CommandClusterInteraction;
 import org.diqube.ui.websocket.request.CommandResultHandler;
 import org.diqube.ui.websocket.request.commands.CommandInformation;
-import org.diqube.ui.websocket.request.commands.JsonCommand;
 import org.diqube.ui.websocket.result.analysis.SliceJsonResult;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
@@ -53,30 +47,17 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * @author Bastian Gloeckle
  */
 @CommandInformation(name = UpdateSliceJsonCommand.NAME)
-public class UpdateSliceJsonCommand implements JsonCommand {
+public class UpdateSliceJsonCommand extends AbstractAnalysisAdjustingJsonCommand {
 
   public static final String NAME = "updateSlice";
-
-  @JsonProperty
-  @NotNull
-  public String analysisId;
 
   @JsonProperty
   @NotNull
   @Valid
   public UiSlice slice;
 
-  @JsonIgnore
-  @Inject
-  private AnalysisRegistry analysisRegistry;
-
   @Override
-  public void execute(Ticket ticket, CommandResultHandler resultHandler, CommandClusterInteraction clusterInteraction)
-      throws RuntimeException {
-    UiAnalysis analysis = analysisRegistry.getAnalysis(analysisId);
-    if (analysis == null)
-      throw new RuntimeException("Analysis unknwon: " + analysisId);
-
+  protected Runnable adjustAnalysis(UiAnalysis analysis, CommandResultHandler resultHandler) {
     UiSlice origSlice = analysis.getSlice(slice.getId());
     if (origSlice == null)
       throw new RuntimeException("Unknown slice: " + slice.getId());
@@ -90,7 +71,7 @@ public class UpdateSliceJsonCommand implements JsonCommand {
     List<UiSliceDisjunction> newDisjunctions = new ArrayList<>(slice.getSliceDisjunctions());
     origSlice.setSliceDisjunctions(newDisjunctions);
 
-    resultHandler.sendData(new SliceJsonResult(origSlice));
+    return () -> resultHandler.sendData(new SliceJsonResult(origSlice, analysis.getVersion()));
   }
 
 }

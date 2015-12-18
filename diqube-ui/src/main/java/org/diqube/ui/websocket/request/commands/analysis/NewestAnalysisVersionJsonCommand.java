@@ -20,19 +20,24 @@
  */
 package org.diqube.ui.websocket.request.commands.analysis;
 
+import javax.inject.Inject;
 import javax.validation.constraints.NotNull;
 
-import org.diqube.ui.analysis.UiAnalysis;
-import org.diqube.ui.analysis.UiQube;
+import org.diqube.thrift.base.thrift.AuthenticationException;
+import org.diqube.thrift.base.thrift.Ticket;
+import org.diqube.ui.db.UiDbProvider;
+import org.diqube.ui.websocket.request.CommandClusterInteraction;
 import org.diqube.ui.websocket.request.CommandResultHandler;
 import org.diqube.ui.websocket.request.commands.CommandInformation;
+import org.diqube.ui.websocket.request.commands.JsonCommand;
 import org.diqube.ui.websocket.result.analysis.AnalysisVersionJsonResult;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * Removes a qube.
- * 
+ * Returns the newest available version of a specific analysis.
+ *
  * <p>
  * Sends following results:
  * <ul>
@@ -41,23 +46,31 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * 
  * @author Bastian Gloeckle
  */
-@CommandInformation(name = RemoveQubeJsonCommand.NAME)
-public class RemoveQubeJsonCommand extends AbstractAnalysisAdjustingJsonCommand {
-  public static final String NAME = "removeQube";
+@CommandInformation(name = NewestAnalysisVersionJsonCommand.NAME)
+public class NewestAnalysisVersionJsonCommand implements JsonCommand {
+
+  public static final String NAME = "newestAnalysisVersion";
 
   @JsonProperty
   @NotNull
-  public String qubeId;
+  public String analysisId;
+
+  @JsonIgnore
+  @Inject
+  public UiDbProvider dbProvider;
 
   @Override
-  protected Runnable adjustAnalysis(UiAnalysis analysis, CommandResultHandler resultHandler) {
-    UiQube qube = analysis.getQube(qubeId);
-    if (qube == null)
-      throw new RuntimeException("Unknown qube: " + qubeId);
+  public void execute(Ticket ticket, CommandResultHandler resultHandler, CommandClusterInteraction clusterInteraction)
+      throws RuntimeException, AuthenticationException {
+    if (ticket == null)
+      throw new RuntimeException("Not logged in.");
 
-    analysis.getQubes().remove(qube);
+    Long newestVersion = dbProvider.getDb().findNewestAnalysisVersion(analysisId);
 
-    return () -> resultHandler.sendData(new AnalysisVersionJsonResult(analysis.getVersion()));
+    if (newestVersion == null)
+      throw new RuntimeException("No newest version for analysis available: " + analysisId);
+
+    resultHandler.sendData(new AnalysisVersionJsonResult(newestVersion));
   }
 
 }

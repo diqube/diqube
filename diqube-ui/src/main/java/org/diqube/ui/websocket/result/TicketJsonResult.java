@@ -42,14 +42,16 @@ public class TicketJsonResult implements JsonResult {
   @NotNull
   public String ticket;
 
-  public TicketJsonResult() {
-  }
+  /** username in the ticket, for convenience */
+  @JsonProperty
+  @NotNull
+  public String username;
 
-  public TicketJsonResult(String serializedTicket) {
-    ticket = serializedTicket;
+  public TicketJsonResult() {
   }
 
   public TicketJsonResult(Ticket ticket) {
     this.ticket = BaseEncoding.base64().encode(TicketUtil.serialize(ticket));
+    this.username = ticket.getClaim().getUsername();
   }
 }

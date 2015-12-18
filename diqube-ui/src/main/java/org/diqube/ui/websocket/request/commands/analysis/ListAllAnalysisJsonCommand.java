@@ -20,11 +20,12 @@
  */
 package org.diqube.ui.websocket.request.commands.analysis;
 
+import java.util.Map;
+
 import javax.inject.Inject;
 
 import org.diqube.thrift.base.thrift.Ticket;
-import org.diqube.ui.AnalysisRegistry;
-import org.diqube.ui.analysis.UiAnalysis;
+import org.diqube.ui.db.UiDbProvider;
 import org.diqube.ui.websocket.request.CommandClusterInteraction;
 import org.diqube.ui.websocket.request.CommandResultHandler;
 import org.diqube.ui.websocket.request.commands.CommandInformation;
@@ -51,13 +52,18 @@ public class ListAllAnalysisJsonCommand implements JsonCommand {
 
   @Inject
   @JsonIgnore
-  private AnalysisRegistry registry;
+  private UiDbProvider uiDbProvider;
 
   @Override
   public void execute(Ticket ticket, CommandResultHandler resultHandler, CommandClusterInteraction clusterInteraction)
       throws RuntimeException {
-    for (UiAnalysis analysis : registry.getAllAnalysis()) {
-      resultHandler.sendData(new AnalysisRefJsonResult(analysis.getName(), analysis.getId()));
+    if (ticket == null)
+      throw new RuntimeException("Not logged in.");
+
+    Map<String, String> names = uiDbProvider.getDb().findNewestAnalysisNamesOfUser(ticket.getClaim().getUsername());
+
+    for (String analysisId : names.keySet()) {
+      resultHandler.sendData(new AnalysisRefJsonResult(names.get(analysisId), analysisId));
     }
   }
 

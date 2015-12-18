@@ -43,6 +43,14 @@ public class UiAnalysis implements Serializable {
 
   @JsonProperty
   @NotNull
+  public String user;
+
+  @JsonProperty
+  @NotNull
+  public long version;
+
+  @JsonProperty
+  @NotNull
   public String table;
 
   @JsonProperty
@@ -64,10 +72,12 @@ public class UiAnalysis implements Serializable {
 
   }
 
-  /* package */ UiAnalysis(String id, String name, String table) {
+  /* package */ UiAnalysis(String id, String name, String table, String user, long version) {
     this.id = id;
     this.name = name;
     this.table = table;
+    this.user = user;
+    this.version = version;
   }
 
   public String getId() {
@@ -106,5 +116,29 @@ public class UiAnalysis implements Serializable {
 
   public String getName() {
     return name;
+  }
+
+  public String getUser() {
+    return user;
+  }
+
+  public long getVersion() {
+    return version;
+  }
+
+  public void setVersion(long version) {
+    this.version = version;
+  }
+
+  public void setId(String id) {
+    this.id = id;
+  }
+
+  public void setUser(String user) {
+    this.user = user;
+  }
+
+  public void setName(String name) {
+    this.name = name;
   }
 }

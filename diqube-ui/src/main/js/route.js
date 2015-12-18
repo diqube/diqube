@@ -35,10 +35,11 @@
           templateUrl : "create-analysis/create-analysis.html",
           controller : "CreateAnalysisCtrl",
           controllerAs : "createAnalysis"
-        }).when("/analysis/:analysisId", {
+        }).when("/analysis/:analysisId", { // analysisVersion potentially provided by $location.hash().
           templateUrl : "analysis/analysis.html",
           controller : "AnalysisCtrl",
-          controllerAs : "analysis"
+          controllerAs : "analysis",
+          reloadOnSearch: false // do not reload controller when hash changes!
         }).when("/login", {
           templateUrl : "login/login.html",
           controller : "LoginCtrl",

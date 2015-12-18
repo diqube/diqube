@@ -43,12 +43,17 @@ public class QubeJsonResult implements JsonResult {
   @Valid
   public UiQube qube;
 
+  @JsonProperty
+  @NotNull
+  public long analysisVersion;
+
   // for tests only
   public QubeJsonResult() {
 
   }
 
-  public QubeJsonResult(UiQube qube) {
+  public QubeJsonResult(UiQube qube, long analysisVersion) {
     this.qube = qube;
+    this.analysisVersion = analysisVersion;
   }
 }
