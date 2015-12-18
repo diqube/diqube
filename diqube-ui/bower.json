@@ -19,7 +19,7 @@
     "es6-promise": "3.0.2",
     "font-awesome": "4.4.0",
     "angular-cookies": "1.5.0-build.4422+sha.e94b37e",
-    "Chart.js": "2.0.0-beta",
+    "Chart.js": "2.0.0-beta1",
     "moment": "2.10.6"
   },
   "resolutions": {
