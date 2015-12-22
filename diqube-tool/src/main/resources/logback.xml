@@ -31,8 +31,10 @@
 
   <!-- Only spring WARNs in test -->
   <logger name="org.springframework" level="warn" />
-  
+
   <logger name="org.diqube.loader" level="info" />
+  <logger name="org.diqube.tool" level="info" />
+  <logger name="org.diqube" level="warn" />
 
   <root level="info">
     <appender-ref ref="STDOUT" />
