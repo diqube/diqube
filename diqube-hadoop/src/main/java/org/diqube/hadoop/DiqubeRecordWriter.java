@@ -42,9 +42,9 @@ import org.diqube.data.column.ColumnType;
 import org.diqube.data.column.StandardColumnShard;
 import org.diqube.data.serialize.DataSerialization;
 import org.diqube.data.serialize.DataSerializer.ObjectDoneConsumer;
+import org.diqube.data.serialize.SerializationException;
 import org.diqube.data.table.TableFactory;
 import org.diqube.data.table.TableShard;
-import org.diqube.data.serialize.SerializationException;
 import org.diqube.file.DiqubeFileFactory;
 import org.diqube.file.DiqubeFileWriter;
 import org.diqube.hadoop.DiqubeRow.DiqubeData;
@@ -59,7 +59,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 /**
- * A {@link RecordWriter} which writes to .diqube files.
+ * A {@link RecordWriter} which writes to .diqube files which contain potentially multiple table shards.
  *
  * @author Bastian Gloeckle
  */
@@ -226,9 +226,11 @@ public class DiqubeRecordWriter extends RecordWriter<NullWritable, DiqubeRow> {
       diqubeFileWriter.setComment(fileComment);
     }
 
-    logger.info("Creating new TableShard and flushing data to output stream (up to rowId {})...", nextRowId.get() - 1);
-    logger.info("The new TableShard will contain data of {} columns.",
-        columnShardBuilderManager.getAllColumnsWithValues().size());
+    logger.info(
+        "Creating new TableShard and flushing data to output stream "
+            + "(up to rowId {}, first rowId is {}, number of rows {}, number of columns {})...",
+        nextRowId.get() - 1, columnShardBuilderManager.getFirstRowIdInShard(),
+        numberOfRowsInCurrentColShardBuilders.get(), columnShardBuilderManager.getAllColumnsWithValues().size());
 
     // use columnShardBuilderManager to build all columnShards
     // this will start compressing etc. and will take some time.

@@ -37,7 +37,7 @@ import org.slf4j.LoggerFactory;
 /**
  * {@link OutputFormat} writing .diqube files which can be easily imported to diqube-server.
  * 
- * The result is the same as executing diqube-tranpose on other input files.
+ * The result is the same as executing diqube-tool "transpose" on other input files.
  *
  * @author Bastian Gloeckle
  */

@@ -203,4 +203,8 @@ public class ColumnShardBuilderManager {
     }
     return res;
   }
+
+  public long getFirstRowIdInShard() {
+    return firstRowIdInShard;
+  }
 }

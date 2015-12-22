@@ -192,8 +192,11 @@ public class ColumnShardBuilder<T> {
     }
 
     int upToProposalIdx = (int) Math.floorDiv(upUntilRowIncluding - firstRowIdInShard, PROPOSAL_ROWS);
-    if (pageProposals.size() <= upToProposalIdx)
+    if (pageProposals.size() <= upToProposalIdx) {
+      logger.trace("Adding {} new proposals to the current list of {} proposals.",
+          upToProposalIdx - pageProposals.size() + 1, pageProposals.size());
       pageProposals.addAll(Arrays.asList(new ColumnPageProposal[upToProposalIdx - pageProposals.size() + 1]));
+    }
 
     int noRowsFilled = 0;
 
@@ -206,8 +209,19 @@ public class ColumnShardBuilder<T> {
       }
 
       boolean isLastProposal = propIdx == upToProposalIdx;
-      int lengthInCurrentProposal = (!isLastProposal) ? proposal.valueIds.length
-          : (int) ((upUntilRowIncluding + 1 - firstRowIdInShard) % PROPOSAL_ROWS);
+      int lengthInCurrentProposal = proposal.valueIds.length;
+
+      if (isLastProposal) {
+        long numberOfRowsTotal = upUntilRowIncluding + 1 - firstRowIdInShard;
+        if (numberOfRowsTotal % PROPOSAL_ROWS == 0L)
+          // last proposal is full.
+          lengthInCurrentProposal = PROPOSAL_ROWS;
+        else
+          lengthInCurrentProposal = (int) (numberOfRowsTotal % PROPOSAL_ROWS);
+      }
+
+      logger.trace("Proposal idx {}, isLast {}, lengthInCurProposal {}", propIdx, isLastProposal,
+          lengthInCurrentProposal);
 
       for (int i = 0; i < lengthInCurrentProposal; i++) {
         if (proposal.valueIds[i] == ColumnPageProposal.EMPTY) {
@@ -217,7 +231,8 @@ public class ColumnShardBuilder<T> {
       }
     }
 
-    logger.trace("Filled {} rows with static value {}", noRowsFilled, value);
+    logger.trace("Filled {} rows of a total of {} page proposals with static value {} (details: {})", noRowsFilled,
+        pageProposals.size(), value, upToProposalIdx);
   }
 
   /**
