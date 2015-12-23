@@ -25,12 +25,15 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
+import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileChannel.MapMode;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.Test;
@@ -292,8 +295,28 @@ public class BigByteBufferTest {
   public void bigFileSimulationTest() throws IOException {
     FileChannel mockedChannel = Mockito.mock(FileChannel.class);
 
+    MappedByteBuffer internalMockedByteBuf = Mockito.mock(MappedByteBuffer.class);
+
+    long totalSize = Integer.MAX_VALUE * 100L;
     // use a file size that is larger than an int.
-    Mockito.when(mockedChannel.size()).thenReturn(Integer.MAX_VALUE * 100L);
+    Mockito.when(mockedChannel.size()).thenReturn(totalSize);
+    Mockito.when(mockedChannel.map(Mockito.any(), Mockito.anyLong(), Mockito.anyLong()))
+        .thenAnswer(new Answer<MappedByteBuffer>() {
+          @Override
+          public MappedByteBuffer answer(InvocationOnMock invocation) throws Throwable {
+            MapMode mapMode = (MapMode) invocation.getArguments()[0];
+            Long sourcePosition = (Long) invocation.getArguments()[1];
+            Long size = (Long) invocation.getArguments()[2];
+
+            Assert.assertEquals(mapMode, MapMode.READ_ONLY, "Expected correct map mode.");
+            Assert.assertNotNull(sourcePosition, "Position should not be null");
+            Assert.assertNotNull(size, "Size should not be null");
+            Assert.assertTrue(sourcePosition >= 0, "Expected position to be positive, but was " + sourcePosition);
+            Assert.assertTrue(size > 0, "Expected size to be positive, but was " + size);
+
+            return internalMockedByteBuf;
+          }
+        });
     try (BigByteBuffer buf = new BigByteBuffer(mockedChannel, MapMode.READ_ONLY, null)) {
       // expected: no exception.
       // Note that we do not test to read from that BigByteBuffer here, since we cannot mock MappedByteBuffer nicely,
