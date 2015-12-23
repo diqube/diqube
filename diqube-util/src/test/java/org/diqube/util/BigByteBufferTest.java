@@ -25,10 +25,12 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.channels.FileChannel.MapMode;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.mockito.Mockito;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.Test;
@@ -283,6 +285,20 @@ public class BigByteBufferTest {
         byte[] tmp = new byte[4];
         buf.get(11, tmp, 0, 4);
       }
+    }
+  }
+
+  @Test
+  public void bigFileSimulationTest() throws IOException {
+    FileChannel mockedChannel = Mockito.mock(FileChannel.class);
+
+    // use a file size that is larger than an int.
+    Mockito.when(mockedChannel.size()).thenReturn(Integer.MAX_VALUE * 100L);
+    try (BigByteBuffer buf = new BigByteBuffer(mockedChannel, MapMode.READ_ONLY, null)) {
+      // expected: no exception.
+      // Note that we do not test to read from that BigByteBuffer here, since we cannot mock MappedByteBuffer nicely,
+      // since it has final methods. But the other methods test reading from BigByteBuffers with multiple internal
+      // MappedByteBuffers, so we should be fine.
     }
   }
 

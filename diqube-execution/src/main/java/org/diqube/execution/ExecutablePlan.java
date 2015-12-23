@@ -105,7 +105,8 @@ public class ExecutablePlan {
    *         {@link QueryRegistry#unregisterQueryExecution(java.util.UUID)}).
    */
   public Future<Void> executeAsynchronously(Executor executor) {
-    logger.trace("Executing asynchronously {}", this);
+    logger.trace("Executing asynchronously {} on shard starting at row Id {}.", this,
+        defaultEnv.getFirstRowIdInShard());
     ExecutionFuture future = new ExecutionFuture(steps.size());
 
     // first: initialize all steps
@@ -116,6 +117,7 @@ public class ExecutablePlan {
         @Override
         public void run() {
           step.initialize();
+          logger.trace("A new step was initialized (shard starting at {}).", defaultEnv.getFirstRowIdInShard());
           initializedCount.incrementAndGet();
           synchronized (initializedSync) {
             initializedSync.notifyAll();
@@ -127,6 +129,8 @@ public class ExecutablePlan {
     // wait until all are initialized.
     while (initializedCount.get() < steps.size()) {
       synchronized (initializedSync) {
+        logger.trace("Waiting until all steps are initialized (shard starting at {}).",
+            defaultEnv.getFirstRowIdInShard());
         try {
           initializedSync.wait(1000);
         } catch (InterruptedException e) {
@@ -134,6 +138,8 @@ public class ExecutablePlan {
         }
       }
     }
+    logger.trace("All steps initialized, starting to execute (shard starting at {}).",
+        defaultEnv.getFirstRowIdInShard());
 
     // start executing the steps.
     for (ExecutablePlanStep step : steps)

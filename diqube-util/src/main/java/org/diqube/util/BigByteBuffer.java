@@ -65,7 +65,7 @@ public class BigByteBuffer implements Closeable {
         sizeOfBuf =
             (channel.size() % maxSingleShardSize != 0) ? channel.size() % maxSingleShardSize : maxSingleShardSize;
 
-      MappedByteBuffer newBuf = channel.map(mode, i * maxSingleShardSize, sizeOfBuf);
+      MappedByteBuffer newBuf = channel.map(mode, ((long) i) * maxSingleShardSize, sizeOfBuf);
       if (initializer != null)
         initializer.accept(newBuf);
       bufs[i] = newBuf;
@@ -150,9 +150,9 @@ public class BigByteBuffer implements Closeable {
       // single ByteBuffer contains result.
       byteBufferLocks[bufIdx].lock();
       try {
-        byteBuffers[bufIdx].position(idx);
+        if (byteBuffers[bufIdx].position() != idx)
+          byteBuffers[bufIdx].position(idx);
         byteBuffers[bufIdx].get(target, targetOffset, length);
-        byteBuffers[bufIdx].rewind();
       } finally {
         byteBufferLocks[bufIdx].unlock();
       }
@@ -163,9 +163,9 @@ public class BigByteBuffer implements Closeable {
 
         byteBufferLocks[bufIdx].lock();
         try {
-          byteBuffers[bufIdx].position(idx);
+          if (byteBuffers[bufIdx].position() != idx)
+            byteBuffers[bufIdx].position(idx);
           byteBuffers[bufIdx].get(target, targetOffset, firstLength);
-          byteBuffers[bufIdx].rewind();
         } finally {
           byteBufferLocks[bufIdx].unlock();
         }
@@ -183,7 +183,6 @@ public class BigByteBuffer implements Closeable {
           try {
             byteBuffers[bufIdx + i].rewind();
             byteBuffers[bufIdx + i].get(target, targetOffset, lengthThisBuf);
-            byteBuffers[bufIdx + i].rewind();
           } finally {
             byteBufferLocks[bufIdx + i].unlock();
           }

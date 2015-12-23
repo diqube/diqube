@@ -34,6 +34,8 @@ import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.transport.TIOStreamTransport;
 import org.diqube.data.serialize.DataSerialization.DataSerializationHelper;
 import org.diqube.util.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Deserializes thrift objects to {@link DataSerialization} objects.
@@ -45,6 +47,8 @@ import org.diqube.util.Pair;
  * @author Bastian Gloeckle
  */
 public class DataDeserializer {
+  private static final Logger logger = LoggerFactory.getLogger(DataDeserializer.class);
+
   private Map<Class<? extends DataSerialization<?>>, Class<? extends TBase<?, ?>>> thriftClasses;
   private Map<Class<? extends TBase<?, ?>>, DataSerializationDelegationManager<?>> delegationManagers;
   private Map<Class<? extends TBase<?, ?>>, Class<? extends DataSerialization<?>>> liveClasses;
@@ -127,6 +131,7 @@ public class DataDeserializer {
   // we need to capture the generics here to make javac happy
   public <T extends TBase<?, ?>, M extends TBase<?, ?>, O extends DataSerialization<M>> O deserialize(
       Class<? extends O> targetClass, InputStream inputStream) throws DeserializationException {
+    logger.trace("Deserializing to thrift...");
     @SuppressWarnings("unchecked")
     T thrift = deserializeToThrift(inputStream, (Class<? extends T>) thriftClasses.get(targetClass));
     try {
@@ -144,9 +149,11 @@ public class DataDeserializer {
       }
     });
 
+    logger.trace("Transforming into final objects...");
     @SuppressWarnings("unchecked")
     Class<? extends O> targetClz = (Class<? extends O>) liveClasses.get(thrift.getClass());
     O res = helper.deserializeChild(targetClz, thrift);
+    logger.trace("Deserialization done.");
     return res;
   }
 
