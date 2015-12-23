@@ -79,11 +79,13 @@
         function loadAnalysis(analysis) {
           if (!analysis) {
             me.analysis = undefined;
+            me.analysisVersion = undefined;
             me.title = me.analysisId;
             me.error = undefined;
             return;
           }
           me.analysis = analysis;
+          me.analysisVersion = analysis.version;
           me.title = analysis.name;
           me.error = undefined;
         }
