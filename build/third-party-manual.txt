@@ -6,13 +6,10 @@
     Apache License 2.0 [apache-20.txt]:
         * Apache Hadoop, http://hadoop.apache.org
         * Apache Tomcat, http://tomcat.apache.org
-
-    MIT License (AngularJS) [angular-mit.txt]:
-        * AngularJS, http://angularjs.org
-        * angular-cookies, https://github.com/angular/bower-angular-cookies
-
-    MIT License (ng-websocket) [ng-websocket-mit.txt]:
-        * ng-websocket, https://github.com/wilk/ng-websocket
+        * Angular 2, http://angular.io
+        * RxJS, https://github.com/ReactiveX/RxJS
+        * ReflectDecorators (inside angular-polyfills.js), https://github.com/rbuckton/ReflectDecorators
+        * zone.js (inside angular-polyfills.js), https://github.com/angular/zone.js
 
     MIT License (html5boilerplate) [html5boilerplate-mit.txt]:
         * html5boilerplate, https://html5boilerplate.com
@@ -25,18 +22,12 @@
 
     MIT License (normalize.css) [normalize-mit.txt]:
         * normalize.css, https://github.com/necolas/normalize.css
-    
+
     MIT License (bootstrap) [bootstrap-mit.txt]:
         * Bootstrap, http://getbootstrap.com
-
-    MIT License (AngularUI Bootstrap) [angularui-bootstrap-mit.txt]:
-        * angular-ui-bootstrap-bower, https://github.com/angular-ui/bootstrap
-
-    MIT License (toArrayFilter) [toarrayfilter-mit.txt]:
-        * angular-toArrayFilter, https://github.com/petebacondarwin/angular-toArrayFilter
-
+    
     MIT License (es6-promise) [es6-promise-mit.txt]:
-        * es6-promise, https://github.com/jakearchibald/es6-promise
+        * es6-promise (inside angular-polyfills.js), https://github.com/jakearchibald/es6-promise
 
     MIT License (jasmine) [jasmine-mit.txt]:
         * jasmine-core, http://jasmine.github.io/
@@ -47,7 +38,6 @@
       * karma-phantomjs-launcher, https://github.com/karma-runner/karma-phantomjs-launcher
       * karma-jasmine, https://github.com/karma-runner/karma-jasmine
       * karma-junit-reporter, https://github.com/karma-runner/karma-junit-reporter
-      * karma-ng-html2js-preprocessor, https://github.com/karma-runner/karma-ng-html2js-preprocessor
       
     BSD License (PhantomJS) [phantomjs-bsd.txt]:
       * PhantomJS, http://phantomjs.org/
@@ -66,3 +56,6 @@
         
     MIT License (momentjs) [momentjs-mit.txt]:
         * momentjs, http://www.momentjs.com
+    
+    MIT License (SystemJS) [systemjs-mit.txt]:
+        * SystemJS, http://github.com/systemjs/systemjs

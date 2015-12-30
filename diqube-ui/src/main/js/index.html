@@ -20,112 +20,32 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -->
-<!DOCTYPE html>
-<html lang="en" ng-app="diqube">
-<head>
-<base href="{{globalContextPath}}/">
-<meta charset="utf-8">
-<meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<script type="text/javascript">
-    var globalContextPath = "{{globalContextPath}}";
-    // redirect to URL wih trailing /, otherwise all our relative URLs don't work...
-    if (window.location.href.lastIndexOf(globalContextPath) == window.location.href.length - globalContextPath.length) {
-	    window.location.href=window.location.href + "/";
-    }
-</script>
-<title>diqube</title>
-<link rel="stylesheet" href="bower_components/html5-boilerplate/dist/css/normalize.css">
-<link rel="stylesheet" href="bower_components/html5-boilerplate/dist/css/main.css">
-<link rel="stylesheet" href="bower_components/bootstrap/dist/css/bootstrap.min.css">
-<link rel="stylesheet" href="bower_components/font-awesome/css/font-awesome.css"/>
-<link rel="stylesheet" href="app.css">
-<script src="bower_components/html5-boilerplate/dist/js/vendor/modernizr-2.8.3.min.js"></script>
-<script src="bower_components/moment/min/moment-with-locales.js"></script>
-<script src="bower_components/Chart.js/Chart.js"></script>
-</head>
-<body>
-  <nav class="navbar navbar-inverse navbar-fixed-top">
-    <div class="container-fluid">
-      <div class="navbar-header">
-        <a class="navbar-brand" href="{{globalContextPath}}">diqube</a>
-      </div>
-      <div id="navbar" class="navbar-collapse collapse" ng-controller="LoginStateCtrl as loginState">
-        <ul class="nav navbar-nav navbar-right" ng-if="loginState.isLoggedIn()">
-          <li ng-controller="OpenAnalysisCtrl as openAnalysis" dropdown is-open="openAnalysis.dropdownIsOpen" 
-            auto-close="outsideClick">
-            
-            <a href dropdown-toggle ng-cloak title="{{ openAnalysis.title }}">{{ openAnalysis.text }} <span class="caret"></span></a>
-            <ul class="dropdown-menu">
-              <li ng-repeat="choice in openAnalysis.items">
-                  <a href title="{{ choice.id }}" ng-click="openAnalysis.openAnalysis(choice)">{{ choice.name }}</a>
-              </li>
-              <li class="divider"></li>
-              <li role="menuitem">
-                <a href ng-click="openAnalysis.reloadAnalysis()">
-                  Refresh <i ng-show="openAnalysis.loading" class="fa fa-refresh fa-spin"></i>
-                </a>
-              </li>
-            </ul>
-          </li>
-          <li><a href="create-analysis">Create Analysis</a></li>
-          <li><a href="query">Execute Query</a></li>
-          <li><a href="about">About</a></li>
-          <li ng-controller="LogoutCtrl as logout"><a href ng-click="logout.logout()" title="Logout"><i class="fa fa-sign-out"></i></a></li>
-        </ul>
-        <ul class="nav navbar-nav navbar-right" ng-if="!loginState.isLoggedIn()">
-          <li><a href="about">About</a></li>
-          <li ng-controller="LoginCtrl as login"><a href="login" title="Login"><i class="fa fa-sign-in"></i></a></li>
-        </ul>
-      </div>
-    </div>
-  </nav>
+<html>
+  <head>
+    <title>Angular 2 QuickStart</title>
 
-  <drag-control>
-    <div class="container-fluid">
-      <div ng-view></div>
-    </div>
-  </drag-control>
+    <script src="lib/angular2-polyfills.js"></script>
+    <script src="lib/system.src.js"></script>
+    <script src="lib/Rx.js"></script>
+    <script src="lib/angular2.dev.js"></script>
 
-  <script src="bower_components/node-uuid/uuid.js"></script>
-  <script src="bower_components/jquery/dist/jquery.js"></script>
-  
-  <script src="bower_components/angular-loader/angular-loader.js"></script>
-  <script src="bower_components/angular/angular.js"></script>
-  <script src="bower_components/angular-route/angular-route.js"></script>
-  <script src="bower_components/angular-cookies/angular-cookies.js"></script>
-  <script src="bower_components/ng-websocket/ng-websocket.js"></script>
-  <script src="bower_components/angular-toArrayFilter/toArrayFilter.js"></script>
-  <script src="bower_components/angular-ui-bootstrap-bower/ui-bootstrap-tpls.js"></script>
-  
-  <script src="app.js"></script>
-  <script src="route.js"></script>
-  <script src="drag-drop/drag-drop.module.js"></script>
-  <script src="analysis/analysis.module.js"></script>
-  <script src="login-state/login-state.module.js"></script>
-  
-  <script src="login-state/login-state.service.js"></script>
-  <script src="drag-drop/drag-drop.service.js"></script>
-  <script src="remote/remote.service.js"></script>
-  <script src="analysis/analysis.service.js"></script>
-  <script src="analysis/analysis.state.service.js"></script>
-  <script src="analysis/analysis.execution.service.js"></script>
-  
-  <script src="login/login.controller.js"></script>
-  <script src="login-state/login-state.controller.js"></script>
-  <script src="logout/logout.controller.js"></script>
-  <script src="query/query.controller.js"></script>
-  <script src="about/about.controller.js"></script>
-  <script src="analysis/analysis.controller.js"></script>
-  <script src="open-analysis/open-analysis.controller.js"></script>
-  <script src="create-analysis/create-analysis.controller.js"></script>
+    <script>
+      System.config({
+        packages: {        
+          diqube: {
+            format: 'register',
+            defaultExtension: 'js'
+          }
+        }
+      });
+      System.import('boot.js')
+            .then(null, console.error.bind(console));
+    </script>
 
-  <script src="analysis/analysis.qube.directive.js"></script>
-  <script src="analysis/analysis.query.directive.js"></script>
-  <script src="analysis/analysis.query.barchart.directive.js"></script>
-  <script src="analysis/analysis.slices.directive.js"></script>
-  <script src="analysis/analysis.slices.slice.directive.js"></script>
-  <script src="drag-drop/drop-target.directive.js"></script>
-  <script src="drag-drop/drag-control.directive.js"></script>
-</body>
+  </head>
+
+  <body>
+    <my-app>Loading...</my-app>
+  </body>
+
 </html>

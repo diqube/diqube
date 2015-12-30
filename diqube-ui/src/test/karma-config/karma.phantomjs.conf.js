@@ -27,7 +27,7 @@ module.exports = function(config) {
 	// PhantomJs does not have support for Promises, load a ployfill.
   var files = config.files;
   var idx = files.indexOf("BROWSER_BASED_FILES");
-  files[idx] = "bower_components/es6-promise/promise.js";
+  files[idx] = "node_nodules/es6-promise/dist/es6-promise.js";
 	
 	// Override base config
 	config.set({

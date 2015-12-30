@@ -125,6 +125,7 @@
             <goals>
               <goal>install-node-and-npm</goal>
             </goals>
+            <phase>generate-resources</phase>
             <configuration>
               <nodeVersion>v4.2.4</nodeVersion>
               <npmVersion>3.5.3</npmVersion>
@@ -135,6 +136,7 @@
             <goals>
               <goal>npm</goal>
             </goals>
+            <phase>generate-resources</phase>
             <configuration>
               <arguments>install</arguments>
             </configuration>
@@ -144,6 +146,7 @@
             <goals>
               <goal>bower</goal>
             </goals>
+            <phase>generate-resources</phase>
             <configuration>
               <arguments>install</arguments>
             </configuration>
@@ -153,6 +156,7 @@
             <goals>
               <goal>grunt</goal>
             </goals>
+            <phase>generate-resources</phase>
             <configuration>
               <srcdir>${basedir}</srcdir>
               <outputdir>${project.build.directory}</outputdir>
@@ -174,6 +178,105 @@
         </executions>
       </plugin>
       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <executions>
+          <!-- Overwritten in minjs profile below! -->
+          <execution>
+            <id>prepare-js-dependency-files</id>
+            <goals>
+              <goal>single</goal>
+            </goals>
+            <phase>generate-resources</phase>
+            <configuration>
+              <descriptors>
+                <descriptor>src/main/assembly/dev-dependencies-assembly.xml</descriptor>
+              </descriptors>
+              <finalName>dependencies_source</finalName>
+              <attach>false</attach>
+              <appendAssemblyId>false</appendAssemblyId>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-resources-plugin</artifactId>
+        <executions>
+            <!-- We're using palantirs typescript eclipse plugin, which though is not mature enough to find the angular 
+                 definitions in node_modules/. We therefore copy the .d.ts files to help the eclipse plugin to resolve
+                 any imports in our .ts files. Unfortunately, this has to be in the same source folder that contains
+                our .ts files, since the plugin does not even take all source folders of a project into account :( 
+                It does not hurt though having the .d.ts files in our source folder - no output will be generated for
+                them by the typescript compiler, so we're fine. 
+            -->
+            <execution>
+            <id>provide-angular-dts-for-eclipse</id>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
+            <phase>generate-resources</phase>
+            <configuration>
+              <resources>
+                <resource>
+                  <directory>node_modules/angular2</directory>
+                  <includes>
+                    <include>**/*.d.ts</include>
+                  </includes>
+                   <excludes>
+                    <exclude>bundles/**</exclude>
+                    <exclude>ts/**</exclude>
+                  </excludes>
+                </resource>
+              </resources>
+              <outputDirectory>src/main/js/angular2</outputDirectory>
+            </configuration>
+          </execution>
+          <execution>
+            <id>provide-rxjs-dts-for-eclipse</id>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
+            <phase>generate-resources</phase>
+            <configuration>
+              <resources>
+                <resource>
+                  <directory>node_modules/rxjs</directory>
+                  <includes>
+                    <include>**/*.d.ts</include>
+                  </includes>
+                </resource>
+              </resources>
+              <outputDirectory>src/main/js/rxjs</outputDirectory>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-clean-plugin</artifactId>
+        <executions>
+          <!-- Clean the eclipse-helper-dts files again, see above! -->
+          <execution>
+            <id>clean-eclipse-additional-dts</id>
+            <goals>
+              <goal>clean</goal>
+            </goals>
+            <phase>clean</phase>
+            <configuration>
+              <filesets>
+                <fileset>
+                  <directory>src/main/js/angular2</directory>
+                </fileset>
+                <fileset>
+                  <directory>src/main/js/rxjs</directory>
+                </fileset>
+              </filesets>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>build-helper-maven-plugin</artifactId>
         <executions>
@@ -188,14 +291,16 @@
                 <resource>
                   <directory>src/main/js</directory>
                   <targetPath>web/</targetPath>
+                  <!-- include also angular2 and rxjs folders. Releases are built with minjs profile enabled, which 
+                       does exclude these! Eclipse needs angular2 and rxjs. -->
                 </resource>
                 <resource>
                   <directory>${project.build.directory}/typescript-concat</directory>
                   <targetPath>web/</targetPath>
                 </resource>
                 <resource>
-                  <directory>bower_components</directory>
-                  <targetPath>web/bower_components</targetPath>
+                  <directory>${project.build.directory}/dependencies_source</directory>
+                  <targetPath>web/</targetPath>
                 </resource>
               </resources>
             </configuration>
@@ -337,9 +442,7 @@
     <profile>
       <id>minjs</id>
       <!-- This profile prepares a directory that contains all minified JS/CSS and makes war-plugin include those files 
-           instead of the defaults. Additionally this will lead to only include those JS/CSS files of the dependencies 
-           which are actually needed (e.g. the JQuery that is part of html5-boilerplate will not be included in the 
-           resulting .war when using this profile. -->
+           instead of the defaults. -->
        <activation>
         <activeByDefault>true</activeByDefault>
        </activation>
@@ -350,16 +453,16 @@
             <artifactId>maven-assembly-plugin</artifactId>
             <executions>
               <execution>
+                <id>prepare-js-dependency-files</id>
                 <goals>
                   <goal>single</goal>
                 </goals>
                 <phase>generate-resources</phase>
-                <id>prepare-minified-files</id>
                 <configuration>
                   <descriptors>
-                    <descriptor>src/main/assembly/minjs-assembly.xml</descriptor>
+                    <descriptor>src/main/assembly/minjs-dependencies-assembly.xml</descriptor>
                   </descriptors>
-                  <finalName>minjs_source</finalName>
+                  <finalName>dependencies_source</finalName>
                   <attach>false</attach>
                   <appendAssemblyId>false</appendAssemblyId>
                 </configuration>
@@ -371,7 +474,7 @@
             <artifactId>build-helper-maven-plugin</artifactId>
             <executions>
               <execution>
-                <!--  overwrite execution of adding resources above: include minjs_source instead of bower_components/ -->
+                <!--  overwrite execution of adding resources above to include correct files. -->
                 <id>add-resources</id>
                 <configuration>
                   <resources>
@@ -379,7 +482,11 @@
                       <directory>src/main/js</directory>
                       <targetPath>web/</targetPath>
                       <excludes>
+                        <!-- exclude our own .ts files, too, as we're building a minimal artifact! -->
                         <exclude>**/*.ts</exclude>
+                        <!-- exclude "eclipse helper .d.ts files", see above. -->
+                        <exclude>angular2</exclude>
+                        <exclude>rxjs</exclude>
                       </excludes>
                     </resource>
                     <resource>
@@ -390,7 +497,7 @@
                       </includes>
                     </resource>
                     <resource>
-                      <directory>${project.build.directory}/minjs_source</directory>
+                      <directory>${project.build.directory}/dependencies_source</directory>
                       <targetPath>web/</targetPath>
                     </resource>
                   </resources>

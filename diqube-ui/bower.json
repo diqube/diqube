@@ -7,17 +7,10 @@
   "private": true,
   "dependencies": {
     "html5-boilerplate": "5.2.0",
-    "ng-websocket": "git://github.com/wilk/ng-websocket.git#ecbdac7ec14aa0e47b9dad4cb29152c658ddaad3",
     "node-uuid": "1.4.2",
     "bootstrap": "3.3.5",
-    "angular-toArrayFilter": "1.0.1",
-    "es6-promise": "3.0.2",
     "font-awesome": "4.4.0",
-    "angular-cookies": "1.5.0-build.4422+sha.e94b37e",
     "Chart.js": "2.0.0-beta1",
     "moment": "2.10.6"
-  },
-  "resolutions": {
-    "angular": "1.5.0-build.4422+sha.e94b37e"
   }
 }

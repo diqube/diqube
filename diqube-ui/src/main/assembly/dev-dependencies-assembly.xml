@@ -32,73 +32,81 @@
   <files>
     <file>
       <source>bower_components/html5-boilerplate/dist/css/main.css</source>
-      <destName>bower_components/html5-boilerplate/dist/css/main.css</destName>
+      <destName>lib/boilerplate-main.css</destName>
     </file>
     <file>
       <source>bower_components/html5-boilerplate/dist/css/normalize.css</source>
-      <destName>bower_components/html5-boilerplate/dist/css/normalize.css</destName>
+      <destName>lib/normalize.css</destName>
     </file>
     <file>
       <source>bower_components/html5-boilerplate/dist/js/vendor/modernizr-2.8.3.min.js</source>
-      <destName>bower_components/html5-boilerplate/dist/js/vendor/modernizr-2.8.3.min.js</destName>
-    </file>
-    <file>
-      <source>bower_components/ng-websocket/ng-websocket.js</source>
-      <destName>bower_components/ng-websocket/ng-websocket.js</destName>
+      <destName>lib/modernizr-2.8.3.min.js</destName>
     </file>
     <file>
       <source>bower_components/node-uuid/uuid.js</source>
-      <destName>bower_components/node-uuid/uuid.js</destName>
-    </file>
-    <file>
-      <source>bower_components/bootstrap/dist/css/bootstrap.min.css</source>
-      <destName>bower_components/bootstrap/dist/css/bootstrap.min.css</destName>
-    </file>
-    <file>
-      <source>bower_components/node-uuid/uuid.js</source>
-      <destName>bower_components/node-uuid/uuid.js</destName>
+      <destName>lib/uuid.js</destName>
     </file>
     <file>
       <source>bower_components/jquery/dist/jquery.min.js</source>
-      <destName>bower_components/jquery/dist/jquery.js</destName>
+      <destName>lib/jquery.js</destName>
     </file>
     <file>
       <source>bower_components/Chart.js/Chart.min.js</source>
-      <destName>bower_components/Chart.js/Chart.js</destName>
+      <destName>lib/Chart.js</destName>
     </file>
     <file>
       <source>bower_components/moment/min/moment-with-locales.min.js</source>
-      <destName>bower_components/moment/min/moment-with-locales.js</destName>
+      <destName>lib/moment-with-locales.js</destName>
     </file>
-       
+    <file>
+      <source>node_modules/angular2/bundles/angular2-polyfills.js</source>
+      <destName>lib/angular2-polyfills.js</destName>
+    </file>
+    <file>
+      <source>node_modules/systemjs/dist/system.src.js</source>
+      <destName>lib/system.js</destName>
+    </file>
+    <file>
+      <source>node_modules/rxjs/bundles/Rx.js</source>
+      <destName>lib/Rx.js</destName>
+    </file>
+    <file>
+      <source>node_modules/angular2/bundles/angular2.dev.js</source>
+      <destName>lib/angular2.js</destName>
+    </file>
+    <file>
+      <source>node_modules/angular2/bundles/router.dev.js</source>
+      <destName>lib/angular2-router.js</destName>
+    </file>
+    
     <!-- Font awesome -->
     <file>
       <source>bower_components/font-awesome/css/font-awesome.min.css</source>
-      <destName>bower_components/font-awesome/css/font-awesome.css</destName>
+      <destName>font/font-awesome.css</destName>
     </file>
     <file>
       <source>bower_components/font-awesome/fonts/fontawesome-webfont.eot</source>
-      <destName>bower_components/font-awesome/fonts/fontawesome-webfont.eot</destName>
+      <destName>font/fontawesome-webfont.eot</destName>
     </file>
     <file>
       <source>bower_components/font-awesome/fonts/fontawesome-webfont.svg</source>
-      <destName>bower_components/font-awesome/fonts/fontawesome-webfont.svg</destName>
+      <destName>font/fontawesome-webfont.svg</destName>
     </file>
     <file>
       <source>bower_components/font-awesome/fonts/fontawesome-webfont.ttf</source>
-      <destName>bower_components/font-awesome/fonts/fontawesome-webfont.ttf</destName>
+      <destName>font/fontawesome-webfont.ttf</destName>
     </file>
     <file>
       <source>bower_components/font-awesome/fonts/fontawesome-webfont.woff</source>
-      <destName>bower_components/font-awesome/fonts/fontawesome-webfont.woff</destName>
+      <destName>font/fontawesome-webfont.woff</destName>
     </file>
     <file>
       <source>bower_components/font-awesome/fonts/fontawesome-webfont.woff2</source>
-      <destName>bower_components/font-awesome/fonts/fontawesome-webfont.woff2</destName>
+      <destName>font/fontawesome-webfont.woff2</destName>
     </file>
     <file>
       <source>bower_components/font-awesome/fonts/FontAwesome.otf</source>
-      <destName>bower_components/font-awesome/fonts/FontAwesome.otf</destName>
+      <destName>font/FontAwesome.otf</destName>
     </file>
   </files>
 </assembly>
