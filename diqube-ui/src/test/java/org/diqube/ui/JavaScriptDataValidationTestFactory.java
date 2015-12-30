@@ -87,7 +87,8 @@ public class JavaScriptDataValidationTestFactory {
 
   private static final String JS_VALIDATED_DATA_OBJ = "validatedData";
 
-  @Factory
+  // @Factory
+  // TODO #97
   public Object[] javaScriptDataValidationTests() throws IOException {
     List<Object> res = new ArrayList<>();
     Set<ResourceInfo> resourceInfos = ClassPath.from(this.getClass().getClassLoader()).getResources();

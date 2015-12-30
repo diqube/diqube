@@ -126,8 +126,8 @@
               <goal>install-node-and-npm</goal>
             </goals>
             <configuration>
-              <nodeVersion>v0.12.7</nodeVersion>
-              <npmVersion>2.13.4</npmVersion>
+              <nodeVersion>v4.2.4</nodeVersion>
+              <npmVersion>3.5.3</npmVersion>
             </configuration>
           </execution>
           <execution>
@@ -149,6 +149,16 @@
             </configuration>
           </execution>
           <execution>
+            <id>grunt</id>
+            <goals>
+              <goal>grunt</goal>
+            </goals>
+            <configuration>
+              <srcdir>${basedir}</srcdir>
+              <outputdir>${project.build.directory}</outputdir>
+            </configuration>
+          </execution>
+          <execution>
             <id>javascript-tests</id>
             <goals>
               <goal>karma</goal>
@@ -158,6 +168,7 @@
             <phase>integration-test</phase>
             <configuration>
               <karmaConfPath>${karma.final.config.dir}/karma.phantomjs.conf.js</karmaConfPath>
+              <skip>true</skip> <!-- TODO #97 -->
             </configuration>
           </execution>
         </executions>
@@ -167,6 +178,7 @@
         <artifactId>build-helper-maven-plugin</artifactId>
         <executions>
           <execution>
+            <!-- Overwritten in minjs profile below! -->
             <id>add-resources</id>
             <goals>
               <goal>add-resource</goal>
@@ -175,6 +187,10 @@
               <resources>
                 <resource>
                   <directory>src/main/js</directory>
+                  <targetPath>web/</targetPath>
+                </resource>
+                <resource>
+                  <directory>${project.build.directory}/typescript-concat</directory>
                   <targetPath>web/</targetPath>
                 </resource>
                 <resource>
@@ -362,6 +378,16 @@
                     <resource>
                       <directory>src/main/js</directory>
                       <targetPath>web/</targetPath>
+                      <excludes>
+                        <exclude>**/*.ts</exclude>
+                      </excludes>
+                    </resource>
+                    <resource>
+                      <directory>${project.build.directory}/typescript-concat</directory>
+                      <targetPath>web/</targetPath>
+                      <includes>
+                        <include>**/*.js</include> <!-- do not include e.g. .map files. -->
+                      </includes>
                     </resource>
                     <resource>
                       <directory>${project.build.directory}/minjs_source</directory>

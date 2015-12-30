@@ -31,22 +31,6 @@
   <includeBaseDirectory>false</includeBaseDirectory>
   <files>
     <file>
-      <source>bower_components/angular/angular.min.js</source>
-      <destName>bower_components/angular/angular.js</destName>
-    </file>
-    <file>
-      <source>bower_components/angular-loader/angular-loader.min.js</source>
-      <destName>bower_components/angular-loader/angular-loader.js</destName>
-    </file>
-    <file>
-      <source>bower_components/angular-route/angular-route.min.js</source>
-      <destName>bower_components/angular-route/angular-route.js</destName>
-    </file>
-    <file>
-      <source>bower_components/angular-cookies/angular-cookies.min.js</source>
-      <destName>bower_components/angular-cookies/angular-cookies.js</destName>
-    </file>
-    <file>
       <source>bower_components/html5-boilerplate/dist/css/main.css</source>
       <destName>bower_components/html5-boilerplate/dist/css/main.css</destName>
     </file>
@@ -69,14 +53,6 @@
     <file>
       <source>bower_components/bootstrap/dist/css/bootstrap.min.css</source>
       <destName>bower_components/bootstrap/dist/css/bootstrap.min.css</destName>
-    </file>
-    <file>
-      <source>bower_components/angular-toArrayFilter/toArrayFilter.js</source>
-      <destName>bower_components/angular-toArrayFilter/toArrayFilter.js</destName>
-    </file>
-    <file>
-      <source>bower_components/angular-ui-bootstrap-bower/ui-bootstrap-tpls.min.js</source>
-      <destName>bower_components/angular-ui-bootstrap-bower/ui-bootstrap-tpls.js</destName>
     </file>
     <file>
       <source>bower_components/node-uuid/uuid.js</source>

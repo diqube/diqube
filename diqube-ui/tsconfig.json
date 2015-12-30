@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES5",
+    "module": "system",
+    "moduleResolution": "node",
+    "sourceMap": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "removeComments": false,
+    "noImplicitAny": true,
+    "outDir": "./target/typescript/",
+    "rootDir": "src",
+    "noEmitOnError": true,
+    "listFiles": true
+  },
+  "files": [
+    "src/main/js/boot.ts"
+  ]
+}
