@@ -192,7 +192,7 @@
               <descriptors>
                 <descriptor>src/main/assembly/dev-dependencies-assembly.xml</descriptor>
               </descriptors>
-              <finalName>dependencies_source</finalName>
+              <finalName>dependencies-source</finalName>
               <attach>false</attach>
               <appendAssemblyId>false</appendAssemblyId>
             </configuration>
@@ -295,11 +295,11 @@
                        does exclude these! Eclipse needs angular2 and rxjs. -->
                 </resource>
                 <resource>
-                  <directory>${project.build.directory}/typescript-concat</directory>
+                  <directory>${project.build.directory}/typescript-dev/main/js</directory>
                   <targetPath>web/</targetPath>
                 </resource>
                 <resource>
-                  <directory>${project.build.directory}/dependencies_source</directory>
+                  <directory>${project.build.directory}/dependencies-source</directory>
                   <targetPath>web/</targetPath>
                 </resource>
               </resources>
@@ -462,7 +462,7 @@
                   <descriptors>
                     <descriptor>src/main/assembly/minjs-dependencies-assembly.xml</descriptor>
                   </descriptors>
-                  <finalName>dependencies_source</finalName>
+                  <finalName>dependencies-source</finalName>
                   <attach>false</attach>
                   <appendAssemblyId>false</appendAssemblyId>
                 </configuration>
@@ -490,14 +490,11 @@
                       </excludes>
                     </resource>
                     <resource>
-                      <directory>${project.build.directory}/typescript-concat</directory>
+                      <directory>${project.build.directory}/typescript-ugly/main/js</directory>
                       <targetPath>web/</targetPath>
-                      <includes>
-                        <include>**/*.js</include> <!-- do not include e.g. .map files. -->
-                      </includes>
                     </resource>
                     <resource>
-                      <directory>${project.build.directory}/dependencies_source</directory>
+                      <directory>${project.build.directory}/dependencies-source</directory>
                       <targetPath>web/</targetPath>
                     </resource>
                   </resources>

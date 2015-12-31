@@ -28,6 +28,7 @@ import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.nio.charset.Charset;
 import java.sql.Connection;
+import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -77,11 +78,15 @@ public class HsqlUiDatabase implements UiDatabase {
   private JsonFactory jsonFactory = new JsonFactory();
   private ObjectMapper mapper = new ObjectMapper(jsonFactory);
 
+  private Driver jdbcDriver;
+
   public HsqlUiDatabase(String location, String username, String password) {
     // let the driver register itself.
     try {
-      Class.forName("org.hsqldb.jdbc.JDBCDriver");
-    } catch (ClassNotFoundException e) {
+      Class<?> driverClass = Class.forName("org.hsqldb.jdbc.JDBCDriver");
+      jdbcDriver = (Driver) driverClass.getField("driverInstance").get(null);
+    } catch (ClassNotFoundException | IllegalArgumentException | IllegalAccessException | NoSuchFieldException
+        | SecurityException e) {
       throw new RuntimeException("Could not instantiate hsqldb driver", e);
     }
 
@@ -287,12 +292,23 @@ public class HsqlUiDatabase implements UiDatabase {
   @Override
   public void shutdown() {
     if (connection != null) {
+      logger.info("Shutting down hsqldb connection.");
+      try (Statement stmt = connection.createStatement()) {
+        stmt.executeQuery("SHUTDOWN");
+      } catch (SQLException e) {
+        logger.warn("Could not execute SHUTDOWN command", e);
+      }
       try {
         connection.close();
       } catch (SQLException e) {
         logger.warn("Could not shutdown database cleanly", e);
       }
       connection = null;
+      try {
+        DriverManager.deregisterDriver(jdbcDriver);
+      } catch (SQLException e) {
+        logger.warn("Could not deregister JDBC driver", e);
+      }
     }
   }
 

@@ -25,20 +25,21 @@
     <title>Angular 2 QuickStart</title>
 
     <script src="lib/angular2-polyfills.js"></script>
-    <script src="lib/system.src.js"></script>
+    <script src="lib/system.js"></script>
     <script src="lib/Rx.js"></script>
-    <script src="lib/angular2.dev.js"></script>
+    <script src="lib/angular2.js"></script>
 
     <script>
       System.config({
+        baseURL: "{{globalContextPath}}",
         packages: {        
-          diqube: {
-            format: 'register',
-            defaultExtension: 'js'
+          "diqube": {
+            format: "register",
+            defaultExtension: "js"
           }
-        }
+        }        
       });
-      System.import('boot.js')
+      System.import("boot.js")
             .then(null, console.error.bind(console));
     </script>
 
