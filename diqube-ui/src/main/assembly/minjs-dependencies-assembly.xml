@@ -59,6 +59,10 @@
       <destName>lib/moment-with-locales.js</destName>
     </file>
     <file>
+      <source>bower_components/bootstrap/dist/css/bootstrap.min.css</source>
+      <destName>lib/bootstrap.css</destName>
+    </file>
+    <file>
       <source>node_modules/angular2/bundles/angular2-polyfills.js</source>
       <destName>lib/angular2-polyfills.js</destName>
     </file>
@@ -78,7 +82,6 @@
       <source>node_modules/angular2/bundles/router.min.js</source>
       <destName>lib/angular2-router.js</destName>
     </file>
-
     
     <!-- Font awesome -->
     <file>

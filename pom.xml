@@ -51,11 +51,13 @@
   </scm>
 
   <modules>
+    <module>diqube-util</module>
+    <module>build/maven</module>
+    
     <module>diqube-buildinfo</module>
     <module>diqube-test-util</module>
     <module>diqube-listeners</module>
     <module>diqube-remote</module>
-    <module>diqube-util</module>
     <module>diqube-thrift</module>
     <module>diqube-queries</module>
     <module>diqube-threads</module>

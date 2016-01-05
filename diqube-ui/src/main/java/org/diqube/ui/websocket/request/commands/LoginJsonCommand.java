@@ -23,6 +23,7 @@ package org.diqube.ui.websocket.request.commands;
 import javax.validation.constraints.NotNull;
 
 import org.apache.thrift.TException;
+import org.diqube.build.mojo.TypeScriptProperty;
 import org.diqube.thrift.base.thrift.AuthenticationException;
 import org.diqube.thrift.base.thrift.Ticket;
 import org.diqube.ui.websocket.request.CommandClusterInteraction;
@@ -49,10 +50,12 @@ public class LoginJsonCommand implements JsonCommand {
 
   @JsonProperty
   @NotNull
+  @TypeScriptProperty
   public String username;
 
   @JsonProperty
   @NotNull
+  @TypeScriptProperty
   public String password;
 
   @Override

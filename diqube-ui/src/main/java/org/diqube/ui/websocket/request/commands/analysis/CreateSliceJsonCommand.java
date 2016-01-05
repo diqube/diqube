@@ -28,6 +28,7 @@ import javax.inject.Inject;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
+import org.diqube.build.mojo.TypeScriptProperty;
 import org.diqube.ui.analysis.AnalysisFactory;
 import org.diqube.ui.analysis.UiAnalysis;
 import org.diqube.ui.analysis.UiSlice;
@@ -56,15 +57,18 @@ public class CreateSliceJsonCommand extends AbstractAnalysisAdjustingJsonCommand
 
   @JsonProperty
   @NotNull
+  @TypeScriptProperty
   public String name;
 
   @JsonProperty
   @NotNull
+  @TypeScriptProperty
   public String manualConjunction;
 
   @JsonProperty
   @NotNull
   @Valid
+  @TypeScriptProperty(collectionType = UiSliceDisjunction.class)
   public List<UiSliceDisjunction> sliceDisjunctions;
 
   @JsonIgnore

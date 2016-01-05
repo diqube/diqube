@@ -25,6 +25,7 @@ import java.util.UUID;
 import javax.inject.Inject;
 import javax.validation.constraints.NotNull;
 
+import org.diqube.build.mojo.TypeScriptProperty;
 import org.diqube.ui.analysis.AnalysisFactory;
 import org.diqube.ui.analysis.UiAnalysis;
 import org.diqube.ui.analysis.UiQube;
@@ -53,10 +54,12 @@ public class CreateQubeJsonCommand extends AbstractAnalysisAdjustingJsonCommand 
 
   @JsonProperty
   @NotNull
+  @TypeScriptProperty
   private String sliceId;
 
   @JsonProperty
   @NotNull
+  @TypeScriptProperty
   private String name;
 
   @Inject

@@ -24,6 +24,8 @@ import java.util.List;
 
 import javax.validation.constraints.NotNull;
 
+import org.diqube.build.mojo.TypeScriptProperty;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
@@ -40,6 +42,7 @@ public class TableJsonResult implements JsonResult {
    */
   @JsonProperty
   @NotNull
+  @TypeScriptProperty(collectionType = String.class)
   public List<String> columnNames;
 
   /**
@@ -48,14 +51,17 @@ public class TableJsonResult implements JsonResult {
    */
   @JsonProperty
   @NotNull
+  @TypeScriptProperty(collectionType = String.class)
   public List<String> columnRequests;
 
   @JsonProperty
   @NotNull
+  @TypeScriptProperty(collectionType = List.class) /* TODO #97 */
   public List<List<Object>> rows;
 
   @JsonProperty
   @NotNull
+  @TypeScriptProperty(collectionType = Short.class)
   public short percentComplete;
 
   public void setColumnNames(List<String> columnNames) {

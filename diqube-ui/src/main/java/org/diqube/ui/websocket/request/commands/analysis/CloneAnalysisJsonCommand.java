@@ -25,6 +25,7 @@ import java.util.UUID;
 import javax.inject.Inject;
 import javax.validation.constraints.NotNull;
 
+import org.diqube.build.mojo.TypeScriptProperty;
 import org.diqube.thrift.base.thrift.Ticket;
 import org.diqube.ui.analysis.AnalysisFactory;
 import org.diqube.ui.analysis.UiAnalysis;
@@ -61,10 +62,12 @@ public class CloneAnalysisJsonCommand implements JsonCommand {
 
   @JsonProperty
   @NotNull
+  @TypeScriptProperty
   public String analysisId;
 
   @JsonProperty
   @NotNull
+  @TypeScriptProperty
   public long analysisVersion;
 
   @JsonIgnore
@@ -87,7 +90,7 @@ public class CloneAnalysisJsonCommand implements JsonCommand {
       throw new RuntimeException("Analysis unknown: " + analysisId + " version " + analysisVersion);
 
     byte[] serialized = SerializationUtils.serialize(originalAnalysis);
-    UiAnalysis newAnalysis = (UiAnalysis)SerializationUtils.deserialize(serialized);
+    UiAnalysis newAnalysis = (UiAnalysis) SerializationUtils.deserialize(serialized);
 
     newAnalysis.setId(UUID.randomUUID().toString());
     newAnalysis.setUser(ticket.getClaim().getUsername());

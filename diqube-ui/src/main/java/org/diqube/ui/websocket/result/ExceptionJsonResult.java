@@ -20,6 +20,8 @@
  */
 package org.diqube.ui.websocket.result;
 
+import org.diqube.build.mojo.TypeScriptProperty;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
@@ -32,6 +34,7 @@ public class ExceptionJsonResult implements JsonResult {
   public static final String TYPE = "exception";
 
   @JsonProperty
+  @TypeScriptProperty
   public String text;
 
   public void setText(String text) {

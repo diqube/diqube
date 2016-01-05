@@ -1,0 +1,112 @@
+<!--
+
+    diqube: Distributed Query Base.
+
+    Copyright (C) 2015 Bastian Gloeckle
+
+    This file is part of diqube.
+
+    diqube is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as
+    published by the Free Software Foundation, either version 3 of the
+    License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                        http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.diqube.build.maven</groupId>
+    <artifactId>diqube-build-maven</artifactId>
+    <version>1-SNAPSHOT</version>
+  </parent>
+  <artifactId>diqube-build-java-dts-maven-plugin</artifactId>
+  <packaging>maven-plugin</packaging>
+  <name>diqube - Build Maven - Java to .d.ts maven plugin</name>
+  
+  <properties>
+    <plugin.plugins.version>3.4</plugin.plugins.version>
+    <maven.target.version>3.1.0</maven.target.version>
+  </properties>
+  
+  <prerequisites>
+      <maven>${maven.target.version}</maven>
+  </prerequisites>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.apache.maven.plugin-tools</groupId>
+      <artifactId>maven-plugin-annotations</artifactId>
+      <version>${plugin.plugins.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.maven</groupId>
+      <artifactId>maven-core</artifactId>
+      <version>${maven.target.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.maven</groupId>
+      <artifactId>maven-plugin-api</artifactId>
+      <version>${maven.target.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.sonatype.plexus</groupId>
+      <artifactId>plexus-build-api</artifactId>
+      <version>0.0.7</version>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>diqube-build-java-dts-api</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.diqube</groupId>
+      <artifactId>diqube-util</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+    </dependency>
+    
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <artifactId>slf4j-api</artifactId>
+      <groupId>org.slf4j</groupId>
+      <scope>provided</scope>
+    </dependency>
+  </dependencies>
+  
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-plugin-plugin</artifactId>
+        <version>${plugin.plugins.version}</version>
+        <executions>
+          <execution>
+            <id>default-descriptor</id>
+            <phase>process-classes</phase>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

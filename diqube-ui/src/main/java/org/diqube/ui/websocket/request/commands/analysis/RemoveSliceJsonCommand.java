@@ -25,6 +25,7 @@ import java.util.List;
 
 import javax.validation.constraints.NotNull;
 
+import org.diqube.build.mojo.TypeScriptProperty;
 import org.diqube.ui.analysis.UiAnalysis;
 import org.diqube.ui.analysis.UiQube;
 import org.diqube.ui.analysis.UiSlice;
@@ -52,6 +53,7 @@ public class RemoveSliceJsonCommand extends AbstractAnalysisAdjustingJsonCommand
 
   @JsonProperty
   @NotNull
+  @TypeScriptProperty
   public String sliceId;
 
   @Override

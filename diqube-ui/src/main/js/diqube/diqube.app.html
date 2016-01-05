@@ -1,0 +1,48 @@
+<!--
+
+    diqube: Distributed Query Base.
+
+    Copyright (C) 2015 Bastian Gloeckle
+
+    This file is part of diqube.
+
+    diqube is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as
+    published by the Free Software Foundation, either version 3 of the
+    License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+-->
+<nav class="navbar navbar-inverse navbar-fixed-top">
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <a class="navbar-brand" href="{{globalContextPath}}">diqube</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse" ng-controller="LoginStateCtrl as loginState">
+      <ul class="nav navbar-nav navbar-right" ng-if="loginState.isLoggedIn()">
+        <diqube-open-analysis></diqube-open-analysis>
+        <li><a href="create-analysis">Create Analysis</a></li>
+        <li><a href="query">Execute Query</a></li>
+        <li><a [routerLink]="['About']">About</a></li>
+        <li ng-controller="LogoutCtrl as logout"><a href ng-click="logout.logout()" title="Logout"><i class="fa fa-sign-out"></i></a></li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right" ng-if="!loginState.isLoggedIn()">
+        <li><a href="about">About</a></li>
+        <li ng-controller="LoginCtrl as login"><a href="login" title="Login"><i class="fa fa-sign-in"></i></a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<drag-control>
+  <div class="container-fluid">
+    <router-outlet></router-outlet>
+  </div>
+</drag-control>

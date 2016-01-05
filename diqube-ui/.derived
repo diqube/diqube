@@ -3,3 +3,4 @@
 # typescript plugin (palantir) needs the .d.ts files.
 src/main/js/angular2
 src/main/js/rxjs
+src/main/js/diqube/remote/remote.d.ts

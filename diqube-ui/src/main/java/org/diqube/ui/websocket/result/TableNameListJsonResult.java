@@ -24,6 +24,8 @@ import java.util.List;
 
 import javax.validation.constraints.NotNull;
 
+import org.diqube.build.mojo.TypeScriptProperty;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
@@ -37,6 +39,7 @@ public class TableNameListJsonResult implements JsonResult {
 
   @JsonProperty
   @NotNull
+  @TypeScriptProperty(collectionType = String.class)
   public List<String> tableNames;
 
   // for test

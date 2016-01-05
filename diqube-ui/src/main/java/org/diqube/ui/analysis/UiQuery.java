@@ -24,6 +24,8 @@ import java.io.Serializable;
 
 import javax.validation.constraints.NotNull;
 
+import org.diqube.build.mojo.TypeScriptProperty;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
@@ -38,18 +40,22 @@ public class UiQuery implements Serializable {
 
   @JsonProperty
   @NotNull
+  @TypeScriptProperty
   public String id;
 
   @JsonProperty
   @NotNull
+  @TypeScriptProperty
   public String name;
 
   @JsonProperty
   @NotNull
+  @TypeScriptProperty
   public String diql;
 
   @JsonProperty
   @NotNull
+  @TypeScriptProperty
   public String displayType;
 
   /** for tests only */

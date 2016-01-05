@@ -20,19 +20,33 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -->
+<!DOCTYPE html>
 <html>
   <head>
-    <title>Angular 2 QuickStart</title>
+    <base href="{{globalContextPath}}/">
+    <meta charset="utf-8">
+    <title>diqube</title>
 
+    <link rel="stylesheet" href="lib/normalize.css">
+    <link rel="stylesheet" href="lib/boilerplate-main.css">
+    <link rel="stylesheet" href="lib/bootstrap.css">
+    <link rel="stylesheet" href="lib/font-awesome.css"/>
+    <link rel="stylesheet" href="app.css">
     <script src="lib/angular2-polyfills.js"></script>
     <script src="lib/system.js"></script>
     <script src="lib/Rx.js"></script>
     <script src="lib/angular2.js"></script>
+    <script src="lib/angular2-router.js"></script>
+    <script src="lib/modernizr-2.8.3.min.js"></script>
+    <script src="lib/moment-with-locales.js"></script>
+    <script src="lib/Chart.js"></script>
 
     <script>
+      var globalContextPath = "{{globalContextPath}}";
+    
       System.config({
         baseURL: "{{globalContextPath}}",
-        packages: {        
+        packages: {
           "diqube": {
             format: "register",
             defaultExtension: "js"
@@ -46,7 +60,7 @@
   </head>
 
   <body>
-    <my-app>Loading...</my-app>
+    <diqube>Loading...</diqube>
   </body>
 
 </html>

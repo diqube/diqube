@@ -54,6 +54,11 @@
           </execution>
         </executions>
       </plugin>
+      <!-- ensure compiler plugin is executed first in compile phase! -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-war-plugin</artifactId>
@@ -117,6 +122,27 @@
         </executions>
       </plugin>
       <plugin>
+        <groupId>org.diqube.build.maven</groupId>
+        <artifactId>diqube-build-java-dts-maven-plugin</artifactId>
+        <version>${project.version}</version>
+        <executions>
+          <execution>
+            <id>java-to-dts</id>
+            <goals>
+              <goal>dts</goal>
+            </goals>
+            <phase>compile</phase>
+            <configuration>
+              <rootPackages>
+                <rootPackage>org.diqube.ui</rootPackage>
+              </rootPackages>
+              <!-- Put into src/main/js folder for eclipse plugin to pick it up correctly. Same as the copying of angular2/ and rxjs/ below. -->
+              <resultFile>${basedir}/src/main/js/diqube/remote/remote.d.ts</resultFile>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <groupId>com.github.eirslett</groupId>
         <artifactId>frontend-maven-plugin</artifactId>
         <executions>
@@ -156,7 +182,8 @@
             <goals>
               <goal>grunt</goal>
             </goals>
-            <phase>generate-resources</phase>
+            <!-- run in compile, after diqube-java-dts-maven-plugin since this one compiles TypeScript and relies on the output of diqube-java-dts-maven-plugin. -->
+            <phase>compile</phase>
             <configuration>
               <srcdir>${basedir}</srcdir>
               <outputdir>${project.build.directory}</outputdir>
@@ -187,7 +214,7 @@
             <goals>
               <goal>single</goal>
             </goals>
-            <phase>generate-resources</phase>
+            <phase>package</phase>
             <configuration>
               <descriptors>
                 <descriptor>src/main/assembly/dev-dependencies-assembly.xml</descriptor>
@@ -271,6 +298,12 @@
                 <fileset>
                   <directory>src/main/js/rxjs</directory>
                 </fileset>
+                <fileset>
+                  <directory>src/main/js/diqube/remote</directory>
+                  <includes>
+                    <include>remote.d.ts</include>
+                  </includes>
+                </fileset>
               </filesets>
             </configuration>
           </execution>
@@ -347,6 +380,11 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>diqube-ticket</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.diqube.build.maven</groupId>
+      <artifactId>diqube-build-java-dts-api</artifactId>
       <version>${project.version}</version>
     </dependency>
     
@@ -427,9 +465,6 @@
             <executions>
               <execution>
                   <id>javascript-tests</id>
-                  <goals>
-                    <goal>karma</goal>
-                  </goals>
                   <configuration>
                     <karmaConfPath>${karma.final.config.dir}/karma.chrome.conf.js</karmaConfPath>
                   </configuration>
@@ -454,10 +489,6 @@
             <executions>
               <execution>
                 <id>prepare-js-dependency-files</id>
-                <goals>
-                  <goal>single</goal>
-                </goals>
-                <phase>generate-resources</phase>
                 <configuration>
                   <descriptors>
                     <descriptor>src/main/assembly/minjs-dependencies-assembly.xml</descriptor>

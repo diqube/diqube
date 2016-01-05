@@ -27,6 +27,8 @@ import java.util.List;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
+import org.diqube.build.mojo.TypeScriptProperty;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
@@ -38,15 +40,18 @@ public class UiSlice implements Serializable {
 
   @JsonProperty
   @NotNull
+  @TypeScriptProperty
   public String id;
 
   @JsonProperty
   @NotNull
+  @TypeScriptProperty
   public String name;
 
   @JsonProperty
   @NotNull
   @Valid
+  @TypeScriptProperty(collectionType = UiSliceDisjunction.class)
   public List<UiSliceDisjunction> sliceDisjunctions = new ArrayList<>();
 
   @JsonProperty

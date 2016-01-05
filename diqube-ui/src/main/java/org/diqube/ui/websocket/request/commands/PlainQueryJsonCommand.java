@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 import javax.validation.constraints.NotNull;
 
 import org.apache.thrift.TException;
+import org.diqube.build.mojo.TypeScriptProperty;
 import org.diqube.remote.query.thrift.QueryResultService;
 import org.diqube.remote.query.thrift.RQueryException;
 import org.diqube.remote.query.thrift.RQueryStatistics;
@@ -64,6 +65,7 @@ public class PlainQueryJsonCommand implements AsyncJsonCommand {
 
   @JsonProperty
   @NotNull
+  @TypeScriptProperty
   public String diql;
 
   public PlainQueryJsonCommand() {

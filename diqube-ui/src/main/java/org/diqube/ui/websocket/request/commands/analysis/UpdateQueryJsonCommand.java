@@ -23,6 +23,7 @@ package org.diqube.ui.websocket.request.commands.analysis;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
+import org.diqube.build.mojo.TypeScriptProperty;
 import org.diqube.ui.analysis.QueryBuilder;
 import org.diqube.ui.analysis.QueryBuilder.QueryBuilderException;
 import org.diqube.ui.analysis.UiAnalysis;
@@ -53,11 +54,13 @@ public class UpdateQueryJsonCommand extends AbstractAnalysisAdjustingJsonCommand
 
   @JsonProperty
   @NotNull
+  @TypeScriptProperty
   public String qubeId;
 
   @JsonProperty
   @NotNull
   @Valid
+  @TypeScriptProperty
   public UiQuery newQuery;
 
   @Override

@@ -23,6 +23,7 @@ package org.diqube.ui.websocket.request.commands.analysis;
 import javax.inject.Inject;
 import javax.validation.constraints.NotNull;
 
+import org.diqube.build.mojo.TypeScriptProperty;
 import org.diqube.thrift.base.thrift.AuthenticationException;
 import org.diqube.thrift.base.thrift.Ticket;
 import org.diqube.ui.analysis.UiAnalysis;
@@ -54,10 +55,12 @@ public class AnalysisJsonCommand implements JsonCommand {
 
   @JsonProperty
   @NotNull
+  @TypeScriptProperty
   public String analysisId;
 
   // if null, load newest version.
   @JsonProperty
+  @TypeScriptProperty(optional = true)
   public Long analysisVersion;
 
   @JsonIgnore

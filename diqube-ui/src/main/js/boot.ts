@@ -20,6 +20,9 @@
 ///
 
 import {bootstrap} from "angular2/platform/browser"
-import {AppComponent} from "./diqube/app.component"
+import {ROUTER_PROVIDERS} from "angular2/router";
 
-bootstrap(AppComponent);  
+import {DiqubeAppComponent} from "./diqube/diqube.app.component"
+import {RemoteService} from "./diqube/remote/remote.service"
+
+bootstrap(DiqubeAppComponent, [ ROUTER_PROVIDERS, RemoteService ]);  

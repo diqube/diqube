@@ -26,6 +26,7 @@ import javax.inject.Inject;
 import javax.validation.constraints.NotNull;
 
 import org.apache.thrift.TException;
+import org.diqube.build.mojo.TypeScriptProperty;
 import org.diqube.diql.DiqlParseUtil;
 import org.diqube.diql.ParseException;
 import org.diqube.diql.antlr.DiqlParser.DiqlStmtContext;
@@ -68,10 +69,12 @@ public class CreateAnalysisJsonCommand implements JsonCommand {
 
   @JsonProperty
   @NotNull
+  @TypeScriptProperty
   public String table;
 
   @JsonProperty
   @NotNull
+  @TypeScriptProperty
   public String name;
 
   @JsonIgnore

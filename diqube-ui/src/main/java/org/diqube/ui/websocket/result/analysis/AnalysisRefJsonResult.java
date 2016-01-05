@@ -22,6 +22,7 @@ package org.diqube.ui.websocket.result.analysis;
 
 import javax.validation.constraints.NotNull;
 
+import org.diqube.build.mojo.TypeScriptProperty;
 import org.diqube.ui.websocket.result.JsonResult;
 import org.diqube.ui.websocket.result.JsonResultDataType;
 
@@ -38,10 +39,12 @@ public class AnalysisRefJsonResult implements JsonResult {
 
   @JsonProperty
   @NotNull
+  @TypeScriptProperty
   public String name;
 
   @JsonProperty
   @NotNull
+  @TypeScriptProperty
   public String id;
 
   // for tests only

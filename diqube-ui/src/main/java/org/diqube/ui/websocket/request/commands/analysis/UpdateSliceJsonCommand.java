@@ -26,6 +26,7 @@ import java.util.List;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
+import org.diqube.build.mojo.TypeScriptProperty;
 import org.diqube.ui.analysis.UiAnalysis;
 import org.diqube.ui.analysis.UiSlice;
 import org.diqube.ui.analysis.UiSliceDisjunction;
@@ -54,6 +55,7 @@ public class UpdateSliceJsonCommand extends AbstractAnalysisAdjustingJsonCommand
   @JsonProperty
   @NotNull
   @Valid
+  @TypeScriptProperty
   public UiSlice slice;
 
   @Override

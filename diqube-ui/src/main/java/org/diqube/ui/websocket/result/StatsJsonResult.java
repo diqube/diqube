@@ -28,6 +28,7 @@ import java.util.Map;
 
 import javax.validation.constraints.NotNull;
 
+import org.diqube.build.mojo.TypeScriptProperty;
 import org.diqube.remote.query.thrift.RQueryStatistics;
 import org.diqube.remote.query.thrift.RQueryStatisticsDetails;
 
@@ -44,46 +45,57 @@ public class StatsJsonResult implements JsonResult {
 
   @JsonProperty
   @NotNull
+  @TypeScriptProperty(collectionType = String.class)
   public List<String> nodeNames = new ArrayList<>();
 
   @JsonProperty
   @NotNull
+  @TypeScriptProperty(collectionType = Long.class)
   private List<Long> startedUntilDoneMs = new ArrayList<>();
 
   @JsonProperty
   @NotNull
+  @TypeScriptProperty(collectionType = Integer.class)
   private List<Integer> numberOfThreads = new ArrayList<>();
 
   @JsonProperty
   @NotNull
+  @TypeScriptProperty(collectionType = Integer.class)
   private List<Integer> numberOfTemporaryColumnShardsCreated = new ArrayList<>();
 
   @JsonProperty
   @NotNull
+  @TypeScriptProperty(collectionType = Integer.class)
   private List<Integer> numberOfTemporaryColumnShardsFromCache = new ArrayList<>();
 
   @JsonProperty
   @NotNull
+  @TypeScriptProperty(mapKeyType = String.class, mapValueType = Map.class /* TODO #97 */)
   private Map<String, List<Long>> stepsActiveMs = new HashMap<>();
 
   @JsonProperty
   @NotNull
+  @TypeScriptProperty(mapKeyType = String.class, mapValueType = Map.class) /* TODO #97 */
   private Map<String, List<Integer>> numberOfPageAccesses = new HashMap<>();
 
   @JsonProperty
   @NotNull
+  @TypeScriptProperty(mapKeyType = String.class, mapValueType = Map.class) /* TODO #97 */
   private Map<String, List<Integer>> numberOfTemporaryPageAccesses = new HashMap<>();
 
   @JsonProperty
   @NotNull
+  @TypeScriptProperty(collectionType = Integer.class)
   private List<Integer> numberOfPagesInTable = new ArrayList<>();
 
   @JsonProperty
   @NotNull
+  @TypeScriptProperty(collectionType = Integer.class)
   private List<Integer> numberOfTemporaryPages = new ArrayList<>();
 
   @JsonProperty
   @NotNull
+  @TypeScriptProperty(mapKeyType = String.class, mapValueType = Map.class) /* TODO #97 */
   private Map<String, List<Integer>> numberOfTemporaryVersionsPerColName = new HashMap<>();
 
   public void loadFromQueryStatRes(RQueryStatistics stats) {
