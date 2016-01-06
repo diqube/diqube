@@ -19,15 +19,8 @@
 /// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ///
 
-
-import {Component} from "angular2/core";
-
-@Component({
-    selector: "diqube-about",
-    templateUrl: "diqube/about/about.html"
-})
-export class AboutComponent {
-  gitCommitLong: string;
-  gitCommit: string;
-  buildTimestamp: string;
+export class DiqubeUtil {
+  static copy<T>(input: T): T {
+    return JSON.parse(JSON.stringify(input));
+  }  
 }

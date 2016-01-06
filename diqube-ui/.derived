@@ -1,6 +1,6 @@
 # Install following eclipse plugin: https://github.com/nodj/AutoDeriv
 # Automatically sets the following files as "derived" in eclipse - we copy the source to these locations as eclipse
 # typescript plugin (palantir) needs the .d.ts files.
-src/main/js/angular2
-src/main/js/rxjs
-src/main/js/diqube/remote/remote.d.ts
+src/main/web/angular2
+src/main/web/rxjs
+src/main/web/web/diqube/remote/remote.d.ts

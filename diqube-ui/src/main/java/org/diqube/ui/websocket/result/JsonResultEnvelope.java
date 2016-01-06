@@ -24,6 +24,7 @@ import javax.validation.constraints.NotNull;
 
 import org.diqube.build.mojo.TypeScriptProperty;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
@@ -61,6 +62,11 @@ public class JsonResultEnvelope {
   @NotNull
   @TypeScriptProperty
   public String dataType;
+
+  /** this property is added on-the-fly by {@link JsonResultSerializer}, see also {@link #PROPERTY_DATA}. */
+  @JsonIgnore
+  @TypeScriptProperty
+  public Object data;
 
   /* package */ JsonResultEnvelope(String requestId, String status, String dataType) {
     this.requestId = requestId;

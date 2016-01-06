@@ -15,6 +15,6 @@
     "listFiles": true
   },
   "files": [
-    "src/main/js/boot.ts"
+    "src/main/web/web/boot.ts"
   ]
 }

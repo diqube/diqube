@@ -210,13 +210,13 @@ public class GenerateDtsMojo extends AbstractMojo {
               typescriptKeyType = keyType.getSimpleName();
           }
 
-          Class<?> valueType = annotation.mapKeyType();
+          Class<?> valueType = annotation.mapValueType();
           String typescriptValueType = getTypescriptNativeType(valueType);
           if (typescriptValueType == null) {
             if (!typescriptClasses.containsKey(valueType.getName())) {
               getLog().warn("Field " + className + "#" + f.getName()
-                  + " is a map with a value of a type which does not specify any " + TypeScriptProperty.class.getName()
-                  + " annotated properties. Using 'any' as key.");
+                  + " is a map with a value of a type which does not specify any "
+                  + TypeScriptProperty.class.getSimpleName() + " annotated properties. Using 'any' as value type.");
               typescriptValueType = "any";
             } else
               typescriptValueType = valueType.getSimpleName();
@@ -230,7 +230,7 @@ public class GenerateDtsMojo extends AbstractMojo {
           if (typeScriptRealType == null) {
             if (!typescriptClasses.containsKey(realType.getName())) {
               getLog().warn("Field " + className + "#" + f.getName()
-                  + " is a collection of a type which does not specify any " + TypeScriptProperty.class.getName()
+                  + " is a collection of a type which does not specify any " + TypeScriptProperty.class.getSimpleName()
                   + " annotated properties. Generating field of type Array<any>.");
               typeScriptRealType = "any";
             } else
@@ -242,7 +242,8 @@ public class GenerateDtsMojo extends AbstractMojo {
           Pair<Class<?>, Set<String>> targetPair = typescriptClasses.get(f.getType().getName());
           if (targetPair == null) {
             getLog().warn("Field " + className + "#" + f.getName() + " has a type which does not specify any "
-                + TypeScriptProperty.class.getName() + " annotated properties. Generating a field of type 'any'.");
+                + TypeScriptProperty.class.getSimpleName()
+                + " annotated properties. Generating a field of type 'any'.");
             type = "any";
           } else {
             type = targetPair.getLeft().getSimpleName();

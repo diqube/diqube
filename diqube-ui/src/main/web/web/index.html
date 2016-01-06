@@ -32,6 +32,11 @@
     <link rel="stylesheet" href="lib/bootstrap.css">
     <link rel="stylesheet" href="lib/font-awesome.css"/>
     <link rel="stylesheet" href="app.css">
+    
+    <script>
+      var globalContextPath = "{{globalContextPath}}";
+    </script>
+    
     <script src="lib/angular2-polyfills.js"></script>
     <script src="lib/system.js"></script>
     <script src="lib/Rx.js"></script>
@@ -42,8 +47,6 @@
     <script src="lib/Chart.js"></script>
 
     <script>
-      var globalContextPath = "{{globalContextPath}}";
-    
       System.config({
         baseURL: "{{globalContextPath}}",
         packages: {

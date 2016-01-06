@@ -38,6 +38,7 @@
   <modules>
     <module>diqube-build-java-dts-api</module>
     <module>diqube-build-java-dts-maven-plugin</module>
+    <module>diqube-build-refresh-files-maven-plugin</module>
   </modules>
   
  <build>
