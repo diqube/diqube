@@ -37,7 +37,7 @@ export class AboutComponent {
     var me: AboutComponent = this;
     remoteService.execute("version", null, {
       data: (dataType: string, data: any) => {
-        if (dataType === "version22") {
+        if (dataType === "version") {
           var realData: VersionJsonResult = <VersionJsonResult>data;
           me.gitCommitLong = realData.gitCommitLong;
           me.gitCommit = realData.gitCommitShort;
