@@ -27,6 +27,7 @@ import {LoginComponent} from "./login/login.component";
 import {LogoutComponent} from "./logout/logout.component";
 import {ManageAnalysisComponent} from "./manage-analysis/manage-analysis.component";
 import {CreateAnalysisComponent} from "./create-analysis/create-analysis.component";
+import {QueryComponent} from "./query/query.component";
 
 import {LoginStateService} from "./login-state/login-state.service";
 
@@ -39,8 +40,10 @@ import {LoginStateService} from "./login-state/login-state.service";
   { path: "/about", name: "About", component: AboutComponent },
   { path: "/login", name: "Login", component: LoginComponent, useAsDefault: true },
   { path: "/logout", name: "Logout", component: LogoutComponent },
+  { path: "/query", name: "Query", component: QueryComponent },
   { path: "/manage-analysis", name: "ManageAnalysis", component: ManageAnalysisComponent },
   { path: "/create-analysis", name: "CreateAnalysis", component: CreateAnalysisComponent },
+
 ])
 export class DiqubeAppComponent { 
 

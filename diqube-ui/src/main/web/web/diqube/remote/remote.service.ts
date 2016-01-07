@@ -22,7 +22,7 @@
 
 import {Injectable} from "angular2/core";
 import {DiqubeWebSocket, DiqubeWebSocketEventId, DiqubeWebSocketHandler} from "./websocket";
-import {DiqubeUtil} from "../diqube.util";
+import {DiqubeUtil} from "../util/diqube.util";
 import {JsonResultEnvelope} from "./remote";
 import {LoginStateService} from "../login-state/login-state.service";
 
