@@ -23,6 +23,9 @@ import {Injectable} from "angular2/core";
 import {Router} from "angular2/router";
 import {CookiesService} from "../cookies/cookies.service";
 
+// set in index.html
+declare var globalContextPath: string; 
+
 @Injectable()
 export class LoginStateService {
   private static DEFAULT_ROUTER_TARGET_AFTER_LOGIN: string = "About";  
@@ -52,12 +55,9 @@ export class LoginStateService {
     this.adjustCookies();
     
     if (this.urlToOpenAfterSuccessfulLogin !== undefined) {
-      var me: LoginStateService = this;
-      setTimeout(() => {
-        var newLocation: string = me.urlToOpenAfterSuccessfulLogin;
-        me.urlToOpenAfterSuccessfulLogin = undefined;
-        window.location.href = newLocation;
-      }, 0);
+      var newLocation: string = this.urlToOpenAfterSuccessfulLogin;
+      this.urlToOpenAfterSuccessfulLogin = undefined;
+      this.router.navigateByUrl(newLocation);
     } else {
       this.router.navigate([ LoginStateService.DEFAULT_ROUTER_TARGET_AFTER_LOGIN ]);
     }
@@ -71,7 +71,7 @@ export class LoginStateService {
   }
   
   public loginAndReturnHere(): void {
-    this.urlToOpenAfterSuccessfulLogin = window.location.href;
+    this.urlToOpenAfterSuccessfulLogin = window.location.pathname.substring(globalContextPath.length);
     this.router.navigate([ "Login" ]);
   }
   

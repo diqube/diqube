@@ -21,41 +21,57 @@
 
 
 import {Component, OnInit} from "angular2/core";
+import {Router} from "angular2/router";
 import {AnalysisRefJsonResult, AnalysisRefJsonResultConstants, ListAllAnalysisJsonCommandConstants} from "../remote/remote";
 import {RemoteService} from "../remote/remote.service";
+import {LoginStateService} from "../login-state/login-state.service";
 
 @Component({
-    selector: "diqube-open-analysis",
-    templateUrl: "diqube/open-analysis/open-analysis.html"
+    selector: "diqube-manage-analysis",
+    templateUrl: "diqube/manage-analysis/manage-analysis.html"
 })
-export class OpenAnalysisComponent implements OnInit {
-  public dropdownIsOpen: boolean = false;
-  public overallTitle: string = "";
-  public overallText: string = "";
-  public analysis: AnalysisRefJsonResult[] = [];
-  public loading: boolean = false;
+export class ManageAnalysisComponent implements OnInit {
+  public allAnalysis: AnalysisRefJsonResult[] = [];
+  public reloading: boolean = false;
   
-  constructor(private remoteService: RemoteService) { }
+  constructor(private remoteService: RemoteService, private router: Router, private loginStateService: LoginStateService) { }
   
   public ngOnInit(): any {
+    if (!this.loginStateService.isTicketAvailable())
+      this.loginStateService.loginAndReturnHere();
+    
     this.reloadAnalysis();
   }
   
   public reloadAnalysis(): void {
-    this.analysis = [];
+    if (this.reloading)
+      return;
+    
+    this.allAnalysis = [];
+    this.reloading = true;
+    var me: ManageAnalysisComponent = this;
     this.remoteService.execute(ListAllAnalysisJsonCommandConstants.NAME, null, {
       data: (dataType: string, data: any) => {
         if (dataType === AnalysisRefJsonResultConstants.TYPE) {
-          this.analysis.push(<AnalysisRefJsonResult>data);
+          this.allAnalysis.push(<AnalysisRefJsonResult>data);
         }
         return false;
       },
-      exception: (msg: string) => {},
-      done: () => {} 
+      exception: (msg: string) => {
+        me.reloading = false;
+      },
+      done: () => {
+        me.reloading = false;
+      } 
     });
   }
 
-  public openAnalysis(analysis: {id: string; name: string; }): void {
+  public openAnalysis(analysis: AnalysisRefJsonResult): void {
     // TODO
   }
+  
+  public createAnalysis(): void {
+    this.router.navigate([ "CreateAnalysis" ]);
+  }
+  
 }

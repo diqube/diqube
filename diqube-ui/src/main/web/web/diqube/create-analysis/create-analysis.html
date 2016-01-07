@@ -1,0 +1,57 @@
+<!--
+
+    diqube: Distributed Query Base.
+
+    Copyright (C) 2015 Bastian Gloeckle
+
+    This file is part of diqube.
+
+    diqube is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as
+    published by the Free Software Foundation, either version 3 of the
+    License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+-->
+<h1 class="page-header">Create Analysis</h1>
+<p></p>
+
+<div *ngIf="error" class="alert alert-danger">
+  <i class="fa fa-exclamation-circle"></i>
+  {{ error }}
+</div>
+ 
+<p></p>
+
+<form class="create-analysis" (submit)="createAnalysis()" [ngFormModel]="formControlGroup">
+  <div [class.has-success]="nameControl.dirty && nameControl.valid" 
+       [class.has-error]="nameControl.dirty && !nameControl.valid" 
+       class="form-group simple-form has-feedback">
+    <label for="inputName" class="control-label">Name</label>
+    <input type="text" class="form-control" placeholder="Name of new Analysis" [(ngModel)]="newAnalysis.name"
+      ngControl="nameControl">
+    <span *ngIf="nameControl.dirty && nameControl.valid" class="fa fa-check form-control-feedback"></span>
+    <span *ngIf="nameControl.dirty && !nameControl.valid" class="fa fa-exclamation-triangle form-control-feedback"></span>
+  </div>
+  
+  <div [class.has-success]="tableControl.dirty && tableControl.valid" 
+       [class.has-error]="tableControl.dirty && !tableControl.valid && !tableControl.errors.tableDoesNotExist" 
+       [class.has-warning]="tableControl.dirty && !tableControl.valid && tableControl.errors.tableDoesNotExist"
+       class="form-group">
+       
+    <label for="inputTable" class="control-label">Table</label>
+    <input type="text" class="form-control" placeholder="Table yout want to analyze" [(ngModel)]="newAnalysis.table"
+      ngControl="tableControl">
+    <span *ngIf="tableControl.dirty && tableControl.valid" class="fa fa-check form-control-feedback"></span>
+    <span *ngIf="tableControl.dirty && !tableControl.valid" class="fa fa-exclamation-triangle form-control-feedback"></span>
+  </div>
+  
+  <button type="submit" class="btn btn-primary" [disabled]="isCreating">Create</button>
+</form>

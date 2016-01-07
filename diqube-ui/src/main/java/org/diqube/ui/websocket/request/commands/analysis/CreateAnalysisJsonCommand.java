@@ -97,6 +97,12 @@ public class CreateAnalysisJsonCommand implements JsonCommand {
     if (ticket == null)
       throw new RuntimeException("Not logged in.");
 
+    if (name == null || name.trim().equals(""))
+      throw new RuntimeException("Name required.");
+
+    if (table == null || table.trim().equals(""))
+      throw new RuntimeException("Table required.");
+
     UiAnalysis res =
         factory.createAnalysis(UUID.randomUUID().toString(), name, table, ticket.getClaim().getUsername(), 0L);
 

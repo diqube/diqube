@@ -20,13 +20,20 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -->
-  <a href [title]="overallTitle">{{ overallText }} <span class="caret"></span> </a>
-  <ul class="dropdown-menu">
-    <li *ngFor="#choice of analysis">
-      <a href title="{{ choice.id }}" (click)="openAnalysis(choice)">{{ choice.name }}</a>
-    </li>
-    <li class="divider"></li>
-    <li role="menuitem">
-      <a href (click)="reloadAnalysis()"> Refresh <i *ngIf="loading" class="fa fa-refresh fa-spin"></i>
-    </a></li>
-  </ul>
+<h1 class="page-header">Manage analysis</h1>
+<p></p>
+
+<button class="btn btn-default" (click)="reloadAnalysis()" [disabled]="reloading">
+  Refresh
+</button>
+
+<button class="btn btn-default" (click)="createAnalysis()">
+  <i class="fa fa-plus add-action"></i> Create
+</button>
+
+<p></p>
+<ul>
+  <li *ngFor="#analysis of allAnalysis">
+    <a href (click)="openAnalysis(analysis)">{{ analysis.name }} ({{analysis.id}})</a>
+  </li>
+</ul>
