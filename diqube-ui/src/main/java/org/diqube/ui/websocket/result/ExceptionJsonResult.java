@@ -31,6 +31,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 @JsonResultDataType(ExceptionJsonResult.TYPE)
 public class ExceptionJsonResult implements JsonResult {
+  @TypeScriptProperty
   public static final String TYPE = "exception";
 
   @JsonProperty

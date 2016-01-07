@@ -24,6 +24,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -58,7 +59,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.reflect.ClassPath;
 
 /**
- * Generates typescript definition files from java class files.
+ * Generates a typescript file from java class files.
  * 
  * <p>
  * If this mojo should use input java classes of the current project where it is used, it needs to be executed in the
@@ -75,9 +76,9 @@ import com.google.common.reflect.ClassPath;
  * <p>
  * The mojo will search for all classes in {@link GenerateDtsMojo#rootPackages} where at least one property holds the
  * {@link TypeScriptProperty} annotation. For each of these classes and all classes referenced from those (which in turn
- * again have at least one property with {@link TypeScriptProperty}), one class in .d.ts will be created.
+ * again have at least one property with {@link TypeScriptProperty}), one class in .ts will be created.
  */
-@Mojo(name = "dts", defaultPhase = LifecyclePhase.COMPILE,
+@Mojo(name = "ts", defaultPhase = LifecyclePhase.COMPILE,
     requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME)
 public class GenerateDtsMojo extends AbstractMojo {
 
@@ -117,7 +118,7 @@ public class GenerateDtsMojo extends AbstractMojo {
   private String[] rootPackages;
 
   /**
-   * Filename of the result .d.ts file.
+   * Filename of the result .ts file.
    */
   @Parameter(required = true)
   private String resultFile;
@@ -173,15 +174,64 @@ public class GenerateDtsMojo extends AbstractMojo {
   }
 
   /**
-   * Generates the .d.ts typescript for one specific java class.
+   * Generates the .ts typescript for one specific java class.
    * 
    * @return String containing the typescript.
    */
   private String generateTypeScript(Map<String, Pair<Class<?>, Set<String>>> typescriptClasses, String className)
       throws MojoExecutionException {
     Class<?> clazz = typescriptClasses.get(className).getLeft();
-
     StringBuilder res = new StringBuilder();
+
+    List<Pair<Field, TypeScriptProperty>> fields = findTypeScriptFields(clazz);
+
+    if (fields.stream().anyMatch(p -> isPublicStaticFinal(p.getLeft()))) {
+      // there is at least one public static final field annotated. Create "Constants" class.
+
+      res.append("export class ");
+      res.append(clazz.getSimpleName());
+      res.append("Constants {\n");
+
+      for (Pair<Field, TypeScriptProperty> p : fields) {
+        Field f = p.getLeft();
+        if (!isPublicStaticFinal(f))
+          // only work on public static final fields.
+          continue;
+
+        String type = getTypescriptNativeType(f.getType());
+        if (type == null)
+          throw new MojoExecutionException(
+              "Field " + className + "#" + f.getName() + " does not have a typescript native type.");
+
+        res.append("  static ");
+        res.append(f.getName());
+        res.append(": ");
+        res.append(type);
+        res.append(" = ");
+
+        Object value;
+        try {
+          value = f.get(null);
+        } catch (IllegalArgumentException | IllegalAccessException e) {
+          throw new MojoExecutionException(
+              "Could not read value of public static final field " + className + "#" + f.getName(), e);
+        }
+
+        if (STRING_CLASSES.contains(f.getType())) {
+          res.append("\"");
+          res.append(((String) value));
+          res.append("\"");
+        } else if (BOOLEAN_CLASSES.contains(f.getType())) {
+          res.append(((Boolean) value) ? "true" : "false");
+        } else if (NUMBER_CLASSES.contains(f.getType())) {
+          res.append(((Number) value).toString());
+        } else
+          throw new MojoExecutionException("Could not serialize value of " + className + "#" + f.getName());
+        res.append(";\n");
+      }
+      res.append("}\n");
+    }
+
     res.append("export interface ");
     res.append(clazz.getSimpleName());
     if (typescriptClasses.containsKey(clazz.getSuperclass().getName())) {
@@ -190,66 +240,13 @@ public class GenerateDtsMojo extends AbstractMojo {
     }
     res.append(" {\n");
 
-    for (Pair<Field, TypeScriptProperty> p : findTypeScriptFields(clazz)) {
+    for (Pair<Field, TypeScriptProperty> p : fields) {
       Field f = p.getLeft();
+      if (isPublicStaticFinal(f))
+        // do not create anything in the interface for public static final.
+        continue;
       TypeScriptProperty annotation = p.getRight();
-      String type = getTypescriptNativeType(f.getType());
-      if (type == null) {
-        // no native type.
-        if (Map.class.isAssignableFrom(f.getType())) {
-          // map type
-          Class<?> keyType = annotation.mapKeyType();
-          String typescriptKeyType = getTypescriptNativeType(keyType);
-          if (typescriptKeyType == null) {
-            if (!typescriptClasses.containsKey(keyType.getName())) {
-              getLog().warn("Field " + className + "#" + f.getName()
-                  + " is a map with a key of a type which does not specify any " + TypeScriptProperty.class.getName()
-                  + " annotated properties. Using 'any' as key.");
-              typescriptKeyType = "any";
-            } else
-              typescriptKeyType = keyType.getSimpleName();
-          }
-
-          Class<?> valueType = annotation.mapValueType();
-          String typescriptValueType = getTypescriptNativeType(valueType);
-          if (typescriptValueType == null) {
-            if (!typescriptClasses.containsKey(valueType.getName())) {
-              getLog().warn("Field " + className + "#" + f.getName()
-                  + " is a map with a value of a type which does not specify any "
-                  + TypeScriptProperty.class.getSimpleName() + " annotated properties. Using 'any' as value type.");
-              typescriptValueType = "any";
-            } else
-              typescriptValueType = valueType.getSimpleName();
-          }
-
-          type = "{ [ key: " + typescriptKeyType + "]: " + typescriptValueType + " }";
-        } else if (Collection.class.isAssignableFrom(f.getType())) {
-          // collection type.
-          Class<?> realType = annotation.collectionType();
-          String typeScriptRealType = getTypescriptNativeType(realType);
-          if (typeScriptRealType == null) {
-            if (!typescriptClasses.containsKey(realType.getName())) {
-              getLog().warn("Field " + className + "#" + f.getName()
-                  + " is a collection of a type which does not specify any " + TypeScriptProperty.class.getSimpleName()
-                  + " annotated properties. Generating field of type Array<any>.");
-              typeScriptRealType = "any";
-            } else
-              typeScriptRealType = realType.getSimpleName();
-          }
-          type = "Array<" + typeScriptRealType + ">";
-        } else {
-          // ordinary class.
-          Pair<Class<?>, Set<String>> targetPair = typescriptClasses.get(f.getType().getName());
-          if (targetPair == null) {
-            getLog().warn("Field " + className + "#" + f.getName() + " has a type which does not specify any "
-                + TypeScriptProperty.class.getSimpleName()
-                + " annotated properties. Generating a field of type 'any'.");
-            type = "any";
-          } else {
-            type = targetPair.getLeft().getSimpleName();
-          }
-        }
-      }
+      String type = getTypescriptType(typescriptClasses, className, p);
       res.append("  ");
       res.append(f.getName());
       if (annotation.optional())
@@ -263,6 +260,85 @@ public class GenerateDtsMojo extends AbstractMojo {
     return res.toString();
   }
 
+  /**
+   * Calculates the string identifying the typescript type of a specific field.
+   * 
+   * @param typescriptClasses
+   *          All class infos.
+   * @param className
+   *          The name of the class the field belongs to.
+   * @param fieldPair
+   *          Information on the type of the field.
+   * @return A String which is a valid typescript type definition.
+   */
+  private String getTypescriptType(Map<String, Pair<Class<?>, Set<String>>> typescriptClasses, String className,
+      Pair<Field, TypeScriptProperty> fieldPair) {
+    Field f = fieldPair.getLeft();
+    TypeScriptProperty annotation = fieldPair.getRight();
+
+    String type = getTypescriptNativeType(f.getType());
+    if (type == null) {
+      // no native type.
+      if (Map.class.isAssignableFrom(f.getType())) {
+        // map type
+        Class<?> keyType = annotation.mapKeyType();
+        String typescriptKeyType = getTypescriptNativeType(keyType);
+        if (typescriptKeyType == null) {
+          if (!typescriptClasses.containsKey(keyType.getName())) {
+            getLog().warn(
+                "Field " + className + "#" + f.getName() + " is a map with a key of a type which does not specify any "
+                    + TypeScriptProperty.class.getName() + " annotated properties. Using 'any' as key.");
+            typescriptKeyType = "any";
+          } else
+            typescriptKeyType = keyType.getSimpleName();
+        }
+
+        Class<?> valueType = annotation.mapValueType();
+        String typescriptValueType = getTypescriptNativeType(valueType);
+        if (typescriptValueType == null) {
+          if (!typescriptClasses.containsKey(valueType.getName())) {
+            getLog().warn("Field " + className + "#" + f.getName()
+                + " is a map with a value of a type which does not specify any "
+                + TypeScriptProperty.class.getSimpleName() + " annotated properties. Using 'any' as value type.");
+            typescriptValueType = "any";
+          } else
+            typescriptValueType = valueType.getSimpleName();
+        }
+
+        type = "{ [ key: " + typescriptKeyType + "]: " + typescriptValueType + " }";
+      } else if (Collection.class.isAssignableFrom(f.getType())) {
+        // collection type.
+        Class<?> realType = annotation.collectionType();
+        String typeScriptRealType = getTypescriptNativeType(realType);
+        if (typeScriptRealType == null) {
+          if (!typescriptClasses.containsKey(realType.getName())) {
+            getLog().warn("Field " + className + "#" + f.getName()
+                + " is a collection of a type which does not specify any " + TypeScriptProperty.class.getSimpleName()
+                + " annotated properties. Generating field of type Array<any>.");
+            typeScriptRealType = "any";
+          } else
+            typeScriptRealType = realType.getSimpleName();
+        }
+        type = "Array<" + typeScriptRealType + ">";
+      } else {
+        // ordinary class.
+        Pair<Class<?>, Set<String>> targetPair = typescriptClasses.get(f.getType().getName());
+        if (targetPair == null) {
+          getLog().warn("Field " + className + "#" + f.getName() + " has a type which does not specify any "
+              + TypeScriptProperty.class.getSimpleName() + " annotated properties. Generating a field of type 'any'.");
+          type = "any";
+        } else {
+          type = targetPair.getLeft().getSimpleName();
+        }
+      }
+    }
+    return type;
+  }
+
+  /**
+   * Identifies if the clazz (= the type of a property) corresponds directly to a Typescript native data type and
+   * returns that. <code>null</code> if not.
+   */
   private String getTypescriptNativeType(Class<?> clazz) {
     if (NUMBER_CLASSES.contains(clazz))
       return "number";
@@ -271,6 +347,14 @@ public class GenerateDtsMojo extends AbstractMojo {
     if (BOOLEAN_CLASSES.contains(clazz))
       return "boolean";
     return null;
+  }
+
+  /**
+   * Checks whether the field is defined "public static final".
+   */
+  private boolean isPublicStaticFinal(Field f) {
+    return Modifier.isPublic(f.getModifiers()) && Modifier.isStatic(f.getModifiers())
+        && Modifier.isFinal(f.getModifiers());
   }
 
   /**

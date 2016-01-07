@@ -58,6 +58,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @CommandInformation(name = AnalysisQueryJsonCommand.NAME)
 public class AnalysisQueryJsonCommand implements AsyncJsonCommand {
 
+  @TypeScriptProperty
   public static final String NAME = "analysisQuery";
 
   @JsonProperty

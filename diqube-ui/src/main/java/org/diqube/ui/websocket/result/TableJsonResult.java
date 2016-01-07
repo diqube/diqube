@@ -35,6 +35,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 @JsonResultDataType(TableJsonResult.TYPE)
 public class TableJsonResult implements JsonResult {
+  @TypeScriptProperty
   public static final String TYPE = "table";
 
   /**

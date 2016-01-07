@@ -36,6 +36,7 @@ import com.google.common.io.BaseEncoding;
  */
 @JsonResultDataType(TicketJsonResult.TYPE)
 public class TicketJsonResult implements JsonResult {
+  @TypeScriptProperty
   public static final String TYPE = "ticket";
 
   /** Base64 serialized ticket */

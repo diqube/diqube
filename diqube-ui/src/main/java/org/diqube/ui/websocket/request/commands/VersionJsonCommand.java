@@ -20,6 +20,7 @@
  */
 package org.diqube.ui.websocket.request.commands;
 
+import org.diqube.build.mojo.TypeScriptProperty;
 import org.diqube.buildinfo.BuildInfo;
 import org.diqube.thrift.base.thrift.Ticket;
 import org.diqube.ui.websocket.request.CommandClusterInteraction;
@@ -39,6 +40,7 @@ import org.diqube.ui.websocket.result.VersionJsonResult;
  */
 @CommandInformation(name = VersionJsonCommand.NAME)
 public class VersionJsonCommand implements JsonCommand {
+  @TypeScriptProperty
   public static final String NAME = "version";
 
   @Override

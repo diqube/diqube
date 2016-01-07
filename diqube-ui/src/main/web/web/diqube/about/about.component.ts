@@ -22,7 +22,7 @@
 
 import {Component} from "angular2/core";
 import {RemoteService} from "../remote/remote.service";
-import {VersionJsonResult} from "../remote/remote";
+import {VersionJsonResult, VersionJsonResultConstants, VersionJsonCommandConstants} from "../remote/remote";
 
 @Component({
     selector: "diqube-about",
@@ -35,9 +35,9 @@ export class AboutComponent {
   
   constructor(remoteService: RemoteService) {
     var me: AboutComponent = this;
-    remoteService.execute("version", null, {
+    remoteService.execute(VersionJsonCommandConstants.NAME, null, {
       data: (dataType: string, data: any) => {
-        if (dataType === "version") {
+        if (dataType === VersionJsonResultConstants.TYPE) {
           var realData: VersionJsonResult = <VersionJsonResult>data;
           me.gitCommitLong = realData.gitCommitLong;
           me.gitCommit = realData.gitCommitShort;

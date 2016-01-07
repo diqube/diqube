@@ -44,6 +44,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 @CommandInformation(name = RemoveQubeJsonCommand.NAME)
 public class RemoveQubeJsonCommand extends AbstractAnalysisAdjustingJsonCommand {
+  @TypeScriptProperty
   public static final String NAME = "removeQube";
 
   @JsonProperty

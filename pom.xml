@@ -457,8 +457,8 @@
                 <exclude>diqube-ui/bower_components/**/*</exclude>
                 <exclude>diqube-ui/node_modules/**/*</exclude>
                 <exclude>diqube-ui/node/**/*</exclude>
-                <exclude>diqube-ui/src/main/js/angular2/**/*</exclude>
-                <exclude>diqube-ui/src/main/js/rxjs/**/*</exclude>
+                <exclude>diqube-ui/src/main/web/angular2/**/*</exclude>
+                <exclude>diqube-ui/src/main/web/rxjs/**/*</exclude>
                 <exclude>diqube-ui/.derived</exclude>
                 <exclude>**/*.pem</exclude>
                 <exclude>**/*.ready</exclude>

@@ -45,6 +45,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 @CommandInformation(name = RemoveQueryJsonCommand.NAME)
 public class RemoveQueryJsonCommand extends AbstractAnalysisAdjustingJsonCommand {
+  @TypeScriptProperty
   public static final String NAME = "removeQuery";
 
   @JsonProperty

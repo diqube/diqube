@@ -20,6 +20,7 @@
  */
 package org.diqube.ui.websocket.request.commands;
 
+import org.diqube.build.mojo.TypeScriptProperty;
 import org.diqube.thrift.base.thrift.Ticket;
 import org.diqube.ui.websocket.request.CommandClusterInteraction;
 import org.diqube.ui.websocket.request.CommandResultHandler;
@@ -37,6 +38,7 @@ import org.diqube.ui.websocket.request.CommandResultHandler;
  */
 @CommandInformation(name = CancelJsonCommand.NAME)
 public class CancelJsonCommand implements JsonCommand {
+  @TypeScriptProperty
   public static final String NAME = "cancel";
 
   @Override

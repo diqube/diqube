@@ -35,6 +35,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @JsonResultDataType(VersionJsonResult.TYPE)
 public class VersionJsonResult implements JsonResult {
 
+  @TypeScriptProperty
   public static final String TYPE = "version";
 
   @JsonProperty

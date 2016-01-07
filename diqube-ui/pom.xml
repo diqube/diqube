@@ -120,9 +120,9 @@
         <version>${project.version}</version>
         <executions>
           <execution>
-            <id>java-to-dts</id>
+            <id>java-to-ts</id>
             <goals>
-              <goal>dts</goal>
+              <goal>ts</goal>
             </goals>
             <phase>compile</phase>
             <configuration>
@@ -130,7 +130,7 @@
                 <rootPackage>org.diqube.ui</rootPackage>
               </rootPackages>
               <!-- Put into src/main/web folder for eclipse plugin to pick it up correctly. Same as the copying of angular2/ and rxjs/ below. -->
-              <resultFile>${basedir}/src/main/web/web/diqube/remote/remote.d.ts</resultFile>
+              <resultFile>${basedir}/src/main/web/web/diqube/remote/remote.ts</resultFile>
             </configuration>
           </execution>
         </executions>
@@ -244,7 +244,7 @@
                 <fileset>
                   <directory>src/main/web/web/diqube/remote</directory>
                   <includes>
-                    <include>remote.d.ts</include>
+                    <include>remote.ts</include>
                   </includes>
                 </fileset>
               </filesets>

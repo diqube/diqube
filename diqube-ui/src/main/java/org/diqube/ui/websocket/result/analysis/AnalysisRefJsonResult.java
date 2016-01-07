@@ -33,9 +33,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  *
  * @author Bastian Gloeckle
  */
-@JsonResultDataType(AnalysisRefJsonResult.DATA_TYPE)
+@JsonResultDataType(AnalysisRefJsonResult.TYPE)
 public class AnalysisRefJsonResult implements JsonResult {
-  public static final String DATA_TYPE = "analysisRef";
+  @TypeScriptProperty
+  public static final String TYPE = "analysisRef";
 
   @JsonProperty
   @NotNull

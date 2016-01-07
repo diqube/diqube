@@ -61,6 +61,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @CommandInformation(name = PlainQueryJsonCommand.NAME)
 public class PlainQueryJsonCommand implements AsyncJsonCommand {
 
+  @TypeScriptProperty
   public static final String NAME = "plainQuery";
 
   @JsonProperty

@@ -50,6 +50,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 @CommandInformation(name = CreateQueryJsonCommand.NAME)
 public class CreateQueryJsonCommand extends AbstractAnalysisAdjustingJsonCommand {
+  @TypeScriptProperty
   public static final String NAME = "createQuery";
 
   @JsonProperty

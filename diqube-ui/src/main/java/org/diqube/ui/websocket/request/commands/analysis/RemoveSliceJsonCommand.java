@@ -49,6 +49,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @CommandInformation(name = RemoveSliceJsonCommand.NAME)
 public class RemoveSliceJsonCommand extends AbstractAnalysisAdjustingJsonCommand {
 
+  @TypeScriptProperty
   public static final String NAME = "removeSlice";
 
   @JsonProperty

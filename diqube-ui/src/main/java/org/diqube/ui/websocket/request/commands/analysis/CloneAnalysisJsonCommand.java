@@ -58,6 +58,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public class CloneAnalysisJsonCommand implements JsonCommand {
   private static final Logger logger = LoggerFactory.getLogger(CloneAnalysisJsonCommand.class);
 
+  @TypeScriptProperty
   public static final String NAME = "cloneAnalysis";
 
   @JsonProperty

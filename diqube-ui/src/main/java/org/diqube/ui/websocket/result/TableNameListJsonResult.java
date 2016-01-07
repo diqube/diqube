@@ -33,9 +33,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  *
  * @author Bastian Gloeckle
  */
-@JsonResultDataType(TableNameListJsonResult.DATA_TYPE)
+@JsonResultDataType(TableNameListJsonResult.TYPE)
 public class TableNameListJsonResult implements JsonResult {
-  public static final String DATA_TYPE = "tableNameList";
+  @TypeScriptProperty
+  public static final String TYPE = "tableNameList";
 
   @JsonProperty
   @NotNull

@@ -28,7 +28,15 @@ import java.util.Collection;
 import java.util.Map;
 
 /**
- * Enforces creation of a specific java field to a typescript field when generating the .d.ts files from java classes.
+ * Enforces creation of a specific java field to a typescript field when generating the .d.ts file from java classes.
+ * 
+ * <p>
+ * Normal annotated properties will be added to a typescript interface with their corresponding data type.
+ * 
+ * <p>
+ * If the annotated field is "public static final", in addition to the typescript interface, a typescript class will be
+ * created (name ends with "Constants") which will hold the values of the public static final fields. This is only
+ * allowed for fields which map directly to a typescript native data type (string, number, boolean).
  *
  * @author Bastian Gloeckle
  */
@@ -52,7 +60,8 @@ public @interface TypeScriptProperty {
   Class<?> mapValueType() default Object.class;
 
   /**
-   * <code>true</code> if the property should be marked as "optional" in .d.ts.
+   * <code>true</code> if the property should be marked as "optional" in .d.ts. This value is ignored for
+   * "public static final" fields.
    */
   boolean optional() default false;
 }

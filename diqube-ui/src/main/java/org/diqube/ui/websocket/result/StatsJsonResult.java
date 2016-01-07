@@ -41,6 +41,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 @JsonResultDataType(StatsJsonResult.TYPE)
 public class StatsJsonResult implements JsonResult {
+  @TypeScriptProperty
   public static final String TYPE = "stats";
 
   @JsonProperty

@@ -35,9 +35,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  *
  * @author Bastian Gloeckle
  */
-@JsonResultDataType(SliceJsonResult.DATA_TYPE)
+@JsonResultDataType(SliceJsonResult.TYPE)
 public class SliceJsonResult implements JsonResult {
-  public static final String DATA_TYPE = "slice";
+  @TypeScriptProperty
+  public static final String TYPE = "slice";
 
   @JsonProperty
   @NotNull

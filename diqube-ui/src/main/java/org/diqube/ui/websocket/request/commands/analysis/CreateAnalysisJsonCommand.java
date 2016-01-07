@@ -65,6 +65,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public class CreateAnalysisJsonCommand implements JsonCommand {
   private static final Logger logger = LoggerFactory.getLogger(CreateAnalysisJsonCommand.class);
 
+  @TypeScriptProperty
   public static final String NAME = "createAnalysis";
 
   @JsonProperty

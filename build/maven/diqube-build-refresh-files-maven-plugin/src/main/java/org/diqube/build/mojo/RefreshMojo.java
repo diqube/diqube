@@ -86,7 +86,7 @@ public class RefreshMojo extends AbstractMojo {
 
     scanner.scan();
     String[] refreshFiles = scanner.getIncludedFiles();
-    getLog().info("Refreshing " + refreshFiles.length + " files: " + Arrays.asList(refreshFiles));
+    getLog().info("Refreshing " + refreshFiles.length + " files.");
     if (getLog().isDebugEnabled())
       getLog().debug("Refreshing files: " + Arrays.asList(refreshFiles));
 
@@ -95,7 +95,7 @@ public class RefreshMojo extends AbstractMojo {
     }
 
     if (copyToOutputs != null) {
-      getLog().info("Copying " + refreshFiles.length + " to " + Arrays.asList(copyToOutputs));
+      getLog().info("Copying " + refreshFiles.length + " files to " + Arrays.asList(copyToOutputs));
       for (String fileName : refreshFiles) {
         for (String copyToOutput : copyToOutputs) {
           File sourceFile = new File(basedir, fileName);

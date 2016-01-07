@@ -51,6 +51,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @CommandInformation(name = AnalysisJsonCommand.NAME)
 public class AnalysisJsonCommand implements JsonCommand {
 
+  @TypeScriptProperty
   public static final String NAME = "analysis";
 
   @JsonProperty

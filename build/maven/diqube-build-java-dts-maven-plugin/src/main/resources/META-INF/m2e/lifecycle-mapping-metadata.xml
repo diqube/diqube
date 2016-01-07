@@ -25,7 +25,7 @@
     <pluginExecution>
       <pluginExecutionFilter>
         <goals>
-          <goal>dts</goal>
+          <goal>ts</goal>
         </goals>
       </pluginExecutionFilter>
       <action>

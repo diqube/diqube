@@ -46,6 +46,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @CommandInformation(name = LoginJsonCommand.NAME)
 public class LoginJsonCommand implements JsonCommand {
 
+  @TypeScriptProperty
   public static final String NAME = "login";
 
   @JsonProperty

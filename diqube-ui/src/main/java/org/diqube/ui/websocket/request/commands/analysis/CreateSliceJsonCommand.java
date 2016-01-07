@@ -53,6 +53,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 @CommandInformation(name = CreateSliceJsonCommand.NAME)
 public class CreateSliceJsonCommand extends AbstractAnalysisAdjustingJsonCommand {
+  @TypeScriptProperty
   public static final String NAME = "createSlice";
 
   @JsonProperty

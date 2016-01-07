@@ -35,9 +35,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  *
  * @author Bastian Gloeckle
  */
-@JsonResultDataType(QueryJsonResult.DATA_TYPE)
+@JsonResultDataType(QueryJsonResult.TYPE)
 public class QueryJsonResult implements JsonResult {
-  public static final String DATA_TYPE = "query";
+  @TypeScriptProperty
+  public static final String TYPE = "query";
 
   @JsonProperty
   @NotNull

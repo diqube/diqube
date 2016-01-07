@@ -48,6 +48,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @CommandInformation(name = UpdateQubeJsonCommand.NAME)
 public class UpdateQubeJsonCommand extends AbstractAnalysisAdjustingJsonCommand {
 
+  @TypeScriptProperty
   public static final String NAME = "updateQube";
 
   @JsonProperty
