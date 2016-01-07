@@ -86,31 +86,31 @@
     <!-- Font awesome -->
     <file>
       <source>bower_components/font-awesome/css/font-awesome.min.css</source>
-      <destName>web/font/font-awesome.css</destName>
+      <destName>web/lib/fonts/font-awesome.css</destName>
     </file>
     <file>
       <source>bower_components/font-awesome/fonts/fontawesome-webfont.eot</source>
-      <destName>web/font/fontawesome-webfont.eot</destName>
+      <destName>web/lib/fonts/fontawesome-webfont.eot</destName>
     </file>
     <file>
       <source>bower_components/font-awesome/fonts/fontawesome-webfont.svg</source>
-      <destName>web/font/fontawesome-webfont.svg</destName>
+      <destName>web/lib/fonts/fontawesome-webfont.svg</destName>
     </file>
     <file>
       <source>bower_components/font-awesome/fonts/fontawesome-webfont.ttf</source>
-      <destName>web/font/fontawesome-webfont.ttf</destName>
+      <destName>web/lib/fonts/fontawesome-webfont.ttf</destName>
     </file>
     <file>
       <source>bower_components/font-awesome/fonts/fontawesome-webfont.woff</source>
-      <destName>web/font/fontawesome-webfont.woff</destName>
+      <destName>web/lib/fonts/fontawesome-webfont.woff</destName>
     </file>
     <file>
       <source>bower_components/font-awesome/fonts/fontawesome-webfont.woff2</source>
-      <destName>web/font/fontawesome-webfont.woff2</destName>
+      <destName>web/lib/fonts/fontawesome-webfont.woff2</destName>
     </file>
     <file>
       <source>bower_components/font-awesome/fonts/FontAwesome.otf</source>
-      <destName>web/font/FontAwesome.otf</destName>
+      <destName>web/lib/fonts/FontAwesome.otf</destName>
     </file>
   </files>
 </assembly>

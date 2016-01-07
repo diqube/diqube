@@ -24,5 +24,7 @@ import {ROUTER_PROVIDERS} from "angular2/router";
 
 import {DiqubeAppComponent} from "./diqube/diqube.app.component"
 import {RemoteService} from "./diqube/remote/remote.service"
+import {LoginStateService} from "./diqube/login-state/login-state.service"
+import {CookiesService} from "./diqube/cookies/cookies.service";
 
-bootstrap(DiqubeAppComponent, [ ROUTER_PROVIDERS, RemoteService ]);  
+bootstrap(DiqubeAppComponent, [ ROUTER_PROVIDERS, RemoteService, LoginStateService, CookiesService ]);  

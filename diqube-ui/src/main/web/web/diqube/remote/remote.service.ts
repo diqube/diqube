@@ -24,6 +24,7 @@ import {Injectable} from "angular2/core";
 import {DiqubeWebSocket, DiqubeWebSocketEventId, DiqubeWebSocketHandler} from "./websocket";
 import {DiqubeUtil} from "../diqube.util";
 import {JsonResultEnvelope} from "./remote";
+import {LoginStateService} from "../login-state/login-state.service";
 
 /**
  * Callback interface passed to the RemoteService on an execution request: Gets informed as soon as there are results.
@@ -63,7 +64,7 @@ export class RemoteService {
   private socket: DiqubeWebSocket;
   private nextRequestIdNumber: number = Number.MIN_SAFE_INTEGER;
   
-  constructor() {
+  constructor(private loginStateService: LoginStateService) {
     this.baseUrlWithoutProtocol = "://" + window.location.host + globalContextPath;
     if (window.location.protocol.toLowerCase() === "https")
       this.socketProtocol = "wss";
@@ -88,8 +89,8 @@ export class RemoteService {
     sock.send({
       requestId: requestId, 
       command: commandName,
-      commandData: cleanCmdData //,
- //     ticket: loginStateService.ticket
+      commandData: cleanCmdData,
+      ticket: this.loginStateService.ticket
     });
     
     return requestId;
@@ -195,7 +196,7 @@ export class RemoteService {
     } else if (status === "authenticationException") {
       console.warn("Server did not accept our ticket. Executing automatic logout.");
       this.cleanupRequest(requestId);
-//      loginStateService.logoutSuccessful();
+      this.loginStateService.logoutSuccessful();
     }
   }
   

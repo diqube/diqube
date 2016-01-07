@@ -20,42 +20,37 @@
 ///
 
 
+
 import {Component, OnInit} from "angular2/core";
-import {AnalysisRefJsonResult, AnalysisRefJsonResultConstants, ListAllAnalysisJsonCommandConstants} from "../remote/remote";
+import {LogoutJsonCommandConstants} from "../remote/remote";
 import {RemoteService} from "../remote/remote.service";
+import {LoginStateService} from "../login-state/login-state.service";
 
 @Component({
-    selector: "diqube-open-analysis",
-    templateUrl: "diqube/open-analysis/open-analysis.html"
+    selector: "diqube-logout",
+    template: "<div>Logging out...</div>"
 })
-export class OpenAnalysisComponent implements OnInit {
-  public dropdownIsOpen: boolean = false;
-  public overallTitle: string = "";
-  public overallText: string = "";
-  public analysis: AnalysisRefJsonResult[] = [];
-  public loading: boolean = false;
-  
-  constructor(private remoteService: RemoteService) { }
+export class LogoutComponent implements OnInit {
+  constructor(private loginStateService: LoginStateService, private remoteService: RemoteService) {}
   
   public ngOnInit(): any {
-    this.reloadAnalysis();
-  }
-  
-  public reloadAnalysis(): void {
-    this.analysis = [];
-    this.remoteService.execute(ListAllAnalysisJsonCommandConstants.NAME, null, {
+    if (!this.loginStateService.isTicketAvailable()) {
+      // this will navigate away.
+      this.loginStateService.logoutSuccessful();
+      return;
+    }
+    
+    var me: LogoutComponent = this;
+    this.remoteService.execute(LogoutJsonCommandConstants.NAME, null, {
       data: (dataType: string, data: any) => {
-        if (dataType === AnalysisRefJsonResultConstants.TYPE) {
-          this.analysis.push(<AnalysisRefJsonResult>data);
-        }
         return false;
       },
-      exception: (msg: string) => {},
-      done: () => {} 
+      exception: (msg: string) => {
+        console.warn("Could not log out:", msg);
+      },
+      done: () => {
+        me.loginStateService.logoutSuccessful();
+      }
     });
-  }
-
-  public openAnalysis(analysis: {id: string; name: string; }): void {
-    // TODO
   }
 }

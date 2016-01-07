@@ -25,17 +25,17 @@
     <div class="navbar-header">
       <a class="navbar-brand" href="{{globalContextPath}}">diqube</a>
     </div>
-    <div id="navbar" class="navbar-collapse collapse" ng-controller="LoginStateCtrl as loginState">
-      <ul class="nav navbar-nav navbar-right" ng-if="loginState.isLoggedIn()">
-        <diqube-open-analysis></diqube-open-analysis>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul *ngIf="isLoggedIn()" class="nav navbar-nav navbar-right">
+        <li><diqube-open-analysis></diqube-open-analysis></li>
         <li><a href="create-analysis">Create Analysis</a></li>
         <li><a href="query">Execute Query</a></li>
         <li><a [routerLink]="['About']">About</a></li>
-        <li ng-controller="LogoutCtrl as logout"><a href ng-click="logout.logout()" title="Logout"><i class="fa fa-sign-out"></i></a></li>
+        <li><a [routerLink]="['Logout']" title="Logout"><i class="fa fa-sign-out"></i></a></li>
       </ul>
-      <ul class="nav navbar-nav navbar-right" ng-if="!loginState.isLoggedIn()">
-        <li><a href="about">About</a></li>
-        <li ng-controller="LoginCtrl as login"><a href="login" title="Login"><i class="fa fa-sign-in"></i></a></li>
+      <ul *ngIf="!isLoggedIn()" class="nav navbar-nav navbar-right">
+        <li><a [routerLink]="['About']">About</a></li>
+        <li><a [routerLink]="['Login']" title="Login"><i class="fa fa-sign-in"></i></a></li>
       </ul>
     </div>
   </div>
