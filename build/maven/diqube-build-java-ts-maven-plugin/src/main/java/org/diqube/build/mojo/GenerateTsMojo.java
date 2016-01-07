@@ -74,13 +74,13 @@ import com.google.common.reflect.ClassPath;
  * used as input for the typescript compiler.
  * 
  * <p>
- * The mojo will search for all classes in {@link GenerateDtsMojo#rootPackages} where at least one property holds the
+ * The mojo will search for all classes in {@link GenerateTsMojo#rootPackages} where at least one property holds the
  * {@link TypeScriptProperty} annotation. For each of these classes and all classes referenced from those (which in turn
  * again have at least one property with {@link TypeScriptProperty}), one class in .ts will be created.
  */
 @Mojo(name = "ts", defaultPhase = LifecyclePhase.COMPILE,
     requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME)
-public class GenerateDtsMojo extends AbstractMojo {
+public class GenerateTsMojo extends AbstractMojo {
 
   /** Java classes transformed to a typescript "number" */
   private static final Set<Class<?>> NUMBER_CLASSES =

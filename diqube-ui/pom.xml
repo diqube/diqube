@@ -116,7 +116,7 @@
       </plugin>
       <plugin>
         <groupId>org.diqube.build.maven</groupId>
-        <artifactId>diqube-build-java-dts-maven-plugin</artifactId>
+        <artifactId>diqube-build-java-ts-maven-plugin</artifactId>
         <version>${project.version}</version>
         <executions>
           <execution>
@@ -175,8 +175,8 @@
             <goals>
               <goal>grunt</goal>
             </goals>
-            <!-- run in compile, after diqube-java-dts-maven-plugin since this one compiles TypeScript and relies on the
-                 output of diqube-java-dts-maven-plugin. -->
+            <!-- run in compile, after diqube-java-ts-maven-plugin since this one compiles TypeScript and relies on the
+                 output of diqube-java-ts-maven-plugin. -->
             <phase>compile</phase>
             <configuration>
               <srcdir>${basedir}</srcdir>
@@ -327,7 +327,7 @@
     </dependency>
     <dependency>
       <groupId>org.diqube.build.maven</groupId>
-      <artifactId>diqube-build-java-dts-api</artifactId>
+      <artifactId>diqube-build-java-ts-api</artifactId>
       <version>${project.version}</version>
     </dependency>
     
@@ -619,8 +619,8 @@
                 <goals>
                   <goal>grunt</goal>
                 </goals>
-                <!-- run in compile, after diqube-java-dts-maven-plugin since this one compiles TypeScript and relies on the
-                     output of diqube-java-dts-maven-plugin. -->
+                <!-- run in compile, after diqube-java-ts-maven-plugin since this one compiles TypeScript and relies on the
+                     output of diqube-java-ts-maven-plugin. -->
                 <phase>compile</phase>
                 <configuration>
                   <srcdir>${basedir}</srcdir>

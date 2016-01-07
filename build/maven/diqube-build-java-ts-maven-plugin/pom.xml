@@ -30,9 +30,9 @@
     <artifactId>diqube-build-maven</artifactId>
     <version>1-SNAPSHOT</version>
   </parent>
-  <artifactId>diqube-build-java-dts-maven-plugin</artifactId>
+  <artifactId>diqube-build-java-ts-maven-plugin</artifactId>
   <packaging>maven-plugin</packaging>
-  <name>diqube - Build Maven - Java to .d.ts maven plugin</name>
+  <name>diqube - Build Maven - Java to .ts maven plugin</name>
   
   <properties>
     <plugin.plugins.version>3.4</plugin.plugins.version>
@@ -68,7 +68,7 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>diqube-build-java-dts-api</artifactId>
+      <artifactId>diqube-build-java-ts-api</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>

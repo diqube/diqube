@@ -30,8 +30,8 @@
     <artifactId>diqube-build-maven</artifactId>
     <version>1-SNAPSHOT</version>
   </parent>
-  <artifactId>diqube-build-java-dts-api</artifactId>
+  <artifactId>diqube-build-java-ts-api</artifactId>
   <packaging>jar</packaging>
-  <name>diqube - Build Maven - Java to .d.ts API</name>
+  <name>diqube - Build Maven - Java to .ts API</name>
   
 </project>

@@ -28,6 +28,7 @@
     <groupId>org.diqube</groupId>
     <artifactId>diqube</artifactId>
     <version>1-SNAPSHOT</version>
+    <relativePath>../../pom.xml</relativePath>
   </parent>
   <groupId>org.diqube.build.maven</groupId>
   <artifactId>diqube-build-maven</artifactId>
@@ -36,8 +37,8 @@
   <url>http://www.diqube.org</url>
 
   <modules>
-    <module>diqube-build-java-dts-api</module>
-    <module>diqube-build-java-dts-maven-plugin</module>
+    <module>diqube-build-java-ts-api</module>
+    <module>diqube-build-java-ts-maven-plugin</module>
     <module>diqube-build-refresh-files-maven-plugin</module>
   </modules>
   
