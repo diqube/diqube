@@ -23,7 +23,6 @@ package org.diqube.ui.websocket.request.commands.analysis;
 import java.util.UUID;
 
 import javax.inject.Inject;
-import javax.validation.constraints.NotNull;
 
 import org.apache.thrift.TException;
 import org.diqube.build.mojo.TypeScriptProperty;
@@ -69,12 +68,10 @@ public class CreateAnalysisJsonCommand implements JsonCommand {
   public static final String NAME = "createAnalysis";
 
   @JsonProperty
-  @NotNull
   @TypeScriptProperty
   public String table;
 
   @JsonProperty
-  @NotNull
   @TypeScriptProperty
   public String name;
 

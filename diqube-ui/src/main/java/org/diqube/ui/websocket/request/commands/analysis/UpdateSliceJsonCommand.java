@@ -23,9 +23,6 @@ package org.diqube.ui.websocket.request.commands.analysis;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
-
 import org.diqube.build.mojo.TypeScriptProperty;
 import org.diqube.ui.analysis.UiAnalysis;
 import org.diqube.ui.analysis.UiSlice;
@@ -54,8 +51,6 @@ public class UpdateSliceJsonCommand extends AbstractAnalysisAdjustingJsonCommand
   public static final String NAME = "updateSlice";
 
   @JsonProperty
-  @NotNull
-  @Valid
   @TypeScriptProperty
   public UiSlice slice;
 

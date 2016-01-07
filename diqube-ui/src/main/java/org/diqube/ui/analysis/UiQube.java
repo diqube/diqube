@@ -25,9 +25,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
-
 import org.diqube.build.mojo.TypeScriptProperty;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -40,23 +37,18 @@ public class UiQube implements Serializable {
   private static final long serialVersionUID = 1L;
 
   @JsonProperty
-  @NotNull
   @TypeScriptProperty
   public String id;
 
   @JsonProperty
-  @NotNull
   @TypeScriptProperty
   public String name;
 
   @JsonProperty
-  @NotNull
   @TypeScriptProperty
   public String sliceId;
 
   @JsonProperty
-  @NotNull
-  @Valid
   @TypeScriptProperty(collectionType = UiQuery.class)
   public List<UiQuery> queries = new ArrayList<>();
 

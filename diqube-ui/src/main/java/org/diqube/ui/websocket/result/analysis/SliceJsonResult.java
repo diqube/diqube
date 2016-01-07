@@ -20,9 +20,6 @@
  */
 package org.diqube.ui.websocket.result.analysis;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
-
 import org.diqube.build.mojo.TypeScriptProperty;
 import org.diqube.ui.analysis.UiSlice;
 import org.diqube.ui.websocket.result.JsonResult;
@@ -41,13 +38,10 @@ public class SliceJsonResult implements JsonResult {
   public static final String TYPE = "slice";
 
   @JsonProperty
-  @NotNull
-  @Valid
   @TypeScriptProperty
   private UiSlice slice;
 
   @JsonProperty
-  @NotNull
   @TypeScriptProperty
   private long analysisVersion;
 

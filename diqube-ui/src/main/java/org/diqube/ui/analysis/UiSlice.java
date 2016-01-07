@@ -24,9 +24,6 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
-
 import org.diqube.build.mojo.TypeScriptProperty;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -39,23 +36,18 @@ public class UiSlice implements Serializable {
   private static final long serialVersionUID = 1L;
 
   @JsonProperty
-  @NotNull
   @TypeScriptProperty
   public String id;
 
   @JsonProperty
-  @NotNull
   @TypeScriptProperty
   public String name;
 
   @JsonProperty
-  @NotNull
-  @Valid
   @TypeScriptProperty(collectionType = UiSliceDisjunction.class)
   public List<UiSliceDisjunction> sliceDisjunctions = new ArrayList<>();
 
   @JsonProperty
-  @NotNull
   public String manualConjunction;
 
   // for tests only

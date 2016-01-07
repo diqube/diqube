@@ -20,8 +20,6 @@
  */
 package org.diqube.ui.websocket.request.commands.analysis;
 
-import javax.validation.constraints.NotNull;
-
 import org.diqube.build.mojo.TypeScriptProperty;
 import org.diqube.ui.analysis.UiAnalysis;
 import org.diqube.ui.analysis.UiQube;
@@ -49,12 +47,10 @@ public class RemoveQueryJsonCommand extends AbstractAnalysisAdjustingJsonCommand
   public static final String NAME = "removeQuery";
 
   @JsonProperty
-  @NotNull
   @TypeScriptProperty
   public String qubeId;
 
   @JsonProperty
-  @NotNull
   @TypeScriptProperty
   public String queryId;
 

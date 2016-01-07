@@ -20,8 +20,6 @@
  */
 package org.diqube.ui.websocket.result.analysis;
 
-import javax.validation.constraints.NotNull;
-
 import org.diqube.build.mojo.TypeScriptProperty;
 import org.diqube.ui.analysis.UiAnalysis;
 import org.diqube.ui.websocket.result.JsonResult;
@@ -40,7 +38,6 @@ public class AnalysisVersionJsonResult implements JsonResult {
   public static final String TYPE = "analysisVersion";
 
   @JsonProperty
-  @NotNull
   @TypeScriptProperty
   public long analysisVersion;
 

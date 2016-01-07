@@ -20,8 +20,6 @@
  */
 package org.diqube.ui.websocket.result;
 
-import javax.validation.constraints.NotNull;
-
 import org.diqube.build.mojo.TypeScriptProperty;
 import org.diqube.ui.websocket.request.commands.VersionJsonCommand;
 
@@ -39,17 +37,14 @@ public class VersionJsonResult implements JsonResult {
   public static final String TYPE = "version";
 
   @JsonProperty
-  @NotNull
   @TypeScriptProperty
   public String gitCommitLong;
 
   @JsonProperty
-  @NotNull
   @TypeScriptProperty
   public String gitCommitShort;
 
   @JsonProperty
-  @NotNull
   @TypeScriptProperty
   public String buildTimestamp;
 

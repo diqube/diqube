@@ -23,7 +23,6 @@ package org.diqube.ui.websocket.request.commands.analysis;
 import java.util.UUID;
 
 import javax.inject.Inject;
-import javax.validation.constraints.NotNull;
 
 import org.diqube.build.mojo.TypeScriptProperty;
 import org.diqube.thrift.base.thrift.Ticket;
@@ -62,12 +61,10 @@ public class CloneAnalysisJsonCommand implements JsonCommand {
   public static final String NAME = "cloneAnalysis";
 
   @JsonProperty
-  @NotNull
   @TypeScriptProperty
   public String analysisId;
 
   @JsonProperty
-  @NotNull
   @TypeScriptProperty
   public long analysisVersion;
 

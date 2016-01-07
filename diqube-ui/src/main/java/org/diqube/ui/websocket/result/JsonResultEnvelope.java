@@ -20,8 +20,6 @@
  */
 package org.diqube.ui.websocket.result;
 
-import javax.validation.constraints.NotNull;
-
 import org.diqube.build.mojo.TypeScriptProperty;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -53,17 +51,14 @@ public class JsonResultEnvelope {
   public static final String PROPERTY_DATA = "data";
 
   @JsonProperty
-  @NotNull
   @TypeScriptProperty
   public String requestId;
 
   @JsonProperty
-  @NotNull
   @TypeScriptProperty
   public String status;
 
   @JsonProperty
-  @NotNull
   @TypeScriptProperty
   public String dataType;
 

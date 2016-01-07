@@ -20,9 +20,6 @@
  */
 package org.diqube.ui.websocket.result.analysis;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
-
 import org.diqube.build.mojo.TypeScriptProperty;
 import org.diqube.ui.analysis.UiQuery;
 import org.diqube.ui.websocket.result.JsonResult;
@@ -41,13 +38,10 @@ public class QueryJsonResult implements JsonResult {
   public static final String TYPE = "query";
 
   @JsonProperty
-  @NotNull
-  @Valid
   @TypeScriptProperty
   public UiQuery query;
 
   @JsonProperty
-  @NotNull
   @TypeScriptProperty
   public long analysisVersion;
 

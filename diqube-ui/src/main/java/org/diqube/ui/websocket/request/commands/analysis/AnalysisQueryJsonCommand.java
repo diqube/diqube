@@ -21,7 +21,6 @@
 package org.diqube.ui.websocket.request.commands.analysis;
 
 import javax.inject.Inject;
-import javax.validation.constraints.NotNull;
 
 import org.diqube.build.mojo.TypeScriptProperty;
 import org.diqube.thrift.base.thrift.Ticket;
@@ -62,22 +61,18 @@ public class AnalysisQueryJsonCommand implements AsyncJsonCommand {
   public static final String NAME = "analysisQuery";
 
   @JsonProperty
-  @NotNull
   @TypeScriptProperty
   public String analysisId;
 
   @JsonProperty
-  @NotNull
   @TypeScriptProperty
   public long analysisVersion;
 
   @JsonProperty
-  @NotNull
   @TypeScriptProperty
   public String qubeId;
 
   @JsonProperty
-  @NotNull
   @TypeScriptProperty
   public String queryId;
 

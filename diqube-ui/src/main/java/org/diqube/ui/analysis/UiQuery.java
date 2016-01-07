@@ -22,8 +22,6 @@ package org.diqube.ui.analysis;
 
 import java.io.Serializable;
 
-import javax.validation.constraints.NotNull;
-
 import org.diqube.build.mojo.TypeScriptProperty;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -39,22 +37,18 @@ public class UiQuery implements Serializable {
   public static final String DISPLAY_TYPE_BARCHART = "barchart";
 
   @JsonProperty
-  @NotNull
   @TypeScriptProperty
   public String id;
 
   @JsonProperty
-  @NotNull
   @TypeScriptProperty
   public String name;
 
   @JsonProperty
-  @NotNull
   @TypeScriptProperty
   public String diql;
 
   @JsonProperty
-  @NotNull
   @TypeScriptProperty
   public String displayType;
 
