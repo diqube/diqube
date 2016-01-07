@@ -52,7 +52,7 @@ public class TableJsonResult implements JsonResult {
   public List<String> columnRequests;
 
   @JsonProperty
-  @TypeScriptProperty(collectionType = List.class) /* TODO #97 */
+  @TypeScriptProperty(collectionType = List.class, collectionDetailType = List.class)
   public List<List<Object>> rows;
 
   @JsonProperty

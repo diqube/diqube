@@ -296,7 +296,22 @@ public class GenerateTsMojo extends AbstractMojo {
         Class<?> valueType = annotation.mapValueType();
         String typescriptValueType = getTypescriptNativeType(valueType);
         if (typescriptValueType == null) {
-          if (!typescriptClasses.containsKey(valueType.getName())) {
+          if (Collection.class.isAssignableFrom(valueType)) {
+            // collection as value
+            Class<?> valueDetailType = annotation.mapValueDetailType();
+            String typescriptValueDetailType = getTypescriptNativeType(valueDetailType);
+            if (typescriptValueDetailType == null) {
+              if (!typescriptClasses.containsKey(valueDetailType.getName())) {
+                getLog().warn("Field " + className + "#" + f.getName()
+                    + " is a map with a value of a type which does not specify any "
+                    + TypeScriptProperty.class.getSimpleName() + " annotated properties. Using 'any' as value type.");
+                typescriptValueDetailType = "any";
+              } else
+                typescriptValueDetailType = valueDetailType.getSimpleName();
+            }
+
+            typescriptValueType = "Array<" + typescriptValueDetailType + ">";
+          } else if (!typescriptClasses.containsKey(valueType.getName())) {
             getLog().warn("Field " + className + "#" + f.getName()
                 + " is a map with a value of a type which does not specify any "
                 + TypeScriptProperty.class.getSimpleName() + " annotated properties. Using 'any' as value type.");
@@ -311,7 +326,23 @@ public class GenerateTsMojo extends AbstractMojo {
         Class<?> realType = annotation.collectionType();
         String typeScriptRealType = getTypescriptNativeType(realType);
         if (typeScriptRealType == null) {
-          if (!typescriptClasses.containsKey(realType.getName())) {
+          if (Collection.class.isAssignableFrom(realType)) {
+            // nested collection
+            Class<?> detailType = annotation.collectionDetailType();
+            String typescriptDetailType = getTypescriptNativeType(detailType);
+            if (typescriptDetailType == null) {
+              if (!typescriptClasses.containsKey(detailType.getName())) {
+                getLog().warn(
+                    "Field " + className + "#" + f.getName() + " is a collection of a type which does not specify any "
+                        + TypeScriptProperty.class.getSimpleName()
+                        + " annotated properties. Generating field of type Array<any>.");
+                typescriptDetailType = "any";
+              } else
+                typescriptDetailType = detailType.getSimpleName();
+            }
+
+            typeScriptRealType = "Array<" + typescriptDetailType + ">";
+          } else if (!typescriptClasses.containsKey(realType.getName())) {
             getLog().warn("Field " + className + "#" + f.getName()
                 + " is a collection of a type which does not specify any " + TypeScriptProperty.class.getSimpleName()
                 + " annotated properties. Generating field of type Array<any>.");

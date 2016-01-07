@@ -50,6 +50,12 @@ public @interface TypeScriptProperty {
   Class<?> collectionType() default Object.class;
 
   /**
+   * If the annotation fields type is a {@link Collection} which in turn has another {@link Collection}, this defines
+   * the type of objects in the latter {@link Collection}.
+   */
+  Class<?> collectionDetailType() default Object.class;
+
+  /**
    * If the annotated fields type is a {@link Map}, use this property to define the type of the keys of the map.
    */
   Class<?> mapKeyType() default Object.class;
@@ -58,6 +64,12 @@ public @interface TypeScriptProperty {
    * If the annotated fields type is a {@link Map}, use this property to define the type of the values of the map.
    */
   Class<?> mapValueType() default Object.class;
+
+  /**
+   * If annotated fields type is a {@link Map} and its values is a {@link Collection}, this field specifies the type
+   * inside that latter {@link Collection}.
+   */
+  Class<?> mapValueDetailType() default Object.class;
 
   /**
    * <code>true</code> if the property should be marked as "optional" in .d.ts. This value is ignored for

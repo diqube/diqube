@@ -63,15 +63,15 @@ public class StatsJsonResult implements JsonResult {
   private List<Integer> numberOfTemporaryColumnShardsFromCache = new ArrayList<>();
 
   @JsonProperty
-  @TypeScriptProperty(mapKeyType = String.class, mapValueType = Map.class /* TODO #97 */)
+  @TypeScriptProperty(mapKeyType = String.class, mapValueType = List.class, mapValueDetailType = Long.class)
   private Map<String, List<Long>> stepsActiveMs = new HashMap<>();
 
   @JsonProperty
-  @TypeScriptProperty(mapKeyType = String.class, mapValueType = Map.class) /* TODO #97 */
+  @TypeScriptProperty(mapKeyType = String.class, mapValueType = List.class, mapValueDetailType = Integer.class)
   private Map<String, List<Integer>> numberOfPageAccesses = new HashMap<>();
 
   @JsonProperty
-  @TypeScriptProperty(mapKeyType = String.class, mapValueType = Map.class) /* TODO #97 */
+  @TypeScriptProperty(mapKeyType = String.class, mapValueType = List.class, mapValueDetailType = Integer.class)
   private Map<String, List<Integer>> numberOfTemporaryPageAccesses = new HashMap<>();
 
   @JsonProperty
@@ -83,7 +83,7 @@ public class StatsJsonResult implements JsonResult {
   private List<Integer> numberOfTemporaryPages = new ArrayList<>();
 
   @JsonProperty
-  @TypeScriptProperty(mapKeyType = String.class, mapValueType = Map.class) /* TODO #97 */
+  @TypeScriptProperty(mapKeyType = String.class, mapValueType = List.class, mapValueDetailType = Integer.class)
   private Map<String, List<Integer>> numberOfTemporaryVersionsPerColName = new HashMap<>();
 
   public void loadFromQueryStatRes(RQueryStatistics stats) {
