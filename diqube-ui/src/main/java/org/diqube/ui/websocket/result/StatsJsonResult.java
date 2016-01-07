@@ -43,47 +43,47 @@ public class StatsJsonResult implements JsonResult {
   public static final String TYPE = "stats";
 
   @JsonProperty
-  @TypeScriptProperty(collectionType = String.class)
+  @TypeScriptProperty
   public List<String> nodeNames = new ArrayList<>();
 
   @JsonProperty
-  @TypeScriptProperty(collectionType = Long.class)
+  @TypeScriptProperty
   private List<Long> startedUntilDoneMs = new ArrayList<>();
 
   @JsonProperty
-  @TypeScriptProperty(collectionType = Integer.class)
+  @TypeScriptProperty
   private List<Integer> numberOfThreads = new ArrayList<>();
 
   @JsonProperty
-  @TypeScriptProperty(collectionType = Integer.class)
+  @TypeScriptProperty
   private List<Integer> numberOfTemporaryColumnShardsCreated = new ArrayList<>();
 
   @JsonProperty
-  @TypeScriptProperty(collectionType = Integer.class)
+  @TypeScriptProperty
   private List<Integer> numberOfTemporaryColumnShardsFromCache = new ArrayList<>();
 
   @JsonProperty
-  @TypeScriptProperty(mapKeyType = String.class, mapValueType = List.class, mapValueDetailType = Long.class)
+  @TypeScriptProperty
   private Map<String, List<Long>> stepsActiveMs = new HashMap<>();
 
   @JsonProperty
-  @TypeScriptProperty(mapKeyType = String.class, mapValueType = List.class, mapValueDetailType = Integer.class)
+  @TypeScriptProperty
   private Map<String, List<Integer>> numberOfPageAccesses = new HashMap<>();
 
   @JsonProperty
-  @TypeScriptProperty(mapKeyType = String.class, mapValueType = List.class, mapValueDetailType = Integer.class)
+  @TypeScriptProperty
   private Map<String, List<Integer>> numberOfTemporaryPageAccesses = new HashMap<>();
 
   @JsonProperty
-  @TypeScriptProperty(collectionType = Integer.class)
+  @TypeScriptProperty
   private List<Integer> numberOfPagesInTable = new ArrayList<>();
 
   @JsonProperty
-  @TypeScriptProperty(collectionType = Integer.class)
+  @TypeScriptProperty
   private List<Integer> numberOfTemporaryPages = new ArrayList<>();
 
   @JsonProperty
-  @TypeScriptProperty(mapKeyType = String.class, mapValueType = List.class, mapValueDetailType = Integer.class)
+  @TypeScriptProperty
   private Map<String, List<Integer>> numberOfTemporaryVersionsPerColName = new HashMap<>();
 
   public void loadFromQueryStatRes(RQueryStatistics stats) {

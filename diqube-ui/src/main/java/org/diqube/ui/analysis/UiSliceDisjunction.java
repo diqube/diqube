@@ -39,7 +39,7 @@ public class UiSliceDisjunction implements Serializable {
   public String fieldName;
 
   @JsonProperty
-  @TypeScriptProperty(collectionType = String.class)
+  @TypeScriptProperty
   public List<String> disjunctionValues;
 
   // for tests only

@@ -63,7 +63,7 @@ public class CreateSliceJsonCommand extends AbstractAnalysisAdjustingJsonCommand
   public String manualConjunction;
 
   @JsonProperty
-  @TypeScriptProperty(collectionType = UiSliceDisjunction.class)
+  @TypeScriptProperty
   public List<UiSliceDisjunction> sliceDisjunctions;
 
   @JsonIgnore

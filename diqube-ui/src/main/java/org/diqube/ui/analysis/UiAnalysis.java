@@ -57,11 +57,11 @@ public class UiAnalysis implements Serializable {
   public String name;
 
   @JsonProperty
-  @TypeScriptProperty(collectionType = UiQube.class)
+  @TypeScriptProperty
   public List<UiQube> qubes = new ArrayList<>();
 
   @JsonProperty
-  @TypeScriptProperty(collectionType = UiSlice.class)
+  @TypeScriptProperty
   public List<UiSlice> slices = new ArrayList<>();
 
   // for tests only

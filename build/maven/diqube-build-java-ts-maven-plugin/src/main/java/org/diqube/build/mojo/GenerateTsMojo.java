@@ -20,11 +20,16 @@
  */
 package org.diqube.build.mojo;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -56,6 +61,7 @@ import org.diqube.util.TopologicalSort;
 import org.sonatype.plexus.build.incremental.BuildContext;
 
 import com.google.common.collect.Iterables;
+import com.google.common.io.ByteStreams;
 import com.google.common.reflect.ClassPath;
 
 /**
@@ -161,8 +167,32 @@ public class GenerateTsMojo extends AbstractMojo {
           throw new MojoExecutionException(
               "Could not create directory " + outputFile.getParentFile().getAbsolutePath());
 
+      byte[] newBytes;
+      try {
+        newBytes = sb.toString().getBytes(resultFileEncoding);
+      } catch (UnsupportedEncodingException e) {
+        throw new MojoExecutionException("Error serializing result", e);
+      }
+
+      if (outputFile.exists()) {
+        try (FileInputStream fis = new FileInputStream(outputFile)) {
+          ByteArrayOutputStream baos = new ByteArrayOutputStream();
+          ByteStreams.copy(fis, baos);
+
+          if (Arrays.equals(baos.toByteArray(), newBytes)) {
+            // file has exactly the same contents as our output. Do not re-write the output, as we would then change the
+            // modification date and we might end up in an endless re-creation loop when using eclipse.
+            getLog().info("Not rewriting output file, since it contains the correct contents already.");
+            return;
+          }
+        } catch (IOException e) {
+          // swallow, just re-write the file
+          getLog().debug("Ignoring error while reading output file, will write results to the file!", e);
+        }
+      }
+
       try (OutputStream os = buildContext.newFileOutputStream(outputFile)) {
-        os.write(sb.toString().getBytes(resultFileEncoding));
+        os.write(newBytes);
       } catch (IOException e) {
         throw new MojoExecutionException("Could not write output file " + resultFile, e);
       }
@@ -246,7 +276,7 @@ public class GenerateTsMojo extends AbstractMojo {
         // do not create anything in the interface for public static final.
         continue;
       TypeScriptProperty annotation = p.getRight();
-      String type = getTypescriptType(typescriptClasses, className, p);
+      String type = getTypescriptType(typescriptClasses, className, f.getGenericType());
       res.append("  ");
       res.append(f.getName());
       if (annotation.optional())
@@ -267,103 +297,68 @@ public class GenerateTsMojo extends AbstractMojo {
    *          All class infos.
    * @param className
    *          The name of the class the field belongs to.
-   * @param fieldPair
-   *          Information on the type of the field.
+   * @param type
+   *          The {@link Field#getGenericType()} of the field whose type should be turned into a typescript definition.
    * @return A String which is a valid typescript type definition.
    */
-  private String getTypescriptType(Map<String, Pair<Class<?>, Set<String>>> typescriptClasses, String className,
-      Pair<Field, TypeScriptProperty> fieldPair) {
-    Field f = fieldPair.getLeft();
-    TypeScriptProperty annotation = fieldPair.getRight();
+  private String getTypescriptType(Map<String, Pair<Class<?>, Set<String>>> typescriptClasses, String fieldName,
+      Type type) throws MojoExecutionException {
+    if (type instanceof ParameterizedType) {
+      ParameterizedType pType = (ParameterizedType) type;
+      Type rawType = pType.getRawType();
+      Class<?> rawClass = (Class<?>) rawType;
+      if (Collection.class.isAssignableFrom(rawClass)) {
+        if (pType.getActualTypeArguments().length != 1)
+          throw new MojoExecutionException("Unexpected number of type parameters while looking into " + fieldName);
 
-    String type = getTypescriptNativeType(f.getType());
-    if (type == null) {
-      // no native type.
-      if (Map.class.isAssignableFrom(f.getType())) {
-        // map type
-        Class<?> keyType = annotation.mapKeyType();
-        String typescriptKeyType = getTypescriptNativeType(keyType);
-        if (typescriptKeyType == null) {
-          if (!typescriptClasses.containsKey(keyType.getName())) {
-            getLog().warn(
-                "Field " + className + "#" + f.getName() + " is a map with a key of a type which does not specify any "
-                    + TypeScriptProperty.class.getName() + " annotated properties. Using 'any' as key.");
-            typescriptKeyType = "any";
-          } else
-            typescriptKeyType = keyType.getSimpleName();
-        }
+        String detailTsType = getTypescriptType(typescriptClasses, fieldName, pType.getActualTypeArguments()[0]);
 
-        Class<?> valueType = annotation.mapValueType();
-        String typescriptValueType = getTypescriptNativeType(valueType);
-        if (typescriptValueType == null) {
-          if (Collection.class.isAssignableFrom(valueType)) {
-            // collection as value
-            Class<?> valueDetailType = annotation.mapValueDetailType();
-            String typescriptValueDetailType = getTypescriptNativeType(valueDetailType);
-            if (typescriptValueDetailType == null) {
-              if (!typescriptClasses.containsKey(valueDetailType.getName())) {
-                getLog().warn("Field " + className + "#" + f.getName()
-                    + " is a map with a value of a type which does not specify any "
-                    + TypeScriptProperty.class.getSimpleName() + " annotated properties. Using 'any' as value type.");
-                typescriptValueDetailType = "any";
-              } else
-                typescriptValueDetailType = valueDetailType.getSimpleName();
-            }
+        return "Array<" + detailTsType + ">";
+      } else if (Map.class.isAssignableFrom(rawClass)) {
+        if (pType.getActualTypeArguments().length != 2)
+          throw new MojoExecutionException("Unexpected number of type parameters while looking into " + fieldName);
 
-            typescriptValueType = "Array<" + typescriptValueDetailType + ">";
-          } else if (!typescriptClasses.containsKey(valueType.getName())) {
-            getLog().warn("Field " + className + "#" + f.getName()
-                + " is a map with a value of a type which does not specify any "
-                + TypeScriptProperty.class.getSimpleName() + " annotated properties. Using 'any' as value type.");
-            typescriptValueType = "any";
-          } else
-            typescriptValueType = valueType.getSimpleName();
-        }
+        String keyTsType = getTypescriptType(typescriptClasses, fieldName, pType.getActualTypeArguments()[0]);
+        String valueTsType = getTypescriptType(typescriptClasses, fieldName, pType.getActualTypeArguments()[1]);
 
-        type = "{ [ key: " + typescriptKeyType + "]: " + typescriptValueType + " }";
-      } else if (Collection.class.isAssignableFrom(f.getType())) {
-        // collection type.
-        Class<?> realType = annotation.collectionType();
-        String typeScriptRealType = getTypescriptNativeType(realType);
-        if (typeScriptRealType == null) {
-          if (Collection.class.isAssignableFrom(realType)) {
-            // nested collection
-            Class<?> detailType = annotation.collectionDetailType();
-            String typescriptDetailType = getTypescriptNativeType(detailType);
-            if (typescriptDetailType == null) {
-              if (!typescriptClasses.containsKey(detailType.getName())) {
-                getLog().warn(
-                    "Field " + className + "#" + f.getName() + " is a collection of a type which does not specify any "
-                        + TypeScriptProperty.class.getSimpleName()
-                        + " annotated properties. Generating field of type Array<any>.");
-                typescriptDetailType = "any";
-              } else
-                typescriptDetailType = detailType.getSimpleName();
-            }
-
-            typeScriptRealType = "Array<" + typescriptDetailType + ">";
-          } else if (!typescriptClasses.containsKey(realType.getName())) {
-            getLog().warn("Field " + className + "#" + f.getName()
-                + " is a collection of a type which does not specify any " + TypeScriptProperty.class.getSimpleName()
-                + " annotated properties. Generating field of type Array<any>.");
-            typeScriptRealType = "any";
-          } else
-            typeScriptRealType = realType.getSimpleName();
-        }
-        type = "Array<" + typeScriptRealType + ">";
-      } else {
-        // ordinary class.
-        Pair<Class<?>, Set<String>> targetPair = typescriptClasses.get(f.getType().getName());
-        if (targetPair == null) {
-          getLog().warn("Field " + className + "#" + f.getName() + " has a type which does not specify any "
-              + TypeScriptProperty.class.getSimpleName() + " annotated properties. Generating a field of type 'any'.");
-          type = "any";
-        } else {
-          type = targetPair.getLeft().getSimpleName();
-        }
+        return "{ [ key: " + keyTsType + "]: " + valueTsType + " }";
       }
-    }
-    return type;
+
+      if (typescriptClasses.containsKey(rawClass.getName()))
+        return rawClass.getSimpleName();
+
+      getLog().warn("Field " + fieldName + " has a parameterized type that is not supported/not fully specified "
+          + "by classes with " + TypeScriptProperty.class.getSimpleName() + " annotations. Using 'any'.");
+      return "any";
+    } else if (type instanceof Class) {
+      Class<?> clazz = (Class<?>) type;
+      String nativeType = getTypescriptNativeType(clazz);
+      if (nativeType != null)
+        return nativeType;
+      if (typescriptClasses.containsKey(clazz.getName()))
+        return clazz.getSimpleName();
+
+      getLog().warn("Field " + fieldName + " has a type that is not fully specified by classes with "
+          + TypeScriptProperty.class.getSimpleName() + " annotations. Using 'any'.");
+      return "any";
+    } else
+      throw new MojoExecutionException("Could not identify type while looking into " + fieldName);
+  }
+
+  /**
+   * Return all classes referenced by the generic type.
+   */
+  private Set<Class<?>> getAllReferencedClasses(Type type) {
+    Set<Class<?>> res = new HashSet<>();
+
+    if (type instanceof ParameterizedType) {
+      res.add((Class<?>) ((ParameterizedType) type).getRawType());
+      for (Type t : ((ParameterizedType) type).getActualTypeArguments())
+        res.addAll(getAllReferencedClasses(t));
+    } else
+      res.add((Class<?>) type);
+
+    return res;
   }
 
   /**
@@ -436,38 +431,17 @@ public class GenerateTsMojo extends AbstractMojo {
 
       for (Pair<Field, TypeScriptProperty> p : findTypeScriptFields(clazz)) {
         Field f = p.getLeft();
-        TypeScriptProperty annotation = p.getRight();
 
         typescriptClasses.putIfAbsent(clazz.getName(), new Pair<>(clazz, new HashSet<>()));
         Set<String> dependsSet = typescriptClasses.get(clazz.getName()).getRight();
 
         // check valid, since the ourClassLoader must not overwrite the STOP_CLASSES.
         if (!STOP_CLASSES.contains(f.getType())) {
-          // check valid, since the ourClassLoader must not overwrite the Map class.
-          if (Map.class.isAssignableFrom(f.getType())) {
-            if (annotation.mapKeyType().equals(Object.class) || annotation.mapValueType().equals(Object.class))
-              throw new MojoExecutionException(
-                  "Field " + clazz.getName() + "#" + f.getName() + " is a map type but the "
-                      + TypeScriptProperty.class.getSimpleName() + " does not specify mapKeyType and mapValueType.");
-
-            classNamesToVisit.add(annotation.mapKeyType().getName());
-            classNamesToVisit.add(annotation.mapValueType().getName());
-            dependsSet.add(annotation.mapKeyType().getName());
-            dependsSet.add(annotation.mapValueType().getName());
-          } else
-          // check valid, since the ourClassLoader must not overwrite the Map class.
-          if (Collection.class.isAssignableFrom(f.getType())) {
-            if (annotation.collectionType().equals(Object.class))
-              throw new MojoExecutionException(
-                  "Field " + clazz.getName() + "#" + f.getName() + " is a collection type but the "
-                      + TypeScriptProperty.class.getSimpleName() + " does not specify collectionType.");
-
-            classNamesToVisit.add(annotation.collectionType().getName());
-            dependsSet.add(annotation.collectionType().getName());
-          } else {
-            classNamesToVisit.add(f.getType().getName());
-            dependsSet.add(f.getType().getName());
-          }
+          Set<Class<?>> allReferencedClasses = getAllReferencedClasses(f.getGenericType());
+          Set<String> allReferencedClassNames =
+              allReferencedClasses.stream().map(c -> c.getName()).collect(Collectors.toSet());
+          classNamesToVisit.addAll(allReferencedClassNames);
+          dependsSet.addAll(allReferencedClassNames);
         }
         classNamesToVisit.add(clazz.getSuperclass().getName());
         dependsSet.add(clazz.getSuperclass().getName());

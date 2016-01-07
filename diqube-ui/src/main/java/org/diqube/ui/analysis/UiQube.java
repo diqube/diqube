@@ -49,7 +49,7 @@ public class UiQube implements Serializable {
   public String sliceId;
 
   @JsonProperty
-  @TypeScriptProperty(collectionType = UiQuery.class)
+  @TypeScriptProperty
   public List<UiQuery> queries = new ArrayList<>();
 
   // for tests only

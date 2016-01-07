@@ -24,8 +24,6 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-import java.util.Collection;
-import java.util.Map;
 
 /**
  * Enforces creation of a specific java field to a typescript field when generating the .d.ts file from java classes.
@@ -43,34 +41,6 @@ import java.util.Map;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.FIELD)
 public @interface TypeScriptProperty {
-  /**
-   * If the annotated fields type is a {@link Collection}, use this property to define the type of the elements inside
-   * the collection.
-   */
-  Class<?> collectionType() default Object.class;
-
-  /**
-   * If the annotation fields type is a {@link Collection} which in turn has another {@link Collection}, this defines
-   * the type of objects in the latter {@link Collection}.
-   */
-  Class<?> collectionDetailType() default Object.class;
-
-  /**
-   * If the annotated fields type is a {@link Map}, use this property to define the type of the keys of the map.
-   */
-  Class<?> mapKeyType() default Object.class;
-
-  /**
-   * If the annotated fields type is a {@link Map}, use this property to define the type of the values of the map.
-   */
-  Class<?> mapValueType() default Object.class;
-
-  /**
-   * If annotated fields type is a {@link Map} and its values is a {@link Collection}, this field specifies the type
-   * inside that latter {@link Collection}.
-   */
-  Class<?> mapValueDetailType() default Object.class;
-
   /**
    * <code>true</code> if the property should be marked as "optional" in .d.ts. This value is ignored for
    * "public static final" fields.

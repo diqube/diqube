@@ -44,7 +44,7 @@ public class UiSlice implements Serializable {
   public String name;
 
   @JsonProperty
-  @TypeScriptProperty(collectionType = UiSliceDisjunction.class)
+  @TypeScriptProperty
   public List<UiSliceDisjunction> sliceDisjunctions = new ArrayList<>();
 
   @JsonProperty

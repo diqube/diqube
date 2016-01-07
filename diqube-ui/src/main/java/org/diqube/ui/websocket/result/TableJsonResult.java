@@ -40,7 +40,7 @@ public class TableJsonResult implements JsonResult {
    * The final names of the columns that were selected (= output of the executed plan).
    */
   @JsonProperty
-  @TypeScriptProperty(collectionType = String.class)
+  @TypeScriptProperty
   public List<String> columnNames;
 
   /**
@@ -48,15 +48,15 @@ public class TableJsonResult implements JsonResult {
    * {@link #columnNames}.
    */
   @JsonProperty
-  @TypeScriptProperty(collectionType = String.class)
+  @TypeScriptProperty
   public List<String> columnRequests;
 
   @JsonProperty
-  @TypeScriptProperty(collectionType = List.class, collectionDetailType = List.class)
+  @TypeScriptProperty
   public List<List<Object>> rows;
 
   @JsonProperty
-  @TypeScriptProperty(collectionType = Short.class)
+  @TypeScriptProperty
   public short percentComplete;
 
   public void setColumnNames(List<String> columnNames) {

@@ -37,7 +37,7 @@ public class TableNameListJsonResult implements JsonResult {
   public static final String TYPE = "tableNameList";
 
   @JsonProperty
-  @TypeScriptProperty(collectionType = String.class)
+  @TypeScriptProperty
   public List<String> tableNames;
 
   // for test
