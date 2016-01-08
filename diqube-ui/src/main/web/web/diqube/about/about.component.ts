@@ -21,6 +21,7 @@
 
 
 import {Component} from "angular2/core";
+import {Router} from "angular2/router";
 import {RemoteService} from "../remote/remote.service";
 import {VersionJsonResult, VersionJsonResultConstants, VersionJsonCommandConstants} from "../remote/remote";
 
@@ -48,5 +49,9 @@ export class AboutComponent {
       exception: (msg: string) => {},
       done: () => {}
     });
+  }
+  
+  public static navigate(router: Router) {
+    router.navigate([ "/About" ]);
   }
 }

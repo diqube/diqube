@@ -90,6 +90,8 @@ export class RemoteService {
       ticket: this.loginStateService.ticket
     });
     
+    console.debug("Sending request", requestId, ":", commandName, ":", cleanCmdData); 
+    
     return requestId;
   }
   

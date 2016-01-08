@@ -20,6 +20,7 @@
 ///
 
 import {Component, OnInit} from "angular2/core";
+import {Router} from "angular2/router";
 import {StatsJsonResult, StatsJsonResultConstants, TableJsonResult, TableJsonResultConstants, PlainQueryJsonCommand, 
         PlainQueryJsonCommandConstants} from "../remote/remote";
 import {RemoteService} from "../remote/remote.service";
@@ -46,6 +47,10 @@ export class QueryComponent implements OnInit {
   private lastRequestId: string = undefined;
   
   constructor(private loginStateService: LoginStateService, private remoteService: RemoteService) {}
+  
+  public static navigate(router: Router) {
+    router.navigate([ "/Query" ]);
+  }
   
   public ngOnInit(): any {
     if (!this.loginStateService.isTicketAvailable())

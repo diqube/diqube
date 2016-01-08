@@ -66,7 +66,7 @@ export class AnalysisService {
   public loadAnalysis(id: string, version?: number): Promise<remoteData.UiAnalysis> {
     var me: AnalysisService = this;
     return new Promise((resolveFinal: (a: remoteData.UiAnalysis)=>void, rejectFinal: (reason: string)=>void) => {
-      if (me.loadedAnalysis && me.loadedAnalysis.id === id && version && me.loadedAnalysis.version === version) {
+      if (me.loadedAnalysis && me.loadedAnalysis.id === id && version !== undefined && me.loadedAnalysis.version === version) {
         // request to load the same analysis that is loaded already.
         resolveFinal(me.loadedAnalysis);
         return;

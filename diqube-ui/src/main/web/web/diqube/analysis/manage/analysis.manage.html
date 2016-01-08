@@ -34,6 +34,6 @@
 <p></p>
 <ul>
   <li *ngFor="#analysis of allAnalysis">
-    <a href (click)="openAnalysis(analysis)">{{ analysis.name }} ({{analysis.id}})</a>
+    <a (click)="openAnalysis(analysis)">{{ analysis.name }} ({{analysis.id}})</a>
   </li>
 </ul>

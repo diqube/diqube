@@ -29,7 +29,7 @@ export class CookiesService {
   }
   
   public removeCookie(cookieName: string): void {
-    document.cookie = cookieName + "=;expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+    document.cookie = cookieName + "=; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
   }
   
   public getCookie(cookieName: string): string {

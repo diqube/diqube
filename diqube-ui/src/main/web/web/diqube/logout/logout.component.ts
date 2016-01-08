@@ -22,6 +22,7 @@
 
 
 import {Component, OnInit} from "angular2/core";
+import {Router} from "angular2/router";
 import {LogoutJsonCommandConstants} from "../remote/remote";
 import {RemoteService} from "../remote/remote.service";
 import {LoginStateService} from "../login-state/login-state.service";
@@ -32,6 +33,10 @@ import {LoginStateService} from "../login-state/login-state.service";
 })
 export class LogoutComponent implements OnInit {
   constructor(private loginStateService: LoginStateService, private remoteService: RemoteService) {}
+  
+  public static navigate(router: Router) {
+    router.navigate([ "/Logout" ]);
+  }
   
   public ngOnInit(): any {
     if (!this.loginStateService.isTicketAvailable()) {

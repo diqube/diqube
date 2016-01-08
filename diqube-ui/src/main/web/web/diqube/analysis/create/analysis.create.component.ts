@@ -21,18 +21,20 @@
 
 
 import {Component, OnInit} from "angular2/core";
+import {Router} from "angular2/router";
 import {Control, ControlGroup, FormBuilder, FORM_DIRECTIVES} from "angular2/common";
-import {TableNameListJsonResult, TableNameListJsonResultConstants, ListAllTablesJsonCommandConstants, 
-        CreateAnalysisJsonCommand, CreateAnalysisJsonCommandConstants, AnalysisJsonResult, AnalysisJsonResultConstants} from "../remote/remote";
-import {RemoteService} from "../remote/remote.service";
-import {LoginStateService} from "../login-state/login-state.service";
+import * as remoteData from "../../remote/remote";
+import {RemoteService} from "../../remote/remote.service";
+import {LoginStateService} from "../../login-state/login-state.service";
+import {AnalysisService} from "../../analysis/analysis.service";
+import {AnalysisMainComponent} from "../analysis.main.component";
 
 @Component({
-  selector: "diqube-create-analysis",
-  templateUrl: "diqube/create-analysis/create-analysis.html",
+  selector: "diqube-analysis-create",
+  templateUrl: "diqube/analysis/create/analysis.create.html",
   directives: [ FORM_DIRECTIVES ]
 })
-export class CreateAnalysisComponent implements OnInit {
+export class AnalysisCreateComponent implements OnInit {
   public newAnalysis: { name: string; table: string } = { name: undefined, table: undefined };
   public nameControl: Control;
   public tableControl: Control;
@@ -43,10 +45,11 @@ export class CreateAnalysisComponent implements OnInit {
   
   private validTables:Array<string> = undefined;
   
-  constructor(private remoteService: RemoteService, private loginStateService: LoginStateService, formBuilder: FormBuilder) {
-    this.nameControl = new Control("defaultName", CreateAnalysisComponent.nameValidator);
+  constructor(private remoteService: RemoteService, private loginStateService: LoginStateService, formBuilder: FormBuilder, 
+              private analysisService: AnalysisService, private router: Router) {
+    this.nameControl = new Control("defaultName", AnalysisCreateComponent.nameValidator);
     this.tableControl = new Control("defaultTable", (control: Control) => {
-      return CreateAnalysisComponent.tableValidator(this, control);
+      return AnalysisCreateComponent.tableValidator(this, control);
     });
     
     this.formControlGroup = formBuilder.group({
@@ -55,48 +58,55 @@ export class CreateAnalysisComponent implements OnInit {
     });
   }
   
+  public static navigate(router: Router) {
+    router.navigate([ "/Analysis/Create" ]);
+  }
+  
   public ngOnInit(): any {
     if (!this.loginStateService.isTicketAvailable())
       this.loginStateService.loginAndReturnHere();
   }
   
   public createAnalysis(): void {
-    var me: CreateAnalysisComponent = this;
+    var me: AnalysisCreateComponent = this;
     this.creating = true;
     console.info("Creating analysis", this.newAnalysis.name, "on table", this.newAnalysis.table);
-    var data: CreateAnalysisJsonCommand = {
+    var data: remoteData.CreateAnalysisJsonCommand = {
       name: this.newAnalysis.name,
       table: this.newAnalysis.table
     };
-    this.remoteService.execute(CreateAnalysisJsonCommandConstants.NAME, data, {
+    var newAnalysis: remoteData.UiAnalysis = undefined;
+    this.remoteService.execute(remoteData.CreateAnalysisJsonCommandConstants.NAME, data, {
       data: (dataType: string, data: any) => {
-        if (dataType === AnalysisJsonResultConstants.TYPE) {
-          var res: AnalysisJsonResult = <AnalysisJsonResult>data;
-          // TODO
+        if (dataType === remoteData.AnalysisJsonResultConstants.TYPE) {
+          var res: remoteData.AnalysisJsonResult = <remoteData.AnalysisJsonResult>data;
           console.info("New analysis is", res.analysis);
+          newAnalysis = res.analysis;
         }
         return false;
       },
       exception: (msg: string) => {
         me.error = msg;
-        me.creating = true;
+        me.creating = false;
       },
       done: () => {
-        console.log("Created new analysis.");
-        me.creating = true;
+        console.log("Created new analysis");
+        me.creating = false;
+        this.analysisService.setLoadedAnalysis(newAnalysis);
+        AnalysisMainComponent.navigate(this.router, newAnalysis.id, newAnalysis.version);
       }
     });
   }
   
   public getValidTables():Array<string> {
     if (!this.validTables) {
-      var me: CreateAnalysisComponent = this;
+      var me: AnalysisCreateComponent = this;
       
       this.validTables = [];
-      this.remoteService.execute(ListAllTablesJsonCommandConstants.NAME, null, {
+      this.remoteService.execute(remoteData.ListAllTablesJsonCommandConstants.NAME, null, {
         data: (dataType: string, data: any) => {
-          if (dataType === TableNameListJsonResultConstants.TYPE) {
-            var res: TableNameListJsonResult = <TableNameListJsonResult>data;
+          if (dataType === remoteData.TableNameListJsonResultConstants.TYPE) {
+            var res: remoteData.TableNameListJsonResult = <remoteData.TableNameListJsonResult>data;
             me.validTables = res.tableNames;
           }
           return false;
@@ -117,7 +127,7 @@ export class CreateAnalysisComponent implements OnInit {
      return null;
    }
 
-  public static tableValidator(me: CreateAnalysisComponent, control: Control): { [key: string]: boolean; }   { 
+  public static tableValidator(me: AnalysisCreateComponent, control: Control): { [key: string]: boolean; }   { 
      if (!control.value || control.value.trim() === "") 
        return { "empty": true };
      if (me.getValidTables().indexOf(control.value) == -1) 

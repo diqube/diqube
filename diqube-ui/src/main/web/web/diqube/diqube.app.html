@@ -27,14 +27,14 @@
     </div>
     <div id="navbar" class="navbar-collapse collapse">
       <ul *ngIf="isLoggedIn()" class="nav navbar-nav navbar-right">
-        <li><a [routerLink]="['ManageAnalysis']">Analysis</a></li>
-        <li><a [routerLink]="['Query']">Execute Query</a></li>
-        <li><a [routerLink]="['About']">About</a></li>
-        <li><a [routerLink]="['Logout']" title="Logout"><i class="fa fa-sign-out"></i></a></li>
+        <li><a [routerLink]="['/Analysis/Manage']">Analysis</a></li>
+        <li><a [routerLink]="['/Query']">Execute Query</a></li>
+        <li><a [routerLink]="['/About']">About</a></li>
+        <li><a [routerLink]="['/Logout']" title="Logout"><i class="fa fa-sign-out"></i></a></li>
       </ul>
       <ul *ngIf="!isLoggedIn()" class="nav navbar-nav navbar-right">
-        <li><a [routerLink]="['About']">About</a></li>
-        <li><a [routerLink]="['Login']" title="Login"><i class="fa fa-sign-in"></i></a></li>
+        <li><a [routerLink]="['/About']">About</a></li>
+        <li><a [routerLink]="['/Login']" title="Login"><i class="fa fa-sign-in"></i></a></li>
       </ul>
     </div>
   </div>

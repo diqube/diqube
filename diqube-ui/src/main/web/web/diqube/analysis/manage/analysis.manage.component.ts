@@ -22,19 +22,25 @@
 
 import {Component, OnInit} from "angular2/core";
 import {Router} from "angular2/router";
-import {AnalysisRefJsonResult, AnalysisRefJsonResultConstants, ListAllAnalysisJsonCommandConstants} from "../remote/remote";
-import {RemoteService} from "../remote/remote.service";
-import {LoginStateService} from "../login-state/login-state.service";
+import {AnalysisRefJsonResult, AnalysisRefJsonResultConstants, ListAllAnalysisJsonCommandConstants} from "../../remote/remote";
+import {RemoteService} from "../../remote/remote.service";
+import {LoginStateService} from "../../login-state/login-state.service";
+import {AnalysisCreateComponent} from "../create/analysis.create.component";
+import {AnalysisNewestComponent} from "../analysis.root.component";
 
 @Component({
-    selector: "diqube-manage-analysis",
-    templateUrl: "diqube/manage-analysis/manage-analysis.html"
+    selector: "diqube-analysis-manage",
+    templateUrl: "diqube/analysis/manage/analysis.manage.html"
 })
-export class ManageAnalysisComponent implements OnInit {
+export class AnalysisManageComponent implements OnInit {
   public allAnalysis: AnalysisRefJsonResult[] = [];
   public reloading: boolean = false;
   
   constructor(private remoteService: RemoteService, private router: Router, private loginStateService: LoginStateService) { }
+  
+  public static navigate(router: Router) {
+    router.navigate([ "/Analysis/Manage" ]);
+  }
   
   public ngOnInit(): any {
     if (!this.loginStateService.isTicketAvailable())
@@ -49,7 +55,7 @@ export class ManageAnalysisComponent implements OnInit {
     
     this.allAnalysis = [];
     this.reloading = true;
-    var me: ManageAnalysisComponent = this;
+    var me: AnalysisManageComponent = this;
     this.remoteService.execute(ListAllAnalysisJsonCommandConstants.NAME, null, {
       data: (dataType: string, data: any) => {
         if (dataType === AnalysisRefJsonResultConstants.TYPE) {
@@ -67,11 +73,11 @@ export class ManageAnalysisComponent implements OnInit {
   }
 
   public openAnalysis(analysis: AnalysisRefJsonResult): void {
-    // TODO
+    AnalysisNewestComponent.navigate(this.router, analysis.id);
   }
   
   public createAnalysis(): void {
-    this.router.navigate([ "CreateAnalysis" ]);
+    AnalysisCreateComponent.navigate(this.router);
   }
   
 }
