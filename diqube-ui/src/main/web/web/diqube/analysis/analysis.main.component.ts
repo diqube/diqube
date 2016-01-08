@@ -20,17 +20,25 @@
 ///
 
 import {Component, OnInit, OnDestroy} from "angular2/core";
-import {RouteParams, Router, ROUTER_DIRECTIVES} from "angular2/router";
+import {RouteParams, Router, ROUTER_DIRECTIVES, CanReuse, OnReuse, ComponentInstruction} from "angular2/router";
 import {AnalysisService} from "./analysis.service";
 import * as remoteData from "../remote/remote";
 import {LoginStateService} from "../login-state/login-state.service";
 
+/**
+ * Main component for displaying a specific version of an analysis.
+ * 
+ * This component will be re-used if the user switches between different versions of the same analysis, which happens
+ * frequently when using the forward/back buttons in the browser. We do not want to re-create everything in that case,
+ * since everything should be fairly similar. The component will be re-created fully though when navigating to a
+ * different analysis.
+ */
 @Component({
   selector: "diqube-analysis-main",
   templateUrl: "diqube/analysis/analysis.main.html",
   directives: [ ROUTER_DIRECTIVES ]
 })
-export class AnalysisMainComponent implements OnInit, OnDestroy {
+export class AnalysisMainComponent implements OnInit, OnDestroy , CanReuse, OnReuse {
   public static ROUTE_PARAM_ANALYSIS_ID: string = "analysisId";
   public static ROUTE_PARAM_ANALYSIS_VERSION: string = "analysisVersion";
   
@@ -52,7 +60,14 @@ export class AnalysisMainComponent implements OnInit, OnDestroy {
       this.loginStateService.loginAndReturnHere();
 
     this.paramAnalysisId = this.routeParams.get(AnalysisMainComponent.ROUTE_PARAM_ANALYSIS_ID);
-    this.paramAnalysisVersion = parseInt(this.routeParams.get(AnalysisMainComponent.ROUTE_PARAM_ANALYSIS_VERSION));
+    this.loadNewAnalysisVersion(this.routeParams.get(AnalysisMainComponent.ROUTE_PARAM_ANALYSIS_VERSION));
+  }
+  
+  /**
+   * Fully loads a new version of the analysis identified by this.paramAnalysisId.
+   */
+  private loadNewAnalysisVersion(analysisVersion: string): void {
+    this.paramAnalysisVersion = parseInt(analysisVersion);
     
     // as a temp title while loading the analysis.
     this.title = this.paramAnalysisId;
@@ -70,6 +85,9 @@ export class AnalysisMainComponent implements OnInit, OnDestroy {
     this.analysisService.unloadAnalysis();
   }
   
+  /**
+   * Sets all properties of a fully loaded UiAnalysis that should be displayed.
+   */
   private loadAnalysis(analysis: remoteData.UiAnalysis): void {
     if (!analysis) {
       this.analysis = undefined;
@@ -126,5 +144,14 @@ export class AnalysisMainComponent implements OnInit, OnDestroy {
   public cloneAndLoadCurrentAnalysis(): void {
     this.analysisService.cloneAndLoadCurrentAnalysis();
   }
+ 
   
+  public routerCanReuse(nextInstruction: ComponentInstruction, prevInstruction: ComponentInstruction): any {
+    // only reuse this component if we're navigating through the same analysis. Re-create component otherwise.
+    return nextInstruction.params[AnalysisMainComponent.ROUTE_PARAM_ANALYSIS_ID] == prevInstruction.params[AnalysisMainComponent.ROUTE_PARAM_ANALYSIS_ID];
+  }
+  
+  public routerOnReuse(nextInstruction: ComponentInstruction, prevInstruction: ComponentInstruction): any {
+    this.loadNewAnalysisVersion(nextInstruction.params[AnalysisMainComponent.ROUTE_PARAM_ANALYSIS_VERSION]);
+  }
 }

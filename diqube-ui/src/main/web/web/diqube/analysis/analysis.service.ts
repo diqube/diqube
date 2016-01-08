@@ -20,18 +20,22 @@
 ///
 
 import {Injectable} from "angular2/core";
+import {Router} from "angular2/router";
 import * as remoteData from "../remote/remote";
 import {RemoteService} from "../remote/remote.service";
 import * as analysisData from "./analysis";
 import {DiqubeUtil} from "../util/diqube.util";
 import {AnalysisExecutionService} from "./execution/analysis.execution.service";
+import {AnalysisStateService} from "./state/analysis.state.service";
+import {AnalysisMainComponent} from "./analysis.main.component";
 
 @Injectable()
 export class AnalysisService {
   public loadedAnalysis: remoteData.UiAnalysis = undefined;
   public newestVersionOfAnalysis: number = undefined;
   
-  constructor(private remoteService: RemoteService, private analysisExecutionService: AnalysisExecutionService) {}
+  constructor(private remoteService: RemoteService, private analysisExecutionService: AnalysisExecutionService,
+              private analysisStateService: AnalysisStateService, private router: Router) {}
   
   /**
    * Sets an already available analysis as the loaded one.
@@ -178,9 +182,10 @@ export class AnalysisService {
           if (dataType === remoteData.AnalysisJsonResultConstants.TYPE) {
             var a: remoteData.AnalysisJsonResult = <remoteData.AnalysisJsonResult>data;
             
-            // TODO redirect so everything (all controllers etc.) gets built fresh and the URL is correct.
-            
             resolve(a.analysis);
+            
+            // redirect to new analysis.
+            AnalysisMainComponent.navigate(this.router, a.analysis.id, a.analysis.version);
           }
           return false;
         },
@@ -247,7 +252,7 @@ export class AnalysisService {
             var qube: remoteData.UiQube = me.loadedAnalysis.qubes.filter((q) => { return q.id === qubeId })[0];
             qube.queries.push(res.query);
             
-            // TODO analysisStateService.markToOpenQueryInEditModeNextTime(data.query.id);
+            this.analysisStateService.markToOpenQueryInEditModeNextTime(data.query.id);
 
             me.setCurrentAnalysisVersion(res.analysisVersion);
             resolve(res.query);
@@ -282,7 +287,7 @@ export class AnalysisService {
 
             me.loadedAnalysis.slices.push(res.slice);
             
-            // TODO analysisStateService.markToOpenQueryInEditModeNextTime(data.query.id);
+            this.analysisStateService.markToOpenQueryInEditModeNextTime(data.query.id);
 
             me.setCurrentAnalysisVersion(res.analysisVersion);
             resolve(res.slice);
@@ -363,7 +368,7 @@ export class AnalysisService {
             
             if (!replacedQuery) {
               console.warn("Could not find the query that should be replaced by the updated query. " + 
-                  "Did the server change the query ID?");
+                           "Did the server change the query ID?");
               reject("Internal error. Please refresh the page.");
               return;
             }
@@ -420,7 +425,7 @@ export class AnalysisService {
             
             if (foundQubeIdx === undefined) {
               console.warn("Could not find the qube that should be replaced by the updated qube. Did the server " +
-                  "change the query ID?");
+                           "change the query ID?");
               reject("Internal error. Please refresh the page.");
               return;
             }
@@ -702,7 +707,8 @@ export class AnalysisService {
     if (!this.newestVersionOfAnalysis || newVersion > this.newestVersionOfAnalysis)
       this.newestVersionOfAnalysis = newVersion;
 
-    // TODO set hash in URL
+    // push new URL
+    AnalysisMainComponent.navigate(this.router, this.loadedAnalysis.id, this.loadedAnalysis.version);
   }
   
   
