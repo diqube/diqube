@@ -52,9 +52,6 @@ export interface RemoteServiceExecutionCallback {
   done(): void;
 }
 
-// set in index.html
-declare var globalContextPath: string; 
-
 @Injectable()
 export class RemoteService {
   
@@ -65,7 +62,7 @@ export class RemoteService {
   private nextRequestIdNumber: number = Number.MIN_SAFE_INTEGER;
   
   constructor(private loginStateService: LoginStateService) {
-    this.baseUrlWithoutProtocol = "://" + window.location.host + globalContextPath;
+    this.baseUrlWithoutProtocol = "://" + window.location.host + DiqubeUtil.globalContextPath();
     if (window.location.protocol.toLowerCase() === "https")
       this.socketProtocol = "wss";
     else

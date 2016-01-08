@@ -22,9 +22,7 @@
 import {Injectable} from "angular2/core";
 import {Router} from "angular2/router";
 import {CookiesService} from "../cookies/cookies.service";
-
-// set in index.html
-declare var globalContextPath: string; 
+import {DiqubeUtil} from "../util/diqube.util";
 
 @Injectable()
 export class LoginStateService {
@@ -71,7 +69,7 @@ export class LoginStateService {
   }
   
   public loginAndReturnHere(): void {
-    this.urlToOpenAfterSuccessfulLogin = window.location.pathname.substring(globalContextPath.length);
+    this.urlToOpenAfterSuccessfulLogin = window.location.pathname.substring(DiqubeUtil.globalContextPath().length);
     this.router.navigate([ "Login" ]);
   }
   

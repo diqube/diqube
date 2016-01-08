@@ -48,6 +48,7 @@ public class UiSlice implements Serializable {
   public List<UiSliceDisjunction> sliceDisjunctions = new ArrayList<>();
 
   @JsonProperty
+  @TypeScriptProperty
   public String manualConjunction;
 
   // for tests only

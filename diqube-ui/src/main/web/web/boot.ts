@@ -26,5 +26,8 @@ import {DiqubeAppComponent} from "./diqube/diqube.app.component"
 import {RemoteService} from "./diqube/remote/remote.service"
 import {LoginStateService} from "./diqube/login-state/login-state.service"
 import {CookiesService} from "./diqube/cookies/cookies.service";
+import {AnalysisService} from "./diqube/analysis/analysis.service";
+import {AnalysisExecutionService} from "./diqube/analysis/execution/analysis.execution.service";
 
-bootstrap(DiqubeAppComponent, [ ROUTER_PROVIDERS, RemoteService, LoginStateService, CookiesService ]);  
+bootstrap(DiqubeAppComponent, [ ROUTER_PROVIDERS, RemoteService, LoginStateService, CookiesService, AnalysisService, 
+                                AnalysisExecutionService ]);  
