@@ -30,5 +30,5 @@ import {AnalysisService} from "./diqube/analysis/analysis.service";
 import {AnalysisExecutionService} from "./diqube/analysis/execution/analysis.execution.service";
 import {AnalysisStateService} from "./diqube/analysis/state/analysis.state.service";
 
-bootstrap(DiqubeAppComponent, [ ROUTER_PROVIDERS, RemoteService, LoginStateService, CookiesService, AnalysisService, 
+bootstrap(DiqubeAppComponent, [ ROUTER_PROVIDERS, AnalysisService, RemoteService, LoginStateService, CookiesService,
                                 AnalysisExecutionService, AnalysisStateService ]);  

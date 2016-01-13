@@ -20,22 +20,69 @@
 ///
 
 import {Injectable} from "angular2/core";
-import {Router} from "angular2/router";
 import * as remoteData from "../remote/remote";
 import {RemoteService} from "../remote/remote.service";
 import * as analysisData from "./analysis";
 import {DiqubeUtil} from "../util/diqube.util";
 import {AnalysisExecutionService} from "./execution/analysis.execution.service";
 import {AnalysisStateService} from "./state/analysis.state.service";
-import {AnalysisMainComponent} from "./analysis.main.component";
 
+/**
+ * Interface that is responsible when the analysis service would like to re-navigate because the currently loaded analysis was changed.
+ */
+export interface AnalysisServiceRenavigator {
+  /**
+   * Re-navigate to the given analysis. Return true if other renavigators should be called (= if navigation was not successful). 
+   */
+  analysisServiceReloadNeeded(analysisId: string, analysisVersion: number): boolean;
+}
+
+/**
+ * Service managing loading a specific analysis (version) and changing it.
+ * 
+ * This service needs at least one AnalysisServiceReloadNeededListener registered, as it might want to re-navigate when
+ * changing the analysis.
+ */
 @Injectable()
 export class AnalysisService {
   public loadedAnalysis: remoteData.UiAnalysis = undefined;
   public newestVersionOfAnalysis: number = undefined;
   
+  private renavigators: Array<AnalysisServiceRenavigator> = [];
+  
   constructor(private remoteService: RemoteService, private analysisExecutionService: AnalysisExecutionService,
-              private analysisStateService: AnalysisStateService, private router: Router) {}
+              private analysisStateService: AnalysisStateService) {}
+  
+  /**
+   * Register a AnalysisServiceRenavigator that can potentially navigate.
+   */
+  public registerRenvaigator(listener: AnalysisServiceRenavigator): void {
+    this.renavigators.push(listener);
+  }
+  
+  /**
+   * Unregister a AnalysisServiceRenavigator.
+   */
+  public unregisterRenavigator(listener: AnalysisServiceRenavigator): void {
+    for (var idx in this.renavigators) {
+      if (this.renavigators[idx] === listener) {
+        this.renavigators.splice(idx, 1);
+        return;
+      }
+    }
+  }
+  
+  private fireRenavigation(analysisId: string, analysisVersion: number): void {
+    if (!this.renavigators.length)
+      console.warn("Requested to change URL, but no listeners are registered! Target:", analysisId, analysisVersion);    
+      
+    for (var idx in this.renavigators) {
+      if (!this.renavigators[idx].analysisServiceReloadNeeded(analysisId, analysisVersion))
+        return;
+    }
+    
+    console.warn("None of the listeners was able to re-navigate to", analysisId, analysisVersion);
+  }
   
   /**
    * Sets an already available analysis as the loaded one.
@@ -185,7 +232,7 @@ export class AnalysisService {
             resolve(a.analysis);
             
             // redirect to new analysis.
-            AnalysisMainComponent.navigate(this.router, a.analysis.id, a.analysis.version);
+            this.fireRenavigation(a.analysis.id, a.analysis.version);
           }
           return false;
         },
@@ -708,7 +755,7 @@ export class AnalysisService {
       this.newestVersionOfAnalysis = newVersion;
 
     // push new URL
-    AnalysisMainComponent.navigate(this.router, this.loadedAnalysis.id, this.loadedAnalysis.version);
+    this.fireRenavigation(this.loadedAnalysis.id, this.loadedAnalysis.version);
   }
   
   

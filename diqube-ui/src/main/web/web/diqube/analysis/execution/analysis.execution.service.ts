@@ -40,6 +40,9 @@ export class AnalysisExecutionService {
    * 
    * Note that the returned Promise will return one of those "result objects" even on a call to "reject"!
    * 
+   * Note that the results will be filled into the query object passed to this method. As soon as this emthod returns,
+   * the $results field of the inputQuery will be initialized. 
+   * 
    * @param qube The qube of the query to execute
    * @param query The query to execute
    * @param intermediateResultsFn function(resultsObj): called when intermediate results are available. Can be undefined. This will only be called asynchronously.

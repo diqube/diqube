@@ -45,8 +45,8 @@
       <i class="fa fa-plus add-action"></i> Add qube
     </button>
 
-    <div ng-repeat="qube in analysis.qubes" class="qube-row">
-      <diqube-qube [analysis]="analysis" [qube]="qube"></diqube-qube>
+    <div *ngFor="#qube of analysis?.qubes" class="qube-row">
+      <diqube-analysis-qube [analysis]="analysis" [qube]="qube"></diqube-analysis-qube>
     </div>
   </div>
   

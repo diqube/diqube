@@ -34,9 +34,8 @@ export interface UiQueryWithResults extends UiQuery {
    * The current results available for this query. Leading "$" so these values do not get transferred to the server by 
    * mistake (RemoteService filters out all props starting with $).
    * 
-   * A value of "undefined" means that this UiQuery does not have any results.
-   * A value of "null" means that the query was sent for execution, but no results did yet arrive.
-   * If there are results, they will be available in this field, obviously. 
+   * A value of "undefined" means that this UiQuery does not have any results and no remote query is running currently.
+   * If a remote query is running or has completed, this field will hold the corresponding results.
    */
   $results: EnhancedTableJsonResult;
 };

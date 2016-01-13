@@ -19,11 +19,12 @@
 /// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ///
 
-import {Component, OnInit, OnDestroy} from "angular2/core";
+import {Component, OnInit, OnDestroy, Inject} from "angular2/core";
 import {RouteParams, Router, ROUTER_DIRECTIVES, CanReuse, OnReuse, ComponentInstruction} from "angular2/router";
-import {AnalysisService} from "./analysis.service";
+import {AnalysisService, AnalysisServiceRenavigator} from "./analysis.service";
 import * as remoteData from "../remote/remote";
 import {LoginStateService} from "../login-state/login-state.service";
+import {AnalysisQubeComponent} from "./qube/analysis.qube.component";
 
 /**
  * Main component for displaying a specific version of an analysis.
@@ -32,35 +33,50 @@ import {LoginStateService} from "../login-state/login-state.service";
  * frequently when using the forward/back buttons in the browser. We do not want to re-create everything in that case,
  * since everything should be fairly similar. The component will be re-created fully though when navigating to a
  * different analysis.
+ * 
+ * This object serves as AnalysisServiceRenavigator for the analysis service as this component is active always
+ * when the currently loaded analysis is changed!
  */
 @Component({
   selector: "diqube-analysis-main",
   templateUrl: "diqube/analysis/analysis.main.html",
-  directives: [ ROUTER_DIRECTIVES ]
+  directives: [ ROUTER_DIRECTIVES, AnalysisQubeComponent ]
 })
-export class AnalysisMainComponent implements OnInit, OnDestroy , CanReuse, OnReuse {
+export class AnalysisMainComponent implements OnInit, OnDestroy , CanReuse, OnReuse, AnalysisServiceRenavigator {
   public static ROUTE_PARAM_ANALYSIS_ID: string = "analysisId";
   public static ROUTE_PARAM_ANALYSIS_VERSION: string = "analysisVersion";
   
-  private analysis: remoteData.UiAnalysis;
+  public analysis: remoteData.UiAnalysis;
   private paramAnalysisId: string;
   private paramAnalysisVersion: number;
   
   public title: string = "";
   public error: string = "";
   
-  constructor(private routeParams: RouteParams, private analysisService: AnalysisService, private loginStateService: LoginStateService) {}
+  constructor(private analysisService: AnalysisService, private routeParams: RouteParams, 
+              private loginStateService: LoginStateService, private router: Router) {}
   
   public static navigate(router: Router, analysisId: string, analysisVersion: number) {
     router.navigate([ "/Analysis/Main", { analysisId: analysisId, analysisVersion: analysisVersion }]);
+  }
+
+  public analysisServiceReloadNeeded(analysisId: string, analysisVersion: number): boolean {
+    AnalysisMainComponent.navigate(this.router, analysisId, analysisVersion);
+    return false; // navigation successful, do not propagate further
   }
   
   public ngOnInit(): any {
     if (!this.loginStateService.isTicketAvailable())
       this.loginStateService.loginAndReturnHere();
 
+    this.analysisService.registerRenvaigator(this);
     this.paramAnalysisId = this.routeParams.get(AnalysisMainComponent.ROUTE_PARAM_ANALYSIS_ID);
     this.loadNewAnalysisVersion(this.routeParams.get(AnalysisMainComponent.ROUTE_PARAM_ANALYSIS_VERSION));
+  }
+  
+  public ngOnDestroy(): any {
+    this.analysisService.unregisterRenavigator(this);
+    this.analysisService.unloadAnalysis();
   }
   
   /**
@@ -79,10 +95,6 @@ export class AnalysisMainComponent implements OnInit, OnDestroy , CanReuse, OnRe
       me.loadAnalysis(undefined);
       me.error = msg; 
     });
-  }
-  
-  public ngOnDestroy(): any {
-    this.analysisService.unloadAnalysis();
   }
   
   /**

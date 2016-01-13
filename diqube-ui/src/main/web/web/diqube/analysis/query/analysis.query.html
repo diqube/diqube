@@ -1,0 +1,133 @@
+<!--
+
+    diqube: Distributed Query Base.
+
+    Copyright (C) 2015 Bastian Gloeckle
+
+    This file is part of diqube.
+
+    diqube is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as
+    published by the Free Software Foundation, either version 3 of the
+    License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+-->
+
+<div class="query" *ngIf="normalMode">
+  <div class="query-header">
+    <span>{{ query.name }}</span>
+    
+    <progressbar *ngIf="!exception() && queryResults().percentComplete != 100" 
+      value="queryResults().percentComplete">{{ queryResults().percentComplete }}%</progressbar>
+      
+    <span *ngIf="queryResults().percentComplete === 100 || exception()" class="query-header-actions">
+      <a class="query-header-action" title="Edit mode" (click)="switchToEditMode()"><i class="fa fa-gears"></i></a>
+      <div dropdown class="btn-group query-header-action">
+        <a dropdown-toggle><i class="fa {{ getDisplayTypeOptions(query.displayType).icon }}"></i> <i class="caret"></i></a>
+        <ul class="dropdown-menu">
+          <li *ngFor="#choice of VALID_QUERY_DISPLAY_TYPES">
+              <a (click)="switchQueryDisplayType(choice.id)"><i class="fa {{ choice.icon }}"></i> {{ choice.title }}</a>
+          </li>
+        </ul>
+      </div>
+    </span>
+  </div>
+  <div *ngIf="exception()" class="alert alert-warning">
+    <i class="fa fa-exclamation-circle"></i>
+    {{ exception() }}
+  </div>
+  
+  <div *ngIf="!exception() && queryResults().rows">
+    <table *ngIf="query.displayType === 'table'" class="table table-hover table-condensed">
+      <thead>
+        <tr>
+          <th *ngFor="#colName of queryResults().columnNames">{{ colName }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="#row of queryResults().rows">
+          <td *ngFor="#col of row">{{ col }}</td>
+        </tr>
+      </tbody>
+    </table>
+    
+    <diqube-query-bar-chart class="bar-chart" *ngIf="query.displayType === 'barchart'" [query]="query">
+    </diqube-query-bar-chart>
+  </div>
+  
+  <div *ngIf="!exception() && !queryResults().rows" class="no-rows-returned">
+    No rows returned
+  </div>
+</div>
+
+<!-- EDIT MODE -->
+
+<div class="query" *ngIf="editMode">
+  <div class="edit-query">
+    <form class="simple-form" (submit)="updateQuery()" [ngFormModel]="formControlGroup">
+      <div class="query-header">
+        <div [class.has-success]="nameValid === true"
+             [class.has-error]="nameValid === false"
+             class="has-feedback form-group">
+             
+          <input type="text" class="form-control" id="inputName"
+            placeholder="Name of query" [(ngModel)]="queryEdit.name" 
+            ngControl="nameControl">
+          <span *ngIf="nameControl.dirty && nameControl.valid" class="fa fa-check form-control-feedback"></span>
+          <span *ngIf="nameControl.dirty && !nameControl.valid" class="fa fa-exclamation-triangle form-control-feedback"></span>
+        </div>
+        
+        <span class="query-header-actions">
+          <a *ngIf="!working" class="query-header-action" title="Remove query" (click)="switchToRemoveMode()"><i class="fa fa-minus remove-action"></i></a>
+          <div dropdown class="btn-group query-header-action">
+            <a dropdown-toggle><i class="fa {{ getDisplayTypeOptions(queryEdit.displayType).icon }}"></i> <i
+              class="caret"></i></a>
+            <ul class="dropdown-menu">
+              <li *ngFor="#choice of VALID_QUERY_DISPLAY_TYPES"><a (click)="queryEdit.displayType = choice.id"><i
+                  class="fa {{ choice.icon }}"></i> {{ choice.title }}</a></li>
+            </ul>
+          </div> <a *ngIf="!working" class="query-header-action" title="Cancel edit" (click)="switchToNormalMode()"><i class="fa fa-close"></i></a>
+          <a *ngIf="!working" class="query-header-action" title="Save" (click)="updateQuery()"><i class="fa fa-floppy-o"></i></a>
+          <i *ngIf="working" class="query-header-action fa fa-spinner fa-spin"></i>
+        </span>
+      </div>
+      
+      <div [class.has-error]="diqlValid === false"
+           class="has-feedback form-group">
+           
+        <textarea class="form-control query-diql" rows="5" id="inputDiql"
+          [(ngModel)]="queryEdit.diql" 
+          ngControl="diqlControl"></textarea>
+        <span *ngIf="diqlControl.dirty && !diqlControl.valid" class="fa fa-exclamation-triangle form-control-feedback"></span>
+      </div>
+    </form>
+    
+    <div *ngIf="exception()" class="alert alert-danger error-diql-query">
+      <i class="fa fa-exclamation-circle"></i>
+      {{ exception() }}
+    </div>
+    <div class="alert alert-info info-diql-query">
+      <i class='fa fa-info-circle'></i> Remember: This is a partial diql query. There must be no "from" clause (taken
+      from the whole analysis), and there usually should not be a "where" clause (taken from the slice).
+    </div>
+  </div>
+</div>
+
+<!-- REMOVE MODE -->
+
+<div class="query remove-query" *ngIf="removeMode">
+  <div class="query-header">
+    <span>{{ query.name }}</span>
+  </div>
+  <p>Are you sure you want to remove this query?</p>
+  <p><button class="btn btn-default" (click)="switchToNormalMode()">Cancel</button> 
+     <button class="btn btn-danger" (click)="removeQuery()">Yes, remove.</button></p>
+</div>

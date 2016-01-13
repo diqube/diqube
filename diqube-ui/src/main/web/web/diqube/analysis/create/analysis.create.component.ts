@@ -47,8 +47,8 @@ export class AnalysisCreateComponent implements OnInit {
   
   constructor(private remoteService: RemoteService, private loginStateService: LoginStateService, formBuilder: FormBuilder, 
               private analysisService: AnalysisService, private router: Router) {
-    this.nameControl = new Control("defaultName", AnalysisCreateComponent.nameValidator);
-    this.tableControl = new Control("defaultTable", (control: Control) => {
+    this.nameControl = new Control("", AnalysisCreateComponent.nameValidator);
+    this.tableControl = new Control("", (control: Control) => {
       return AnalysisCreateComponent.tableValidator(this, control);
     });
     

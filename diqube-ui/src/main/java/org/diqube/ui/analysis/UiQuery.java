@@ -33,7 +33,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public class UiQuery implements Serializable {
   private static final long serialVersionUID = 1L;
 
+  @TypeScriptProperty
   public static final String DISPLAY_TYPE_TABLE = "table";
+
+  @TypeScriptProperty
   public static final String DISPLAY_TYPE_BARCHART = "barchart";
 
   @JsonProperty
