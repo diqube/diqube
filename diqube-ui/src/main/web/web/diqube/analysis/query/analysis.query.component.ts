@@ -126,6 +126,10 @@ export class AnalysisQueryComponent implements OnInit {
   public getDisplayTypeOptions(dispalyTypeId: string): {id: string, icon: string, title: string} {
     return AnalysisQueryComponent.VALID_QUERY_DISPLAY_TYPES.filter((t) => { return t.id === dispalyTypeId; })[0];
   }
+  
+  public getAllDisplayTypeOptions(): Array<{id: string, icon: string, title: string}> {
+    return AnalysisQueryComponent.VALID_QUERY_DISPLAY_TYPES;
+  }
 
   /**
    * Switch to edit mode.

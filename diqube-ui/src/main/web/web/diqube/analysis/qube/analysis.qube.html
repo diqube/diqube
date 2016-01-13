@@ -26,7 +26,7 @@
     <span *ngIf="normalMode" class="qube-header-left">{{ qube.name }}</span>
     <div class="qube-action-list" *ngIf="normalMode">
       <span class="qube-slice qube-action">
-        <i class="fa fa-pie-chart"></i>&nbsp;{{ slice.name }}
+        <i class="fa fa-pie-chart"></i>&nbsp;{{ slice().name }}
       </span>
       <a class="qube-action" title="Edit mode" (click)="switchToEditMode()"><i class="fa fa-gears"></i></a>
       <button class="btn btn-default qube-action" (click)="addQuery()" title="Add query">
@@ -38,8 +38,8 @@
         
     <div *ngIf="editMode" class="edit-qube">
       <form class="simple-form" (submit)="updateQube()" [ngFormModel]="formControlGroup">
-        <div [class.has-succes]="nameValid === true"
-             [class.has-error]="nameValid === false"
+        <div [class.has-succes]="nameControl.dirty && nameControl.valid"
+             [class.has-error]="nameControl.dirty && !nameControl.valid"
              class="qube-header-left has-feedback form-group">
           <input type="text" class="form-control" id="inputName"
             placeholder="Name of qube" [(ngModel)]="qubeEdit.name" 

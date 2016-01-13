@@ -25,19 +25,14 @@
   <div class="query-header">
     <span>{{ query.name }}</span>
     
-    <progressbar *ngIf="!exception() && queryResults().percentComplete != 100" 
-      value="queryResults().percentComplete">{{ queryResults().percentComplete }}%</progressbar>
+    <span *ngIf="!exception() && queryResults().percentComplete != 100">{{ queryResults().percentComplete }}%</span>
       
     <span *ngIf="queryResults().percentComplete === 100 || exception()" class="query-header-actions">
       <a class="query-header-action" title="Edit mode" (click)="switchToEditMode()"><i class="fa fa-gears"></i></a>
-      <div dropdown class="btn-group query-header-action">
-        <a dropdown-toggle><i class="fa {{ getDisplayTypeOptions(query.displayType).icon }}"></i> <i class="caret"></i></a>
-        <ul class="dropdown-menu">
-          <li *ngFor="#choice of VALID_QUERY_DISPLAY_TYPES">
-              <a (click)="switchQueryDisplayType(choice.id)"><i class="fa {{ choice.icon }}"></i> {{ choice.title }}</a>
-          </li>
-        </ul>
-      </div>
+      <select class="qube-action form-control" (change)="switchQueryDisplayType($event.target.value)">
+        <option *ngFor="#choice of getAllDisplayTypeOptions()" [value]="choice.id" 
+                [selected]="choice.id === query.displayType">{{ choice.title }}</option>
+      </select>
     </span>
   </div>
   <div *ngIf="exception()" class="alert alert-warning">
@@ -74,8 +69,8 @@
   <div class="edit-query">
     <form class="simple-form" (submit)="updateQuery()" [ngFormModel]="formControlGroup">
       <div class="query-header">
-        <div [class.has-success]="nameValid === true"
-             [class.has-error]="nameValid === false"
+        <div [class.has-success]="nameControl.dirty && nameControl.valid"
+             [class.has-error]="nameControl.dirty && !nameControl.valid"
              class="has-feedback form-group">
              
           <input type="text" class="form-control" id="inputName"
@@ -87,20 +82,17 @@
         
         <span class="query-header-actions">
           <a *ngIf="!working" class="query-header-action" title="Remove query" (click)="switchToRemoveMode()"><i class="fa fa-minus remove-action"></i></a>
-          <div dropdown class="btn-group query-header-action">
-            <a dropdown-toggle><i class="fa {{ getDisplayTypeOptions(queryEdit.displayType).icon }}"></i> <i
-              class="caret"></i></a>
-            <ul class="dropdown-menu">
-              <li *ngFor="#choice of VALID_QUERY_DISPLAY_TYPES"><a (click)="queryEdit.displayType = choice.id"><i
-                  class="fa {{ choice.icon }}"></i> {{ choice.title }}</a></li>
-            </ul>
-          </div> <a *ngIf="!working" class="query-header-action" title="Cancel edit" (click)="switchToNormalMode()"><i class="fa fa-close"></i></a>
+          <select [(ngModel)]="queryEdit.displayType" class="qube-action form-control">
+            <option *ngFor="#choice of getAllDisplayTypeOptions()" [value]="choice.id">{{ choice.title }}</option>
+          </select>
+
+          <a *ngIf="!working" class="query-header-action" title="Cancel edit" (click)="switchToNormalMode()"><i class="fa fa-close"></i></a>
           <a *ngIf="!working" class="query-header-action" title="Save" (click)="updateQuery()"><i class="fa fa-floppy-o"></i></a>
           <i *ngIf="working" class="query-header-action fa fa-spinner fa-spin"></i>
         </span>
       </div>
       
-      <div [class.has-error]="diqlValid === false"
+      <div [class.has-error]="diqlControl.dirty && !diqlControl.valid"
            class="has-feedback form-group">
            
         <textarea class="form-control query-diql" rows="5" id="inputDiql"
