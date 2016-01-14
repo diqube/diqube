@@ -25,6 +25,7 @@ import {AnalysisService, AnalysisServiceRenavigator} from "./analysis.service";
 import * as remoteData from "../remote/remote";
 import {LoginStateService} from "../login-state/login-state.service";
 import {AnalysisQubeComponent} from "./qube/analysis.qube.component";
+import {AnalysisSlicesComponent} from "./slice/analysis.slices.component";
 
 /**
  * Main component for displaying a specific version of an analysis.
@@ -40,7 +41,7 @@ import {AnalysisQubeComponent} from "./qube/analysis.qube.component";
 @Component({
   selector: "diqube-analysis-main",
   templateUrl: "diqube/analysis/analysis.main.html",
-  directives: [ ROUTER_DIRECTIVES, AnalysisQubeComponent ]
+  directives: [ ROUTER_DIRECTIVES, AnalysisQubeComponent, AnalysisSlicesComponent ]
 })
 export class AnalysisMainComponent implements OnInit, OnDestroy , CanReuse, OnReuse, AnalysisServiceRenavigator {
   public static ROUTE_PARAM_ANALYSIS_ID: string = "analysisId";

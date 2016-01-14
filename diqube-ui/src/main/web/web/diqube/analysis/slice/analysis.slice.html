@@ -1,0 +1,183 @@
+<!--
+
+    diqube: Distributed Query Base.
+
+    Copyright (C) 2015 Bastian Gloeckle
+
+    This file is part of diqube.
+
+    diqube is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as
+    published by the Free Software Foundation, either version 3 of the
+    License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+-->
+<div *ngIf="normalMode" class="panel panel-default slice {{ additionalClass }}" drop-target drop-accept="typeRestriction" drop-handler="drop(element)">
+  <div class="panel-heading" (click)="toggleCollapsed()">
+    <span>{{ slice.name }}</span>
+    <span class="slice-header-actions">
+      <a class="slice-header-action" title="Edit mode" (click)="switchToEditMode()"><i class="fa fa-gears"></i></a>
+    </span>
+  </div>
+  
+  <ul class="list-group" *ngIf="slice.manualConjunction" collapse="collapsed">
+    <li class="list-group-item">{{ slice.manualConjunction }}</li>
+  </ul>
+  <table class="table table-condensed" collapse="collapsed">
+    <tbody>
+      <tr *ngFor="#dis of slice.sliceDisjunctions; #first=first" [class.slice-tr-show-and]="!first || slice.manualConjunction">
+        <td class="slice-disjunction-field" [attr.colspan]="dis.disjunctionValues.length">{{ dis.fieldName }}</td>
+        <td class="slice-disjunction-value-td">
+          <ul class="list-group slice-disjunction-value-list">
+            <li [class.slice-disjunction-value-first]="first"
+                [class.slice-disjunction-value-show-or]="!first"
+                class="list-group-item slice-disjunction-value" 
+                *ngFor="#val of dis.disjunctionValues">{{ val }}</li>
+          </ul>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  <ul class="list-group" *ngIf="!slice.manualConjunction && !slice.sliceDisjunctions.length" collapse="collapsed">
+    <li class="list-group-item">This slice selects <i>everything</i>.</li>
+  </ul>
+</div>
+
+
+<!-- EDIT MODE -->
+
+<div *ngIf="editMode" class="edit-slice panel panel-default slice {{ additionalClass }}">
+  <div class="panel-heading">
+    <span>{{ slice.name }}</span>
+
+    <span class="slice-header-actions">
+        <a *ngIf="!working" class="slice-header-action" title="Remove slice" (click)="switchToRemoveMode()"><i class="fa fa-minus remove-action"></i></a>
+        <a *ngIf="!working" class="slice-header-action" title="Cancel edit" (click)="switchToNormalMode()"><i class="fa fa-close"></i></a>
+        <a *ngIf="!working" class="slice-header-action" title="Save" (click)="updateSlice()"><i class="fa fa-floppy-o"></i></a>
+        <i *ngIf="working" class="slice-header-action fa fa-spinner fa-spin"></i>
+    </span>
+  </div>
+  EDIT NOT SUPPORTED IN UI YET.
+  <!-- <form novalidate class="simple-form" (submit)="updateSlice()">
+    <input type="submit" class="hidden">
+    <div class="panel-heading">
+      <div [class.has-success]="nameControl.dirty && nameControl.valid"
+           [class.has-error]="nameControl.dirty && !nameControl.valid"
+           class="has-feedback form-group">
+        <input type="text" class="form-control" id="inputName"
+          placeholder="Name of query" [(ngModel)]="sliceEdit.name" 
+          ngControl="nameControl">
+        <span *ngIf="nameControl.dirty && nameControl.valid" class="fa fa-check form-control-feedback"></span>
+        <span *ngIf="nameControl.dirty && !nameControl.valid" class="fa fa-exclamation-triangle form-control-feedback"></span>
+      </div>
+      
+      <span class="slice-header-actions">
+          <a *ngIf="!working" class="slice-header-action" title="Remove slice" (click)="switchToRemoveMode()"><i class="fa fa-minus remove-action"></i></a>
+          <a *ngIf="!working" class="slice-header-action" title="Cancel edit" (click)="switchToNormalMode()"><i class="fa fa-close"></i></a>
+          <a *ngIf="!working" class="slice-header-action" title="Save" (click)="updateSlice(sliceCopy)"><i class="fa fa-floppy-o"></i></a>
+          <i *ngIf="working" class="slice-header-action fa fa-spinner fa-spin"></i>
+      </span>
+    </div>
+    
+    <div *ngIf="editException" class="panel-body">
+      <div class="alert alert-danger">
+        <i class="fa fa-exclamation-circle"></i>
+        {{ editException }}
+      </div>
+    </div>
+    
+    <ul class="list-group">
+      <li class="list-group-item">
+        <div class="form-group">
+          <input type="text" class="form-control" id="inputManualConjunction"
+            placeholder="Manual conjunction" [(ngModel)]="sliceCopy.manualConjunction">
+        </div>
+      </li>
+    </ul>
+    <table class="table table-condensed">
+      <tbody>
+        <tr *ngFor="#dis of sliceCopy.sliceDisjunctions; #i = index" class="slice-tr-show-and">
+        
+          <td class="slice-disjunction-field" [attr.colspan]="dis.disjunctionValues.length">
+            <span>{{ dis.fieldName }}</span>&nbsp;
+            <a title="Remove field" (click)="removeDisjunctionField(sliceCopy, i)">
+              <i class="fa fa-minus remove-action"></i>
+            </a>
+          </td>
+          
+          <td class="slice-disjunction-value-td">
+            <ul class="list-group slice-disjunction-value-list">
+            
+              <li *ngFor="#val of dis.disjunctionValues; #first=first"
+                  class="list-group-item slice-disjunction-value"
+                  [class.slice-disjunction-value-first]="first"
+                  [class.slice-disjunction-value-show-or]="!first">
+                <span class="has-feedback form-group slice-value-group {{ isDisjunctionValueValid(val) === true ? 'has-success' : '' }} {{ isDisjunctionValueValid(val) === false ? 'has-error' : '' }}">
+                  <input type="text" class="form-control slice-edit-value"
+                    placeholder="Value" ng-model="dis.disjunctionValues[$index]">
+                  <span ng-if="isDisjunctionValueValid(val) === true" class="fa fa-check form-control-feedback"></span>
+                  <span ng-if="isDisjunctionValueValid(val) === false" class="fa fa-exclamation-triangle form-control-feedback"></span>
+                  <div class="slice-value-group-actions">
+                    <a href class="slice-value-group-action" title="Remove value" ng-click="removeDisjunctionValue(sliceCopy, $parent.$index, $index)">
+                      <i class="fa fa-minus remove-action"></i>
+                    </a>
+                  </div>
+                </span>
+              </li>
+              
+              <li class="list-group-item slice-disjunction-value slice-disjunction-actions {{ !dis.disjunctionValues ? 'slice-disjunction-value-first' : '' }}">
+                <a href class="slice-disjunction-action" title="Add value" ng-click="addDisjunctionValue(sliceCopy, $index)">
+                  <i class="fa fa-plus add-action" ></i>
+                </a>
+              </li>
+            </ul>
+          </td>
+        </tr> 
+      </tbody>
+    </table>
+  </form>
+  <form novalidate class="simple-form" ng-submit="addDisjunctionField(sliceCopy, newDisjunctionFieldName)">
+    <table class="table table-condensed">
+    <tbody>
+      <tr>
+        <td class="slice-add-field-td">
+          <input type="text" class="form-control"
+                 placeholder="Field name" ng-model="newDisjunctionFieldName">&nbsp;
+          <a href title="Add field" ng-click="addDisjunctionField(sliceCopy, newDisjunctionFieldName)">
+            &nbsp;<i class="fa fa-plus add-action"></i>&nbsp;Add&nbsp;field
+          </a>
+        </td>
+      </tr>
+    </tbody>
+    </table>
+  </form>-->
+</div>
+
+<!-- REMOVE MODE -->
+<div *ngIf="removeMode" class="panel panel-default slice remove-slice {{ additionalClass }}">
+  <div class="panel-heading">
+    <span>{{ slice.name }}</span>
+  </div>
+  
+  <div class="panel-body">
+    <div *ngIf="exception" class="alert alert-danger">
+      <i class="fa fa-exclamation-circle"></i>
+      {{ exception }}
+    </div>
+  
+    <p>Are you sure you want to remove this slice?</p>
+    <p>
+      <button class="btn btn-default" (click)="switchToNormalMode()">Cancel</button>
+      <button class="btn btn-danger" (click)="removeSlice()">Yes, remove.</button>
+    </p>
+  </div>
+
+</div>

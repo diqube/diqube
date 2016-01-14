@@ -64,6 +64,14 @@ public class UpdateSliceJsonCommand extends AbstractAnalysisAdjustingJsonCommand
     if (slice.getName() == null || "".equals(slice.getName()))
       throw new RuntimeException("Name not set.");
 
+    for (UiSliceDisjunction disj : slice.getSliceDisjunctions()) {
+      if (disj.getFieldName() == null || disj.getFieldName().trim().isEmpty())
+        throw new RuntimeException("There is a disjunction with empty field name.");
+
+      if (disj.getDisjunctionValues().stream().map(s -> (s == null) ? "" : s.trim()).anyMatch(s -> s.isEmpty()))
+        throw new RuntimeException("There is an empty disjunction value for field " + disj.getFieldName());
+    }
+
     origSlice.setName(slice.getName());
     origSlice.setManualConjunction(slice.getManualConjunction());
     List<UiSliceDisjunction> newDisjunctions = new ArrayList<>(slice.getSliceDisjunctions());
