@@ -54,12 +54,10 @@
           </execution>
         </executions>
       </plugin>
+      <!-- ensure compiler plugin is executed first in compile phase! -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-war-plugin</artifactId>
-        <configuration>
-          <webappDirectory>${war.webapp.directory}</webappDirectory>
-        </configuration>
+        <artifactId>maven-compiler-plugin</artifactId>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -82,7 +80,7 @@
             <configuration>
               <target>
                 <!-- Load list of JS files loaded in index.html -->
-                <loadfile property="jsFiles" srcFile="src/main/js/index.html">
+                <loadfile property="jsFiles" srcFile="src/main/web/web/index.html">
                   <filterchain>
                     <linecontains>
                       <!-- select lines which contain script references -->
@@ -117,6 +115,27 @@
         </executions>
       </plugin>
       <plugin>
+        <groupId>org.diqube.build.maven</groupId>
+        <artifactId>diqube-build-java-ts-maven-plugin</artifactId>
+        <version>${project.version}</version>
+        <executions>
+          <execution>
+            <id>java-to-ts</id>
+            <goals>
+              <goal>ts</goal>
+            </goals>
+            <phase>compile</phase>
+            <configuration>
+              <rootPackages>
+                <rootPackage>org.diqube.ui</rootPackage>
+              </rootPackages>
+              <!-- Put into src/main/web folder for eclipse plugin to pick it up correctly. Same as the copying of angular2/ and rxjs/ below. -->
+              <resultFile>${basedir}/src/main/web/web/diqube/remote/remote.ts</resultFile>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <groupId>com.github.eirslett</groupId>
         <artifactId>frontend-maven-plugin</artifactId>
         <executions>
@@ -125,9 +144,10 @@
             <goals>
               <goal>install-node-and-npm</goal>
             </goals>
+            <phase>generate-resources</phase>
             <configuration>
-              <nodeVersion>v0.12.7</nodeVersion>
-              <npmVersion>2.13.4</npmVersion>
+              <nodeVersion>v4.2.4</nodeVersion>
+              <npmVersion>3.5.3</npmVersion>
             </configuration>
           </execution>
           <execution>
@@ -135,6 +155,7 @@
             <goals>
               <goal>npm</goal>
             </goals>
+            <phase>generate-resources</phase>
             <configuration>
               <arguments>install</arguments>
             </configuration>
@@ -144,8 +165,22 @@
             <goals>
               <goal>bower</goal>
             </goals>
+            <phase>generate-resources</phase>
             <configuration>
               <arguments>install</arguments>
+            </configuration>
+          </execution>
+          <execution>
+            <id>grunt</id>
+            <goals>
+              <goal>grunt</goal>
+            </goals>
+            <!-- run in compile, after diqube-java-ts-maven-plugin since this one compiles TypeScript and relies on the
+                 output of diqube-java-ts-maven-plugin. -->
+            <phase>compile</phase>
+            <configuration>
+              <srcdir>${basedir}</srcdir>
+              <outputdir>${project.build.directory}</outputdir>
             </configuration>
           </execution>
           <execution>
@@ -158,32 +193,94 @@
             <phase>integration-test</phase>
             <configuration>
               <karmaConfPath>${karma.final.config.dir}/karma.phantomjs.conf.js</karmaConfPath>
+              <skip>true</skip> <!-- TODO #97 -->
             </configuration>
           </execution>
         </executions>
       </plugin>
       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <executions>
+          <!-- Overwritten in minjs profile below! -->
+          <execution>
+            <id>prepare-js-dependency-files</id>
+            <goals>
+              <goal>single</goal>
+            </goals>
+            <phase>prepare-package</phase>
+            <configuration>
+              <descriptors>
+                <descriptor>src/main/assembly/dev-dependencies-assembly.xml</descriptor>
+              </descriptors>
+              <finalName>dependencies-source</finalName>
+              <attach>false</attach>
+              <appendAssemblyId>false</appendAssemblyId>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-clean-plugin</artifactId>
+        <executions>
+          <!-- Clean the eclipse-helper-dts files again, see above! -->
+          <execution>
+            <id>clean-eclipse-additional-dts</id>
+            <goals>
+              <goal>clean</goal>
+            </goals>
+            <phase>clean</phase>
+            <configuration>
+              <filesets>
+                <fileset>
+                  <!-- may have been put there by the "eclipse" profile -->
+                  <directory>src/main/web/angular2</directory>
+                </fileset>
+                <fileset>
+                  <!-- may have been put there by the "eclipse" profile -->
+                  <directory>src/main/web/rxjs</directory>
+                </fileset>
+                <fileset>
+                  <directory>src/main/web/web/diqube/remote</directory>
+                  <includes>
+                    <include>remote.ts</include>
+                  </includes>
+                </fileset>
+              </filesets>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-war-plugin</artifactId>
+        <configuration>
+          <webResources>
+            <resource>
+              <directory>src/main/web</directory>
+              <targetPath>WEB-INF/classes</targetPath>
+              <excludes>
+                <!-- exclude ts files, as they should've been compiled to js and are included below. -->
+                <exclude>**/*.ts</exclude>
+              </excludes>
+            </resource>
+            <resource>
+              <directory>${project.build.directory}/typescript-dev/main/web</directory>
+              <targetPath>WEB-INF/classes</targetPath>
+            </resource>
+            <resource>
+              <directory>${project.build.directory}/dependencies-source</directory>
+              <targetPath>WEB-INF/classes</targetPath>
+            </resource>
+          </webResources>
+          <webappDirectory>${war.webapp.directory}</webappDirectory>
+        </configuration>
+      </plugin>
+      <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>build-helper-maven-plugin</artifactId>
         <executions>
-          <execution>
-            <id>add-resources</id>
-            <goals>
-              <goal>add-resource</goal>
-            </goals>
-            <configuration>
-              <resources>
-                <resource>
-                  <directory>src/main/js</directory>
-                  <targetPath>web/</targetPath>
-                </resource>
-                <resource>
-                  <directory>bower_components</directory>
-                  <targetPath>web/bower_components</targetPath>
-                </resource>
-              </resources>
-            </configuration>
-          </execution>
           <execution>
             <id>add-test-resources</id>
             <goals>
@@ -192,7 +289,7 @@
             <configuration>
               <resources>
                 <resource>
-                  <directory>src/test/js</directory>
+                  <directory>src/test/web</directory>
                 </resource>
               </resources>
             </configuration>
@@ -228,6 +325,11 @@
       <artifactId>diqube-ticket</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>org.diqube.build.maven</groupId>
+      <artifactId>diqube-build-java-ts-api</artifactId>
+      <version>${project.version}</version>
+    </dependency>
     
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -247,25 +349,6 @@
       <groupId>net.bytebuddy</groupId>
       <artifactId>byte-buddy-dep</artifactId>
       <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.hibernate</groupId>
-      <artifactId>hibernate-validator</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>javax.el</groupId>
-      <artifactId>javax.el-api</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.glassfish.web</groupId>
-      <artifactId>javax.el</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>javax.validation</groupId>
-      <artifactId>validation-api</artifactId>
     </dependency>
     <dependency>
       <groupId>org.hsqldb</groupId>
@@ -306,9 +389,6 @@
             <executions>
               <execution>
                   <id>javascript-tests</id>
-                  <goals>
-                    <goal>karma</goal>
-                  </goals>
                   <configuration>
                     <karmaConfPath>${karma.final.config.dir}/karma.chrome.conf.js</karmaConfPath>
                   </configuration>
@@ -321,9 +401,7 @@
     <profile>
       <id>minjs</id>
       <!-- This profile prepares a directory that contains all minified JS/CSS and makes war-plugin include those files 
-           instead of the defaults. Additionally this will lead to only include those JS/CSS files of the dependencies 
-           which are actually needed (e.g. the JQuery that is part of html5-boilerplate will not be included in the 
-           resulting .war when using this profile. -->
+           instead of the defaults. -->
        <activation>
         <activeByDefault>true</activeByDefault>
        </activation>
@@ -334,16 +412,12 @@
             <artifactId>maven-assembly-plugin</artifactId>
             <executions>
               <execution>
-                <goals>
-                  <goal>single</goal>
-                </goals>
-                <phase>generate-resources</phase>
-                <id>prepare-minified-files</id>
+                <id>prepare-js-dependency-files</id>
                 <configuration>
                   <descriptors>
-                    <descriptor>src/main/assembly/minjs-assembly.xml</descriptor>
+                    <descriptor>src/main/assembly/minjs-dependencies-assembly.xml</descriptor>
                   </descriptors>
-                  <finalName>minjs_source</finalName>
+                  <finalName>dependencies-source</finalName>
                   <attach>false</attach>
                   <appendAssemblyId>false</appendAssemblyId>
                 </configuration>
@@ -351,23 +425,219 @@
             </executions>
           </plugin>
           <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-war-plugin</artifactId>
+            <configuration>
+              <webResources>
+                <resource>
+                  <directory>src/main/web</directory>
+                  <targetPath>WEB-INF/classes</targetPath>
+                  <excludes>
+                    <!-- exclude ts files, as they should've been compiled to js and are included below. -->
+                    <exclude>**/*.ts</exclude>
+                  </excludes>
+                </resource>
+                <resource>
+                  <directory>${project.build.directory}/typescript-ugly/main/web</directory>
+                  <targetPath>WEB-INF/classes</targetPath>
+                </resource>
+                <resource>
+                  <directory>${project.build.directory}/dependencies-source</directory>
+                  <targetPath>WEB-INF/classes</targetPath>
+                </resource>
+              </webResources>
+              <webappDirectory>${war.webapp.directory}</webappDirectory>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    
+    <profile>
+      <!-- Profile which should be activated while developing with Eclipse. Eclipse Mars.1 has a few issues:
+        * Typescript cannot resolve node_modules as imports 
+          * -> we copy angular/ and rxjs/ into the source folder.
+        * When adjusting a .ts file, it gets re-built (palantir plugin), but m2e-wtp does not pick it up to publish to 
+          running Tomcat
+          * Ensure that after typescript has been built, to publish the results to target/test-classes and the m2e-wtp 
+            target directory, as wtp is monitoring that folders for changes (because we add the source folders as 
+            test-sources using the build-helper)
+          * This may be based on that the frontend maven plugin does not mark the output as "dirty" and therefore
+            eclipse does not pick it up, but frontend-maven plugin does not provide the possibility to mark a whole
+            subdirectory tree as dirty.  
+        * Eclipse source folders need to have the same structure as the output (= If all result files of a eclipse
+          source folder should be available unter web/ in the resulting artifact, the sources themselves need to be in
+          a web/ directory - solutions using a nice "targetPath" in maven for this (which would prefix the "web"
+          automatically - do not work.
+          * We have the sources organized in the right way (src/main/web contains another subfolder called "web").   
+       -->
+      <id>eclipse</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-resources-plugin</artifactId>
+            <executions>
+                <!-- We're using palantirs typescript eclipse plugin, which though is not mature enough to find the angular 
+                     definitions in node_modules/. We therefore copy the .d.ts files to help the eclipse plugin to resolve
+                     any imports in our .ts files. Unfortunately, this has to be in the same source folder that contains
+                    our .ts files, since the plugin does not even take all source folders of a project into account :( 
+                    It does not hurt though having the .d.ts files in our source folder - no output will be generated for
+                    them by the typescript compiler, so we're fine. 
+                -->
+                <execution>
+                <id>provide-angular-dts-for-eclipse</id>
+                <goals>
+                  <goal>copy-resources</goal>
+                </goals>
+                <phase>generate-resources</phase>
+                <configuration>
+                  <resources>
+                    <resource>
+                      <directory>node_modules/angular2</directory>
+                      <includes>
+                        <include>**/*.d.ts</include>
+                      </includes>
+                       <excludes>
+                        <exclude>bundles/**</exclude>
+                        <exclude>ts/**</exclude>
+                      </excludes>
+                    </resource>
+                  </resources>
+                  <outputDirectory>src/main/web/angular2</outputDirectory>
+                </configuration>
+              </execution>
+              <execution>
+                <id>provide-rxjs-dts-for-eclipse</id>
+                <goals>
+                  <goal>copy-resources</goal>
+                </goals>
+                <phase>generate-resources</phase>
+                <configuration>
+                  <resources>
+                    <resource>
+                      <directory>node_modules/rxjs</directory>
+                      <includes>
+                        <include>**/*.d.ts</include>
+                      </includes>
+                    </resource>
+                  </resources>
+                  <outputDirectory>src/main/web/rxjs</outputDirectory>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <!-- Add folders containing JS resources as "test-resource". In Eclipse the folders are marked correctly, it 
+               does not matter if they are "source" folders or "test" folders. But we want eclipse to know them, so the
+               palanatir typescript plugin picks up the .ts files and we can compile them using that and get nice error
+               markers etc. -->
+          <plugin>
             <groupId>org.codehaus.mojo</groupId>
             <artifactId>build-helper-maven-plugin</artifactId>
             <executions>
               <execution>
-                <!--  overwrite execution of adding resources above: include minjs_source instead of bower_components/ -->
-                <id>add-resources</id>
+                <id>add-eclipse-test-resources</id>
+                <goals>
+                  <goal>add-test-resource</goal>
+                </goals>
                 <configuration>
                   <resources>
                     <resource>
-                      <directory>src/main/js</directory>
-                      <targetPath>web/</targetPath>
+                      <directory>src/main/web</directory>
                     </resource>
                     <resource>
-                      <directory>${project.build.directory}/minjs_source</directory>
-                      <targetPath>web/</targetPath>
+                      <directory>${project.build.directory}/typescript-dev/main/web</directory>
+                    </resource>
+                    <resource>
+                      <directory>${project.build.directory}/dependencies-source</directory>
                     </resource>
                   </resources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <!-- be sure to copy the generates .js files from typescript compiler (run in compile phase, see grunt task of 
+               frontend plugin). -->
+          <plugin>
+            <groupId>org.diqube.build.maven</groupId>
+            <artifactId>diqube-build-refresh-files-maven-plugin</artifactId>
+            <version>${project.version}</version>
+            <executions>
+              <execution>
+                <id>refresh-typescript-generated-files</id>
+                <goals>
+                  <goal>refresh</goal>
+                </goals>
+                <phase>process-classes</phase>
+                <configuration>
+                  <includes>
+                    <include>**/*</include>
+                  </includes>
+                  <basedir>${project.build.directory}/typescript-dev/main/web</basedir>
+                  <copyToOutputs>
+                    <!-- Following two directories seem to be monitored by m2e-wtp. -->
+                    <copyToOutput>${project.build.directory}/test-classes</copyToOutput>
+                    <copyToOutput>${project.build.directory}/m2e-wtp/web-resources/WEB-INF/classes</copyToOutput>
+                  </copyToOutputs>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    
+    <profile>
+      <!-- A profile to disable nodeJs plugins to decrease build time in a typical UI-build cycle. -->
+      <id>disableNode</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>com.github.eirslett</groupId>
+            <artifactId>frontend-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>install-node-and-npm</id>
+                <configuration>
+                  <skip>true</skip>
+                </configuration>
+              </execution>
+              <execution>
+                <id>npm install</id>
+                <configuration>
+                  <skip>true</skip>
+                </configuration>
+              </execution>
+              <execution>
+                <id>bower-install</id>
+                <configuration>
+                  <skip>true</skip>
+                </configuration>
+              </execution>
+              <execution>
+                <id>grunt</id>
+                <goals>
+                  <goal>grunt</goal>
+                </goals>
+                <!-- run in compile, after diqube-java-ts-maven-plugin since this one compiles TypeScript and relies on the
+                     output of diqube-java-ts-maven-plugin. -->
+                <phase>compile</phase>
+                <configuration>
+                  <srcdir>${basedir}</srcdir>
+                  <outputdir>${project.build.directory}</outputdir>
+                </configuration>
+              </execution>
+              <execution>
+                <id>javascript-tests</id>
+                <goals>
+                  <goal>karma</goal>
+                </goals>
+                <!-- run karma in integration test phase, because we want to use the JS files that are actually packaged in 
+                     the .war -> Let the war be built in package phase first and then use that data to feed into karma! -->
+                <phase>integration-test</phase>
+                <configuration>
+                  <karmaConfPath>${karma.final.config.dir}/karma.phantomjs.conf.js</karmaConfPath>
+                  <skip>true</skip> <!-- TODO #97 -->
                 </configuration>
               </execution>
             </executions>

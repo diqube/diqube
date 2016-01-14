@@ -22,7 +22,7 @@ package org.diqube.ui.websocket.result;
 
 import java.util.List;
 
-import javax.validation.constraints.NotNull;
+import org.diqube.build.mojo.TypeScriptProperty;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -33,13 +33,14 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 @JsonResultDataType(TableJsonResult.TYPE)
 public class TableJsonResult implements JsonResult {
+  @TypeScriptProperty
   public static final String TYPE = "table";
 
   /**
    * The final names of the columns that were selected (= output of the executed plan).
    */
   @JsonProperty
-  @NotNull
+  @TypeScriptProperty
   public List<String> columnNames;
 
   /**
@@ -47,15 +48,15 @@ public class TableJsonResult implements JsonResult {
    * {@link #columnNames}.
    */
   @JsonProperty
-  @NotNull
+  @TypeScriptProperty
   public List<String> columnRequests;
 
   @JsonProperty
-  @NotNull
+  @TypeScriptProperty
   public List<List<Object>> rows;
 
   @JsonProperty
-  @NotNull
+  @TypeScriptProperty
   public short percentComplete;
 
   public void setColumnNames(List<String> columnNames) {

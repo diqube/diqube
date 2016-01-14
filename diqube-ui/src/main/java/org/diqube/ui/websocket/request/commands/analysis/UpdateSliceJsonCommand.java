@@ -23,9 +23,7 @@ package org.diqube.ui.websocket.request.commands.analysis;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
-
+import org.diqube.build.mojo.TypeScriptProperty;
 import org.diqube.ui.analysis.UiAnalysis;
 import org.diqube.ui.analysis.UiSlice;
 import org.diqube.ui.analysis.UiSliceDisjunction;
@@ -49,11 +47,11 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @CommandInformation(name = UpdateSliceJsonCommand.NAME)
 public class UpdateSliceJsonCommand extends AbstractAnalysisAdjustingJsonCommand {
 
+  @TypeScriptProperty
   public static final String NAME = "updateSlice";
 
   @JsonProperty
-  @NotNull
-  @Valid
+  @TypeScriptProperty
   public UiSlice slice;
 
   @Override
@@ -65,6 +63,14 @@ public class UpdateSliceJsonCommand extends AbstractAnalysisAdjustingJsonCommand
     // validate
     if (slice.getName() == null || "".equals(slice.getName()))
       throw new RuntimeException("Name not set.");
+
+    for (UiSliceDisjunction disj : slice.getSliceDisjunctions()) {
+      if (disj.getFieldName() == null || disj.getFieldName().trim().isEmpty())
+        throw new RuntimeException("There is a disjunction with empty field name.");
+
+      if (disj.getDisjunctionValues().stream().map(s -> (s == null) ? "" : s.trim()).anyMatch(s -> s.isEmpty()))
+        throw new RuntimeException("There is an empty disjunction value for field " + disj.getFieldName());
+    }
 
     origSlice.setName(slice.getName());
     origSlice.setManualConjunction(slice.getManualConjunction());

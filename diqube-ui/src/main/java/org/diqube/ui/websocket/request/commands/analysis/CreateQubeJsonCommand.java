@@ -23,8 +23,8 @@ package org.diqube.ui.websocket.request.commands.analysis;
 import java.util.UUID;
 
 import javax.inject.Inject;
-import javax.validation.constraints.NotNull;
 
+import org.diqube.build.mojo.TypeScriptProperty;
 import org.diqube.ui.analysis.AnalysisFactory;
 import org.diqube.ui.analysis.UiAnalysis;
 import org.diqube.ui.analysis.UiQube;
@@ -49,14 +49,15 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 @CommandInformation(name = CreateQubeJsonCommand.NAME)
 public class CreateQubeJsonCommand extends AbstractAnalysisAdjustingJsonCommand {
+  @TypeScriptProperty
   public static final String NAME = "createQube";
 
   @JsonProperty
-  @NotNull
+  @TypeScriptProperty
   private String sliceId;
 
   @JsonProperty
-  @NotNull
+  @TypeScriptProperty
   private String name;
 
   @Inject

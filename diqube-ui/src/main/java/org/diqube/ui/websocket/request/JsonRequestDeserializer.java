@@ -150,10 +150,16 @@ public class JsonRequestDeserializer {
           };
         } else {
           String ticketBase64 = requestTreeRoot.get(JSON_TICKET).textValue();
-          byte[] ticketSerialized = BaseEncoding.base64().decode(ticketBase64);
-          Pair<Ticket, byte[]> p = TicketUtil.deserialize(ByteBuffer.wrap(ticketSerialized));
+          Pair<Ticket, byte[]> p = null;
+          boolean ticketDeserializationException = false;
+          try {
+            byte[] ticketSerialized = BaseEncoding.base64().decode(ticketBase64);
+            p = TicketUtil.deserialize(ByteBuffer.wrap(ticketSerialized));
+          } catch (IllegalArgumentException e) {
+            ticketDeserializationException = true;
+          }
           // ensure that ticket is valid. If not, reject request directly.
-          if (!ticketValidityService.isTicketValid(p)) {
+          if (ticketDeserializationException || !ticketValidityService.isTicketValid(p)) {
             logger.warn("Invalid ticket provided by client.");
             cmd = new JsonCommand() {
               @Override

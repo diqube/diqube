@@ -21,8 +21,8 @@
 package org.diqube.ui.websocket.request.commands.analysis;
 
 import javax.inject.Inject;
-import javax.validation.constraints.NotNull;
 
+import org.diqube.build.mojo.TypeScriptProperty;
 import org.diqube.thrift.base.thrift.AuthenticationException;
 import org.diqube.thrift.base.thrift.Ticket;
 import org.diqube.ui.db.UiDbProvider;
@@ -49,10 +49,11 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @CommandInformation(name = NewestAnalysisVersionJsonCommand.NAME)
 public class NewestAnalysisVersionJsonCommand implements JsonCommand {
 
+  @TypeScriptProperty
   public static final String NAME = "newestAnalysisVersion";
 
   @JsonProperty
-  @NotNull
+  @TypeScriptProperty
   public String analysisId;
 
   @JsonIgnore

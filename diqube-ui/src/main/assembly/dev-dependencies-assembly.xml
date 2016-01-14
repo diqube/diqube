@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    diqube: Distributed Query Base.
+
+    Copyright (C) 2015 Bastian Gloeckle
+
+    This file is part of diqube.
+
+    diqube is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as
+    published by the Free Software Foundation, either version 3 of the
+    License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+-->
+<assembly xmlns="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.3"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.3 http://maven.apache.org/xsd/assembly-1.1.3.xsd">
+  <id>minjs-assembly</id>
+  <formats>
+    <format>dir</format>
+  </formats>
+  <includeBaseDirectory>false</includeBaseDirectory>
+  <files>
+    <file>
+      <source>bower_components/html5-boilerplate/dist/css/main.css</source>
+      <destName>web/lib/boilerplate-main.css</destName>
+    </file>
+    <file>
+      <source>bower_components/html5-boilerplate/dist/css/normalize.css</source>
+      <destName>web/lib/normalize.css</destName>
+    </file>
+    <file>
+      <source>bower_components/html5-boilerplate/dist/js/vendor/modernizr-2.8.3.min.js</source>
+      <destName>web/lib/modernizr-2.8.3.min.js</destName>
+    </file>
+    <file>
+      <source>bower_components/node-uuid/uuid.js</source>
+      <destName>web/lib/uuid.js</destName>
+    </file>
+    <file>
+      <source>bower_components/jquery/dist/jquery.min.js</source>
+      <destName>web/lib/jquery.js</destName>
+    </file>
+    <file>
+      <source>bower_components/Chart.js/Chart.js</source>
+      <destName>web/lib/Chart.js</destName>
+    </file>
+    <file>
+      <source>bower_components/moment/min/moment-with-locales.min.js</source>
+      <destName>web/lib/moment-with-locales.js</destName>
+    </file>
+    <file>
+      <source>bower_components/bootstrap/dist/css/bootstrap.css</source>
+      <destName>web/lib/bootstrap.css</destName>
+    </file>
+    <file>
+      <source>node_modules/angular2/bundles/angular2-polyfills.js</source>
+      <destName>web/lib/angular2-polyfills.js</destName>
+    </file>
+    <file>
+      <source>node_modules/systemjs/dist/system.src.js</source>
+      <destName>web/lib/system.js</destName>
+    </file>
+    <file>
+      <source>node_modules/rxjs/bundles/Rx.js</source>
+      <destName>web/lib/Rx.js</destName>
+    </file>
+    <file>
+      <source>node_modules/angular2/bundles/angular2.dev.js</source>
+      <destName>web/lib/angular2.js</destName>
+    </file>
+    <file>
+      <source>node_modules/angular2/bundles/router.dev.js</source>
+      <destName>web/lib/angular2-router.js</destName>
+    </file>
+    
+    <!-- Font awesome -->
+    <file>
+      <source>bower_components/font-awesome/css/font-awesome.min.css</source>
+      <destName>web/lib/fonts/font-awesome.css</destName>
+    </file>
+    <file>
+      <source>bower_components/font-awesome/fonts/fontawesome-webfont.eot</source>
+      <destName>web/lib/fonts/fontawesome-webfont.eot</destName>
+    </file>
+    <file>
+      <source>bower_components/font-awesome/fonts/fontawesome-webfont.svg</source>
+      <destName>web/lib/fonts/fontawesome-webfont.svg</destName>
+    </file>
+    <file>
+      <source>bower_components/font-awesome/fonts/fontawesome-webfont.ttf</source>
+      <destName>web/lib/fonts/fontawesome-webfont.ttf</destName>
+    </file>
+    <file>
+      <source>bower_components/font-awesome/fonts/fontawesome-webfont.woff</source>
+      <destName>web/lib/fonts/fontawesome-webfont.woff</destName>
+    </file>
+    <file>
+      <source>bower_components/font-awesome/fonts/fontawesome-webfont.woff2</source>
+      <destName>web/lib/fonts/fontawesome-webfont.woff2</destName>
+    </file>
+    <file>
+      <source>bower_components/font-awesome/fonts/FontAwesome.otf</source>
+      <destName>web/lib/fonts/FontAwesome.otf</destName>
+    </file>
+  </files>
+</assembly>
+

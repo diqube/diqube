@@ -26,8 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.validation.constraints.NotNull;
-
+import org.diqube.build.mojo.TypeScriptProperty;
 import org.diqube.remote.query.thrift.RQueryStatistics;
 import org.diqube.remote.query.thrift.RQueryStatisticsDetails;
 
@@ -40,50 +39,51 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 @JsonResultDataType(StatsJsonResult.TYPE)
 public class StatsJsonResult implements JsonResult {
+  @TypeScriptProperty
   public static final String TYPE = "stats";
 
   @JsonProperty
-  @NotNull
+  @TypeScriptProperty
   public List<String> nodeNames = new ArrayList<>();
 
   @JsonProperty
-  @NotNull
+  @TypeScriptProperty
   private List<Long> startedUntilDoneMs = new ArrayList<>();
 
   @JsonProperty
-  @NotNull
+  @TypeScriptProperty
   private List<Integer> numberOfThreads = new ArrayList<>();
 
   @JsonProperty
-  @NotNull
+  @TypeScriptProperty
   private List<Integer> numberOfTemporaryColumnShardsCreated = new ArrayList<>();
 
   @JsonProperty
-  @NotNull
+  @TypeScriptProperty
   private List<Integer> numberOfTemporaryColumnShardsFromCache = new ArrayList<>();
 
   @JsonProperty
-  @NotNull
+  @TypeScriptProperty
   private Map<String, List<Long>> stepsActiveMs = new HashMap<>();
 
   @JsonProperty
-  @NotNull
+  @TypeScriptProperty
   private Map<String, List<Integer>> numberOfPageAccesses = new HashMap<>();
 
   @JsonProperty
-  @NotNull
+  @TypeScriptProperty
   private Map<String, List<Integer>> numberOfTemporaryPageAccesses = new HashMap<>();
 
   @JsonProperty
-  @NotNull
+  @TypeScriptProperty
   private List<Integer> numberOfPagesInTable = new ArrayList<>();
 
   @JsonProperty
-  @NotNull
+  @TypeScriptProperty
   private List<Integer> numberOfTemporaryPages = new ArrayList<>();
 
   @JsonProperty
-  @NotNull
+  @TypeScriptProperty
   private Map<String, List<Integer>> numberOfTemporaryVersionsPerColName = new HashMap<>();
 
   public void loadFromQueryStatRes(RQueryStatistics stats) {

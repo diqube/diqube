@@ -20,9 +20,7 @@
  */
 package org.diqube.ui.websocket.result.analysis;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
-
+import org.diqube.build.mojo.TypeScriptProperty;
 import org.diqube.ui.analysis.UiQuery;
 import org.diqube.ui.websocket.result.JsonResult;
 import org.diqube.ui.websocket.result.JsonResultDataType;
@@ -34,17 +32,17 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  *
  * @author Bastian Gloeckle
  */
-@JsonResultDataType(QueryJsonResult.DATA_TYPE)
+@JsonResultDataType(QueryJsonResult.TYPE)
 public class QueryJsonResult implements JsonResult {
-  public static final String DATA_TYPE = "query";
+  @TypeScriptProperty
+  public static final String TYPE = "query";
 
   @JsonProperty
-  @NotNull
-  @Valid
+  @TypeScriptProperty
   public UiQuery query;
 
   @JsonProperty
-  @NotNull
+  @TypeScriptProperty
   public long analysisVersion;
 
   // for tests only

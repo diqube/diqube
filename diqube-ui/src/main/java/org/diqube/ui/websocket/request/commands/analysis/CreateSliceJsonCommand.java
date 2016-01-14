@@ -25,9 +25,8 @@ import java.util.List;
 import java.util.UUID;
 
 import javax.inject.Inject;
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
 
+import org.diqube.build.mojo.TypeScriptProperty;
 import org.diqube.ui.analysis.AnalysisFactory;
 import org.diqube.ui.analysis.UiAnalysis;
 import org.diqube.ui.analysis.UiSlice;
@@ -52,19 +51,19 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 @CommandInformation(name = CreateSliceJsonCommand.NAME)
 public class CreateSliceJsonCommand extends AbstractAnalysisAdjustingJsonCommand {
+  @TypeScriptProperty
   public static final String NAME = "createSlice";
 
   @JsonProperty
-  @NotNull
+  @TypeScriptProperty
   public String name;
 
   @JsonProperty
-  @NotNull
+  @TypeScriptProperty
   public String manualConjunction;
 
   @JsonProperty
-  @NotNull
-  @Valid
+  @TypeScriptProperty
   public List<UiSliceDisjunction> sliceDisjunctions;
 
   @JsonIgnore

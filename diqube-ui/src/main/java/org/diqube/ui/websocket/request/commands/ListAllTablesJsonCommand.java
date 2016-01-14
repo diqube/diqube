@@ -23,6 +23,7 @@ package org.diqube.ui.websocket.request.commands;
 import java.util.List;
 
 import org.apache.thrift.TException;
+import org.diqube.build.mojo.TypeScriptProperty;
 import org.diqube.thrift.base.thrift.Ticket;
 import org.diqube.ui.websocket.request.CommandClusterInteraction;
 import org.diqube.ui.websocket.request.CommandResultHandler;
@@ -42,6 +43,7 @@ import org.diqube.ui.websocket.result.TableNameListJsonResult;
 @CommandInformation(name = ListAllTablesJsonCommand.NAME)
 public class ListAllTablesJsonCommand implements JsonCommand {
 
+  @TypeScriptProperty
   public static final String NAME = "listAllTables";
 
   @Override

@@ -21,6 +21,7 @@
 package org.diqube.ui.websocket.request.commands;
 
 import org.apache.thrift.TException;
+import org.diqube.build.mojo.TypeScriptProperty;
 import org.diqube.thrift.base.thrift.Ticket;
 import org.diqube.ui.websocket.request.CommandClusterInteraction;
 import org.diqube.ui.websocket.request.CommandResultHandler;
@@ -39,6 +40,7 @@ import org.diqube.ui.websocket.request.CommandResultHandler;
 @CommandInformation(name = LogoutJsonCommand.NAME)
 public class LogoutJsonCommand implements JsonCommand {
 
+  @TypeScriptProperty
   public static final String NAME = "logout";
 
   @Override

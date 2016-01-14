@@ -23,8 +23,7 @@ package org.diqube.ui.websocket.request.commands.analysis;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.validation.constraints.NotNull;
-
+import org.diqube.build.mojo.TypeScriptProperty;
 import org.diqube.ui.analysis.UiAnalysis;
 import org.diqube.ui.analysis.UiQube;
 import org.diqube.ui.analysis.UiSlice;
@@ -48,10 +47,11 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @CommandInformation(name = RemoveSliceJsonCommand.NAME)
 public class RemoveSliceJsonCommand extends AbstractAnalysisAdjustingJsonCommand {
 
+  @TypeScriptProperty
   public static final String NAME = "removeSlice";
 
   @JsonProperty
-  @NotNull
+  @TypeScriptProperty
   public String sliceId;
 
   @Override

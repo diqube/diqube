@@ -1,0 +1,70 @@
+<!--
+
+    diqube: Distributed Query Base.
+
+    Copyright (C) 2015 Bastian Gloeckle
+
+    This file is part of diqube.
+
+    diqube is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as
+    published by the Free Software Foundation, either version 3 of the
+    License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+-->
+<!DOCTYPE html>
+<html>
+  <head>
+    <base href="{{globalContextPath}}/">
+    <meta charset="utf-8">
+    <title>diqube</title>
+
+    <link rel="stylesheet" href="lib/normalize.css">
+    <link rel="stylesheet" href="lib/boilerplate-main.css">
+    <link rel="stylesheet" href="lib/bootstrap.css">
+    <link rel="stylesheet" href="lib/fonts/font-awesome.css"/>
+    <link rel="stylesheet" href="app.css">
+    
+    <script>
+      var globalContextPath = "{{globalContextPath}}";
+    </script>
+    
+    <script src="lib/angular2-polyfills.js"></script>
+    <script src="lib/system.js"></script>
+    <script src="lib/Rx.js"></script>
+    <script src="lib/angular2.js"></script>
+    <script src="lib/angular2-router.js"></script>
+    <script src="lib/modernizr-2.8.3.min.js"></script>
+    <script src="lib/moment-with-locales.js"></script>
+    <script src="lib/Chart.js"></script>
+    <script src="lib/uuid.js"></script>
+
+    <script>
+      System.config({
+        baseURL: "{{globalContextPath}}",
+        packages: {
+          "diqube": {
+            format: "register",
+            defaultExtension: "js"
+          }
+        }        
+      });
+      System.import("boot.js")
+            .then(null, console.error.bind(console));
+    </script>
+
+  </head>
+
+  <body>
+    <diqube> </diqube>
+  </body>
+
+</html>

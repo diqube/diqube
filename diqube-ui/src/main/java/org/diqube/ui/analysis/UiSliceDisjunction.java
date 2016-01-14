@@ -23,7 +23,7 @@ package org.diqube.ui.analysis;
 import java.io.Serializable;
 import java.util.List;
 
-import javax.validation.constraints.NotNull;
+import org.diqube.build.mojo.TypeScriptProperty;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -35,11 +35,11 @@ public class UiSliceDisjunction implements Serializable {
   private static final long serialVersionUID = 1L;
 
   @JsonProperty
-  @NotNull
+  @TypeScriptProperty
   public String fieldName;
 
   @JsonProperty
-  @NotNull
+  @TypeScriptProperty
   public List<String> disjunctionValues;
 
   // for tests only

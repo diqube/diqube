@@ -31,8 +31,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.BiConsumer;
 
-import org.springframework.util.ReflectionUtils;
-
 /**
  * Utility which can set all properties to <code>null</code> on an object.
  *
@@ -71,13 +69,20 @@ public class NullUtil {
     }
 
     for (Field fieldToNull : allFields) {
-      ReflectionUtils.makeAccessible(fieldToNull);
+      makeAccessible(fieldToNull);
       try {
         fieldToNull.set(o, null);
       } catch (IllegalArgumentException | IllegalAccessException e) {
         if (exceptionHandler != null)
           exceptionHandler.accept(fieldToNull.getName(), e);
       }
+    }
+  }
+
+  private static void makeAccessible(Field field) {
+    if ((!Modifier.isPublic(field.getModifiers()) || !Modifier.isPublic(field.getDeclaringClass().getModifiers())
+        || Modifier.isFinal(field.getModifiers())) && !field.isAccessible()) {
+      field.setAccessible(true);
     }
   }
 }

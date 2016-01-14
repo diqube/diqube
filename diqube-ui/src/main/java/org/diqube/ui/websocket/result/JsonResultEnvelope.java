@@ -20,8 +20,9 @@
  */
 package org.diqube.ui.websocket.result;
 
-import javax.validation.constraints.NotNull;
+import org.diqube.build.mojo.TypeScriptProperty;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
@@ -31,12 +32,16 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 public class JsonResultEnvelope {
   /** Provide additional result data. */
+  @TypeScriptProperty
   public static final String STATUS_DATA = "data";
   /** Provide details of an exception */
+  @TypeScriptProperty
   public static final String STATUS_EXCEPTION = "exception";
   /** Inform the client that the execution of the command has completed. */
+  @TypeScriptProperty
   public static final String STATUS_DONE = "done";
   /** Inform the client that the ticket he provided was not accepted. */
+  @TypeScriptProperty
   public static final String STATUS_AUTHENTICATION_EXCEPTION = "authenticationException";
 
   /**
@@ -46,16 +51,21 @@ public class JsonResultEnvelope {
   public static final String PROPERTY_DATA = "data";
 
   @JsonProperty
-  @NotNull
+  @TypeScriptProperty
   public String requestId;
 
   @JsonProperty
-  @NotNull
+  @TypeScriptProperty
   public String status;
 
   @JsonProperty
-  @NotNull
+  @TypeScriptProperty
   public String dataType;
+
+  /** this property is added on-the-fly by {@link JsonResultSerializer}, see also {@link #PROPERTY_DATA}. */
+  @JsonIgnore
+  @TypeScriptProperty
+  public Object data;
 
   /* package */ JsonResultEnvelope(String requestId, String status, String dataType) {
     this.requestId = requestId;

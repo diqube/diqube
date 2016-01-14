@@ -51,11 +51,13 @@
   </scm>
 
   <modules>
+    <module>diqube-util</module>
+    <module>build/maven</module>
+    
     <module>diqube-buildinfo</module>
     <module>diqube-test-util</module>
     <module>diqube-listeners</module>
     <module>diqube-remote</module>
-    <module>diqube-util</module>
     <module>diqube-thrift</module>
     <module>diqube-queries</module>
     <module>diqube-threads</module>
@@ -125,6 +127,11 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-assembly-plugin</artifactId>
           <version>2.5.5</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-clean-plugin</artifactId>
+          <version>3.0.0</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -261,10 +268,25 @@
                     <execute />
                   </action>
                 </pluginExecution>
+                <pluginExecution>
+                  <pluginExecutionFilter>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-assembly-plugin</artifactId>
+                    <versionRange>[2.5.5,)</versionRange>
+                    <goals>
+                      <goal>single</goal>
+                    </goals>
+                  </pluginExecutionFilter>
+                  <action>
+                    <execute />
+                  </action>
+                </pluginExecution>
               </pluginExecutions>
             </lifecycleMappingMetadata>
           </configuration>
         </plugin>
+        
+
         
         
         <!-- Plugin configuration needed if project contains .thrift files and they need compilation. Enable all the
@@ -432,9 +454,12 @@
                 <exclude>diqube-loader/src/test/resources/*.csv</exclude>
                 <exclude>build/third-party-template.ftl</exclude>
                 <exclude>build/third-party-manual.txt</exclude>
-                <exclude>diqube-ui/bower_components/**</exclude>
-                <exclude>diqube-ui/node_modules/**</exclude>
-                <exclude>diqube-ui/node/**</exclude>
+                <exclude>diqube-ui/bower_components/**/*</exclude>
+                <exclude>diqube-ui/node_modules/**/*</exclude>
+                <exclude>diqube-ui/node/**/*</exclude>
+                <exclude>diqube-ui/src/main/web/angular2/**/*</exclude>
+                <exclude>diqube-ui/src/main/web/rxjs/**/*</exclude>
+                <exclude>diqube-ui/.derived</exclude>
                 <exclude>**/*.pem</exclude>
                 <exclude>**/*.ready</exclude>
                 <exclude>**/internaldb/**</exclude>
@@ -582,29 +607,6 @@
         <version>2.3.3</version>
       </dependency>
       
-      <!-- JSR-349 Validator -->
-      <dependency>
-        <groupId>org.hibernate</groupId>
-        <artifactId>hibernate-validator</artifactId>
-        <version>5.2.2.Final</version>
-      </dependency>
-      <dependency>
-        <groupId>javax.el</groupId>
-        <artifactId>javax.el-api</artifactId>
-        <version>2.2.4</version>
-      </dependency>
-      <dependency>
-        <groupId>org.glassfish.web</groupId>
-        <artifactId>javax.el</artifactId>
-        <version>2.2.4</version>
-      </dependency>
-      <dependency>
-        <groupId>javax.validation</groupId>
-        <artifactId>validation-api</artifactId>
-        <version>1.1.0.Final</version>
-      </dependency>
-
-
       <!-- Spring dependencies -->
       <dependency>
         <groupId>org.springframework</groupId>

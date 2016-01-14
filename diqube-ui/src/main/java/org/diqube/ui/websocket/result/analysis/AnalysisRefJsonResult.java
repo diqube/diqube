@@ -20,8 +20,7 @@
  */
 package org.diqube.ui.websocket.result.analysis;
 
-import javax.validation.constraints.NotNull;
-
+import org.diqube.build.mojo.TypeScriptProperty;
 import org.diqube.ui.websocket.result.JsonResult;
 import org.diqube.ui.websocket.result.JsonResultDataType;
 
@@ -32,16 +31,17 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  *
  * @author Bastian Gloeckle
  */
-@JsonResultDataType(AnalysisRefJsonResult.DATA_TYPE)
+@JsonResultDataType(AnalysisRefJsonResult.TYPE)
 public class AnalysisRefJsonResult implements JsonResult {
-  public static final String DATA_TYPE = "analysisRef";
+  @TypeScriptProperty
+  public static final String TYPE = "analysisRef";
 
   @JsonProperty
-  @NotNull
+  @TypeScriptProperty
   public String name;
 
   @JsonProperty
-  @NotNull
+  @TypeScriptProperty
   public String id;
 
   // for tests only

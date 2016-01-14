@@ -25,9 +25,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import javax.validation.constraints.NotNull;
-
 import org.apache.thrift.TException;
+import org.diqube.build.mojo.TypeScriptProperty;
 import org.diqube.remote.query.thrift.QueryResultService;
 import org.diqube.remote.query.thrift.RQueryException;
 import org.diqube.remote.query.thrift.RQueryStatistics;
@@ -60,10 +59,11 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @CommandInformation(name = PlainQueryJsonCommand.NAME)
 public class PlainQueryJsonCommand implements AsyncJsonCommand {
 
+  @TypeScriptProperty
   public static final String NAME = "plainQuery";
 
   @JsonProperty
-  @NotNull
+  @TypeScriptProperty
   public String diql;
 
   public PlainQueryJsonCommand() {

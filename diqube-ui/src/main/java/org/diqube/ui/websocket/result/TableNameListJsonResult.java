@@ -22,7 +22,7 @@ package org.diqube.ui.websocket.result;
 
 import java.util.List;
 
-import javax.validation.constraints.NotNull;
+import org.diqube.build.mojo.TypeScriptProperty;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -31,12 +31,13 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  *
  * @author Bastian Gloeckle
  */
-@JsonResultDataType(TableNameListJsonResult.DATA_TYPE)
+@JsonResultDataType(TableNameListJsonResult.TYPE)
 public class TableNameListJsonResult implements JsonResult {
-  public static final String DATA_TYPE = "tableNameList";
+  @TypeScriptProperty
+  public static final String TYPE = "tableNameList";
 
   @JsonProperty
-  @NotNull
+  @TypeScriptProperty
   public List<String> tableNames;
 
   // for test

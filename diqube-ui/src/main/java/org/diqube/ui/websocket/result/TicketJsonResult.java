@@ -20,8 +20,7 @@
  */
 package org.diqube.ui.websocket.result;
 
-import javax.validation.constraints.NotNull;
-
+import org.diqube.build.mojo.TypeScriptProperty;
 import org.diqube.thrift.base.thrift.Ticket;
 import org.diqube.ticket.TicketUtil;
 
@@ -35,16 +34,17 @@ import com.google.common.io.BaseEncoding;
  */
 @JsonResultDataType(TicketJsonResult.TYPE)
 public class TicketJsonResult implements JsonResult {
+  @TypeScriptProperty
   public static final String TYPE = "ticket";
 
   /** Base64 serialized ticket */
   @JsonProperty
-  @NotNull
+  @TypeScriptProperty
   public String ticket;
 
   /** username in the ticket, for convenience */
   @JsonProperty
-  @NotNull
+  @TypeScriptProperty
   public String username;
 
   public TicketJsonResult() {

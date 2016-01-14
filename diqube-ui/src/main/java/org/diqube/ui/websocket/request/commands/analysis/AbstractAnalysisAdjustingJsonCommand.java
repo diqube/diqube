@@ -23,8 +23,8 @@ package org.diqube.ui.websocket.request.commands.analysis;
 import java.util.Map;
 
 import javax.inject.Inject;
-import javax.validation.constraints.NotNull;
 
+import org.diqube.build.mojo.TypeScriptProperty;
 import org.diqube.thrift.base.thrift.AuthenticationException;
 import org.diqube.thrift.base.thrift.Ticket;
 import org.diqube.ui.analysis.UiAnalysis;
@@ -55,11 +55,11 @@ public abstract class AbstractAnalysisAdjustingJsonCommand implements JsonComman
   private UiDbProvider uiDbProvider;
 
   @JsonProperty
-  @NotNull
+  @TypeScriptProperty
   protected String analysisId;
 
   @JsonProperty
-  @NotNull
+  @TypeScriptProperty
   protected long analysisVersion;
 
   @Override

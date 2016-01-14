@@ -24,6 +24,7 @@ import java.util.Map;
 
 import javax.inject.Inject;
 
+import org.diqube.build.mojo.TypeScriptProperty;
 import org.diqube.thrift.base.thrift.Ticket;
 import org.diqube.ui.db.UiDbProvider;
 import org.diqube.ui.websocket.request.CommandClusterInteraction;
@@ -48,6 +49,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 @CommandInformation(name = ListAllAnalysisJsonCommand.NAME)
 public class ListAllAnalysisJsonCommand implements JsonCommand {
 
+  @TypeScriptProperty
   public static final String NAME = "listAllAnalysis";
 
   @Inject

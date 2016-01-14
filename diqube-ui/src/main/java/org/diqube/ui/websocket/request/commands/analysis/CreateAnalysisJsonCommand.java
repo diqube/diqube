@@ -23,9 +23,9 @@ package org.diqube.ui.websocket.request.commands.analysis;
 import java.util.UUID;
 
 import javax.inject.Inject;
-import javax.validation.constraints.NotNull;
 
 import org.apache.thrift.TException;
+import org.diqube.build.mojo.TypeScriptProperty;
 import org.diqube.diql.DiqlParseUtil;
 import org.diqube.diql.ParseException;
 import org.diqube.diql.antlr.DiqlParser.DiqlStmtContext;
@@ -64,14 +64,15 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public class CreateAnalysisJsonCommand implements JsonCommand {
   private static final Logger logger = LoggerFactory.getLogger(CreateAnalysisJsonCommand.class);
 
+  @TypeScriptProperty
   public static final String NAME = "createAnalysis";
 
   @JsonProperty
-  @NotNull
+  @TypeScriptProperty
   public String table;
 
   @JsonProperty
-  @NotNull
+  @TypeScriptProperty
   public String name;
 
   @JsonIgnore
@@ -95,6 +96,12 @@ public class CreateAnalysisJsonCommand implements JsonCommand {
       throws RuntimeException {
     if (ticket == null)
       throw new RuntimeException("Not logged in.");
+
+    if (name == null || name.trim().equals(""))
+      throw new RuntimeException("Name required.");
+
+    if (table == null || table.trim().equals(""))
+      throw new RuntimeException("Table required.");
 
     UiAnalysis res =
         factory.createAnalysis(UUID.randomUUID().toString(), name, table, ticket.getClaim().getUsername(), 0L);

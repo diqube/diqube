@@ -20,9 +20,7 @@
  */
 package org.diqube.ui.websocket.result.analysis;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
-
+import org.diqube.build.mojo.TypeScriptProperty;
 import org.diqube.ui.analysis.UiSlice;
 import org.diqube.ui.websocket.result.JsonResult;
 import org.diqube.ui.websocket.result.JsonResultDataType;
@@ -34,17 +32,17 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  *
  * @author Bastian Gloeckle
  */
-@JsonResultDataType(SliceJsonResult.DATA_TYPE)
+@JsonResultDataType(SliceJsonResult.TYPE)
 public class SliceJsonResult implements JsonResult {
-  public static final String DATA_TYPE = "slice";
+  @TypeScriptProperty
+  public static final String TYPE = "slice";
 
   @JsonProperty
-  @NotNull
-  @Valid
+  @TypeScriptProperty
   private UiSlice slice;
 
   @JsonProperty
-  @NotNull
+  @TypeScriptProperty
   private long analysisVersion;
 
   // for tests only
