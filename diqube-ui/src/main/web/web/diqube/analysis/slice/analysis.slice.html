@@ -33,12 +33,12 @@
   </ul>
   <table class="table table-condensed" collapse="collapsed">
     <tbody>
-      <tr *ngFor="#dis of slice.sliceDisjunctions; #first=first" [class.slice-tr-show-and]="!first || slice.manualConjunction">
+      <tr *ngFor="#dis of slice.sliceDisjunctions; #i=index" [class.slice-tr-show-and]="i>0 || slice.manualConjunction">
         <td class="slice-disjunction-field" [attr.colspan]="dis.disjunctionValues.length">{{ dis.fieldName }}</td>
         <td class="slice-disjunction-value-td">
           <ul class="list-group slice-disjunction-value-list">
-            <li [class.slice-disjunction-value-first]="first"
-                [class.slice-disjunction-value-show-or]="!first"
+            <li [class.slice-disjunction-value-first]="i==0"
+                [class.slice-disjunction-value-show-or]="i>0"
                 class="list-group-item slice-disjunction-value" 
                 *ngFor="#val of dis.disjunctionValues">{{ val }}</li>
           </ul>

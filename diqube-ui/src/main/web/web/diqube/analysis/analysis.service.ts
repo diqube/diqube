@@ -131,7 +131,7 @@ export class AnalysisService {
       me.newestVersionOfAnalysis = undefined;
   
       var newestVersionPromise: Promise<void> = new Promise((resolveNewestVersion: (a: void)=>void, rejectNewestVersion: (reason: string)=>void) => {
-        if (version) {
+        if (version !== undefined) {
           // we do NOT load the newest version, but a specific one. Therefore: Check what the newest version is
           // to make it available correctly in me.newestVersionOfAnalysis.
           var data: remoteData.NewestAnalysisVersionJsonCommand = {
