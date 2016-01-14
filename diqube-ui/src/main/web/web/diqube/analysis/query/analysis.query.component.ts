@@ -26,11 +26,12 @@ import {AnalysisStateService} from "../state/analysis.state.service";
 import * as remoteData from "../../remote/remote";
 import * as analysisData from "../analysis";
 import {DiqubeUtil} from "../../util/diqube.util";
+import {AnalysisQueryBarchartComponent} from "./analysis.query.barchart.component";
 
 @Component({
   selector: "diqube-analysis-query",
   templateUrl: "diqube/analysis/query/analysis.query.html",
-  directives: [ FORM_DIRECTIVES ]
+  directives: [ FORM_DIRECTIVES, AnalysisQueryBarchartComponent ]
 })
 export class AnalysisQueryComponent implements OnInit {
 

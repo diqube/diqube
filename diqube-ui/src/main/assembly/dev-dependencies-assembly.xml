@@ -51,7 +51,7 @@
       <destName>web/lib/jquery.js</destName>
     </file>
     <file>
-      <source>bower_components/Chart.js/Chart.min.js</source>
+      <source>bower_components/Chart.js/Chart.js</source>
       <destName>web/lib/Chart.js</destName>
     </file>
     <file>

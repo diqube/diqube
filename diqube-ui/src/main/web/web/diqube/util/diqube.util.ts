@@ -20,7 +20,13 @@
 ///
 
 // set in index.html
-declare var globalContextPath: string; 
+declare var globalContextPath: string;
+
+// uuid library
+declare var uuid: any;
+
+// chart.js library
+declare var Chart: any;
 
 export class DiqubeUtil {
   /**
@@ -118,5 +124,19 @@ export class DiqubeUtil {
     
     // "unknown" objects?!
     return false;
+  }
+  
+  /**
+   * Generates and returns a new UUID.
+   */
+  public static newUuid(): string {
+    return uuid.v4();
+  }
+  
+  /**
+   * Create new "Chart" object from chart.js.
+   */
+  public static newChart(htmlElement: HTMLElement, configuration: any): any {
+    return new Chart(htmlElement, configuration);
   }
 }
