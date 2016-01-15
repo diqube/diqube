@@ -42,7 +42,7 @@
     <module>diqube-build-refresh-files-maven-plugin</module>
   </modules>
   
- <build>
+  <build>
     <plugins>
       <plugin>
         <groupId>com.mycila</groupId>
@@ -58,5 +58,27 @@
       </plugin>
     </plugins>
   </build>
+
+  <profiles>
+    <profile>
+      <id>generate-third-party</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>license-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>generate-license-overview</id>
+                <configuration>
+                  <skipAggregateAddThirdParty>true</skipAggregateAddThirdParty>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 
 </project>
