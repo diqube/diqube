@@ -10,6 +10,7 @@
         * RxJS, https://github.com/ReactiveX/RxJS
         * ReflectDecorators (inside angular-polyfills.js), https://github.com/rbuckton/ReflectDecorators
         * zone.js (inside angular-polyfills.js), https://github.com/angular/zone.js
+        * web-animations-js, https://github.com/web-animations/web-animations-js
 
     MIT License (html5boilerplate) [html5boilerplate-mit.txt]:
         * html5boilerplate, https://html5boilerplate.com
@@ -59,3 +60,10 @@
     
     MIT License (SystemJS) [systemjs-mit.txt]:
         * SystemJS, http://github.com/systemjs/systemjs
+    
+    BSD License (Polymer) [polymer-bsd.txt and polymer-patents.txt]:
+        * webcomponentsjs, https://github.com/webcomponents/webcomponentsjs
+        * Polymer, https://github.com/Polymer/polymer
+        * various "Iron" and "Paper" PolymerElements, https://github.com/PolymerElements
+        * Neon animation, https://github.com/PolymerElements/neon-animation
+        * Font Roboto, https://github.com/Polymer/font-roboto

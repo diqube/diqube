@@ -29,7 +29,32 @@
     <format>dir</format>
   </formats>
   <includeBaseDirectory>false</includeBaseDirectory>
+  <fileSets>
+    <fileSet>
+      <directory>bower_components</directory>
+      <includes>
+        <include>paper-*/*.html</include>
+        <include>iron-*/*.html</include>
+        <include>neon-animation/*.html</include>
+        <include>neon-animation/animations/*.html</include>
+        <include>font-roboto/*.html</include>
+        <include>polymer/polymer*</include>
+      </includes>
+      <excludes>
+        <exclude>**/index.html</exclude>
+      </excludes>
+      <outputDirectory>web/lib/polymer</outputDirectory>
+    </fileSet>
+  </fileSets>
   <files>
+    <file>
+      <source>bower_components/web-animations-js/web-animations-next-lite.min.js</source>
+      <destName>web/lib/polymer/web-animations-js/web-animations-next-lite.min.js</destName>
+    </file>
+    <file>
+      <source>bower_components/webcomponentsjs/webcomponents.js</source>
+      <destName>web/lib/webcomponents.js</destName>
+    </file>
     <file>
       <source>bower_components/html5-boilerplate/dist/css/main.css</source>
       <destName>web/lib/boilerplate-main.css</destName>

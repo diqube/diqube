@@ -11,6 +11,8 @@
     "bootstrap": "3.3.5",
     "font-awesome": "4.4.0",
     "Chart.js": "2.0.0-beta1",
-    "moment": "2.10.6"
+    "moment": "2.10.6",
+    "paper-elements": "git://github.com/PolymerElements/paper-elements.git#v1.0.7",
+    "iron-elements": "git://github.com/PolymerElements/iron-elements.git#v1.0.7"
   }
 }
