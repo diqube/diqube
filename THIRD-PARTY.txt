@@ -11,24 +11,21 @@ diqube source code.
         * Apache HttpClient (org.apache.httpcomponents:httpclient:4.4.1 - http://hc.apache.org/httpcomponents-client)
         * Apache HttpCore (org.apache.httpcomponents:httpcore:4.4.1 - http://hc.apache.org/httpcomponents-core-ga)
         * Apache Thrift (org.apache.thrift:libthrift:0.9.3 - http://thrift.apache.org)
-        * Bean Validation API (javax.validation:validation-api:1.1.0.Final - http://beanvalidation.org)
         * Byte Buddy (with dependencies) (net.bytebuddy:byte-buddy-dep:0.6.15 - http://bytebuddy.net/byte-buddy-dep)
         * Catalyst Buffer (io.atomix.catalyst:catalyst-buffer:1.0.0-rc4 - http://github.com/atomix/catalyst/catalyst-buffer)
         * Catalyst Common (io.atomix.catalyst:catalyst-common:1.0.0-rc4 - http://github.com/atomix/catalyst/catalyst-common)
         * Catalyst Serializer (io.atomix.catalyst:catalyst-serializer:1.0.0-rc4 - http://github.com/atomix/catalyst/catalyst-serializer)
         * Catalyst Transport (io.atomix.catalyst:catalyst-transport:1.0.0-rc4 - http://github.com/atomix/catalyst/catalyst-transport)
-        * ClassMate (com.fasterxml:classmate:1.1.0 - http://github.com/cowtowncoder/java-classmate)
         * Copycat Raft Client (io.atomix.copycat:copycat-client:1.0.0-beta4 - http://github.com/atomix/copycat/copycat-client)
         * Copycat Raft Protocol (io.atomix.copycat:copycat-protocol:1.0.0-beta4 - http://github.com/atomix/copycat/copycat-protocol)
         * Copycat Raft Server (io.atomix.copycat:copycat-server:1.0.0-beta4 - http://github.com/atomix/copycat/copycat-server)
         * FindBugs-jsr305 (com.google.code.findbugs:jsr305:3.0.0 - http://findbugs.sourceforge.net/)
         * Guava: Google Core Libraries for Java (com.google.guava:guava:18.0 - http://code.google.com/p/guava-libraries/guava)
-        * Hibernate Validator Engine (org.hibernate:hibernate-validator:5.2.2.Final - http://hibernate.org/validator/hibernate-validator)
         * HttpClient (org.apache.httpcomponents:httpclient:4.2.5 - http://hc.apache.org/httpcomponents-client)
-        * JBoss Logging 3 (org.jboss.logging:jboss-logging:3.2.1.Final - http://www.jboss.org)
         * JCommander (com.beust:jcommander:1.48 - http://beust.com/jcommander)
         * Jackson-annotations (com.fasterxml.jackson.core:jackson-annotations:2.6.0 - http://github.com/FasterXML/jackson)
         * Jackson-core (com.fasterxml.jackson.core:jackson-core:2.6.2 - https://github.com/FasterXML/jackson-core)
+        * Plexus Common Utilities (org.codehaus.plexus:plexus-utils:3.0.10 - http://plexus.codehaus.org/plexus-utils)
         * Spring AOP (org.springframework:spring-aop:4.1.6.RELEASE - https://github.com/spring-projects/spring-framework)
         * Spring Beans (org.springframework:spring-beans:4.1.6.RELEASE - https://github.com/spring-projects/spring-framework)
         * Spring Context (org.springframework:spring-context:4.1.6.RELEASE - https://github.com/spring-projects/spring-framework)
@@ -39,6 +36,7 @@ diqube source code.
         * jackson-databind (com.fasterxml.jackson.core:jackson-databind:2.6.2 - http://github.com/FasterXML/jackson)
         * javax.inject (javax.inject:javax.inject:1 - http://code.google.com/p/atinject/)
         * opencsv (com.opencsv:opencsv:3.3 - http://opencsv.sf.net)
+        * plexus-build-api (org.sonatype.plexus:plexus-build-api:0.0.7 - http://forge.sonatype.com/spice-parent/plexus-build-api/)
 
     BSD (ANTLR) [antlr-bsd.txt]:
         * ANTLR 4 Runtime (org.antlr:antlr4-runtime:4.5 - http://www.antlr.org)
@@ -56,10 +54,6 @@ diqube source code.
     Bouncy Castle Licence (MIT) [bouncycastle.txt]:
         * Bouncy Castle PKIX, CMS, EAC, TSP, PKCS, OCSP, CMP, and CRMF APIs (org.bouncycastle:bcpkix-jdk15on:1.52 - http://www.bouncycastle.org/java.html)
         * Bouncy Castle Provider (org.bouncycastle:bcprov-jdk15on:1.52 - http://www.bouncycastle.org/java.html)
-
-    GPLv2 with classpath exception [gpl-20-classpath.txt]:
-        * Expression Language 2.2 Implementation (org.glassfish.web:javax.el:2.2.4 - http://uel.java.net)
-        * Expression Language API 2.2 (javax.el:javax.el-api:2.2.4 - http://uel.java.net)
 
     LGPL [lgpl.txt]:
         * BeanShell (org.beanshell:bsh:2.0b4 - no url defined)
