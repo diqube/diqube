@@ -1,0 +1,61 @@
+<!--
+
+    diqube: Distributed Query Base.
+
+    Copyright (C) 2015 Bastian Gloeckle
+
+    This file is part of diqube.
+
+    diqube is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as
+    published by the Free Software Foundation, either version 3 of the
+    License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+-->
+<link rel="import" href="../../lib/polymer/polymer/polymer.html">
+<link rel="import" href="../../lib/polymer/paper-styles/color.html">
+<link rel="import" href="../../lib/polymer/iron-icon/iron-icon.html">
+<link rel="import" href="../../lib/polymer/iron-flex-layout/iron-flex-layout.html">
+
+<dom-module id="diqube-error">
+
+  <template>
+    <style>
+      :host {
+        color: var(--diqube-error-color, --paper-red-500);
+      }
+      .container {
+        @apply(--layout-horizontal);
+      }
+      .element {
+        @apply(--layout-self-center);
+      }
+      .content {
+        padding-left: 5px;
+        @apply(--diqube-error-content)
+      }
+    </style>
+  
+    <div class="container">
+      <iron-icon icon="icons:error-outline" class="element"></iron-icon>
+      <span class="element content">
+        <content></content>
+      </span>
+    </div>
+  </template>
+
+  <script>
+    Polymer({
+      is: "diqube-error"
+    });
+  </script>
+
+</dom-module>

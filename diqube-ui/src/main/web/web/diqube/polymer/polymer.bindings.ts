@@ -20,23 +20,38 @@
 ///
 
 import {Directive, ElementRef, Renderer, Self, forwardRef, Provider, Optional, Injector, Injectable, OnInit, Input} from "angular2/core";
-import {ControlValueAccessor, NgModel, NgControl, NG_VALUE_ACCESSOR} from "angular2/common";
+import {ControlValueAccessor, NgModel, NgControl, NG_VALUE_ACCESSOR, NgForm} from "angular2/common";
 
 const POLYMER_INPUT_VALUE_ACCESSOR = 
   new Provider(NG_VALUE_ACCESSOR, {useExisting: forwardRef(() => PolymerInputValueAccessor), multi: true});
+
+const POLYMER_CHECKBOX_VALUE_ACCESSOR = 
+  new Provider(NG_VALUE_ACCESSOR, {useExisting: forwardRef(() => PolymerCheckboxValueAccessor), multi: true});
 
 const POLYMER_DROPDOWN_VALUE_ACCESSOR = 
   new Provider(NG_VALUE_ACCESSOR, {useExisting: forwardRef(() => PolymerDropdownValueAccessor), multi: true});
 
 /**
+ * All polymer bindings.
+ */
+export const POLYMER_BINDINGS = [ 
+  forwardRef(() => PolymerInputValueAccessor), 
+  forwardRef(() => PolymerCheckboxValueAccessor), 
+  forwardRef(() => PolymerDropdownValueAccessor) ];
+
+/**
  * A ControlValueAccessor that binds to paper-input and paper-textarea. In addition to writing the values to the element,
  * this class also evaluates errors reported on the NgControl and displays them on the paper-input/paper-textarea.
+ * 
+ * In addition to the above, this directive manually identifies the <ENTER> keypress on a paper-input and submits the first
+ * parent form that is found (if any).
  */
 @Directive({
   selector: "paper-input[ngModel],paper-input[ngControl],paper-textarea[ngModel],paper-textarea[ngControl]",
   host: {
     "(input)": "onChange($event.target.value)", 
-    "(blur)": "onTouched()" 
+    "(blur)": "onTouched()",
+    "(keypress)": "onKeypress($event)"
   },
   // load POLYMER_VALUE_ACCESSOR into DI as soon as PolymerValueAccessor is loaded -> That will in turn register 
   // PolymerValueAccessor as an object belonging to NG_VALUE_ACCESSOR and will then transparently be found by ngModel
@@ -47,10 +62,18 @@ export class PolymerInputValueAccessor implements ControlValueAccessor, OnInit {
   private delegateOnChange = (_: any) => {};
   private delegateOnTouched = () => {};
   private cachedPolymerInjectable: PolymerInjectable = undefined;
+  private doAutomaticFormSubmit: boolean;
   
   @Input("errorMessages") public errorMessages: { [key: string]: string }; 
   
-  constructor(private _renderer: Renderer, private _elementRef: ElementRef, private injector: Injector) {}
+  constructor(private _renderer: Renderer, private _elementRef: ElementRef, private injector: Injector) {
+    var tagName: string = (<HTMLElement>_elementRef.nativeElement).tagName.toLowerCase();
+    if (tagName === "paper-input")
+      this.doAutomaticFormSubmit = true;
+    else
+      // no automatic submit in textareas!
+      this.doAutomaticFormSubmit = false;
+  }
 
   public ngOnInit(): any {
     this.adjustValidityState();
@@ -63,7 +86,7 @@ export class PolymerInputValueAccessor implements ControlValueAccessor, OnInit {
     else
       normalizedValue = value;
     
-    this._renderer.setElementAttribute(this._elementRef.nativeElement, "value", normalizedValue);
+    (<HTMLElement>this._elementRef.nativeElement).setAttribute("value", value);
   }
 
   public registerOnChange(fn: (_: any) => void): void { 
@@ -82,6 +105,18 @@ export class PolymerInputValueAccessor implements ControlValueAccessor, OnInit {
   private onTouched(newValue: any): void {
     this.delegateOnTouched();
     this.adjustValidityState();
+  }
+  
+  private onKeypress(event: KeyboardEvent): void {
+    if (this.doAutomaticFormSubmit) {
+      var keyCode = event.charCode || event.keyCode;
+      if (keyCode === 13) {
+        // <ENTER>
+        var form: NgForm = this.directiveInfo().ngForm;
+        if (form)
+          form.onSubmit();
+      }
+    }
   }
   
   private adjustValidityState(): void {
@@ -111,14 +146,14 @@ export class PolymerInputValueAccessor implements ControlValueAccessor, OnInit {
   
   private applyValidity(isValid: boolean): void {
     if (isValid)
-      this._renderer.setElementAttribute(this._elementRef.nativeElement, "invalid", undefined);
+      (<HTMLElement>this._elementRef.nativeElement).removeAttribute("invalid");
     else {
-      this._renderer.setElementAttribute(this._elementRef.nativeElement, "invalid", "true");
+     (<HTMLElement>this._elementRef.nativeElement).setAttribute("invalid", "true");
     }
   }
   
   private applyErrorMessage(error: string): void {
-    this._renderer.setElementAttribute(this._elementRef.nativeElement, "error-message", error);
+    (<HTMLElement>this._elementRef.nativeElement).setAttribute("error-message", error);
   }
   
   private directiveInfo(): PolymerInjectable {
@@ -134,7 +169,43 @@ export class PolymerInputValueAccessor implements ControlValueAccessor, OnInit {
  */
 @Injectable()
 class PolymerInjectable {
-  constructor(@Self() @Optional() public ngControl: NgControl) {} 
+  constructor(@Self() @Optional() public ngControl: NgControl, @Optional() public ngForm: NgForm) {} 
+}
+
+/**
+ * Analogous to PolymerInputValueAccessor, but for a paper-checkbox.
+ */
+@Directive({
+  selector: "paper-checkbox[ngModel],paper-checkbox[ngControl]",
+  host: {
+    "(iron-change)": "onChange($event.target.checked)"
+  },
+  bindings: [ POLYMER_CHECKBOX_VALUE_ACCESSOR ]
+})
+export class PolymerCheckboxValueAccessor implements ControlValueAccessor {
+  private delegateOnChange = (_: any) => {};
+  
+  constructor(private _renderer: Renderer, private _elementRef: ElementRef) {}
+  
+  public writeValue(value: any): void {
+    if (value)
+      (<HTMLElement>this._elementRef.nativeElement).setAttribute("checked", "true");
+    else
+      (<HTMLElement>this._elementRef.nativeElement).removeAttribute("checked");
+  }
+
+  public registerOnChange(fn: (_: any) => void): void { 
+    this.delegateOnChange = fn; 
+  }
+  
+  public registerOnTouched(fn: () => void): void {
+    // noop, cannot be touched. 
+  }
+  
+  private onChange(newValue: any): void {
+    this.delegateOnChange(newValue);
+  }
+  
 }
 
 
@@ -155,7 +226,7 @@ export class PolymerDropdownValueAccessor implements ControlValueAccessor {
   constructor(private _renderer: Renderer, private _elementRef: ElementRef) {}
   
   public writeValue(value: any): void {
-    this._renderer.setElementAttribute(this._elementRef.nativeElement, "selected", value);
+    (<HTMLElement>this._elementRef.nativeElement).setAttribute("selected", value);
   }
 
   public registerOnChange(fn: (_: any) => void): void { 

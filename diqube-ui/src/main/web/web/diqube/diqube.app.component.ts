@@ -20,7 +20,7 @@
 ///
 
 import {Component} from "angular2/core";
-import {RouteConfig, ROUTER_DIRECTIVES} from "angular2/router";
+import {Router, RouteConfig, ROUTER_DIRECTIVES} from "angular2/router";
 
 import {AboutComponent} from "./about/about.component";
 import {LoginComponent} from "./login/login.component";
@@ -44,9 +44,17 @@ import {LoginStateService} from "./login-state/login-state.service";
 ])
 export class DiqubeAppComponent { 
 
-  constructor(private loginStateService: LoginStateService) {}
+  constructor(private loginStateService: LoginStateService, private router: Router) {}
 
   public isLoggedIn(): boolean {
     return this.loginStateService.isTicketAvailable();
   }
+  
+  public navigateTo(target: string): void {
+    this.router.navigate([target]);
+  }
+  
+  public loggedInUsername(): string {
+    return this.loginStateService.username;
+  } 
 }

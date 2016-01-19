@@ -20,6 +20,7 @@
  */
 /* app css stylesheet */
 body {
+	background-color: rgb(245, 245, 245);
 	padding-top: 50px;
 }
 
@@ -65,7 +66,7 @@ textarea.diql-full {
 }
 
 .qube {
-	background-color: #BBBBBB;
+	background-color: rgb(225, 225, 225);
 	padding: 5px;
 	border-radius: 4px;
 }

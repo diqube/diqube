@@ -34,7 +34,9 @@
       <directory>bower_components</directory>
       <includes>
         <include>paper-*/*.html</include>
+        <include>paper-styles/classes/*.html</include>
         <include>iron-*/*.html</include>
+        <include>iron-flex-layout/classes/*.html</include>
         <include>neon-animation/*.html</include>
         <include>neon-animation/animations/*.html</include>
         <include>font-roboto/*.html</include>

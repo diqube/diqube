@@ -20,6 +20,33 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -->
+<paper-scroll-header-panel class="flex">
+  <paper-toolbar>
+    <paper-menu-button>
+      <paper-icon-button icon="menu" class="dropdown-trigger"></paper-icon-button>
+      <paper-menu class="dropdown-content" *ngIf="isLoggedIn()">
+        <paper-item (click)="navigateTo('/Analysis/Manage')">Analysis</paper-item>
+        <paper-item (click)="navigateTo('/Query')">Execute Query</paper-item>
+        <paper-item (click)="navigateTo('/About')">About</paper-item>
+      </paper-menu>
+      <paper-menu class="dropdown-content" *ngIf="!isLoggedIn()">
+        <paper-item (click)="navigateTo('/About')">About</paper-item>
+      </paper-menu>
+    </paper-menu-button>
+    <div class="title main-title">diqube</div>
+    <div class="flex">
+      <div class="vertical layout end">
+        <span *ngIf="isLoggedIn()" (click)="navigateTo('/Logout')"><span>{{ loggedInUsername() }}</span><i class="fa fa-sign-out" title="Logout"></i></span>
+        <span *ngIf="!isLoggedIn()" (click)="navigateTo('/Login')"><i class="fa fa-sign-in" title="Login"></i></span>
+      </div>
+    </div>
+  </paper-toolbar>
+  <div class="vertical layout main-content">
+    <!-- <router-outlet class="flex"></router-outlet>-->
+    <router-outlet></router-outlet>
+  </div>
+</paper-scroll-header-panel>
+<!-- 
 <nav class="navbar navbar-inverse navbar-fixed-top">
   <div class="container-fluid">
     <div class="navbar-header">
@@ -45,3 +72,4 @@
     <router-outlet></router-outlet>
   </div>
 </drag-control>
+-->

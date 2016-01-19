@@ -26,10 +26,12 @@ import {Router} from "angular2/router";
 import {TicketJsonResult, TicketJsonResultConstants, LoginJsonCommand, LoginJsonCommandConstants} from "../remote/remote";
 import {RemoteService} from "../remote/remote.service";
 import {LoginStateService} from "../login-state/login-state.service";
+import {POLYMER_BINDINGS} from "../polymer/polymer.bindings";
 
 @Component({
     selector: "diqube-login",
-    templateUrl: "diqube/login/login.html"
+    templateUrl: "diqube/login/login.html",
+    directives: [POLYMER_BINDINGS]
 })
 export class LoginComponent implements OnInit {
   private static DEFAULT_ROUTER_TARGET: string = "About";  
