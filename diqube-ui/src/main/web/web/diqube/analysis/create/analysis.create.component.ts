@@ -30,14 +30,15 @@ import {AnalysisService} from "../../analysis/analysis.service";
 import {AnalysisMainComponent} from "../analysis.main.component";
 import {NavigationStateService} from "../../navigation-state/navigation-state.service";
 import {DiqubeBaseNavigatableComponent} from "../../diqube.base.component";
+import {POLYMER_BINDINGS} from "../../polymer/polymer.bindings";
 
 @Component({
   selector: "diqube-analysis-create",
   templateUrl: "diqube/analysis/create/analysis.create.html",
-  directives: [ FORM_DIRECTIVES ]
+  directives: [ FORM_DIRECTIVES, POLYMER_BINDINGS ]
 })
 export class AnalysisCreateComponent extends DiqubeBaseNavigatableComponent {
-  public newAnalysis: { name: string; table: string } = { name: undefined, table: undefined };
+  public newAnalysis: { name: string; table: string } = { name: "", table: undefined };
   public nameControl: Control;
   public tableControl: Control;
   public formControlGroup: ControlGroup;

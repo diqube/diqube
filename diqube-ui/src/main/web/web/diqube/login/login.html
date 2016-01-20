@@ -32,6 +32,7 @@
         <paper-checkbox [(ngModel)]="login.setCookie">Stay logged in</paper-checkbox>
       </div>
       <div class="card-actions vertical layout end">
+        <paper-spinner-lite *ngIf="isLoggingIn" active></paper-spinner-lite>
         <paper-button (click)="executeLogin()" [attr.disabled]="isLoggingIn ? true : undefined">Login</paper-button>
       </div>
     </paper-card>

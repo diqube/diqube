@@ -36,7 +36,7 @@ import {DiqubeBaseNavigatableComponent} from "../../diqube.base.component";
 })
 export class AnalysisManageComponent extends DiqubeBaseNavigatableComponent implements OnInit {
   public allAnalysis: AnalysisRefJsonResult[] = [];
-  public reloading: boolean = false;
+  public loading: boolean = false;
   
   constructor(private remoteService: RemoteService, private router: Router, private loginStateService: LoginStateService,
               navigationStateService: NavigationStateService) {
@@ -50,15 +50,15 @@ export class AnalysisManageComponent extends DiqubeBaseNavigatableComponent impl
   public ngOnInit(): any {
     super.ngOnInit();
     
-    this.reloadAnalysis();
+    this.loadAnalysis();
   }
   
-  public reloadAnalysis(): void {
-    if (this.reloading)
+  private loadAnalysis(): void {
+    if (this.loading)
       return;
     
     this.allAnalysis = [];
-    this.reloading = true;
+    this.loading = true;
     var me: AnalysisManageComponent = this;
     this.remoteService.execute(ListAllAnalysisJsonCommandConstants.NAME, null, {
       data: (dataType: string, data: any) => {
@@ -68,10 +68,10 @@ export class AnalysisManageComponent extends DiqubeBaseNavigatableComponent impl
         return false;
       },
       exception: (msg: string) => {
-        me.reloading = false;
+        me.loading = false;
       },
       done: () => {
-        me.reloading = false;
+        me.loading = false;
       } 
     });
   }

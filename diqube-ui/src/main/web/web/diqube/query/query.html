@@ -29,6 +29,7 @@
     <div class="card-actions horizontal layout start">
       <paper-button (click)="execute()" [attr.disabled]="isExecuting ? true : undefined">Execute</paper-button>
       <paper-button (click)="cancel()" [attr.disabled]="isExecuting ? undefined : true">Cancel</paper-button>
+      <paper-spinner-lite *ngIf="isExecuting && !results && !stats" active></paper-spinner-lite>
     </div>
   </paper-material>
   
