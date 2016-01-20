@@ -27,11 +27,13 @@ import * as remoteData from "../../remote/remote";
 import * as analysisData from "../analysis";
 import {DiqubeUtil} from "../../util/diqube.util";
 import {AnalysisQueryBarchartComponent} from "./analysis.query.barchart.component";
+import {DiqubeTableComponent} from "../../table/diqube.table.component";
+import {POLYMER_BINDINGS} from "../../polymer/polymer.bindings";
 
 @Component({
   selector: "diqube-analysis-query",
   templateUrl: "diqube/analysis/query/analysis.query.html",
-  directives: [ FORM_DIRECTIVES, AnalysisQueryBarchartComponent ]
+  directives: [ FORM_DIRECTIVES, AnalysisQueryBarchartComponent, DiqubeTableComponent, POLYMER_BINDINGS ]
 })
 export class AnalysisQueryComponent implements OnInit {
 

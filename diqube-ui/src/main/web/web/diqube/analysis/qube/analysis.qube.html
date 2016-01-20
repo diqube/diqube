@@ -25,12 +25,12 @@
   
     <div *ngIf="normalMode" class="horizontal layout flex justified">
       <span class="qube-header-left paper-font-title">{{ qube.name }}</span>
-      <div class="qube-action-list horizontal layout">
-        <span class="qube-slice qube-action self-center">
+      <div class="qube-header-actions horizontal layout">
+        <span class="qube-slice qube-header-action self-center">
           <iron-icon icon="icons:donut-small"></iron-icon>&nbsp;{{ slice().name }}
         </span>
-        <paper-icon-button class="qube-action" (click)="switchToEditMode()" title="Edit mode" icon="icons:settings"></paper-icon-button>
-        <paper-icon-button class="qube-action" (click)="addQuery()" title="Add query" icon="icons:add"></paper-icon-button>
+        <paper-icon-button class="qube-header-action" (click)="switchToEditMode()" title="Edit mode" icon="icons:settings"></paper-icon-button>
+        <paper-icon-button class="qube-header-action" (click)="addQuery()" title="Add query" icon="icons:add"></paper-icon-button>
       </div>
     </div>
     
@@ -39,22 +39,22 @@
         
     <div *ngIf="editMode" class="edit-qube horizontal layout flex">
       <form (submit)="updateQube()" [ngFormModel]="formControlGroup" class="horizontal layout flex justified">
-        <paper-input label="Name" [(ngModel)]="qubeEdit.name" ngControl="nameControl"></paper-input>
+        <paper-input no-label-float="true" class="qube-name" placeholder="Name" [(ngModel)]="qubeEdit.name" ngControl="nameControl"></paper-input>
       
-        <div class="qube-action-list">
-          <paper-icon-button *ngIf="!working" class="qube-action" (click)="switchToRemoveMode()" title="Remove" icon="icons:delete"></paper-icon-button>
+        <div class="qube-header-actions">
+          <paper-icon-button *ngIf="!working" class="qube-header-action" (click)="switchToRemoveMode()" title="Remove" icon="icons:delete"></paper-icon-button>
 
-          <span class="qube-slice qube-action self-center">
-            <iron-icon icon="icons:donut-small"></iron-icon>&nbsp;
-            <paper-dropdown-menu label="Slice">
+          <span class="qube-slice qube-header-action self-center">
+            <iron-icon icon="icons:donut-small"></iron-icon>
+            <paper-dropdown-menu no-label-float="true">
               <paper-menu class="dropdown-content" attr-for-selected="value" polymerSelectable [(ngModel)]="qubeEdit.sliceId">
                 <paper-item *ngFor="#slice of analysis.slices" [value]="slice.id">{{ slice.name }}</paper-item>
               </paper-menu>
             </paper-dropdown-menu>
           </span>
           
-          <paper-icon-button *ngIf="!working" class="qube-action" (click)="switchToNormalMode()" title="Cancel" icon="icons:cancel"></paper-icon-button>
-          <paper-icon-button *ngIf="!working" class="qube-action" (click)="updateQube()" title="Save" icon="icons:save"></paper-icon-button>
+          <paper-icon-button *ngIf="!working" class="qube-header-action" (click)="switchToNormalMode()" title="Cancel" icon="icons:cancel"></paper-icon-button>
+          <paper-icon-button *ngIf="!working" class="qube-header-action" (click)="updateQube()" title="Save" icon="icons:save"></paper-icon-button>
           <paper-spinner-lite *ngIf="working" active></paper-spinner-lite>
         </div>
       </form>
@@ -62,7 +62,7 @@
   </div>
   
   <!-- qube display -->
-  <div class="query-container orizontal layout wrap" *ngIf="!removeMode">
+  <div class="query-container horizontal layout wrap" *ngIf="!removeMode">
     <div *ngFor="#query of qube.queries">
       <diqube-analysis-query [qube]="qube" [query]="query"></diqube-analysis-query>
     </div>

@@ -39,9 +39,9 @@
   <paper-fab icon="add" (click)="addQube()" class="fab" title="Add qube"></paper-fab>
   
   <div class="qube-container">
-    <div *ngFor="#qube of analysis?.qubes" class="qube-row vertical layout">
+    <p *ngFor="#qube of analysis?.qubes" class="qube-row vertical layout">
       <diqube-analysis-qube [analysis]="analysis" [qube]="qube"></diqube-analysis-qube>
-    </div>
+    </p>
   </div>
   
   <!-- <div class="slice-container">
