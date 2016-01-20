@@ -32,10 +32,6 @@ body {
   -webkit-font-smoothing: antialiased;  /* OS X subpixel AA bleed bug */
 }
 
-/*a {
-  text-decoration: none;
-}*/
-
 body, a {
   color: var(--paper-grey-900);
 }
@@ -77,20 +73,8 @@ diqube-analysis-manage {
   bottom: 30px;
 }
 
-.single-query-material-query {
-  padding: 10px;
-  background-color: var(--paper-card-background-color, --primary-background-color);
-}
-
-.single-query-material-results {
-  padding-left: 10px;
-  padding-right: 10px;
-  padding-bottom: 10px;
-  background-color: var(--paper-card-background-color, --primary-background-color);
-}
-
-.single-query-material-results-progress {
-  width: 100%;
+body /deep/ paper-button.warn-button {
+  background-color: var(--paper-deep-orange-400);
 }
 
 body /deep/ .main-title.title {
@@ -142,6 +126,39 @@ diqube-table table.mdl-data-table tbody td {
   --paper-progress-active-color: var(--paper-blue-300);
 }
 
+
+
+/* Single Query */
+
+.single-query-material-query {
+  padding: 10px;
+  background-color: var(--paper-card-background-color, --primary-background-color);
+}
+
+.single-query-material-results {
+  padding-left: 10px;
+  padding-right: 10px;
+  padding-bottom: 10px;
+  background-color: var(--paper-card-background-color, --primary-background-color);
+}
+
+.single-query-material-results-progress {
+  width: 100%;
+}
+
+
+
+/* Qube */
+
+body /deep/ .qube {
+  background-color: var(--paper-grey-300);
+  padding: 15px;
+}
+
+body /deep/ .remove-qube-material {
+  background-color: var(--primary-background-color);
+  padding-top: 5px;
+}
 
     </style>
   </template>

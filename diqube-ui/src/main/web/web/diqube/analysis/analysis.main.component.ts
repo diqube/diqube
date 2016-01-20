@@ -53,11 +53,10 @@ export class AnalysisMainComponent extends DiqubeBaseNavigatableComponent implem
   private paramAnalysisId: string;
   private paramAnalysisVersion: number;
   
-  public title: string = "";
   public error: string = "";
   
   constructor(private analysisService: AnalysisService, private routeParams: RouteParams, 
-              private loginStateService: LoginStateService, private router: Router, navigationStateService: NavigationStateService) {
+              private loginStateService: LoginStateService, private router: Router, private navigationStateService: NavigationStateService) {
     super(true, "Analysis", loginStateService, navigationStateService);
   }
   
@@ -88,10 +87,7 @@ export class AnalysisMainComponent extends DiqubeBaseNavigatableComponent implem
    */
   private loadNewAnalysisVersion(analysisVersion: string): void {
     this.paramAnalysisVersion = parseInt(analysisVersion);
-    
-    // as a temp title while loading the analysis.
-    this.title = this.paramAnalysisId;
-    
+
     var me: AnalysisMainComponent = this;
     this.analysisService.loadAnalysis(this.paramAnalysisId, this.paramAnalysisVersion).then((a: remoteData.UiAnalysis) => {
       me.loadAnalysis(a);
@@ -107,13 +103,16 @@ export class AnalysisMainComponent extends DiqubeBaseNavigatableComponent implem
   private loadAnalysis(analysis: remoteData.UiAnalysis): void {
     if (!analysis) {
       this.analysis = undefined;
-      this.title = this.paramAnalysisId;
       this.error = undefined;
+      this.navigationStateService.setCurrentTitle("Analysis " + this.analysis.id);
       return;
     }
     this.analysis = analysis;
-    this.title = analysis.name;
     this.error = undefined;
+    if (this.analysis.name)
+      this.navigationStateService.setCurrentTitle("Analysis " + this.analysis.name + " (" + this.analysis.table + ")");
+    else
+      this.navigationStateService.setCurrentTitle("Analysis " + this.analysis.id + " (" + this.analysis.table + ")");
   }
   
   public showNewerVersionWarning(): boolean {

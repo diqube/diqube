@@ -25,12 +25,12 @@
 <link rel="import" href="../../lib/polymer/iron-icon/iron-icon.html">
 <link rel="import" href="../../lib/polymer/iron-flex-layout/iron-flex-layout.html">
 
-<dom-module id="diqube-error">
+<dom-module id="diqube-warning">
 
   <template>
     <style>
       :host {
-        color: var(--diqube-error-color, --paper-red-500);
+        color: var(--diqube-warning-color, --paper-amber-600);
       }
       .container {
         @apply(--layout-horizontal);
@@ -40,12 +40,12 @@
       }
       .content {
         padding-left: 5px;
-        @apply(--diqube-error-content)
+        @apply(--diqube-warning-content)
       }
     </style>
   
     <div class="container">
-      <iron-icon icon="icons:error" class="element"></iron-icon>
+      <iron-icon icon="icons:warning" class="element"></iron-icon>
       <span class="element content">
         <content></content>
       </span>
@@ -54,7 +54,7 @@
 
   <script>
     Polymer({
-      is: "diqube-error"
+      is: "diqube-warning"
     });
   </script>
 

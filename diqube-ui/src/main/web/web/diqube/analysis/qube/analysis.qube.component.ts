@@ -26,11 +26,12 @@ import * as remoteData from "../../remote/remote";
 import * as analysisData from "../analysis";
 import {DiqubeUtil} from "../../util/diqube.util";
 import {AnalysisQueryComponent} from "../query/analysis.query.component";
+import {POLYMER_BINDINGS} from "../../polymer/polymer.bindings";
 
 @Component({
   selector: "diqube-analysis-qube",
   templateUrl: "diqube/analysis/qube/analysis.qube.html",
-  directives: [ FORM_DIRECTIVES, AnalysisQueryComponent ]
+  directives: [ FORM_DIRECTIVES, POLYMER_BINDINGS, AnalysisQueryComponent ]
 })
 export class AnalysisQubeComponent {
 
