@@ -27,23 +27,26 @@ import {RemoteService} from "../remote/remote.service";
 import * as remoteData from "../remote/remote";
 import {AnalysisMainComponent} from "./analysis.main.component";
 import {LoginStateService} from "../login-state/login-state.service";
+import {DiqubeBaseNavigatableComponent} from "../diqube.base.component";
 
 @Component({
   selector: "diqube-analysis-newest",
   template: "<div></div>",
 })
-export class AnalysisNewestComponent implements OnInit {
+export class AnalysisNewestComponent extends DiqubeBaseNavigatableComponent implements OnInit {
   public static ROUTE_PARAM_ANALYSIS_ID: string = "analysisId";  
   
-  constructor(private routeParams: RouteParams, private remoteService: RemoteService, private router: Router, private loginStateService: LoginStateService) {}
+  constructor(private routeParams: RouteParams, private remoteService: RemoteService, private router: Router, 
+              loginStateService: LoginStateService) {
+    super(true, undefined, loginStateService, undefined);
+  }
   
   public static navigate(router: Router, analysisId: string) {
     router.navigate([ "/Analysis/Newest", { analysisId: analysisId }]);
   }
   
   public ngOnInit(): any {
-    if (!this.loginStateService.isTicketAvailable())
-      this.loginStateService.loginAndReturnHere();
+    super.ngOnInit();
 
     var analysisId: string = this.routeParams.get(AnalysisNewestComponent.ROUTE_PARAM_ANALYSIS_ID); 
     var data: remoteData.NewestAnalysisVersionJsonCommand = {
@@ -77,11 +80,8 @@ export class AnalysisNewestComponent implements OnInit {
   { path: "/:" + AnalysisNewestComponent.ROUTE_PARAM_ANALYSIS_ID, name: "Newest", component: AnalysisNewestComponent },
   { path: "/:" + AnalysisMainComponent.ROUTE_PARAM_ANALYSIS_ID + "/:" + AnalysisMainComponent.ROUTE_PARAM_ANALYSIS_VERSION, name: "Main", component: AnalysisMainComponent }
 ])
-export class AnalysisRootComponent implements OnInit {
-  constructor(private loginStateService: LoginStateService) {}  
-  
-  public ngOnInit(): any {
-    if (!this.loginStateService.isTicketAvailable())
-      this.loginStateService.loginAndReturnHere();
-  }
+export class AnalysisRootComponent extends DiqubeBaseNavigatableComponent implements OnInit {
+  constructor(private loginStateService: LoginStateService) {
+    super(true, undefined, loginStateService, undefined);
+  }  
 }

@@ -19,22 +19,30 @@
 /// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ///
 
-import {Component, OnInit} from "angular2/core";
+import {Component} from "angular2/core";
 import {Router} from "angular2/router";
 import {StatsJsonResult, StatsJsonResultConstants, TableJsonResult, TableJsonResultConstants, PlainQueryJsonCommand, 
         PlainQueryJsonCommandConstants} from "../remote/remote";
 import {RemoteService} from "../remote/remote.service";
 import {LoginStateService} from "../login-state/login-state.service";
+import {NavigationStateService} from "../navigation-state/navigation-state.service";
 import {IterateMapSortedPipe, LimitToPipe} from "../util/diqube.pipes";
+import {DiqubeBaseNavigatableComponent} from "../diqube.base.component";
+import {POLYMER_BINDINGS} from "../polymer/polymer.bindings";
+import {DiqubeTableComponent} from "../table/diqube.table.component";
+import {DiqubeStatsComponent} from "../stats/diqube.stats.component";
 
 @Component({
   selector: "diqube-single-query",
   templateUrl: "diqube/query/query.html",
-  pipes: [ IterateMapSortedPipe, LimitToPipe ]
+  pipes: [ IterateMapSortedPipe, LimitToPipe ],
+  directives: [ POLYMER_BINDINGS, DiqubeTableComponent, DiqubeStatsComponent ]
 })
-export class QueryComponent implements OnInit {
+export class QueryComponent extends DiqubeBaseNavigatableComponent {
   private static DISPLAY_RESULTS = "results";
   private static DISPLAY_STATS = "stats";  
+  
+  public selectedResultTab: number = 0;
   
   public diql: string = "";
   public result: TableJsonResult = undefined;
@@ -42,19 +50,18 @@ export class QueryComponent implements OnInit {
   public exception: string = undefined;
   public isExecuting: boolean = false;
 
-  private displayResultsOrStats: string = undefined;
   private lastPercentComplete: number = -1;
   private lastRequestId: string = undefined;
   
-  constructor(private loginStateService: LoginStateService, private remoteService: RemoteService) {}
+  private statsRowsCache: Array<Array<any>> = undefined;
+  private statsColsCache: Array<any> = undefined;
+  
+  constructor(loginStateService: LoginStateService, private remoteService: RemoteService, navigationStateService: NavigationStateService) {
+    super(true, "Query", loginStateService, navigationStateService);
+  }
   
   public static navigate(router: Router) {
     router.navigate([ "/Query" ]);
-  }
-  
-  public ngOnInit(): any {
-    if (!this.loginStateService.isTicketAvailable())
-      this.loginStateService.loginAndReturnHere();
   }
   
   public execute(): void {
@@ -64,7 +71,7 @@ export class QueryComponent implements OnInit {
     this.result = undefined;
     this.stats = undefined;
     this.exception = undefined;
-    this.displayResultsOrStats = undefined;
+    this.selectedResultTab = 0;
     
     this.lastPercentComplete = -1;
     this.isExecuting = true;
@@ -78,12 +85,14 @@ export class QueryComponent implements OnInit {
           var tab: TableJsonResult = <TableJsonResult>data;
           if (tab.percentComplete > me.lastPercentComplete) {
             me.result = tab;
-            me.displayResultsOrStats = QueryComponent.DISPLAY_RESULTS;
             me.lastPercentComplete = tab.percentComplete;
           }
         } else if (dataType === StatsJsonResultConstants.TYPE) {
           var stats: StatsJsonResult = <StatsJsonResult>data;
           me.stats = stats;
+          // invalidate caches
+          me.statsRowsCache = undefined;
+          me.statsColsCache = undefined;
         }  
         return false;
       },
@@ -107,28 +116,8 @@ export class QueryComponent implements OnInit {
     this.result = null;
     this.exception = null;
     this.stats = null;
-    this.displayResultsOrStats = undefined;
 
     this.isExecuting = false;
   }
-  
-  public switchToDisplayResults(): void {
-    this.displayResultsOrStats = QueryComponent.DISPLAY_RESULTS;
-  }
-  
-  public switchToDisplayStats(): void {
-    this.displayResultsOrStats = QueryComponent.DISPLAY_STATS;
-  }
-  
-  public displayResults(): boolean {
-    return this.displayResultsOrStats == QueryComponent.DISPLAY_RESULTS;
-  }
-
-  public displayStats(): boolean {
-    return this.displayResultsOrStats == QueryComponent.DISPLAY_STATS;
-  }
-  
-  public displayAnything(): boolean {
-    return this.displayResultsOrStats !== undefined;
-  }
+ 
 }

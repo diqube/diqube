@@ -27,6 +27,7 @@ import {LoginComponent} from "./login/login.component";
 import {LogoutComponent} from "./logout/logout.component";
 import {QueryComponent} from "./query/query.component";
 import {AnalysisRootComponent} from "./analysis/analysis.root.component";
+import {NavigationStateService} from "./navigation-state/navigation-state.service";
 
 import {LoginStateService} from "./login-state/login-state.service";
 
@@ -44,7 +45,7 @@ import {LoginStateService} from "./login-state/login-state.service";
 ])
 export class DiqubeAppComponent { 
 
-  constructor(private loginStateService: LoginStateService, private router: Router) {}
+  constructor(private loginStateService: LoginStateService, private router: Router, private navigationStateService: NavigationStateService) {}
 
   public isLoggedIn(): boolean {
     return this.loginStateService.isTicketAvailable();
@@ -56,5 +57,9 @@ export class DiqubeAppComponent {
   
   public loggedInUsername(): string {
     return this.loginStateService.username;
-  } 
+  }
+  
+  public navigationTitle(): string {
+    return this.navigationStateService.currentTitle;
+  }
 }

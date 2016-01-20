@@ -83,22 +83,11 @@ diqube source code.
         * ReflectDecorators (inside angular-polyfills.js), https://github.com/rbuckton/ReflectDecorators
         * zone.js (inside angular-polyfills.js), https://github.com/angular/zone.js
         * web-animations-js, https://github.com/web-animations/web-animations-js
-
-    MIT License (html5boilerplate) [html5boilerplate-mit.txt]:
-        * html5boilerplate, https://html5boilerplate.com
-
-    MIT License (modernizr) [modernizr-mit.txt]:
-        * Modernizr, http://modernizr.com/
+        * Material Design Lite, http://www.getmdl.io/
 
     MIT License (node-uuid) [node-uuid-mit.txt]:
         * node-uuid, https://github.com/broofa/node-uuid
 
-    MIT License (normalize.css) [normalize-mit.txt]:
-        * normalize.css, https://github.com/necolas/normalize.css
-
-    MIT License (bootstrap) [bootstrap-mit.txt]:
-        * Bootstrap, http://getbootstrap.com
-    
     MIT License (es6-promise) [es6-promise-mit.txt]:
         * es6-promise (inside angular-polyfills.js), https://github.com/jakearchibald/es6-promise
 
@@ -120,9 +109,6 @@ diqube source code.
     
     SIL OFL 1.1 (font-awesome) [fontawesome-sil-ofl.txt]:
       * FontAwesome, font files, http://fontawesome.io/ and https://github.com/FortAwesome/Font-Awesome
-
-    MIT License (jQuery) [jquery-mit.txt]:
-      * jQuery, https://jquery.com/
 
     MIT License (Chart.js) [chartjs-mit.txt]:
         * Chart.js, http://www.chartjs.org/

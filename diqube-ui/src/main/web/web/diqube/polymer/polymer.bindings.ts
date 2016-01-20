@@ -28,8 +28,8 @@ const POLYMER_INPUT_VALUE_ACCESSOR =
 const POLYMER_CHECKBOX_VALUE_ACCESSOR = 
   new Provider(NG_VALUE_ACCESSOR, {useExisting: forwardRef(() => PolymerCheckboxValueAccessor), multi: true});
 
-const POLYMER_DROPDOWN_VALUE_ACCESSOR = 
-  new Provider(NG_VALUE_ACCESSOR, {useExisting: forwardRef(() => PolymerDropdownValueAccessor), multi: true});
+const POLYMER_SELECTABLE_VALUE_ACCESSOR = 
+  new Provider(NG_VALUE_ACCESSOR, {useExisting: forwardRef(() => PolymerSelectableValueAccessor), multi: true});
 
 /**
  * All polymer bindings.
@@ -37,7 +37,7 @@ const POLYMER_DROPDOWN_VALUE_ACCESSOR =
 export const POLYMER_BINDINGS = [ 
   forwardRef(() => PolymerInputValueAccessor), 
   forwardRef(() => PolymerCheckboxValueAccessor), 
-  forwardRef(() => PolymerDropdownValueAccessor) ];
+  forwardRef(() => PolymerSelectableValueAccessor) ];
 
 /**
  * A ControlValueAccessor that binds to paper-input and paper-textarea. In addition to writing the values to the element,
@@ -210,17 +210,18 @@ export class PolymerCheckboxValueAccessor implements ControlValueAccessor {
 
 
 /**
- * A ControlValueAccessor that binds to paper-input and paper-textarea. In addition to writing the values to the element,
- * this class also evaluates errors reported on the NgControl and displays them on the paper-input/paper-textarea.
+ * A ControlValueAccessor that binds to paper elements with a "selected" attribute and which fire the "iron-select" event on changes.
+ * 
+ * This is true for example for the paper-dropdown, but also for paper-tabs and iron-pages. 
  */
 @Directive({
-  selector: "[dropDownModel][ngModel]",
+  selector: "[polymerSelectable][ngModel]",
   host: {
     "(iron-select)": "onChange($event.target.selected)"
   },
-  bindings: [ POLYMER_DROPDOWN_VALUE_ACCESSOR ]
+  bindings: [ POLYMER_SELECTABLE_VALUE_ACCESSOR ]
 })
-export class PolymerDropdownValueAccessor implements ControlValueAccessor {
+export class PolymerSelectableValueAccessor implements ControlValueAccessor {
   private delegateOnChange = (_: any) => {};
   
   constructor(private _renderer: Renderer, private _elementRef: ElementRef) {}
@@ -242,3 +243,5 @@ export class PolymerDropdownValueAccessor implements ControlValueAccessor {
   }
   
 }
+
+

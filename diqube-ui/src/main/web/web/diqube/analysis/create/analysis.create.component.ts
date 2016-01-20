@@ -20,7 +20,7 @@
 ///
 
 
-import {Component, OnInit} from "angular2/core";
+import {Component} from "angular2/core";
 import {Router} from "angular2/router";
 import {Control, ControlGroup, FormBuilder, FORM_DIRECTIVES} from "angular2/common";
 import * as remoteData from "../../remote/remote";
@@ -28,13 +28,15 @@ import {RemoteService} from "../../remote/remote.service";
 import {LoginStateService} from "../../login-state/login-state.service";
 import {AnalysisService} from "../../analysis/analysis.service";
 import {AnalysisMainComponent} from "../analysis.main.component";
+import {NavigationStateService} from "../../navigation-state/navigation-state.service";
+import {DiqubeBaseNavigatableComponent} from "../../diqube.base.component";
 
 @Component({
   selector: "diqube-analysis-create",
   templateUrl: "diqube/analysis/create/analysis.create.html",
   directives: [ FORM_DIRECTIVES ]
 })
-export class AnalysisCreateComponent implements OnInit {
+export class AnalysisCreateComponent extends DiqubeBaseNavigatableComponent {
   public newAnalysis: { name: string; table: string } = { name: undefined, table: undefined };
   public nameControl: Control;
   public tableControl: Control;
@@ -46,7 +48,9 @@ export class AnalysisCreateComponent implements OnInit {
   private validTables:Array<string> = undefined;
   
   constructor(private remoteService: RemoteService, private loginStateService: LoginStateService, formBuilder: FormBuilder, 
-              private analysisService: AnalysisService, private router: Router) {
+              private analysisService: AnalysisService, private router: Router, navigationStateService: NavigationStateService) {
+    super(true, "Create analysis", loginStateService, navigationStateService);
+    
     this.nameControl = new Control("", AnalysisCreateComponent.nameValidator);
     this.tableControl = new Control("", (control: Control) => {
       return AnalysisCreateComponent.tableValidator(this, control);
@@ -60,11 +64,6 @@ export class AnalysisCreateComponent implements OnInit {
   
   public static navigate(router: Router) {
     router.navigate([ "/Analysis/Create" ]);
-  }
-  
-  public ngOnInit(): any {
-    if (!this.loginStateService.isTicketAvailable())
-      this.loginStateService.loginAndReturnHere();
   }
   
   public createAnalysis(): void {

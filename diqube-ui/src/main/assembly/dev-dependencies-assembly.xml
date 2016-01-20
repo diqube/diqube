@@ -35,6 +35,7 @@
       <includes>
         <include>paper-*/*.html</include>
         <include>paper-styles/classes/*.html</include>
+        <include>paper-menu/*-shared.css</include>
         <include>iron-*/*.html</include>
         <include>iron-flex-layout/classes/*.html</include>
         <include>neon-animation/*.html</include>
@@ -58,24 +59,16 @@
       <destName>web/lib/webcomponents.js</destName>
     </file>
     <file>
-      <source>bower_components/html5-boilerplate/dist/css/main.css</source>
-      <destName>web/lib/boilerplate-main.css</destName>
+      <source>bower_components/material-design-lite/material.css</source>
+      <destName>web/lib/mdl.css</destName>
     </file>
     <file>
-      <source>bower_components/html5-boilerplate/dist/css/normalize.css</source>
-      <destName>web/lib/normalize.css</destName>
-    </file>
-    <file>
-      <source>bower_components/html5-boilerplate/dist/js/vendor/modernizr-2.8.3.min.js</source>
-      <destName>web/lib/modernizr-2.8.3.min.js</destName>
+      <source>bower_components/material-design-lite/material.js</source>
+      <destName>web/lib/mdl.js</destName>
     </file>
     <file>
       <source>bower_components/node-uuid/uuid.js</source>
       <destName>web/lib/uuid.js</destName>
-    </file>
-    <file>
-      <source>bower_components/jquery/dist/jquery.min.js</source>
-      <destName>web/lib/jquery.js</destName>
     </file>
     <file>
       <source>bower_components/Chart.js/Chart.js</source>
@@ -84,10 +77,6 @@
     <file>
       <source>bower_components/moment/min/moment-with-locales.min.js</source>
       <destName>web/lib/moment-with-locales.js</destName>
-    </file>
-    <file>
-      <source>bower_components/bootstrap/dist/css/bootstrap.css</source>
-      <destName>web/lib/bootstrap.css</destName>
     </file>
     <file>
       <source>node_modules/angular2/bundles/angular2-polyfills.js</source>

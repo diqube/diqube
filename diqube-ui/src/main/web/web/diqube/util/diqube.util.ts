@@ -28,6 +28,9 @@ declare var uuid: any;
 // chart.js library
 declare var Chart: any;
 
+// mdl
+declare var componentHandler: any;
+
 export class DiqubeUtil {
   /**
    * Deep-copy an arbitrary object. 
@@ -138,5 +141,12 @@ export class DiqubeUtil {
    */
   public static newChart(htmlElement: HTMLElement, configuration: any): any {
     return new Chart(htmlElement, configuration);
+  }
+  
+  /**
+   * The "componentHandler" of Material Design Lite.
+   */
+  public static mdlComponentHandler(): any {
+    return componentHandler;
   }
 }

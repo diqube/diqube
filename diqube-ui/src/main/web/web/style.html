@@ -27,12 +27,29 @@
     <style is="custom-style">
     
 body {
-  background-color: rgb(245, 245, 245)
+  background-color: var(--paper-grey-50);
+  font-family: "Roboto", sans-serif;
+  -webkit-font-smoothing: antialiased;  /* OS X subpixel AA bleed bug */
+}
+
+/*a {
+  text-decoration: none;
+}*/
+
+body, a {
+  color: var(--paper-grey-900);
+}
+
+h1 {
+  @apply(--paper-font-title)
+}
+
+.font-muted {
+  color: var(--paper-grey-700);
 }
 
 .main-content {
-  padding-left: 10px;
-  padding-right: 10px;
+  padding: 10px;
   height: 100%;
 }
 
@@ -42,19 +59,76 @@ diqube-login {
   flex-direction: row;
 }
 
-body /deep/ .main-title.title {
-  margin-left: 0px !important;
+diqube-single-query {
+  display: flex;
+  flex: 1;
+  flex-direction: row;
 }
 
-/*.error {
-  color: var(--paper-red-500);
-}*/
+.single-query-material-query {
+  padding: 10px;
+  background-color: var(--paper-card-background-color, --primary-background-color);
+}
+
+.single-query-material-results {
+  padding-left: 10px;
+  padding-right: 10px;
+  padding-bottom: 10px;
+  background-color: var(--paper-card-background-color, --primary-background-color);
+}
+
+.single-query-material-results-progress {
+  width: 100%;
+}
+
+body /deep/ .main-title.title {
+  margin-left: 0px !important;
+  height: 25px;
+}
+
+body /deep/ iron-pages {
+  /* iron-pages seems to not forward our default font.. */
+  @apply(--paper-font-body1);
+}
+
+diqube-table {
+  @apply(--paper-font-body1);
+}
+
+diqube-table table.mdl-data-table {
+  width: 100%;
+  border: 0px;
+}
+
+diqube-table table.mdl-data-table thead th {
+  height: auto;
+  @apply(--paper-font-body2);
+  color: var(--paper-grey-900)
+}
+
+diqube-table table.mdl-data-table tbody tr {
+  height: 25px;
+}
+
+diqube-table table.mdl-data-table tbody td {
+  border-bottom: 0px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  height: auto;
+}
 
 :root {
   --paper-button-disabled: {
     background: transparent;
-  }
-} 
+  };
+  --paper-card-header-text: {
+    @apply(--paper-font-title)
+  };
+  --paper-toolbar-background: var(--paper-blue-900);
+  --paper-tabs-selection-bar-color: var(--paper-grey-600);
+  --paper-tab-ink: var(--paper-grey-400);
+  --paper-progress-active-color: var(--paper-blue-300);
+}
 
 
     </style>

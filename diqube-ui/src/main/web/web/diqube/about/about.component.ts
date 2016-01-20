@@ -24,17 +24,21 @@ import {Component} from "angular2/core";
 import {Router} from "angular2/router";
 import {RemoteService} from "../remote/remote.service";
 import {VersionJsonResult, VersionJsonResultConstants, VersionJsonCommandConstants} from "../remote/remote";
+import {NavigationStateService} from "../navigation-state/navigation-state.service";
+import {DiqubeBaseNavigatableComponent} from "../diqube.base.component";
 
 @Component({
     selector: "diqube-about",
     templateUrl: "diqube/about/about.html"
 })
-export class AboutComponent {
+export class AboutComponent extends DiqubeBaseNavigatableComponent {
   gitCommitLong: string;
   gitCommit: string;
   buildTimestamp: string;
   
-  constructor(remoteService: RemoteService) {
+  constructor(remoteService: RemoteService, navigationStateService: NavigationStateService) {
+    super(false, "About", undefined, navigationStateService);
+    
     var me: AboutComponent = this;
     remoteService.execute(VersionJsonCommandConstants.NAME, null, {
       data: (dataType: string, data: any) => {

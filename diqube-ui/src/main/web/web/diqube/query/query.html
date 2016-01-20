@@ -20,99 +20,36 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -->
-<h1 class="page-header">Query</h1>
-
-<span class="text-muted">Execute a single query.</span>
-
-<p><textarea [(ngModel)]="diql" rows="6" class="diql-full"> </textarea></p>
-<div class="execute-buttons">
-  <button class="btn btn-primary" (click)="execute()" [disabled]="isExecuting">Execute</button>
-  <button class="btn btn-primary" (click)="cancel()" [disabled]="!isExecuting">Cancel</button>
-
-  <div *ngIf="stats" class="btn-toolbar pull-right">
-    <div class="btn-group">
-      <button type="button" class="btn btn-default" (click)="switchToDisplayResults()">Results</button>
-      <button type="button" class="btn btn-default" (click)="switchToDisplayStats()">Statistics</button>
+<div class="flex layout vertical">
+  <paper-material elevation="1" class="single-query-material-query">
+    <div class="card-content">
+      <paper-textarea [(ngModel)]="diql" label="Query" rows="2"> </paper-textarea>
+      <p *ngIf="exception"><diqube-error>{{ exception }}</diqube-error></p>
     </div>
-  </div>
-</div>
-
-<div *ngIf="displayAnything()">
-  <span>
-    Progress: {{ result.percentComplete }}%
-  </span>
+    <div class="card-actions horizontal layout start">
+      <paper-button (click)="execute()" [attr.disabled]="isExecuting ? true : undefined">Execute</paper-button>
+      <paper-button (click)="cancel()" [attr.disabled]="isExecuting ? undefined : true">Cancel</paper-button>
+    </div>
+  </paper-material>
   
-  <table *ngIf="displayResults()" class="table table-striped">
-    <thead>
-      <tr>
-        <th *ngFor="#colName of result.columnNames">{{colName}}</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="#row of result.rows">
-        <td *ngFor="#col of row">{{col}}</td>
-      </tr>
-    </tbody>
-  </table>
+  <p></p>
   
-  <table *ngIf="displayStats()" class="table table-striped">
-    <thead>
-      <tr>
-        <th></th>
-        <th></th>
-        <th *ngFor="#nodeName of stats.nodeNames">{{nodeName}}</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td colspan="2">startedUntilDoneMs</td>
-        <td *ngFor="#val of stats.startedUntilDoneMs">{{val}}</td>
-      </tr>
-      <tr>
-        <td colspan="2">numberOfThreads</td>
-        <td *ngFor="#val of stats.numberOfThreads">{{val}}</td>
-      </tr>    
-      <tr>
-        <td colspan="2">numberOfTemporaryColumnShardsCreated</td>
-        <td *ngFor="#val of stats.numberOfTemporaryColumnShardsCreated">{{val}}</td>
-      </tr>    
-      <tr>
-        <td colspan="2">numberOfTemporaryColumnShardsFromCache</td>
-        <td *ngFor="#val of stats.numberOfTemporaryColumnShardsFromCache">{{val}}</td>
-      </tr>    
-      <tr>
-        <td colspan="2">numberOfPagesInTable</td>
-        <td *ngFor="#val of stats.numberOfPagesInTable">{{val}}</td>
-      </tr>    
-      <tr>
-        <td colspan="2">numberOfTemporaryPages</td>
-        <td *ngFor="#val of stats.numberOfTemporaryPages">{{val}}</td>
-      </tr>
-      <tr *ngFor="#item of (stats.numberOfPageAccesses | iterateMapSorted); #i = index">
-        <td [attr.rowspan]="(stats.numberOfPageAccesses | iterateMapSorted).length" *ngIf="i == 0">numberOfPageAccesses</td>
-        <td title="{{ item.key }}">{{item.key | limitTo: 100}}</td>
-        <td *ngFor="#val of item.value">{{val}}</td>
-      </tr>
-      <tr *ngFor="#item of (stats.numberOfTemporaryPageAccesses | iterateMapSorted); #i = index">
-        <td [attr.rowspan]="(stats.numberOfTemporaryPageAccesses | iterateMapSorted).length" *ngIf="i == 0">numberOfTemporaryPageAccesses</td>
-        <td title="{{ item.key }}">{{item.key | limitTo: 100}}</td>
-        <td *ngFor="#val of item.value">{{val}}</td>
-      </tr>
-      <tr *ngFor="#item of (stats.numberOfTemporaryVersionsPerColName | iterateMapSorted); #i = index">
-        <td [attr.rowspan]="(stats.numberOfTemporaryVersionsPerColName | iterateMapSorted).length" *ngIf="i == 0">numberOfTemporaryVersionsPerColName</td>
-        <td title="{{ item.key }}">{{item.key | limitTo: 100}}</td>
-        <td *ngFor="#val of item.value">{{val}}</td>
-      </tr>
-      <tr *ngFor="#item of (stats.stepsActiveMs | iterateMapSorted); #i = index">
-        <td [attr.rowspan]="(stats.stepsActiveMs | iterateMapSorted).length" *ngIf="i == 0">stepsActiveMs</td>
-        <td title="{{ item.key }}">{{item.key | limitTo: 100}}</td>
-        <td *ngFor="#val of item.value">{{val}}</td>
-      </tr>
-    </tbody>
-  </table>
-</div>
-
-<div *ngIf="exception" class="alert alert-danger">
-  <i class="fa fa-exclamation-circle"></i>
-  {{ exception }}
+  <paper-material elevation="1" class="single-query-material-results" *ngIf="results || stats">
+    <paper-progress *ngIf="result && result.percentComplete < 100" class="single-query-material-results-progress" 
+                    [attr.value]="result?.percentComplete"></paper-progress>
+    
+    <paper-tabs polymerSelectable [(ngModel)]="selectedResultTab">
+      <paper-tab *ngIf="result">Results</paper-tab>
+      <paper-tab *ngIf="stats">Statistics</paper-tab>
+    </paper-tabs>
+    
+    <iron-pages polymerSelectable [(ngModel)]="selectedResultTab">
+      <div *ngIf="result" style="padding-top: 10px" class="horizontal layout">
+        <diqube-table class="flex horizontal layout" [columns]="result.columnNames" [rows]="result.rows"></diqube-table>
+      </div>
+      <div *ngIf="stats" style="padding-top: 10px" class="horizontal layout">
+        <diqube-query-stats class="flex horizontal layout" [stats]="stats"></diqube-query-stats>
+      </div>
+    </iron-pages>
+  </paper-material>
 </div>

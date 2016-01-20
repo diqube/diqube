@@ -26,6 +26,8 @@ import * as remoteData from "../remote/remote";
 import {LoginStateService} from "../login-state/login-state.service";
 import {AnalysisQubeComponent} from "./qube/analysis.qube.component";
 import {AnalysisSlicesComponent} from "./slice/analysis.slices.component";
+import {NavigationStateService} from "../navigation-state/navigation-state.service";
+import {DiqubeBaseNavigatableComponent} from "../diqube.base.component";
 
 /**
  * Main component for displaying a specific version of an analysis.
@@ -43,7 +45,7 @@ import {AnalysisSlicesComponent} from "./slice/analysis.slices.component";
   templateUrl: "diqube/analysis/analysis.main.html",
   directives: [ ROUTER_DIRECTIVES, AnalysisQubeComponent, AnalysisSlicesComponent ]
 })
-export class AnalysisMainComponent implements OnInit, OnDestroy , CanReuse, OnReuse, AnalysisServiceRenavigator {
+export class AnalysisMainComponent extends DiqubeBaseNavigatableComponent implements OnInit, OnDestroy , CanReuse, OnReuse, AnalysisServiceRenavigator {
   public static ROUTE_PARAM_ANALYSIS_ID: string = "analysisId";
   public static ROUTE_PARAM_ANALYSIS_VERSION: string = "analysisVersion";
   
@@ -55,7 +57,9 @@ export class AnalysisMainComponent implements OnInit, OnDestroy , CanReuse, OnRe
   public error: string = "";
   
   constructor(private analysisService: AnalysisService, private routeParams: RouteParams, 
-              private loginStateService: LoginStateService, private router: Router) {}
+              private loginStateService: LoginStateService, private router: Router, navigationStateService: NavigationStateService) {
+    super(true, "Analysis", loginStateService, navigationStateService);
+  }
   
   public static navigate(router: Router, analysisId: string, analysisVersion: number) {
     router.navigate([ "/Analysis/Main", { analysisId: analysisId, analysisVersion: analysisVersion }]);
@@ -67,9 +71,8 @@ export class AnalysisMainComponent implements OnInit, OnDestroy , CanReuse, OnRe
   }
   
   public ngOnInit(): any {
-    if (!this.loginStateService.isTicketAvailable())
-      this.loginStateService.loginAndReturnHere();
-
+    super.ngOnInit();
+    
     this.analysisService.registerRenvaigator(this);
     this.paramAnalysisId = this.routeParams.get(AnalysisMainComponent.ROUTE_PARAM_ANALYSIS_ID);
     this.loadNewAnalysisVersion(this.routeParams.get(AnalysisMainComponent.ROUTE_PARAM_ANALYSIS_VERSION));

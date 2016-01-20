@@ -20,20 +20,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -->
-
-<div class="flex layout horizontal">
-  <form (ngSubmit)="executeLogin()" class="flex layout horizontal center-justified">
-    <paper-card heading="Login" class="self-center">
-      <div class="card-content vertical layout">
-        <diqube-error *ngIf="error">{{ error }}</diqube-error>
-        <paper-input label="Username" [(ngModel)]="login.username"></paper-input>
-        <paper-input label="Password" type="password" [(ngModel)]="login.password"></paper-input>
-        <p></p>
-        <paper-checkbox [(ngModel)]="login.setCookie">Stay logged in</paper-checkbox>
-      </div>
-      <div class="card-actions vertical layout end">
-        <paper-button (click)="executeLogin()" [attr.disabled]="isLoggingIn ? true : undefined">Login</paper-button>
-      </div>
-    </paper-card>
-  </form>
+<div class="flex layout vertical">
+  <diqube-table class="flex horizontal layout" [columns]="statsCols()" [rows]="statsRows()" 
+                colspanEmptyCols="true" rowspanCols="{{ [0] }}"></diqube-table>
 </div>
