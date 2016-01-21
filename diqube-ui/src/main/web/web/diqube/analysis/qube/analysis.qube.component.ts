@@ -33,7 +33,7 @@ import {POLYMER_BINDINGS} from "../../polymer/polymer.bindings";
   templateUrl: "diqube/analysis/qube/analysis.qube.html",
   directives: [ FORM_DIRECTIVES, POLYMER_BINDINGS, AnalysisQueryComponent ]
 })
-export class AnalysisQubeComponent {
+export class AnalysisQubeComponent implements OnInit {
 
   @Input("analysis") public analysis: remoteData.UiAnalysis = undefined;
   @Input("qube") public qube: remoteData.UiQube = undefined;
@@ -51,9 +51,21 @@ export class AnalysisQubeComponent {
   private sliceCache: remoteData.UiSlice = undefined;
   
   public working: boolean = false;
+  
+  public collapsed: boolean = true;
+  public transitioning: boolean = false;
+  
+  public addQueriesToDom: boolean = false;
 
   constructor(private analysisService: AnalysisService, private formBuilder: FormBuilder) {}
 
+  public ngOnInit(): any {
+    setTimeout(() => {
+      // open by default. We cannot initialize "this.collapsed" to true, since then the webcomponent will not trigger.
+      this.toggleCollapse();
+    });
+  }
+  
   /**
    * The UiSlice object corresponding to the slice this qube belongs to.
    */
@@ -138,6 +150,35 @@ export class AnalysisQubeComponent {
     if (!control.value || control.value.trim() === "") 
       return { "empty": true };
     return null;
+  }
+  
+  public toggleCollapse(): void {
+    if (this.collapsed) {
+      // we're about to switch to "open"
+      
+      // start adding the queries to the DOM which will trigger calculating the queries if we're about to toggle open.
+      this.addQueriesToDom = true;
+      
+      setTimeout(() => {
+        // in next tick, start opening: When opening, there should be inner DOM available, otherwise the collapse will not open correctly.
+        // (or start collapsing)
+        this.transitioning = true;
+        this.collapsed = !this.collapsed;
+      });
+    } else {
+      // we're about to switch to "closed"
+      
+      // transition directly, toggleDone() will remove the queries from the DOM.
+      this.transitioning = true;
+      this.collapsed = !this.collapsed;
+    }
+  }
+  
+  public toggleDone(): void {
+    this.transitioning = false;
+    
+    if (this.collapsed)
+      this.addQueriesToDom = false;
   }
   
 }

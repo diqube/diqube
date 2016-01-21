@@ -25,6 +25,11 @@
   
     <div *ngIf="normalMode" class="horizontal layout flex justified">
       <div class="horizontal layout">
+        <paper-icon-button *ngIf="!collapsed" class="qube-collapse" (click)="toggleCollapse()" title="Collapse" 
+                           icon="hardware:keyboard-arrow-down" [attr.disabled]="transitioning ? true : undefined"></paper-icon-button>
+        <paper-icon-button *ngIf="collapsed" class="qube-collapse" (click)="toggleCollapse()" title="Expand" 
+                           icon="hardware:keyboard-arrow-right" [attr.disabled]="transitioning ? true : undefined"></paper-icon-button>
+                           
         <span class="paper-font-title self-center">{{ qube.name }}</span>
       </div>
       <div class="qube-header-actions horizontal layout">
@@ -41,7 +46,14 @@
         
     <div *ngIf="editMode" class="edit-qube horizontal layout flex">
       <form (submit)="updateQube()" [ngFormModel]="formControlGroup" class="horizontal layout flex justified">
-        <paper-input no-label-float="true" class="qube-name" placeholder="Name" [(ngModel)]="qubeEdit.name" ngControl="nameControl"></paper-input>
+        <div class="horizontal layout">
+          <paper-icon-button *ngIf="!collapsed" class="qube-collapse" (click)="toggleCollapse()" title="Collapse" 
+                             icon="hardware:keyboard-arrow-down" [attr.disabled]="transitioning ? true : undefined"></paper-icon-button>
+          <paper-icon-button *ngIf="collapsed" class="qube-collapse" (click)="toggleCollapse()" title="Expand" 
+                             icon="hardware:keyboard-arrow-right" [attr.disabled]="transitioning ? true : undefined"></paper-icon-button>
+                             
+          <paper-input no-label-float="true" class="qube-name" placeholder="Name" [(ngModel)]="qubeEdit.name" ngControl="nameControl"></paper-input>
+        </div>
       
         <div class="qube-header-actions">
           <span class="qube-slice qube-header-action self-center">
@@ -63,11 +75,17 @@
   </div>
   
   <!-- qube display -->
-  <div class="query-container horizontal layout wrap" *ngIf="!removeMode">
-    <div *ngFor="#query of qube.queries">
-      <diqube-analysis-query [qube]="qube" [query]="query"></diqube-analysis-query>
+  <iron-collapse *ngIf="!removeMode" [attr.opened]="(collapsed) ? undefined : true" (transitionend)="toggleDone()">
+    <!-- Component implementation decides when the queries should actually be added to the DOM, which in turn will 
+         trigger executing the queries on the servers -->
+    <div class="query-container horizontal layout wrap" *ngIf="addQueriesToDom"> 
+      <div *ngFor="#query of qube.queries">
+        <diqube-analysis-query [qube]="qube" [query]="query"></diqube-analysis-query>
+      </div>
+      <!-- In case no queries are there, we need some content to trigger the toggleDone() correctly -->
+      <div *ngIf="!qube.queries.length">&nbsp;</div> 
     </div>
-  </div>
+  </iron-collapse>
   
   <!-- REMOVE MODE -->
   <div *ngIf="removeMode" class="remove-qube vertical layout flex justified">

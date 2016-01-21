@@ -178,6 +178,13 @@ body /deep/ .edit-qube .qube-name /deep/ input#input {
   @apply(--paper-font-title);
 }
 
+body /deep/ .qube /deep/ ::-webkit-scrollbar {
+  /** for webkit browser disable scrollbar, as that would otherwise be visible when the opening animation runs */
+  display: none;
+}
+
+
+
 /* Query */
 
 body /deep/ .query {
@@ -228,6 +235,7 @@ body /deep/ .slices {
   background-color: var(--paper-grey-300);
   padding-left: 10px;
   padding-right: 10px;
+  padding-bottom: 10px;
 }
 
 body /deep/ .slices-header-actions {
