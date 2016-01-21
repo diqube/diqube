@@ -20,46 +20,30 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -->
-<h1 class="page-header">{{title}} <small>{{analysis?.table}}</small></h1>
 
-<div *ngIf="error" class="alert alert-danger">
-  <i class="fa fa-exclamation-circle"></i>
-  {{ error }}
-</div>
+<diqube-error *ngIf="error">{{ error }}</diqube-error>
 
-<div *ngIf="showNewerVersionWarning()" class="alert alert-warning">
+<diqube-warning *ngIf="showNewerVersionWarning()">
   <b>Warning!</b> You are currently viewing an old version of this analysis. If you make any changes, that will then
   become the newest version and you might lose (or be unable to find) the currently newest version any more. 
-  <a [routerLink]="[ '/Analysis/Main', {analysisId: analysis.id, analysisVersion: newestVersionNumber() }]">Load the currently newest version 
-  ({{ newestVersionNumber() }}) now.</a>  
-</div>
+  <paper-button raised (click)="loadNewestVersion()">Load the currently newest version ({{ newestVersionNumber() }}) now.</paper-button>  
+</diqube-warning>
 
-<div *ngIf="showDifferentOwnerWarning()" class="alert alert-warning">
+<diqube-warning *ngIf="showDifferentOwnerWarning()">
   <b>Warning!</b> This analysis is owned by <b>{{ analysis.user }}</b>, which means you cannot adjust this analysis.
-  <a href (click)="cloneAndLoadCurrentAnalysis()">Clone this version of the analysis for your own user.</a> 
-</div>
+  <paper-button raised (click)="cloneAndLoadCurrentAnalysis()">Clone this version of the analysis for your own user.</paper-button> 
+</diqube-warning>
 
-<div *ngIf="!error" class="analysis-container">
-  <div class="container-fluid text-justify qube-container">
-    <button class="btn btn-default add-qube-btn" (click)="addQube()">
-      <i class="fa fa-plus add-action"></i> Add qube
-    </button>
-
-    <div *ngFor="#qube of analysis?.qubes" class="qube-row">
+<div *ngIf="!error" class="horizontal layout">
+  <paper-fab icon="add" (click)="addQube()" class="fab" title="Add qube"></paper-fab>
+  
+  <div class="qube-container flex">
+    <p *ngFor="#qube of analysis?.qubes" class="qube-row vertical layout">
       <diqube-analysis-qube [analysis]="analysis" [qube]="qube"></diqube-analysis-qube>
-    </div>
+    </p>
   </div>
   
-  <div class="slice-container">
-    <div class="panel panel-default">
-      <div class="panel-heading">
-        <span class="slice-container-heading-item"><i class="fa fa-pie-chart"></i> Slices</span>
-        <button class="btn btn-default slice-container-heading-item" (click)="addSlice()" title="Add slice">
-          <i class="fa fa-plus add-action"></i></button>
-      </div>
-      <div class="panel-body">
-        <diqube-analysis-slices [analysis]="analysis"></diqube-analysis-slices>
-      </div>
-    </div>
+  <div class="slice-container vertical layout">
+    <diqube-analysis-slices class="flex horizontal layout" [analysis]="analysis"></diqube-analysis-slices>
   </div>
 </div>

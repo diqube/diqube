@@ -26,6 +26,8 @@ import * as remoteData from "../remote/remote";
 import {LoginStateService} from "../login-state/login-state.service";
 import {AnalysisQubeComponent} from "./qube/analysis.qube.component";
 import {AnalysisSlicesComponent} from "./slice/analysis.slices.component";
+import {NavigationStateService} from "../navigation-state/navigation-state.service";
+import {DiqubeBaseNavigatableComponent} from "../diqube.base.component";
 
 /**
  * Main component for displaying a specific version of an analysis.
@@ -43,7 +45,7 @@ import {AnalysisSlicesComponent} from "./slice/analysis.slices.component";
   templateUrl: "diqube/analysis/analysis.main.html",
   directives: [ ROUTER_DIRECTIVES, AnalysisQubeComponent, AnalysisSlicesComponent ]
 })
-export class AnalysisMainComponent implements OnInit, OnDestroy , CanReuse, OnReuse, AnalysisServiceRenavigator {
+export class AnalysisMainComponent extends DiqubeBaseNavigatableComponent implements OnInit, OnDestroy , CanReuse, OnReuse, AnalysisServiceRenavigator {
   public static ROUTE_PARAM_ANALYSIS_ID: string = "analysisId";
   public static ROUTE_PARAM_ANALYSIS_VERSION: string = "analysisVersion";
   
@@ -51,11 +53,12 @@ export class AnalysisMainComponent implements OnInit, OnDestroy , CanReuse, OnRe
   private paramAnalysisId: string;
   private paramAnalysisVersion: number;
   
-  public title: string = "";
   public error: string = "";
   
   constructor(private analysisService: AnalysisService, private routeParams: RouteParams, 
-              private loginStateService: LoginStateService, private router: Router) {}
+              private loginStateService: LoginStateService, private router: Router, private navigationStateService: NavigationStateService) {
+    super(true, "Analysis", loginStateService, navigationStateService);
+  }
   
   public static navigate(router: Router, analysisId: string, analysisVersion: number) {
     router.navigate([ "/Analysis/Main", { analysisId: analysisId, analysisVersion: analysisVersion }]);
@@ -67,9 +70,8 @@ export class AnalysisMainComponent implements OnInit, OnDestroy , CanReuse, OnRe
   }
   
   public ngOnInit(): any {
-    if (!this.loginStateService.isTicketAvailable())
-      this.loginStateService.loginAndReturnHere();
-
+    super.ngOnInit();
+    
     this.analysisService.registerRenvaigator(this);
     this.paramAnalysisId = this.routeParams.get(AnalysisMainComponent.ROUTE_PARAM_ANALYSIS_ID);
     this.loadNewAnalysisVersion(this.routeParams.get(AnalysisMainComponent.ROUTE_PARAM_ANALYSIS_VERSION));
@@ -85,10 +87,7 @@ export class AnalysisMainComponent implements OnInit, OnDestroy , CanReuse, OnRe
    */
   private loadNewAnalysisVersion(analysisVersion: string): void {
     this.paramAnalysisVersion = parseInt(analysisVersion);
-    
-    // as a temp title while loading the analysis.
-    this.title = this.paramAnalysisId;
-    
+
     var me: AnalysisMainComponent = this;
     this.analysisService.loadAnalysis(this.paramAnalysisId, this.paramAnalysisVersion).then((a: remoteData.UiAnalysis) => {
       me.loadAnalysis(a);
@@ -104,13 +103,16 @@ export class AnalysisMainComponent implements OnInit, OnDestroy , CanReuse, OnRe
   private loadAnalysis(analysis: remoteData.UiAnalysis): void {
     if (!analysis) {
       this.analysis = undefined;
-      this.title = this.paramAnalysisId;
       this.error = undefined;
+      this.navigationStateService.setCurrentTitle("Analysis " + this.paramAnalysisId);
       return;
     }
     this.analysis = analysis;
-    this.title = analysis.name;
     this.error = undefined;
+    if (this.analysis.name)
+      this.navigationStateService.setCurrentTitle("Analysis " + this.analysis.name + " (" + this.analysis.table + ")");
+    else
+      this.navigationStateService.setCurrentTitle("Analysis " + this.analysis.id + " (" + this.analysis.table + ")");
   }
   
   public showNewerVersionWarning(): boolean {
@@ -150,12 +152,12 @@ export class AnalysisMainComponent implements OnInit, OnDestroy , CanReuse, OnRe
     });
   }
   
-  public addSlice(): void {
-    this.analysisService.addSlice("New slice", "", []);
-  }
-  
   public cloneAndLoadCurrentAnalysis(): void {
     this.analysisService.cloneAndLoadCurrentAnalysis();
+  }
+  
+  public loadNewestVersion(): void {
+    AnalysisMainComponent.navigate(this.router, this.analysis.id, this.newestVersionNumber());
   }
  
   

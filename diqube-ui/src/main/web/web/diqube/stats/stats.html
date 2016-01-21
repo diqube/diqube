@@ -20,17 +20,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -->
-<div class="flex" class="slices vertical layout">
-  <div class="horizontal layout justified">
-    <div class="horizontal layout">
-      <span class="paper-font-title self-center">Slices</span>
-    </div>
-    <div class="slices-header-actions">
-      <paper-icon-button class="slices-header-action" (click)="addSlice()" title="Add slice" icon="icons:add"></paper-icon-button>
-    </div>
-  </div>
-  
-  <div class="paper-font-body1 vertical layout">
-    <diqube-analysis-slice *ngFor="#slice of analysis?.slices; #i=index, #l=last" [slice]="slice"></diqube-analysis-slice>
-  </div>
+<div class="flex layout vertical">
+  <diqube-table class="flex horizontal layout" [columns]="statsCols()" [rows]="statsRows()" 
+                colspanEmptyCols="true" rowspanCols="{{ [0] }}"></diqube-table>
 </div>

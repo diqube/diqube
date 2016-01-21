@@ -27,34 +27,38 @@ import {RemoteService} from "../../remote/remote.service";
 import {LoginStateService} from "../../login-state/login-state.service";
 import {AnalysisCreateComponent} from "../create/analysis.create.component";
 import {AnalysisNewestComponent} from "../analysis.root.component";
+import {NavigationStateService} from "../../navigation-state/navigation-state.service";
+import {DiqubeBaseNavigatableComponent} from "../../diqube.base.component";
 
 @Component({
     selector: "diqube-analysis-manage",
     templateUrl: "diqube/analysis/manage/analysis.manage.html"
 })
-export class AnalysisManageComponent implements OnInit {
+export class AnalysisManageComponent extends DiqubeBaseNavigatableComponent implements OnInit {
   public allAnalysis: AnalysisRefJsonResult[] = [];
-  public reloading: boolean = false;
+  public loading: boolean = false;
   
-  constructor(private remoteService: RemoteService, private router: Router, private loginStateService: LoginStateService) { }
+  constructor(private remoteService: RemoteService, private router: Router, private loginStateService: LoginStateService,
+              navigationStateService: NavigationStateService) {
+    super(true, "Manage analysis", loginStateService, navigationStateService);
+  }
   
   public static navigate(router: Router) {
     router.navigate([ "/Analysis/Manage" ]);
   }
   
   public ngOnInit(): any {
-    if (!this.loginStateService.isTicketAvailable())
-      this.loginStateService.loginAndReturnHere();
+    super.ngOnInit();
     
-    this.reloadAnalysis();
+    this.loadAnalysis();
   }
   
-  public reloadAnalysis(): void {
-    if (this.reloading)
+  private loadAnalysis(): void {
+    if (this.loading)
       return;
     
     this.allAnalysis = [];
-    this.reloading = true;
+    this.loading = true;
     var me: AnalysisManageComponent = this;
     this.remoteService.execute(ListAllAnalysisJsonCommandConstants.NAME, null, {
       data: (dataType: string, data: any) => {
@@ -64,10 +68,10 @@ export class AnalysisManageComponent implements OnInit {
         return false;
       },
       exception: (msg: string) => {
-        me.reloading = false;
+        me.loading = false;
       },
       done: () => {
-        me.reloading = false;
+        me.loading = false;
       } 
     });
   }

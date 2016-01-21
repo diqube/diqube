@@ -20,67 +20,82 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -->
-<div class="qube">
-  <div class="qube-header">
+<div class="qube vertical layout">
+  <div class="qube-header horizontal layout">
   
-    <span *ngIf="normalMode" class="qube-header-left">{{ qube.name }}</span>
-    <div class="qube-action-list" *ngIf="normalMode">
-      <span class="qube-slice qube-action">
-        <i class="fa fa-pie-chart"></i>&nbsp;{{ slice().name }}
-      </span>
-      <a class="qube-action" title="Edit mode" (click)="switchToEditMode()"><i class="fa fa-gears"></i></a>
-      <button class="btn btn-default qube-action" (click)="addQuery()" title="Add query">
-        <i class="fa fa-plus add-action"></i></button>
+    <div *ngIf="normalMode" class="horizontal layout flex justified">
+      <div class="horizontal layout">
+        <paper-icon-button *ngIf="!collapsed" class="qube-collapse" (click)="toggleCollapse()" title="Collapse" 
+                           icon="hardware:keyboard-arrow-down" [attr.disabled]="transitioning ? true : undefined"></paper-icon-button>
+        <paper-icon-button *ngIf="collapsed" class="qube-collapse" (click)="toggleCollapse()" title="Expand" 
+                           icon="hardware:keyboard-arrow-right" [attr.disabled]="transitioning ? true : undefined"></paper-icon-button>
+                           
+        <span class="paper-font-title self-center">{{ qube.name }}</span>
+      </div>
+      <div class="qube-header-actions horizontal layout">
+        <span class="qube-slice qube-header-action self-center">
+          <iron-icon icon="icons:donut-small"></iron-icon>&nbsp;{{ slice().name }}
+        </span>
+        <paper-icon-button class="qube-header-action" (click)="switchToEditMode()" title="Edit mode" icon="icons:settings"></paper-icon-button>
+        <paper-icon-button class="qube-header-action" (click)="addQuery()" title="Add query" icon="icons:add"></paper-icon-button>
+      </div>
     </div>
     
     
     <!-- EDIT MODE -->
         
-    <div *ngIf="editMode" class="edit-qube">
-      <form class="simple-form" (submit)="updateQube()" [ngFormModel]="formControlGroup">
-        <div [class.has-succes]="nameControl.dirty && nameControl.valid"
-             [class.has-error]="nameControl.dirty && !nameControl.valid"
-             class="qube-header-left has-feedback form-group">
-          <input type="text" class="form-control" id="inputName"
-            placeholder="Name of qube" [(ngModel)]="qubeEdit.name" 
-            ngControl="nameControl">
-          <span *ngIf="nameControl.dirty && nameControl.valid" class="fa fa-check form-control-feedback"></span>
-          <span *ngIf="nameControl.dirty && !nameControl.valid" class="fa fa-exclamation-triangle form-control-feedback"></span>
+    <div *ngIf="editMode" class="edit-qube horizontal layout flex">
+      <form (submit)="updateQube()" [ngFormModel]="formControlGroup" class="horizontal layout flex justified">
+        <div class="horizontal layout">
+          <paper-icon-button *ngIf="!collapsed" class="qube-collapse" (click)="toggleCollapse()" title="Collapse" 
+                             icon="hardware:keyboard-arrow-down" [attr.disabled]="transitioning ? true : undefined"></paper-icon-button>
+          <paper-icon-button *ngIf="collapsed" class="qube-collapse" (click)="toggleCollapse()" title="Expand" 
+                             icon="hardware:keyboard-arrow-right" [attr.disabled]="transitioning ? true : undefined"></paper-icon-button>
+                             
+          <paper-input no-label-float="true" class="qube-name" placeholder="Name" [(ngModel)]="qubeEdit.name" ngControl="nameControl"></paper-input>
         </div>
-        <div class="qube-action-list">
-          <a *ngIf="!working" class="qube-action" title="Remove qube" (click)="switchToRemoveMode()"><i class="fa fa-minus remove-action"></i></a>
-
-          <span class="qube-action">
-            <i class="fa fa-pie-chart"></i>
-            <select [(ngModel)]="qubeEdit.sliceId" class="qube-action form-control">
-              <option *ngFor="#slice of analysis.slices" [value]="slice.id">{{ slice.name }}</option>
-            </select>
+      
+        <div class="qube-header-actions">
+          <span class="qube-slice qube-header-action self-center">
+            <iron-icon icon="icons:donut-small"></iron-icon>
+            <paper-dropdown-menu no-label-float="true">
+              <paper-menu class="dropdown-content" attr-for-selected="value" polymerSelectable [(ngModel)]="qubeEdit.sliceId">
+                <paper-item *ngFor="#slice of analysis.slices" [value]="slice.id">{{ slice.name }}</paper-item>
+              </paper-menu>
+            </paper-dropdown-menu>
           </span>
           
-          <a *ngIf="!working" class="qube-action" title="Cancel edit" (click)="switchToNormalMode()"><i class="fa fa-close"></i></a>
-          <a *ngIf="!working" class="qube-action" title="Save" (click)="updateQube()"><i class="fa fa-floppy-o"></i></a>
-          <i *ngIf="working" class="qube-action fa fa-spinner fa-spin"></i>
+          <paper-icon-button *ngIf="!working" class="qube-header-action" (click)="switchToRemoveMode()" title="Remove" icon="icons:delete"></paper-icon-button>
+          <paper-icon-button *ngIf="!working" class="qube-header-action" (click)="switchToNormalMode()" title="Cancel" icon="icons:cancel"></paper-icon-button>
+          <paper-icon-button *ngIf="!working" class="qube-header-action" (click)="updateQube()" title="Save" icon="icons:save"></paper-icon-button>
+          <paper-spinner-lite *ngIf="working" active></paper-spinner-lite>
         </div>
       </form>
     </div>
   </div>
   
   <!-- qube display -->
-  <div class="query-container" *ngIf="!removeMode">
-    <div *ngFor="#query of qube.queries">
-      <diqube-analysis-query [qube]="qube" [query]="query"></diqube-analysis-query>
+  <iron-collapse *ngIf="!removeMode" [attr.opened]="(collapsed) ? undefined : true" (transitionend)="toggleDone()">
+    <!-- Component implementation decides when the queries should actually be added to the DOM, which in turn will 
+         trigger executing the queries on the servers -->
+    <div class="query-container horizontal layout wrap" *ngIf="addQueriesToDom"> 
+      <div *ngFor="#query of qube.queries">
+        <diqube-analysis-query [qube]="qube" [query]="query"></diqube-analysis-query>
+      </div>
+      <!-- In case no queries are there, we need some content to trigger the toggleDone() correctly -->
+      <div *ngIf="!qube.queries.length">&nbsp;</div> 
     </div>
-  </div>
+  </iron-collapse>
   
   <!-- REMOVE MODE -->
-  <div *ngIf="removeMode" class="remove-qube">
-    <div class="qube-header">
-      <span class="qube-header-left">{{ qube.name }}</span>
-    </div>
-    <p>Are you sure you want to remove this qube?</p>
-    <p>
-      <button class="btn btn-default" (click)="switchToNormalMode()">Cancel</button>
-      <button class="btn btn-danger" (click)="removeQube()">Yes, remove.</button>
-    </p>
+  <div *ngIf="removeMode" class="remove-qube vertical layout flex justified">
+    <span class="qube-header-left paper-font-title">{{ qube.name }}</span>
+    <paper-material elevation="1" class="flex vertical layout remove-qube-material">
+      <p class="self-center">Are you sure you want to remove this qube?</p>
+      <p class="self-center">
+        <paper-button raised (click)="switchToNormalMode()">Cancel</paper-button>
+        <paper-button raised class="warn-button" (click)="removeQube()">Yes, remove.</paper-button>
+      </p>
+    </paper-material>
   </div>
 </div>

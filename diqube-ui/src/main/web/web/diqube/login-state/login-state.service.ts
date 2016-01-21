@@ -26,7 +26,7 @@ import {DiqubeUtil} from "../util/diqube.util";
 
 @Injectable()
 export class LoginStateService {
-  private static DEFAULT_ROUTER_TARGET_AFTER_LOGIN: string = "About";  
+  public static DEFAULT_ROUTER_TARGET_AFTER_LOGIN: string = "/Analysis";  
   
   private static TICKET_COOKIE: string = "DiqubeTicket";
   private static USERNAME_COOKIE: string = "DiqubeUser";  

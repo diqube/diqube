@@ -1,0 +1,361 @@
+<!--
+
+    diqube: Distributed Query Base.
+
+    Copyright (C) 2015 Bastian Gloeckle
+
+    This file is part of diqube.
+
+    diqube is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as
+    published by the Free Software Foundation, either version 3 of the
+    License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+-->
+<link rel="import" href="lib/polymer/polymer/polymer.html">
+
+<dom-module id="diqube-styles">
+  <template>
+    <style is="custom-style">
+    
+body {
+  background-color: var(--paper-grey-50);
+  font-family: "Roboto", sans-serif;
+  -webkit-font-smoothing: antialiased;  /* OS X subpixel AA bleed bug */
+}
+
+body, a {
+  color: var(--paper-grey-900);
+}
+
+h1 {
+  @apply(--paper-font-title)
+}
+
+.font-muted {
+  color: var(--paper-grey-700);
+}
+
+.main-content {
+  padding: 10px;
+  /*height: 100%;*/
+}
+
+diqube-login {
+  display: flex;
+  flex: 1;
+  flex-direction: row;
+}
+
+diqube-single-query {
+  display: flex;
+  flex: 1;
+  flex-direction: row;
+}
+
+diqube-analysis-manage {
+  display: flex;
+  flex: 1;
+  flex-direction: row;
+}
+
+.fab {
+  position: fixed;
+  right: 30px;
+  bottom: 30px;
+  z-index: 100;
+}
+
+body /deep/ paper-button.warn-button {
+  background-color: var(--paper-deep-orange-400);
+}
+
+body /deep/ .main-title.title {
+  margin-left: 0px !important;
+  height: 25px;
+}
+
+body /deep/ iron-pages {
+  /* iron-pages seems to not forward our default font.. */
+  @apply(--paper-font-body1);
+}
+
+diqube-table {
+  @apply(--paper-font-body1);
+}
+
+diqube-table table.mdl-data-table {
+  width: 100%;
+  border: 0px;
+}
+
+diqube-table table.mdl-data-table thead th {
+  height: auto;
+  @apply(--paper-font-body2);
+  color: var(--paper-grey-900)
+}
+
+diqube-table table.mdl-data-table tbody tr {
+  height: 25px;
+}
+
+diqube-table table.mdl-data-table tbody td {
+  border-bottom: 0px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  height: auto;
+}
+
+:root {
+  --paper-button-disabled: {
+    background: transparent;
+  };
+  --paper-card-header-text: {
+    @apply(--paper-font-title)
+  };
+  --paper-toolbar-background: var(--paper-blue-900);
+  --paper-tabs-selection-bar-color: var(--paper-grey-600);
+  --paper-tab-ink: var(--paper-grey-400);
+  --paper-progress-active-color: var(--paper-blue-300);
+}
+
+
+
+/* Single Query */
+
+.single-query-material-query {
+  padding: 10px;
+  background-color: var(--paper-card-background-color, --primary-background-color);
+}
+
+.single-query-material-results {
+  padding-left: 10px;
+  padding-right: 10px;
+  padding-bottom: 10px;
+  background-color: var(--paper-card-background-color, --primary-background-color);
+}
+
+.single-query-material-results-progress {
+  width: 100%;
+}
+
+
+
+/* Qube */
+
+body /deep/ .qube-container > p:last-child {
+  margin-bottom: 0px;
+}
+
+body /deep/ .qube {
+  background-color: var(--paper-grey-300);
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+body /deep/ .remove-qube-material {
+  background-color: var(--paper-card-background-color, --primary-background-color);
+  padding-top: 5px;
+}
+
+body /deep/ .qube-header-actions {
+  color: var(--paper-grey-700);
+}
+
+body /deep/ .edit-qube .qube-slice /deep/ input#input {
+  @apply(--paper-font-body1);
+}
+
+body /deep/ .edit-qube .qube-name /deep/ input#input {
+  @apply(--paper-font-title);
+}
+
+body /deep/ .qube /deep/ ::-webkit-scrollbar {
+  /** for webkit browser disable scrollbar, as that would otherwise be visible when the opening animation runs */
+  display: none;
+}
+
+
+
+/* Query */
+
+body /deep/ .query {
+  background-color: var(--paper-card-background-color, --primary-background-color);
+  padding-left: 10px;
+  padding-right: 10px;
+  padding-bottom: 10px;
+  margin-right: 10px;
+  margin-bottom: 10px;
+}
+
+body /deep/ .edit-query {
+  width: 500px; /* seems to be a good fixed value for now. */
+}
+
+body /deep/ .query-header-actions {
+  color: var(--paper-grey-700);
+}
+
+body /deep/ .query-header-actions /deep/ paper-icon-button {
+  width: 36px;
+  height: 36px;
+  @apply(--layout-self-center);
+}
+
+body /deep/ .query-header-actions /deep/ input#input {
+  @apply(--paper-font-body1);
+}
+
+body /deep/ .query-header-actions /deep/ paper-input-container {
+  width: 90px;
+}
+
+body /deep/ .query-progress {
+  width: 100%;
+}
+
+
+
+/* Slices */
+
+body /deep/ .slice-container {
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+body /deep/ .slices {
+  background-color: var(--paper-grey-300);
+  padding-left: 10px;
+  padding-right: 10px;
+  padding-bottom: 10px;
+}
+
+body /deep/ .slices-header-actions {
+  color: var(--paper-grey-700);
+}
+
+
+
+/* Slice */
+
+body /deep/ .slice {
+  background-color: var(--paper-card-background-color, --primary-background-color);
+  padding: 5px;
+}
+
+body /deep/ .slice-header-actions {
+  color: var(--paper-grey-700);
+  @apply(--paper-font-body1);
+}
+
+body /deep/ .slices .slice /deep/ table {
+  border-collapse: collapse;
+}
+
+body /deep/ .slices .slice /deep/ table .slice-disjunction-value-td {
+  padding: 0px;
+}
+
+body /deep/ .slices .slice /deep/ table .slice-disjunction-value-list {
+  margin-bottom: 0px;
+}
+
+body /deep/ .slices .slice /deep/ table .slice-disjunction-value {
+  /* adjust padding of list-group as the surroundinbg table is condensed */
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+
+body /deep/ .slices .slice /deep/ table tr td {
+  padding-bottom: 10px;
+  padding-top: 10px;
+}
+
+body /deep/ .slices .slice /deep/ table tr.slice-tr-show-top-border td {
+  border-top-width: 1px;
+  border-top-style: solid;
+  border-top-color: var(--paper-grey-300);
+}
+
+body /deep/ .slices .slice /deep/ table tr.slice-tr-show-and::before {
+  content: "and";
+  position: absolute;
+  margin-top: -10px;
+  margin-left: 3px;
+  background-color: white;
+  font-size: x-small;
+  font-style: italic;
+  color: var(--paper-grey-700);
+}
+
+/* we need to add a "before" for the tr's that should not have a "and", too, otherwise the layout gets messed up */
+body /deep/ .slices .slice /deep/ table tr:not(.slice-tr-show-and)::before {
+  content: "";
+  position: absolute;
+  margin-top: -10px;
+  margin-left: 3px;
+}
+
+
+body /deep/ .slices .slice /deep/ table .slice-disjunction-value.slice-disjunction-value-show-or::before {
+  content: "or";
+  position: absolute;
+  margin-top: -13px;
+  margin-left: -11px;
+  background-color: white;
+  font-size: x-small;
+  font-style: italic;
+  color: var(--paper-grey-700);
+}
+
+body /deep/ .slices .slice /deep/ table .slice-disjunction-value-td ul {
+  margin-top: 0px;
+  list-style-type: none;
+  padding-left: 15px;
+}
+
+body /deep/ .slices /deep/ table .slice-disjunction-field {
+  vertical-align: top;
+  /* If text gets too long, break it! */
+  word-wrap: break-word;
+  word-break: break-word;
+}
+
+body /deep/ .slices /deep/ .slice-opened {
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+body /deep/ .slices /deep/ ::-webkit-scrollbar {
+  /** for webkit browser disable scrollbar, as that would otherwise be visible when the opening animation runs */
+  display: none;
+}
+
+body /deep/ .slices .slice /deep/ paper-icon-button {
+  width: 36px;
+  height: 36px;
+  @apply(--layout-self-center);
+}
+
+body /deep/ .slices .edit-slice /deep/ tr td paper-icon-button {
+  padding: 0px;
+  width: 20px;
+  height: 20px;
+  color: var(--paper-grey-700)
+}
+
+body /deep/ .slices .remove-slice {
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+    </style>
+  </template>
+</dom-module>

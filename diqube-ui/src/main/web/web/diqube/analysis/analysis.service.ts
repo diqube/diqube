@@ -146,7 +146,7 @@ export class AnalysisService {
               return false;
             },
             exception: (msg: string) => {
-              rejectNewestVersion("Error while retrieving newest version of analysis " + id + ": " + msg);
+              rejectNewestVersion("Error while loading analysis " + id + ": " + msg);
             },
             done: () => {
               resolveNewestVersion(null);
@@ -299,7 +299,7 @@ export class AnalysisService {
             var qube: remoteData.UiQube = me.loadedAnalysis.qubes.filter((q) => { return q.id === qubeId })[0];
             qube.queries.push(res.query);
             
-            this.analysisStateService.markToOpenQueryInEditModeNextTime(data.query.id);
+            this.analysisStateService.markToOpenQueryInEditModeNextTime(res.query.id);
 
             me.setCurrentAnalysisVersion(res.analysisVersion);
             resolve(res.query);
@@ -334,7 +334,7 @@ export class AnalysisService {
 
             me.loadedAnalysis.slices.push(res.slice);
             
-            this.analysisStateService.markToOpenQueryInEditModeNextTime(data.query.id);
+            this.analysisStateService.markToOpenSliceInEditModeNextTime(res.slice.id);
 
             me.setCurrentAnalysisVersion(res.analysisVersion);
             resolve(res.slice);

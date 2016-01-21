@@ -20,29 +20,21 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -->
-<h1 class="page-header">Login</h1>
-<p></p>
-<div *ngIf="error" class="alert alert-danger">
-  <i class="fa fa-exclamation-circle"></i>
-  {{ error }}
-</div> 
-<p></p>
-<form novalidate class="login" (ngSubmit)="executeLogin()">
-  <div class="form-group simple-form">
-    <label for="inputName" class="control-label">Username</label>
-    <input type="text" class="form-control" id="username"
-      placeholder="" [(ngModel)]="login.username">
-  </div>
-  <div class="form-group simple-form">
-    <label for="inputName" class="control-label">Password</label>
-    <input type="password" class="form-control" id="password"
-      placeholder="" [(ngModel)]="login.password">
-  </div>
-  <div class="form-group simple-form">
-    <label>
-      <input type="checkbox" [(ngModel)]="login.setCookie"> Stay logged in
-    </label>
-  </div>
- 
-  <button type="submit" class="btn btn-primary" [disabled]="isLoggingIn">Login</button>
-</form>
+
+<div class="flex layout horizontal">
+  <form (ngSubmit)="executeLogin()" class="flex layout horizontal center-justified">
+    <paper-card heading="Login" class="self-center">
+      <div class="card-content vertical layout">
+        <diqube-error *ngIf="error">{{ error }}</diqube-error>
+        <paper-input label="Username" [(ngModel)]="login.username"></paper-input>
+        <paper-input label="Password" type="password" [(ngModel)]="login.password"></paper-input>
+        <p></p>
+        <paper-checkbox [(ngModel)]="login.setCookie">Stay logged in</paper-checkbox>
+      </div>
+      <div class="card-actions vertical layout end">
+        <paper-spinner-lite *ngIf="isLoggingIn" active></paper-spinner-lite>
+        <paper-button (click)="executeLogin()" [attr.disabled]="isLoggingIn ? true : undefined">Login</paper-button>
+      </div>
+    </paper-card>
+  </form>
+</div>

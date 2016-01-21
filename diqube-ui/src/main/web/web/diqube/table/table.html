@@ -20,17 +20,16 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -->
-<div class="flex" class="slices vertical layout">
-  <div class="horizontal layout justified">
-    <div class="horizontal layout">
-      <span class="paper-font-title self-center">Slices</span>
-    </div>
-    <div class="slices-header-actions">
-      <paper-icon-button class="slices-header-action" (click)="addSlice()" title="Add slice" icon="icons:add"></paper-icon-button>
-    </div>
-  </div>
-  
-  <div class="paper-font-body1 vertical layout">
-    <diqube-analysis-slice *ngFor="#slice of analysis?.slices; #i=index, #l=last" [slice]="slice"></diqube-analysis-slice>
-  </div>
-</div>
+<table id="{{elementId}}" class="mdl-data-table mdl-js-data-table">
+  <thead>
+    <tr>
+      <th *ngFor="#col of columns, #i=index" [class.mdl-data-table__cell--non-numeric]="columnIndexIsStringColumn(i)">{{ col }}</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="#row of finalRows()">
+      <td *ngFor="#cell of row, #i=index" [class.mdl-data-table__cell--non-numeric]="columnIndexIsStringColumn(i)" 
+          [attr.colspan]="cell.colspan" [attr.rowspan]="cell.rowspan">{{ cell.value }}</td>
+    </tr>
+  </tbody>
+</table>

@@ -19,22 +19,16 @@
 /// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ///
 
-import {Component, OnInit, Input} from "angular2/core";
-import * as remoteData from "../../remote/remote";
-import {AnalysisSliceComponent} from "./analysis.slice.component";
-import {AnalysisService} from "../analysis.service";
+import {Injectable} from "angular2/core";
 
-@Component({
-  selector: "diqube-analysis-slices",
-  templateUrl: "diqube/analysis/slice/analysis.slices.html",
-  directives: [ AnalysisSliceComponent ]
-})
-export class AnalysisSlicesComponent {
-  @Input("analysis") public analysis: remoteData.UiAnalysis = undefined;
+/**
+ * Simple service that holds current state of navigation.
+ */
+@Injectable()
+export class NavigationStateService {
+  public currentTitle: string = undefined;
   
-  constructor(private analysisService: AnalysisService) {}
-  
-  public addSlice(): void {
-    this.analysisService.addSlice("New slice", "", [ ]);
+  public setCurrentTitle(title: string): void {
+    this.currentTitle = title;
   }
 }

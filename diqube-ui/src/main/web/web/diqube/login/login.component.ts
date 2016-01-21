@@ -26,27 +26,33 @@ import {Router} from "angular2/router";
 import {TicketJsonResult, TicketJsonResultConstants, LoginJsonCommand, LoginJsonCommandConstants} from "../remote/remote";
 import {RemoteService} from "../remote/remote.service";
 import {LoginStateService} from "../login-state/login-state.service";
+import {NavigationStateService} from "../navigation-state/navigation-state.service";
+import {POLYMER_BINDINGS} from "../polymer/polymer.bindings";
+import {DiqubeBaseNavigatableComponent} from "../diqube.base.component";
 
 @Component({
     selector: "diqube-login",
-    templateUrl: "diqube/login/login.html"
+    templateUrl: "diqube/login/login.html",
+    directives: [POLYMER_BINDINGS]
 })
-export class LoginComponent implements OnInit {
-  private static DEFAULT_ROUTER_TARGET: string = "About";  
-  
+export class LoginComponent extends DiqubeBaseNavigatableComponent implements OnInit {
   public login: { username: string; password: string; setCookie: boolean; } = { username: "", password: "", setCookie: false};
   public isLoggingIn: boolean = false; 
   public error: string = undefined;
   
-  constructor(private loginStateService: LoginStateService, private remoteService: RemoteService) {}
+  constructor(private loginStateService: LoginStateService, private remoteService: RemoteService, navigationStateService: NavigationStateService) {
+    super(false, "Login", loginStateService, navigationStateService);
+  }
   
   public static navigate(router: Router) {    
     router.navigate([ "/Login" ]);
   }
+  
   public ngOnInit(): any {
     if (this.loginStateService.isTicketAvailable())
       // this will navigate away from the login page.
       this.loginStateService.loginSuccessful(this.loginStateService.ticket, this.loginStateService.username);
+    super.ngOnInit();
   }
   
   public executeLogin(): void {

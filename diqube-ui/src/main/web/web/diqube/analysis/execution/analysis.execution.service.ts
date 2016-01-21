@@ -81,7 +81,7 @@ export class AnalysisExecutionService {
           if (dataType === remoteData.TableJsonResultConstants.TYPE && !query.$results.exception) {
             var table: remoteData.TableJsonResult = <remoteData.TableJsonResult>data;
             
-            if (table.percentComplete >= query.$results.percentComplete) {
+            if (!query.$results || table.percentComplete >= query.$results.percentComplete) {
               query.$results.rows = table.rows;
               query.$results.columnNames = table.columnNames;
               query.$results.columnRequests = table.columnRequests;
