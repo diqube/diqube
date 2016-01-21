@@ -64,8 +64,6 @@
         <paper-input no-label-float="true" placeholder="Name of query" [(ngModel)]="queryEdit.name" ngControl="nameControl"></paper-input>
 
         <span class="query-header-actions">
-          <paper-icon-button *ngIf="!working" class="qube-action" (click)="switchToRemoveMode()" title="Remove" icon="icons:delete"></paper-icon-button>
-
           <span class="qube-slice qube-action self-center">
             <paper-dropdown-menu no-label-float="true">
               <paper-menu class="dropdown-content" attr-for-selected="value" polymerSelectable [(ngModel)]="queryEdit.displayType">
@@ -74,6 +72,7 @@
             </paper-dropdown-menu>
           </span>
           
+          <paper-icon-button *ngIf="!working" class="qube-action" (click)="switchToRemoveMode()" title="Remove" icon="icons:delete"></paper-icon-button>
           <paper-icon-button *ngIf="!working" class="qube-action" (click)="switchToNormalMode()" title="Cancel" icon="icons:cancel"></paper-icon-button>
           <paper-icon-button *ngIf="!working" class="qube-action" (click)="updateQuery()" title="Save" icon="icons:save"></paper-icon-button>
           <paper-spinner-lite *ngIf="working" active></paper-spinner-lite>

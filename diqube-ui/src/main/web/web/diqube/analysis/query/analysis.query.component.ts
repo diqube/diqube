@@ -37,14 +37,12 @@ import {POLYMER_BINDINGS} from "../../polymer/polymer.bindings";
 })
 export class AnalysisQueryComponent implements OnInit {
 
-  public static VALID_QUERY_DISPLAY_TYPES : Array<{id: string, icon: string, title: string}> = [ 
+  public static VALID_QUERY_DISPLAY_TYPES : Array<{id: string, title: string}> = [ 
     { 
       id: remoteData.UiQueryConstants.DISPLAY_TYPE_TABLE,
-      icon: "fa-table",
       title: "Table"
     }, {
       id: remoteData.UiQueryConstants.DISPLAY_TYPE_BARCHART,
-      icon: "fa-bar-chart",
       title: "Bar Chart"
     } ];
   
@@ -126,11 +124,11 @@ export class AnalysisQueryComponent implements OnInit {
   /**
    * Get a full object of details about a specific display type.
    */
-  public getDisplayTypeOptions(dispalyTypeId: string): {id: string, icon: string, title: string} {
+  public getDisplayTypeOptions(dispalyTypeId: string): {id: string, title: string} {
     return AnalysisQueryComponent.VALID_QUERY_DISPLAY_TYPES.filter((t) => { return t.id === dispalyTypeId; })[0];
   }
   
-  public getAllDisplayTypeOptions(): Array<{id: string, icon: string, title: string}> {
+  public getAllDisplayTypeOptions(): Array<{id: string, title: string}> {
     return AnalysisQueryComponent.VALID_QUERY_DISPLAY_TYPES;
   }
 

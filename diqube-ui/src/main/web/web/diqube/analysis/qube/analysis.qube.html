@@ -24,7 +24,9 @@
   <div class="qube-header horizontal layout">
   
     <div *ngIf="normalMode" class="horizontal layout flex justified">
-      <span class="qube-header-left paper-font-title">{{ qube.name }}</span>
+      <div class="horizontal layout">
+        <span class="paper-font-title self-center">{{ qube.name }}</span>
+      </div>
       <div class="qube-header-actions horizontal layout">
         <span class="qube-slice qube-header-action self-center">
           <iron-icon icon="icons:donut-small"></iron-icon>&nbsp;{{ slice().name }}
@@ -42,8 +44,6 @@
         <paper-input no-label-float="true" class="qube-name" placeholder="Name" [(ngModel)]="qubeEdit.name" ngControl="nameControl"></paper-input>
       
         <div class="qube-header-actions">
-          <paper-icon-button *ngIf="!working" class="qube-header-action" (click)="switchToRemoveMode()" title="Remove" icon="icons:delete"></paper-icon-button>
-
           <span class="qube-slice qube-header-action self-center">
             <iron-icon icon="icons:donut-small"></iron-icon>
             <paper-dropdown-menu no-label-float="true">
@@ -53,6 +53,7 @@
             </paper-dropdown-menu>
           </span>
           
+          <paper-icon-button *ngIf="!working" class="qube-header-action" (click)="switchToRemoveMode()" title="Remove" icon="icons:delete"></paper-icon-button>
           <paper-icon-button *ngIf="!working" class="qube-header-action" (click)="switchToNormalMode()" title="Cancel" icon="icons:cancel"></paper-icon-button>
           <paper-icon-button *ngIf="!working" class="qube-header-action" (click)="updateQube()" title="Save" icon="icons:save"></paper-icon-button>
           <paper-spinner-lite *ngIf="working" active></paper-spinner-lite>

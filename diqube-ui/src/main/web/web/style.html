@@ -151,9 +151,14 @@ diqube-table table.mdl-data-table tbody td {
 
 /* Qube */
 
+body /deep/ .qube-container > p:last-child {
+  margin-bottom: 0px;
+}
+
 body /deep/ .qube {
   background-color: var(--paper-grey-300);
-  padding: 15px;
+  padding-left: 10px;
+  padding-right: 10px;
 }
 
 body /deep/ .remove-qube-material {
@@ -180,6 +185,8 @@ body /deep/ .query {
   padding-left: 10px;
   padding-right: 10px;
   padding-bottom: 10px;
+  margin-right: 10px;
+  margin-bottom: 10px;
 }
 
 body /deep/ .edit-query {
@@ -188,6 +195,12 @@ body /deep/ .edit-query {
 
 body /deep/ .query-header-actions {
   color: var(--paper-grey-700);
+}
+
+body /deep/ .query-header-actions /deep/ paper-icon-button {
+  width: 36px;
+  height: 36px;
+  @apply(--layout-self-center);
 }
 
 body /deep/ .query-header-actions /deep/ input#input {
@@ -212,11 +225,13 @@ body /deep/ .slice-container {
 }
 
 body /deep/ .slices {
-/*  background-color: var(--paper-card-background-color, --primary-background-color);*/
   background-color: var(--paper-grey-300);
   padding-left: 10px;
   padding-right: 10px;
-  padding-bottom: 10px;
+}
+
+body /deep/ .slices-header-actions {
+  color: var(--paper-grey-700);
 }
 
 
@@ -244,16 +259,6 @@ body /deep/ .slices .slice /deep/ table .slice-disjunction-value-td {
 body /deep/ .slices .slice /deep/ table .slice-disjunction-value-list {
   margin-bottom: 0px;
 }
-
-/*body /deep/ .slices .slice /deep/ table .slice-disjunction-value-first {
-  border: 0px;
-}
-
-body /deep/ .slices .slice /deep/ table .slice-disjunction-value:not(.slice-disjunction-value-first) {
-  border-left: 0px;
-  border-right: 0px;
-  border-bottom: 0px;
-}*/
 
 body /deep/ .slices .slice /deep/ table .slice-disjunction-value {
   /* adjust padding of list-group as the surroundinbg table is condensed */
