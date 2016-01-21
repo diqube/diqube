@@ -104,7 +104,7 @@ export class AnalysisMainComponent extends DiqubeBaseNavigatableComponent implem
     if (!analysis) {
       this.analysis = undefined;
       this.error = undefined;
-      this.navigationStateService.setCurrentTitle("Analysis " + this.analysis.id);
+      this.navigationStateService.setCurrentTitle("Analysis " + this.paramAnalysisId);
       return;
     }
     this.analysis = analysis;
@@ -152,12 +152,12 @@ export class AnalysisMainComponent extends DiqubeBaseNavigatableComponent implem
     });
   }
   
-  public addSlice(): void {
-    this.analysisService.addSlice("New slice", "", []);
-  }
-  
   public cloneAndLoadCurrentAnalysis(): void {
     this.analysisService.cloneAndLoadCurrentAnalysis();
+  }
+  
+  public loadNewestVersion(): void {
+    AnalysisMainComponent.navigate(this.router, this.analysis.id, this.newestVersionNumber());
   }
  
   

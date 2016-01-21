@@ -20,164 +20,131 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -->
-<div *ngIf="normalMode" class="panel panel-default slice {{ additionalClass }}" drop-target drop-accept="typeRestriction" drop-handler="drop(element)">
-  <div class="panel-heading" (click)="toggleCollapsed()">
-    <span>{{ slice.name }}</span>
+<paper-material [attr.elevation]="materialElevation()" *ngIf="normalMode" 
+                class="slice vertical layout"
+                [class.slice-opened]="!collapsed" 
+                drop-target drop-accept="typeRestriction" drop-handler="drop(element)">
+  <div class="panel-heading horizontal layout justified" (click)="toggleCollapsed()">
+    <div class="horizontal layout">
+      <span class="paper-font-subhead self-center">{{ slice.name }}</span>
+    </div>
     <span class="slice-header-actions">
-      <a class="slice-header-action" title="Edit mode" (click)="switchToEditMode()"><i class="fa fa-gears"></i></a>
+      <paper-icon-button class="slice-header-action" (click)="switchToEditMode()" title="Edit mode" icon="icons:settings"></paper-icon-button>
     </span>
   </div>
-  
-  <ul class="list-group" *ngIf="slice.manualConjunction" collapse="collapsed">
-    <li class="list-group-item">{{ slice.manualConjunction }}</li>
-  </ul>
-  <table class="table table-condensed" collapse="collapsed">
-    <tbody>
-      <tr *ngFor="#dis of slice.sliceDisjunctions; #i=index" [class.slice-tr-show-and]="i>0 || slice.manualConjunction">
-        <td class="slice-disjunction-field" [attr.colspan]="dis.disjunctionValues.length">{{ dis.fieldName }}</td>
-        <td class="slice-disjunction-value-td">
-          <ul class="list-group slice-disjunction-value-list">
-            <li [class.slice-disjunction-value-first]="i==0"
-                [class.slice-disjunction-value-show-or]="i>0"
-                class="list-group-item slice-disjunction-value" 
-                *ngFor="#val of dis.disjunctionValues">{{ val }}</li>
-          </ul>
-        </td>
-      </tr>
-    </tbody>
-  </table>
-  <ul class="list-group" *ngIf="!slice.manualConjunction && !slice.sliceDisjunctions.length" collapse="collapsed">
-    <li class="list-group-item">This slice selects <i>everything</i>.</li>
-  </ul>
-</div>
+
+  <iron-collapse [attr.opened]="(collapsed) ? undefined : true" (transitionend)="toggleDone()">
+    <table style="width: 100%">
+      <tbody>
+        <tr *ngIf="slice.manualConjunction">
+          <td colspan="2">
+            <span>{{ slice.manualConjunction }}</span>
+          </td>
+        </tr>
+        <tr *ngFor="#dis of slice.sliceDisjunctions; #i=index" 
+            [class.slice-tr-show-top-border]="i>0 || slice.manualConjunction"
+            [class.slice-tr-show-and]="(i>0 || slice.manualConjunction) && !transitioning && !collapsed"> <!-- show after transitioning -->
+          <td class="slice-disjunction-field">{{ dis.fieldName }}</td>
+          <td class="slice-disjunction-value-td">
+            <ul class="slice-disjunction-value-list">
+              <li [class.slice-disjunction-value-first]="j==0"
+                  [class.slice-disjunction-value-show-or]="j>0 && !transitioning && !collapsed" 
+                  class="slice-disjunction-value"
+                  *ngFor="#val of dis.disjunctionValues; #j=index">{{ val }}</li>
+            </ul>
+          </td>
+        </tr>
+        <tr *ngIf="!slice.manualConjunction && !slice.sliceDisjunctions.length">
+          <td colspan="2">
+            <span>This slice selects <i>everything</i>.</span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </iron-collapse>
+</paper-material>
 
 
 <!-- EDIT MODE -->
 
-<div *ngIf="editMode" class="edit-slice panel panel-default slice {{ additionalClass }}">
-  <div class="panel-heading">
-    <span>{{ slice.name }}</span>
-
-    <span class="slice-header-actions">
-        <a *ngIf="!working" class="slice-header-action" title="Remove slice" (click)="switchToRemoveMode()"><i class="fa fa-minus remove-action"></i></a>
-        <a *ngIf="!working" class="slice-header-action" title="Cancel edit" (click)="switchToNormalMode()"><i class="fa fa-close"></i></a>
-        <a *ngIf="!working" class="slice-header-action" title="Save" (click)="updateSlice()"><i class="fa fa-floppy-o"></i></a>
-        <i *ngIf="working" class="slice-header-action fa fa-spinner fa-spin"></i>
-    </span>
-  </div>
-  EDIT NOT SUPPORTED IN UI YET.
-  <!-- <form novalidate class="simple-form" (submit)="updateSlice()">
-    <input type="submit" class="hidden">
-    <div class="panel-heading">
-      <div [class.has-success]="nameControl.dirty && nameControl.valid"
-           [class.has-error]="nameControl.dirty && !nameControl.valid"
-           class="has-feedback form-group">
-        <input type="text" class="form-control" id="inputName"
-          placeholder="Name of query" [(ngModel)]="sliceEdit.name" 
-          ngControl="nameControl">
-        <span *ngIf="nameControl.dirty && nameControl.valid" class="fa fa-check form-control-feedback"></span>
-        <span *ngIf="nameControl.dirty && !nameControl.valid" class="fa fa-exclamation-triangle form-control-feedback"></span>
+<paper-material [attr.elevation]="materialElevation()" *ngIf="editMode" 
+                class="slice edit-slice vertical layout"
+                [class.slice-opened]="!collapsed" 
+                drop-target drop-accept="typeRestriction" drop-handler="drop(element)">
+  <form (submit)="updateSlice()" [ngFormModel]="formControlGroup">
+    <div class="panel-heading horizontal layout justified">
+      <div class="horizontal layout">
+        <paper-input class="self-center" no-label-float="true" placeholder="Name of slice" [(ngModel)]="sliceEdit.name" ngControl="nameControl"></paper-input>
       </div>
-      
       <span class="slice-header-actions">
-          <a *ngIf="!working" class="slice-header-action" title="Remove slice" (click)="switchToRemoveMode()"><i class="fa fa-minus remove-action"></i></a>
-          <a *ngIf="!working" class="slice-header-action" title="Cancel edit" (click)="switchToNormalMode()"><i class="fa fa-close"></i></a>
-          <a *ngIf="!working" class="slice-header-action" title="Save" (click)="updateSlice(sliceCopy)"><i class="fa fa-floppy-o"></i></a>
-          <i *ngIf="working" class="slice-header-action fa fa-spinner fa-spin"></i>
+        <paper-icon-button *ngIf="!working" class="slice-header-action" (click)="switchToRemoveMode()" title="Remove slice" icon="icons:delete"></paper-icon-button>
+        <paper-icon-button *ngIf="!working" class="slice-header-action" (click)="switchToNormalMode()" title="Cancel edit" icon="icons:cancel"></paper-icon-button>
+        <paper-icon-button *ngIf="!working" class="slice-header-action" (click)="updateSlice()" title="Save" icon="icons:save"></paper-icon-button>
+        <paper-spinner-lite *ngIf="working" active></paper-spinner-lite>
       </span>
     </div>
     
-    <div *ngIf="editException" class="panel-body">
-      <div class="alert alert-danger">
-        <i class="fa fa-exclamation-circle"></i>
-        {{ editException }}
-      </div>
-    </div>
-    
-    <ul class="list-group">
-      <li class="list-group-item">
-        <div class="form-group">
-          <input type="text" class="form-control" id="inputManualConjunction"
-            placeholder="Manual conjunction" [(ngModel)]="sliceCopy.manualConjunction">
-        </div>
-      </li>
-    </ul>
-    <table class="table table-condensed">
-      <tbody>
-        <tr *ngFor="#dis of sliceCopy.sliceDisjunctions; #i = index" class="slice-tr-show-and">
-        
-          <td class="slice-disjunction-field" [attr.colspan]="dis.disjunctionValues.length">
-            <span>{{ dis.fieldName }}</span>&nbsp;
-            <a title="Remove field" (click)="removeDisjunctionField(sliceCopy, i)">
-              <i class="fa fa-minus remove-action"></i>
-            </a>
-          </td>
-          
-          <td class="slice-disjunction-value-td">
-            <ul class="list-group slice-disjunction-value-list">
-            
-              <li *ngFor="#val of dis.disjunctionValues; #first=first"
-                  class="list-group-item slice-disjunction-value"
-                  [class.slice-disjunction-value-first]="first"
-                  [class.slice-disjunction-value-show-or]="!first">
-                <span class="has-feedback form-group slice-value-group {{ isDisjunctionValueValid(val) === true ? 'has-success' : '' }} {{ isDisjunctionValueValid(val) === false ? 'has-error' : '' }}">
-                  <input type="text" class="form-control slice-edit-value"
-                    placeholder="Value" ng-model="dis.disjunctionValues[$index]">
-                  <span ng-if="isDisjunctionValueValid(val) === true" class="fa fa-check form-control-feedback"></span>
-                  <span ng-if="isDisjunctionValueValid(val) === false" class="fa fa-exclamation-triangle form-control-feedback"></span>
-                  <div class="slice-value-group-actions">
-                    <a href class="slice-value-group-action" title="Remove value" ng-click="removeDisjunctionValue(sliceCopy, $parent.$index, $index)">
-                      <i class="fa fa-minus remove-action"></i>
-                    </a>
+    <diqube-error *ngIf="exception">{{ exception }}</diqube-error>
+  
+    <iron-collapse [attr.opened]="(collapsed) ? undefined : true" (transitionend)="toggleDone()">
+      <table>
+        <tbody>
+          <tr>
+            <td colspan="2">
+              <paper-input no-label-float="true" placeholder="Manual conjunction" [(ngModel)]="sliceEdit.manualConjunction"></paper-input>
+            </td>
+          </tr>
+          <tr *ngFor="#dis of sliceEdit.sliceDisjunctions; #i=index" 
+              [class.slice-tr-show-top-border]="true"
+              [class.slice-tr-show-and]="!transitioning && !collapsed"> <!-- show after transitioning -->
+            <td class="slice-disjunction-field">
+              <div class="horizontal layout">
+                <paper-input no-label-float="true" placeholder="Field name" [(ngModel)]="dis.fieldName"></paper-input>
+                <paper-icon-button (click)="removeDisjunctionField(i)" title="Remove field" icon="icons:delete"></paper-icon-button>
+              </div>
+            </td>
+            <td class="slice-disjunction-value-td">
+              <ul class="slice-disjunction-value-list">
+                <li [class.slice-disjunction-value-first]="j==0"
+                    [class.slice-disjunction-value-show-or]="j>0 && !transitioning && !collapsed" 
+                    class="slice-disjunction-value"
+                    *ngFor="#val of dis.disjunctionValues; #j=index">
+                  <div class="horizontal layout">
+                    <paper-input no-label-float="true" placeholder="Field value" [(ngModel)]="disjunctionValueEdit[i][j].value">
+                      <!-- Bind to disjunctionValueEdit[i][j].value instead of dis.disjunctionValues. See doc of disjunctionValueEdit. -->
+                    </paper-input>
+                    <paper-icon-button (click)="removeDisjunctionValue(i, j)" title="Remove value" icon="icons:delete"></paper-icon-button>
                   </div>
-                </span>
-              </li>
-              
-              <li class="list-group-item slice-disjunction-value slice-disjunction-actions {{ !dis.disjunctionValues ? 'slice-disjunction-value-first' : '' }}">
-                <a href class="slice-disjunction-action" title="Add value" ng-click="addDisjunctionValue(sliceCopy, $index)">
-                  <i class="fa fa-plus add-action" ></i>
-                </a>
-              </li>
-            </ul>
-          </td>
-        </tr> 
-      </tbody>
-    </table>
+                </li>
+                  <paper-icon-button (click)="addDisjunctionValue(i)" title="Add value" icon="icons:add"></paper-icon-button>
+                <li>
+                </li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <td colspan="2">
+              <div class="horizontal layout">
+                <paper-input class="flex" no-label-float="true" placeholder="Field name" #newFieldName></paper-input>
+                <paper-button raised (click)="addDisjunctionField(newFieldName.value)">Add field</paper-button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </iron-collapse>
   </form>
-  <form novalidate class="simple-form" ng-submit="addDisjunctionField(sliceCopy, newDisjunctionFieldName)">
-    <table class="table table-condensed">
-    <tbody>
-      <tr>
-        <td class="slice-add-field-td">
-          <input type="text" class="form-control"
-                 placeholder="Field name" ng-model="newDisjunctionFieldName">&nbsp;
-          <a href title="Add field" ng-click="addDisjunctionField(sliceCopy, newDisjunctionFieldName)">
-            &nbsp;<i class="fa fa-plus add-action"></i>&nbsp;Add&nbsp;field
-          </a>
-        </td>
-      </tr>
-    </tbody>
-    </table>
-  </form>-->
-</div>
+</paper-material>
 
 <!-- REMOVE MODE -->
-<div *ngIf="removeMode" class="panel panel-default slice remove-slice {{ additionalClass }}">
-  <div class="panel-heading">
-    <span>{{ slice.name }}</span>
-  </div>
+<paper-material elevation="3" class="slice remove-slice remove-query vertical layout" *ngIf="removeMode">
+  <span class="query-header paper-font-subhead">{{ slice.name }}</span>
   
-  <div class="panel-body">
-    <div *ngIf="exception" class="alert alert-danger">
-      <i class="fa fa-exclamation-circle"></i>
-      {{ exception }}
-    </div>
+  <diqube-error *ngIf="exception">{{ exception }}</diqube-error>
   
-    <p>Are you sure you want to remove this slice?</p>
-    <p>
-      <button class="btn btn-default" (click)="switchToNormalMode()">Cancel</button>
-      <button class="btn btn-danger" (click)="removeSlice()">Yes, remove.</button>
-    </p>
-  </div>
-
-</div>
+  <p class="self-center">Are you sure you want to remove this slice?</p>
+  <p class="self-center">
+    <paper-button raised (click)="switchToNormalMode()">Cancel</paper-button>
+    <paper-button raised class="warn-button" (click)="removeSlice()">Yes, remove.</paper-button>
+  </p>
+</paper-material>

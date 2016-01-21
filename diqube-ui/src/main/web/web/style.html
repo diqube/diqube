@@ -202,6 +202,147 @@ body /deep/ .query-progress {
   width: 100%;
 }
 
+
+
+/* Slices */
+
+body /deep/ .slice-container {
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+body /deep/ .slices {
+/*  background-color: var(--paper-card-background-color, --primary-background-color);*/
+  background-color: var(--paper-grey-300);
+  padding-left: 10px;
+  padding-right: 10px;
+  padding-bottom: 10px;
+}
+
+
+
+/* Slice */
+
+body /deep/ .slice {
+  background-color: var(--paper-card-background-color, --primary-background-color);
+  padding: 5px;
+}
+
+body /deep/ .slice-header-actions {
+  color: var(--paper-grey-700);
+  @apply(--paper-font-body1);
+}
+
+body /deep/ .slices .slice /deep/ table {
+  border-collapse: collapse;
+}
+
+body /deep/ .slices .slice /deep/ table .slice-disjunction-value-td {
+  padding: 0px;
+}
+
+body /deep/ .slices .slice /deep/ table .slice-disjunction-value-list {
+  margin-bottom: 0px;
+}
+
+/*body /deep/ .slices .slice /deep/ table .slice-disjunction-value-first {
+  border: 0px;
+}
+
+body /deep/ .slices .slice /deep/ table .slice-disjunction-value:not(.slice-disjunction-value-first) {
+  border-left: 0px;
+  border-right: 0px;
+  border-bottom: 0px;
+}*/
+
+body /deep/ .slices .slice /deep/ table .slice-disjunction-value {
+  /* adjust padding of list-group as the surroundinbg table is condensed */
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+
+body /deep/ .slices .slice /deep/ table tr td {
+  padding-bottom: 10px;
+  padding-top: 10px;
+}
+
+body /deep/ .slices .slice /deep/ table tr.slice-tr-show-top-border td {
+  border-top-width: 1px;
+  border-top-style: solid;
+  border-top-color: var(--paper-grey-300);
+}
+
+body /deep/ .slices .slice /deep/ table tr.slice-tr-show-and::before {
+  content: "and";
+  position: absolute;
+  margin-top: -10px;
+  margin-left: 3px;
+  background-color: white;
+  font-size: x-small;
+  font-style: italic;
+  color: var(--paper-grey-700);
+}
+
+/* we need to add a "before" for the tr's that should not have a "and", too, otherwise the layout gets messed up */
+body /deep/ .slices .slice /deep/ table tr:not(.slice-tr-show-and)::before {
+  content: "";
+  position: absolute;
+  margin-top: -10px;
+  margin-left: 3px;
+}
+
+
+body /deep/ .slices .slice /deep/ table .slice-disjunction-value.slice-disjunction-value-show-or::before {
+  content: "or";
+  position: absolute;
+  margin-top: -13px;
+  margin-left: -11px;
+  background-color: white;
+  font-size: x-small;
+  font-style: italic;
+  color: var(--paper-grey-700);
+}
+
+body /deep/ .slices .slice /deep/ table .slice-disjunction-value-td ul {
+  margin-top: 0px;
+  list-style-type: none;
+  padding-left: 15px;
+}
+
+body /deep/ .slices /deep/ table .slice-disjunction-field {
+  vertical-align: top;
+  /* If text gets too long, break it! */
+  word-wrap: break-word;
+  word-break: break-word;
+}
+
+body /deep/ .slices /deep/ .slice-opened {
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+body /deep/ .slices /deep/ ::-webkit-scrollbar {
+  /** for webkit browser disable scrollbar, as that would otherwise be visible when the opening animation runs */
+  display: none;
+}
+
+body /deep/ .slices .slice /deep/ paper-icon-button {
+  width: 36px;
+  height: 36px;
+  @apply(--layout-self-center);
+}
+
+body /deep/ .slices .edit-slice /deep/ tr td paper-icon-button {
+  padding: 0px;
+  width: 20px;
+  height: 20px;
+  color: var(--paper-grey-700)
+}
+
+body /deep/ .slices .remove-slice {
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
     </style>
   </template>
 </dom-module>

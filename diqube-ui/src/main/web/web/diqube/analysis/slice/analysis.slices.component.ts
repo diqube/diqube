@@ -22,6 +22,7 @@
 import {Component, OnInit, Input} from "angular2/core";
 import * as remoteData from "../../remote/remote";
 import {AnalysisSliceComponent} from "./analysis.slice.component";
+import {AnalysisService} from "../analysis.service";
 
 @Component({
   selector: "diqube-analysis-slices",
@@ -30,4 +31,10 @@ import {AnalysisSliceComponent} from "./analysis.slice.component";
 })
 export class AnalysisSlicesComponent {
   @Input("analysis") public analysis: remoteData.UiAnalysis = undefined;
+  
+  constructor(private analysisService: AnalysisService) {}
+  
+  public addSlice(): void {
+    this.analysisService.addSlice("New slice", "", [ ]);
+  }
 }

@@ -31,10 +31,12 @@ import {DiqubeBaseNavigatableComponent} from "../diqube.base.component";
 
 @Component({
   selector: "diqube-analysis-newest",
-  template: "<div></div>",
+  template: "<div><diqube-error *ngIf='error'>{{ error }}</diqube-error></div>",
 })
 export class AnalysisNewestComponent extends DiqubeBaseNavigatableComponent implements OnInit {
-  public static ROUTE_PARAM_ANALYSIS_ID: string = "analysisId";  
+  public static ROUTE_PARAM_ANALYSIS_ID: string = "analysisId";
+  
+  private error: string = undefined;
   
   constructor(private routeParams: RouteParams, private remoteService: RemoteService, private router: Router, 
               loginStateService: LoginStateService) {
@@ -53,6 +55,8 @@ export class AnalysisNewestComponent extends DiqubeBaseNavigatableComponent impl
       analysisId: analysisId
     };
     
+    this.error = undefined;
+    var me = this;
     this.remoteService.execute(remoteData.NewestAnalysisVersionJsonCommandConstants.NAME, data, {
       data: (dataType: string, data: any) => {
         if (dataType === remoteData.AnalysisVersionJsonResultConstants.TYPE) {
@@ -63,6 +67,7 @@ export class AnalysisNewestComponent extends DiqubeBaseNavigatableComponent impl
         return false;
       },
       exception: (msg: string) => {
+        me.error = msg;
       },
       done: () => {}
     });
