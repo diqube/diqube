@@ -39,6 +39,35 @@ export const POLYMER_BINDINGS = [
   forwardRef(() => PolymerCheckboxValueAccessor), 
   forwardRef(() => PolymerSelectableValueAccessor) ];
 
+class PolymerUtil {
+  /**
+   * Helper method to set an attribute on a Polymer WebComponent element.
+   * 
+   * We fall back to setting attributes on the webComponents (instead of setting properties), as properties sometimes
+   * don't seem to work.
+   * But: We need to take care that the new value is actually set! The component could've been updated manually (e.g.
+   * user entered text into paper-input), in which case the "writeValue" methods will not be called on the
+   * valueAccessors -> this means that the "value" attribute e.g. still contains the previous value (before the
+   * keystroke), in which case setting the value back to the old one will fail (since the attribute is the same value
+   * that is has already!)
+   */
+  public static setAttr(nativeElement: HTMLElement, attr: string, newValue: any) {
+    if (newValue === undefined) {
+      if (nativeElement.hasAttribute(attr))
+        nativeElement.removeAttribute(attr);
+      return;
+    }
+    
+    var curValue = nativeElement.getAttribute(attr);
+    if (curValue === newValue)
+      // remove first so the new setAttribute call will actually change the value and all callbacks inside the
+      // webComponent will be triggered! 
+      nativeElement.removeAttribute(attr);
+
+    nativeElement.setAttribute(attr, newValue);
+  }
+}
+
 /**
  * A ControlValueAccessor that binds to paper-input and paper-textarea. In addition to writing the values to the element,
  * this class also evaluates errors reported on the NgControl and displays them on the paper-input/paper-textarea.
@@ -86,7 +115,7 @@ export class PolymerInputValueAccessor implements ControlValueAccessor, OnInit {
     else
       normalizedValue = value;
     
-    (<HTMLElement>this._elementRef.nativeElement).setAttribute("value", value);
+    PolymerUtil.setAttr(<HTMLElement>this._elementRef.nativeElement, "value", normalizedValue);
   }
 
   public registerOnChange(fn: (_: any) => void): void { 
@@ -146,14 +175,13 @@ export class PolymerInputValueAccessor implements ControlValueAccessor, OnInit {
   
   private applyValidity(isValid: boolean): void {
     if (isValid)
-      (<HTMLElement>this._elementRef.nativeElement).removeAttribute("invalid");
-    else {
-     (<HTMLElement>this._elementRef.nativeElement).setAttribute("invalid", "true");
-    }
+      PolymerUtil.setAttr(<HTMLElement>this._elementRef.nativeElement, "invalid", undefined);
+    else
+      PolymerUtil.setAttr(<HTMLElement>this._elementRef.nativeElement, "invalid", "true");
   }
   
   private applyErrorMessage(error: string): void {
-    (<HTMLElement>this._elementRef.nativeElement).setAttribute("error-message", error);
+    PolymerUtil.setAttr(<HTMLElement>this._elementRef.nativeElement, "error-message", error);
   }
   
   private directiveInfo(): PolymerInjectable {
@@ -188,10 +216,10 @@ export class PolymerCheckboxValueAccessor implements ControlValueAccessor {
   constructor(private _renderer: Renderer, private _elementRef: ElementRef) {}
   
   public writeValue(value: any): void {
-    if (value)
-      (<HTMLElement>this._elementRef.nativeElement).setAttribute("checked", "true");
+    if (value) 
+      PolymerUtil.setAttr(<HTMLElement>this._elementRef.nativeElement, "checked", true);
     else
-      (<HTMLElement>this._elementRef.nativeElement).removeAttribute("checked");
+      PolymerUtil.setAttr(<HTMLElement>this._elementRef.nativeElement, "checked", false);
   }
 
   public registerOnChange(fn: (_: any) => void): void { 
@@ -227,7 +255,7 @@ export class PolymerSelectableValueAccessor implements ControlValueAccessor {
   constructor(private _renderer: Renderer, private _elementRef: ElementRef) {}
   
   public writeValue(value: any): void {
-    (<HTMLElement>this._elementRef.nativeElement).setAttribute("selected", value);
+    PolymerUtil.setAttr(<HTMLElement>this._elementRef.nativeElement, "selected", value);
   }
 
   public registerOnChange(fn: (_: any) => void): void { 

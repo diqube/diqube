@@ -28,13 +28,12 @@ import {LogoutComponent} from "./logout/logout.component";
 import {QueryComponent} from "./query/query.component";
 import {AnalysisRootComponent} from "./analysis/analysis.root.component";
 import {NavigationStateService} from "./navigation-state/navigation-state.service";
-
 import {LoginStateService} from "./login-state/login-state.service";
 
 @Component({
     selector: "diqube",
     templateUrl: "diqube/diqube.app.html",
-    directives: [ROUTER_DIRECTIVES]
+    directives: [ ROUTER_DIRECTIVES ]
 })
 @RouteConfig([
   { path: "/about", name: "About", component: AboutComponent },

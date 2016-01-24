@@ -28,11 +28,61 @@ import * as remoteData from "../../remote/remote";
 import * as analysisData from "../analysis";
 import {DiqubeUtil} from "../../util/diqube.util";
 import {POLYMER_BINDINGS} from "../../polymer/polymer.bindings";
+import * as dragData from "../drag-drop/drag-drop.data";
+import {DropTargetDirective, DragElementProvider} from "../drag-drop/drop-target.directive";
+
+interface AnalysisSliceDisjunctionValueEditListener {
+  valueChanged(el: AnalysisSliceDisjunctionValueEdit): void;
+}
+
+class DefaultAnalysisSliceDisjunctionValueEditListener implements AnalysisSliceDisjunctionValueEditListener {
+  constructor(private disjunction: remoteData.UiSliceDisjunction, private valueIndex: number) {}
+  
+  public valueChanged(el: AnalysisSliceDisjunctionValueEdit): void {
+    this.disjunction.disjunctionValues[this.valueIndex] = el.getValue();
+  }
+}
+
+/**
+ * Helper class that provides a "value" property which will fire events after the field value has changed.
+ */
+export class AnalysisSliceDisjunctionValueEdit {
+  private internalValue: string = undefined;
+  private disableListener: boolean = false;
+  
+  constructor(startValue: string, private listener: AnalysisSliceDisjunctionValueEditListener) {
+    this.internalValue = startValue;
+    
+    var me = this;
+    
+    Object.defineProperty(this, "value", {
+      get: () => { 
+        return me.internalValue;  
+      },
+      set: (value: string) => { 
+        me.internalValue = value;
+        if (!me.disableListener)
+          listener.valueChanged(me); 
+      },
+      enumerable: true
+    });
+  }
+  
+  public setValueWithoutListener(value: string) {
+    this.disableListener = true;
+    (<any>this).value = value;
+    this.disableListener = false;
+  }
+  
+  public getValue(): string {
+    return this.internalValue;
+  }
+}
 
 @Component({
   selector: "diqube-analysis-slice",
   templateUrl: "diqube/analysis/slice/analysis.slice.html",
-  directives: [ FORM_DIRECTIVES, POLYMER_BINDINGS ]
+  directives: [ FORM_DIRECTIVES, POLYMER_BINDINGS, DropTargetDirective ]
 })
 export class AnalysisSliceComponent implements OnInit {
     
@@ -51,26 +101,39 @@ export class AnalysisSliceComponent implements OnInit {
   
   public exception: string = undefined;
   
-  /** true while transitioning (=opening/closing) the iron-collapse */
-  public transitioning: boolean = false;
+  /** 
+   * When currently transitioning (= collapsing or un-collapsing) this field holds a pointer to the resolve-function 
+   * that was returned by toggleCollapse() and which will be called as soon as the trnasition finishes 
+   */
+  public currentTransitioningPromiseResolve: (a: void) => void = undefined;
   
   public collapsed: boolean = true;
+  public addCollapsedToDom: boolean = false;
   
   /**
    * Map from disjunctionIdx/disjunctionValueIdx to an object having a value property which in turn holds the value of
    * sliceEdit.sliceDisjunctions[i].disjunctionValue[j]. The value in this map will be changed by two-way data binding
-   * and has to be written back into sliceEdit before updating the slice.
+   * and has to be written back into sliceEdit, which is done by listeners on the AnalysisSliceDisjunctionValueEdit objects.
    * 
    * Unfortunately this is needed, since angular2 does not allow us to directly do [(ngModel)]="disjunctionValue[j]",
    * but will then re-create the input field each time the value changes (someone is typing into the field) = the field
    * will lose focus. Therefore we have to bind on [(ngModel)]="something[i].value".
    * 
-   * This class keeps structural changes during edit in-sync between disjunctionValueEdit and 
-   * sliceEdit.sliceDisjunctions[*].disjuctionValues[*]. Values however are only copied back just before sending the update.  
+   * DO NOT access directly, but using property "disjunctionValueEdit" which will effectively update the values 
+   * dynamically on each call.
    */
-  public disjunctionValueEdit: {[ disjunctionIdx: number ]: { [disjunctionValueIdx: number]: { value: string } } } = undefined;
+  private internalDisjunctionValueEdit: Array<Array<AnalysisSliceDisjunctionValueEdit>>;
   
-  constructor(private analysisSateService: AnalysisStateService, private analysisService: AnalysisService, private formBuilder: FormBuilder) {}
+  constructor(private analysisSateService: AnalysisStateService, private analysisService: AnalysisService, 
+              private formBuilder: FormBuilder) {
+    var me = this;
+    // give angular a nice property to bind to, so it does not know that we actually do a method call here.
+    Object.defineProperty(this, "disjunctionValueEdit", {
+      get: () => {
+        return me.internalRefreshAndGetDisjunctionValueEdit();
+      }
+    });
+  }
   
   public ngOnInit(): any {
     if (this.analysisSateService.pollOpenSliceInEditModeNextTime(this.slice.id))
@@ -83,124 +146,195 @@ export class AnalysisSliceComponent implements OnInit {
    * Switch to edit mode.
    */
   public switchToEditMode(): void {
-    this.nameControl = new Control("", (control: Control) => {
-      return this.nameValidator(control);
-    });
-    this.formControlGroup = this.formBuilder.group({
-      nameControl: this.nameControl,
-    });
+    if (this.transitioning())
+      return;
+
+    var closePromise: Promise<void>;
     
-    this.sliceEdit = DiqubeUtil.copy(this.slice);
-    this.normalMode = false;
-    this.editMode = true;
-    this.removeMode = false;
-    
-    // prepare disjunction values
-    this.disjunctionValueEdit = {};
-    for (var disjIdx in this.sliceEdit.sliceDisjunctions) {
-      var disj = this.sliceEdit.sliceDisjunctions[disjIdx];
-      this.disjunctionValueEdit[disjIdx] = {};
-      for (var disjValueIdx in disj.disjunctionValues) {
-        this.disjunctionValueEdit[disjIdx][disjValueIdx] = { value: disj.disjunctionValues[disjValueIdx] };
-      }
+    if (this.collapsed) {
+      // closed already.
+      closePromise = Promise.resolve(undefined);
+    } else {
+      // opened currently. Close first, then open again later.
+      closePromise = new Promise((resolve: (a: void) => void, reject: (a: void) => void) => {
+        setTimeout(() => {
+          this.toggleCollapsed().then(() => { 
+            resolve(undefined); 
+         });
+        });
+      });
     }
-    
-    this.exception = undefined;
-    
-    if (this.collapsed)
-      // definitely open the collapse element, but do it in next tick, so we get a transition.
+
+    // after closed, switch to edit mode.
+    closePromise.then(() => {
+      this.nameControl = new Control("", (control: Control) => {
+        return this.nameValidator(control);
+      });
+      this.formControlGroup = this.formBuilder.group({
+        nameControl: this.nameControl,
+      });
+      
+      this.sliceEdit = DiqubeUtil.copy(this.slice);
+      this.normalMode = false;
+      this.editMode = true;
+      this.removeMode = false;
+      
+      this.internalDisjunctionValueEdit = [];
+      
+      this.exception = undefined;
+      
+      // toggle open (again)
       setTimeout(() => {
         this.toggleCollapsed();
       });
+    });
   }
 
   /**
    * Switch to remove mode.
    */
   public switchToRemoveMode(): void {
-    this.normalMode = false;
-    this.editMode = false;
-    this.removeMode = true;
-
-    this.exception = undefined;
+    if (this.transitioning())
+      return;
+    
+    var closePromise: Promise<void>;
+    if (this.collapsed) {
+      closePromise = Promise.resolve(undefined);
+    } else {
+      // collapse (in setTimeout to get a transition), then switch to remove mode.
+      closePromise = new Promise((resolve: (a: void) => void, reject: (a: void) => void) => {
+        setTimeout(() => { this.toggleCollapsed().then(() => {
+            resolve(undefined);
+          })
+        });
+      });
+    }
+    
+    closePromise.then(() => {
+      this.normalMode = false;
+      this.editMode = false;
+      this.removeMode = true;
+      this.exception = undefined;
+    });
   }
   
   /**
    * Switch to normal mode.
    */
   public switchToNormalMode(): void {
-    this.sliceEdit = undefined;
-    this.disjunctionValueEdit = undefined;
-    this.normalMode = true;
-    this.editMode = false;
-    this.removeMode = false;
+    if (this.transitioning())
+      return;
     
-    this.exception = null;
-    
-    if (!this.collapsed)
-      // definitely close the collapse element, but do it in next tick, so we get a transition.
-      setTimeout(() => {
-        this.toggleCollapsed();
+    var closePromise: Promise<void>;
+    if (this.collapsed) {
+      // closed already
+      closePromise = Promise.resolve(undefined);
+    } else {
+      // collapse (in setTimeout to get a transition), then switch to normal mode.
+      closePromise = new Promise((resolve: (a: void) => void, reject: (a: void) => void) => {
+        setTimeout(() => { this.toggleCollapsed().then(() => {
+            resolve(undefined);
+          })
+        });
       });
+    }
+    
+    closePromise.then(() => {
+      this.sliceEdit = undefined;
+      this.internalDisjunctionValueEdit = undefined;
+      this.normalMode = true;
+      this.editMode = false;
+      this.removeMode = false;
+      this.exception = null;
+    });
   }
   
-  public toggleCollapsed(): void {
-    this.transitioning = true;
-    this.collapsed = !this.collapsed;
+  public toggleCollapsed(): Promise<void> {
+    if (this.transitioning())
+      return Promise.reject(undefined);
+    
+    if (this.collapsed) {
+      // switching to "open"
+      return new Promise((resolve: (a: void) => void, reject: (a: void) => void) => {
+        this.currentTransitioningPromiseResolve = resolve;
+        this.addCollapsedToDom = true;
+        setTimeout(() => {
+          this.collapsed = false;
+        });
+      });
+    } else {
+      // switching to "closed"
+      return new Promise((resolve: (a: void) => void, reject: (a: void) => void) => {
+        this.currentTransitioningPromiseResolve = resolve;
+        this.collapsed = true;
+        // addCollpasedToDom is changed by toggleDone
+      });
+    }
   }
   
   public toggleDone(): void {
-    this.transitioning = false;
+    if (!this.transitioning())
+      return;
+    
+    if (this.collapsed) {
+      // remove stuff from DOM.
+      this.addCollapsedToDom = false;
+    }
+    
+    var resolve: (a: void) => void = this.currentTransitioningPromiseResolve;
+    // "complete" transitioning. Do this before resolving the promise, as the promise might want to start another toggle right away. 
+    this.currentTransitioningPromiseResolve = undefined;
+    resolve(undefined);
   }
   
   public removeDisjunctionValue(disjunctionIndex: number, valueIndex: number): void {
-    for (var i = valueIndex + 1; i < this.sliceEdit.sliceDisjunctions[disjunctionIndex].disjunctionValues.length; i++) {
-      this.disjunctionValueEdit[disjunctionIndex][i - 1] = this.disjunctionValueEdit[disjunctionIndex][i]; 
-    }
-    delete this.disjunctionValueEdit[disjunctionIndex][this.sliceEdit.sliceDisjunctions[disjunctionIndex].disjunctionValues.length - 1];
-    
     this.sliceEdit.sliceDisjunctions[disjunctionIndex].disjunctionValues.splice(valueIndex, 1);
+    this.internalRefreshAndGetDisjunctionValueEdit();
   }
   
   public addDisjunctionValue(disjunctionIndex: number): void {
-    this.disjunctionValueEdit[disjunctionIndex][this.sliceEdit.sliceDisjunctions[disjunctionIndex].disjunctionValues.length] = { value: "" };
-    this.sliceEdit.sliceDisjunctions[disjunctionIndex].disjunctionValues.push("");
+    this.addDisjunctionValueInternal(disjunctionIndex, "");
+  }
+  
+  private addDisjunctionValueInternal(disjunctionIndex: number, value: string): void {
+    this.sliceEdit.sliceDisjunctions[disjunctionIndex].disjunctionValues.push(value);
+    this.internalRefreshAndGetDisjunctionValueEdit();
   }
 
   public removeDisjunctionField(disjunctionIndex: number): void {
-    for (var i = disjunctionIndex + 1; i < this.sliceEdit.sliceDisjunctions.length; i++) {
-      this.disjunctionValueEdit[i - 1] = this.disjunctionValueEdit[i]; 
-    }
-    delete this.disjunctionValueEdit[this.sliceEdit.sliceDisjunctions.length - 1];
-    
     this.sliceEdit.sliceDisjunctions.splice(disjunctionIndex, 1);
+    this.internalRefreshAndGetDisjunctionValueEdit();
   }
 
   public addDisjunctionField(fieldName: string): void {
+    this.addDisjunctionFieldInternal(fieldName, undefined);
+  }
+  
+  private addDisjunctionFieldInternal(fieldName: string, disjunctionValue: string): void {
     if (!fieldName)
       return;
     
-    this.disjunctionValueEdit[this.sliceEdit.sliceDisjunctions.length] = {};
+    var values: Array<string> = [];
+    if (disjunctionValue)
+      values.push(disjunctionValue);
+    
     this.sliceEdit.sliceDisjunctions.push({
       fieldName: fieldName,
-      disjunctionValues: []
+      disjunctionValues: values
     });
+    this.internalRefreshAndGetDisjunctionValueEdit();
   }
 
   public updateSlice(): void {
-    // write values from disjunctionValueEdit back to this.sliceEdit. We can traverse sliceEdit, since all structural
-    // changes were kept in-sync.
-    for (var disjIdx in this.sliceEdit.sliceDisjunctions) {
-      var disj = this.sliceEdit.sliceDisjunctions[disjIdx];
-      for (var disjValueIdx in disj.disjunctionValues) {
-        disj.disjunctionValues[disjValueIdx] = this.disjunctionValueEdit[disjIdx][disjValueIdx].value; 
-      }
-    }
-    
+    this.sendUpdatedSlice(this.sliceEdit);
+  }
+  
+  private sendUpdatedSlice(slice: remoteData.UiSlice): void {
     this.working = true;
-    this.analysisService.updateSlice(this.sliceEdit).then((receivedSlice: remoteData.UiSlice) => {
+    this.analysisService.updateSlice(slice).then((receivedSlice: remoteData.UiSlice) => {
       this.working = false;
-      this.switchToNormalMode();
+      if (!this.normalMode)
+        this.switchToNormalMode();
     }).catch((msg: string) => {
       this.working = false;
       this.exception = msg;
@@ -222,5 +356,87 @@ export class AnalysisSliceComponent implements OnInit {
     if (!control.value || control.value.trim() === "") 
       return { "empty": true };
     return null;
+  }
+  
+  public drop(elementProvider: DragElementProvider): void {
+    var restriction: dragData.DragDropRestrictionData = <dragData.DragDropRestrictionData>elementProvider.element().data;
+    
+    if (this.normalMode) {
+      var sliceToEdit: remoteData.UiSlice = DiqubeUtil.copy(this.slice);
+      
+      var availableDisjunctions: Array<remoteData.UiSliceDisjunction> = 
+        sliceToEdit.sliceDisjunctions.filter(function (d) { return d.fieldName === restriction.field });
+    
+      if (availableDisjunctions && availableDisjunctions.length) {
+        availableDisjunctions[0].disjunctionValues.push(restriction.value);
+      } else {
+        sliceToEdit.sliceDisjunctions.push({
+          fieldName: restriction.field,
+          disjunctionValues: [ restriction.value ]
+        });
+      }
+      this.sendUpdatedSlice(sliceToEdit);
+      elementProvider.handled();
+    } else if (this.editMode) {
+      var disjIdx: number = 
+        this.sliceEdit.sliceDisjunctions.findIndex(function (d) { return d.fieldName === restriction.field });
+    
+      if (disjIdx >= 0) {
+        this.addDisjunctionValueInternal(disjIdx, restriction.value);
+      } else {
+        this.addDisjunctionFieldInternal(restriction.field, restriction.value);
+      }
+      elementProvider.handled();
+    }
+  }
+  
+  /**
+   * Recalculate this.internalDisjunctionValueEdit according to current values in this.sliceEdit and return this.internalDisjunctionValueEdit.
+   * 
+   * Does try to not overwrite any values that are still valid to not distract angular and lead it to re-create any 
+   * view-components although it does not need to.
+   */
+  public internalRefreshAndGetDisjunctionValueEdit(): Array<Array<AnalysisSliceDisjunctionValueEdit>> {
+    for (var disjIdx in this.sliceEdit.sliceDisjunctions) {
+      var disj: remoteData.UiSliceDisjunction = this.sliceEdit.sliceDisjunctions[disjIdx];
+      if (this.internalDisjunctionValueEdit.length <= disjIdx) {
+        // disjunctionValueEdit has too few elements
+        this.internalDisjunctionValueEdit.push([]);
+      }
+      
+      for (var valueIdx in disj.disjunctionValues) {
+        if (this.internalDisjunctionValueEdit[disjIdx].length <= valueIdx) {
+          // disjunctionValueEdit[disjIdx] has too few elements, create a new one with a onchange-listener 
+          var targetIdx: number = parseInt(valueIdx);
+          this.internalDisjunctionValueEdit[disjIdx].push(
+            new AnalysisSliceDisjunctionValueEdit(disj.disjunctionValues[targetIdx], 
+              new DefaultAnalysisSliceDisjunctionValueEditListener(disj, targetIdx)));
+        } else {
+          // check if disjunctionValueEdit[disjIdx][valueIdx] still has correct value or if it was changed in the sliceEdit object! 
+          if (this.internalDisjunctionValueEdit[disjIdx][valueIdx].getValue() !== disj.disjunctionValues[valueIdx]) {
+            this.internalDisjunctionValueEdit[disjIdx][valueIdx].setValueWithoutListener(disj.disjunctionValues[valueIdx]);
+          }
+        }
+      }
+      
+      if (disj.disjunctionValues.length < this.internalDisjunctionValueEdit[disjIdx].length) {
+        // remove elements in djusjunctionValueEdit that have been removed in sliceEdit
+        this.internalDisjunctionValueEdit[disjIdx].splice(disj.disjunctionValues.length, this.internalDisjunctionValueEdit[disjIdx].length - disj.disjunctionValues.length);
+      }
+    }
+
+    if (this.sliceEdit.sliceDisjunctions.length < this.internalDisjunctionValueEdit.length) {
+      // remove elements in djusjunctionValueEdit that have been removed in sliceEdit
+      this.internalDisjunctionValueEdit.splice(this.sliceEdit.sliceDisjunctions.length, this.internalDisjunctionValueEdit.length - this.sliceEdit.sliceDisjunctions.length);
+    }
+    
+    return this.internalDisjunctionValueEdit;
+  }
+  
+  /**
+   * returns true if currently transitioning, i.e. if collapsing or un-collapsing.
+   */
+  public transitioning(): boolean {
+    return this.currentTransitioningPromiseResolve !== undefined;
   }
 }

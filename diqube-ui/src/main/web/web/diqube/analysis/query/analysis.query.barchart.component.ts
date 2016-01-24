@@ -26,6 +26,7 @@ import {AnalysisStateService} from "../state/analysis.state.service";
 import * as remoteData from "../../remote/remote";
 import * as analysisData from "../analysis";
 import {DiqubeUtil} from "../../util/diqube.util";
+import {DragDropService} from "../drag-drop/drag-drop.service";
 
 @Component({
   selector: "diqube-analysis-query-barchart",
@@ -51,15 +52,18 @@ export class AnalysisQueryBarchartComponent implements OnInit, DoCheck, OnDestro
   
   private style: any;
   
-  constructor() {
+  private mouseDownListener: (event: MouseEvent) => void;
+  private canvasElement: HTMLElement;
+  
+  constructor(private dragDropService: DragDropService) {
     this.chartWidth = 600;
     this.chartHeight = 300;
     this.chartHtmlId = DiqubeUtil.newUuid();
   }
   
   public ngOnInit(): any {
-    var canvasElement = document.getElementById(this.chartHtmlId);
-    if (!canvasElement) {
+    this.canvasElement = document.getElementById(this.chartHtmlId);
+    if (!this.canvasElement) {
       // if executed before the ID is inside the html element, try again in next tick.
       setTimeout(() => {
         this.ngOnInit();
@@ -80,7 +84,7 @@ export class AnalysisQueryBarchartComponent implements OnInit, DoCheck, OnDestro
       data = [];
       labels = [];
     }
-    this.chart = DiqubeUtil.newChart(canvasElement, {
+    this.chart = DiqubeUtil.newChart(this.canvasElement, {
       type: "bar",
       data: {
         labels: labels,
@@ -110,23 +114,24 @@ export class AnalysisQueryBarchartComponent implements OnInit, DoCheck, OnDestro
         maintainAspectRatio: false
       }
     });
-    // TODO dnd
-//    canvasHtmlObject.addEventListener("mousedown", function (event) {
-//      var el = $scope.chart.getElementAtEvent(event);
-//      if (el && el.length) {
-//        try {
-//          var draggedValue =  el[0]._view.label;
-//          if (draggedValue) {
-//            dragDropService.startDragRestriction($scope.fieldNameXAxis, draggedValue);
-//            
-//            event.stopPropagation();
-//            event.preventDefault();
-//          }
-//        } catch (err) {
-//          // swallow, apparently no valid drag operation.
-//        }
-//      }
-//    });
+
+    this.mouseDownListener = (event: MouseEvent) => {
+      var el: Array<{ _view: { label: string }}> = this.chart.getElementAtEvent(event);
+      if (el && el.length) {
+        try {
+          var draggedValue =  el[0]._view.label;
+          if (draggedValue) {
+            this.dragDropService.startDragRestriction(this.fieldNameXAxis, draggedValue);
+            
+            event.stopPropagation();
+            event.preventDefault();
+          }
+        } catch (err) {
+          // swallow, apparently no valid drag operation.
+        }
+      }
+    };
+    this.canvasElement.addEventListener("mousedown", this.mouseDownListener);
     
     // initial update
     this.updateData();
@@ -143,8 +148,13 @@ export class AnalysisQueryBarchartComponent implements OnInit, DoCheck, OnDestro
   }
   
   public ngOnDestroy(): any {
-    if (this.chart)
+    if (this.chart) {
       this.chart.destroy();
+    }
+    
+    if (this.mouseDownListener) {
+      this.canvasElement.removeEventListener("mousedown", this.mouseDownListener);
+    }
   }
   
   private updateData(): void {

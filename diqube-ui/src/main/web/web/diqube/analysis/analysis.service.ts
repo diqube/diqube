@@ -386,42 +386,43 @@ export class AnalysisService {
           if (dataType === remoteData.QueryJsonResultConstants.TYPE) {
             var res: remoteData.QueryJsonResult = <remoteData.QueryJsonResult>data;
 
-            var replacedQuery: boolean = false;
+            var oldQuery: remoteData.UiQuery = undefined;
+            
             for (var qubeIdx in me.loadedAnalysis.qubes) {
               if (me.loadedAnalysis.qubes[qubeIdx].id === qubeId) {
                 var qube: remoteData.UiQube = me.loadedAnalysis.qubes[qubeIdx];
                 for (var queryIdx in qube.queries) {
                   if (qube.queries[queryIdx].id === res.query.id) {
-                    var oldQuery = qube.queries[queryIdx]; 
-                    qube.queries[queryIdx] = res.query;
-                    
-                    if (oldQuery.diql == res.query.diql) {
-                      if (analysisData.isUiQueryWithResults(oldQuery))
-                        // preserve the $results we loaded already, if possible!
-                        analysisData.enhanceUiQueryWithResults(res.query, (<analysisData.UiQueryWithResults>oldQuery).$results);
-                    }
-                    else
-                      // be sure to cancel execution if the query executes based on old properties
-                      this.analysisExecutionService.cancelQueryIfRunning(oldQuery);
-                    
-                    replacedQuery = true;
-                    break;
+                    oldQuery = qube.queries[queryIdx];
+                    break; 
                   }
                 }
               }
-              if (replacedQuery)
+              if (oldQuery)
                 break;
             }
             
-            if (!replacedQuery) {
+            if (!oldQuery) {
               console.warn("Could not find the query that should be replaced by the updated query. " + 
                            "Did the server change the query ID?");
               reject("Internal error. Please refresh the page.");
               return;
             }
+                    
+            if (oldQuery.diql !== res.query.diql) {
+              // be sure to cancel execution if the query executes based on old properties
+              this.analysisExecutionService.cancelQueryIfRunning(oldQuery);
+              // remove any results we might have already
+              if (analysisData.isUiQueryWithResults(oldQuery))
+                analysisData.removeResultsFromUiQueryWithResults((<analysisData.UiQueryWithResults>oldQuery));
+            }
+            
+            // overwrite everything of oldQuery with value of the received query. Do not replace object, since then
+            // angular would replace the UI elements with new ones and we would e.g. lose edit-mode state
+            DiqubeUtil.copyTo(res.query, oldQuery);
 
             me.setCurrentAnalysisVersion(res.analysisVersion);
-            resolve(res.query);
+            resolve(oldQuery);
           }
           return false;
         },
@@ -478,29 +479,25 @@ export class AnalysisService {
             }
             
             var oldQube: remoteData.UiQube = me.loadedAnalysis.qubes[foundQubeIdx];
-            me.loadedAnalysis.qubes[foundQubeIdx] = res.qube;
-
-            // we replaced the whole qube including the $results of all queries (which are empty now again).
-            // If the slice did not change, we can preserve the results! Otherwise we have to re-run the queries.
-            // Be sure to cancel any potentially runnign queries if we effectively delete $results.
-            for (var newQueryIdx in res.qube.queries) {
-              var newQuery: remoteData.UiQuery = res.qube.queries[newQueryIdx];
-              var oldQueryArray: Array<remoteData.UiQuery> = oldQube.queries.filter((q: remoteData.UiQuery) => { return q.id === newQuery.id; });
-              if (oldQueryArray && oldQueryArray.length) {
-                if (oldQube.sliceId === res.qube.sliceId) {
-                  // preserve results
-                  if (analysisData.isUiQueryWithResults(oldQueryArray[0])) {
-                    analysisData.enhanceUiQueryWithResults(newQuery, (<analysisData.UiQueryWithResults>oldQueryArray[0]).$results);
-                  }
-                } else {
-                  // Do not preserve results, if executing: cancel!
-                  this.analysisExecutionService.cancelQueryIfRunning(oldQueryArray[0]);
+            
+            if (oldQube.sliceId !== res.qube.sliceId) {
+              // slice was changed, so remove all results of all queries and cancel their execution.
+              for (var queryIdx in oldQube.queries) {
+                var query = oldQube.queries[queryIdx];
+                if (analysisData.isUiQueryWithResults(query)) {
+                  analysisData.removeResultsFromUiQueryWithResults(<analysisData.UiQueryWithResults>query);
                 }
+                // cancel if something is running
+                this.analysisExecutionService.cancelQueryIfRunning(query);
               }
             }
+            
+            // overwrite everything of oldQuebe with value of the received qube. Do not replace object, since then
+            // angular would replace the UI elements with new ones and we would e.g. lose edit-mode state
+            DiqubeUtil.copyTo(res.qube, oldQube);
 
             me.setCurrentAnalysisVersion(res.analysisVersion);
-            resolve(res.qube);
+            resolve(oldQube);
           }
           return false;
         },
@@ -542,7 +539,6 @@ export class AnalysisService {
             for (var sliceIdx in me.loadedAnalysis.slices) {
               if (me.loadedAnalysis.slices[sliceIdx].id === res.slice.id) {
                 origSlice = me.loadedAnalysis.slices[sliceIdx];
-                me.loadedAnalysis.slices[sliceIdx] = res.slice;
                 break;
               }
             }
@@ -562,16 +558,19 @@ export class AnalysisService {
                   // clean $results
                   for (var queryIdx in qube.queries) {
                     if (analysisData.isUiQueryWithResults(qube.queries[queryIdx]))
-                      (<analysisData.UiQueryWithResults>qube.queries[queryIdx]).$results = undefined;
+                      analysisData.removeResultsFromUiQueryWithResults(<analysisData.UiQueryWithResults>qube.queries[queryIdx]);
                     this.analysisExecutionService.cancelQueryIfRunning(qube.queries[queryIdx]);
                   }
                 }
               }
             }
 
+            // overwrite everything of origSlice with value of the received slice. Do not replace object, since then
+            // angular would replace the UI elements with new ones and we would e.g. lose edit-mode state
+            DiqubeUtil.copyTo(res.slice, origSlice);
 
             me.setCurrentAnalysisVersion(res.analysisVersion);
-            resolve(res.slice);
+            resolve(origSlice);
           }
           return false;
         },

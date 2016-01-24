@@ -54,3 +54,13 @@ export function enhanceUiQueryWithResults(query: UiQuery, $results: TableJsonRes
   (<UiQueryWithResults> query).$results = <EnhancedTableJsonResult>$results; // note that the properties added to TableJsonResult will be undefined!
   return <UiQueryWithResults> query;
 } 
+
+/**
+ * Remove the results from a UiQueryWithResults
+ * 
+ * @returns the same object.
+ */
+export function removeResultsFromUiQueryWithResults(query: UiQueryWithResults): UiQuery {
+  query.$results = undefined;
+  return query;
+}

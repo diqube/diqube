@@ -23,9 +23,9 @@
 <paper-material [attr.elevation]="materialElevation()" *ngIf="normalMode" 
                 class="slice vertical layout"
                 [class.slice-opened]="!collapsed" 
-                drop-target drop-accept="typeRestriction" drop-handler="drop(element)">
-  <div class="panel-heading horizontal layout justified" (click)="toggleCollapsed()">
-    <div class="horizontal layout">
+                dropTarget="TYPE_RESTRICTION" (drop)="drop($event)">
+  <div class="panel-heading horizontal layout justified">
+    <div class="horizontal layout flex" (click)="toggleCollapsed()">
       <span class="paper-font-subhead self-center">{{ slice.name }}</span>
     </div>
     <span class="slice-header-actions">
@@ -34,7 +34,7 @@
   </div>
 
   <iron-collapse [attr.opened]="(collapsed) ? undefined : true" (transitionend)="toggleDone()">
-    <table style="width: 100%">
+    <table *ngIf="addCollapsedToDom" style="width: 100%">
       <tbody>
         <tr *ngIf="slice.manualConjunction">
           <td colspan="2">
@@ -43,12 +43,12 @@
         </tr>
         <tr *ngFor="#dis of slice.sliceDisjunctions; #i=index" 
             [class.slice-tr-show-top-border]="i>0 || slice.manualConjunction"
-            [class.slice-tr-show-and]="(i>0 || slice.manualConjunction) && !transitioning && !collapsed"> <!-- show after transitioning -->
+            [class.slice-tr-show-and]="(i>0 || slice.manualConjunction) && !transitioning() && !collapsed"> <!-- show after transitioning() -->
           <td class="slice-disjunction-field">{{ dis.fieldName }}</td>
           <td class="slice-disjunction-value-td">
             <ul class="slice-disjunction-value-list">
               <li [class.slice-disjunction-value-first]="j==0"
-                  [class.slice-disjunction-value-show-or]="j>0 && !transitioning && !collapsed" 
+                  [class.slice-disjunction-value-show-or]="j>0 && !transitioning() && !collapsed" 
                   class="slice-disjunction-value"
                   *ngFor="#val of dis.disjunctionValues; #j=index">{{ val }}</li>
             </ul>
@@ -70,7 +70,7 @@
 <paper-material [attr.elevation]="materialElevation()" *ngIf="editMode" 
                 class="slice edit-slice vertical layout"
                 [class.slice-opened]="!collapsed" 
-                drop-target drop-accept="typeRestriction" drop-handler="drop(element)">
+                dropTarget="TYPE_RESTRICTION" (drop)="drop($event)">
   <form (submit)="updateSlice()" [ngFormModel]="formControlGroup">
     <div class="panel-heading horizontal layout justified">
       <div class="horizontal layout">
@@ -87,7 +87,7 @@
     <diqube-error *ngIf="exception">{{ exception }}</diqube-error>
   
     <iron-collapse [attr.opened]="(collapsed) ? undefined : true" (transitionend)="toggleDone()">
-      <table>
+      <table *ngIf="addCollapsedToDom">
         <tbody>
           <tr>
             <td colspan="2">
@@ -96,7 +96,7 @@
           </tr>
           <tr *ngFor="#dis of sliceEdit.sliceDisjunctions; #i=index" 
               [class.slice-tr-show-top-border]="true"
-              [class.slice-tr-show-and]="!transitioning && !collapsed"> <!-- show after transitioning -->
+              [class.slice-tr-show-and]="!transitioning() && !collapsed"> <!-- show after transitioning() -->
             <td class="slice-disjunction-field">
               <div class="horizontal layout">
                 <paper-input no-label-float="true" placeholder="Field name" [(ngModel)]="dis.fieldName"></paper-input>
@@ -106,12 +106,12 @@
             <td class="slice-disjunction-value-td">
               <ul class="slice-disjunction-value-list">
                 <li [class.slice-disjunction-value-first]="j==0"
-                    [class.slice-disjunction-value-show-or]="j>0 && !transitioning && !collapsed" 
+                    [class.slice-disjunction-value-show-or]="j>0 && !transitioning() && !collapsed" 
                     class="slice-disjunction-value"
-                    *ngFor="#val of dis.disjunctionValues; #j=index">
+                    *ngFor="#val of disjunctionValueEdit[i]; #j=index">
+                  <!-- Iterate over disjunctionValueEdit[i][j].value instead of dis.internalDisjunctionValueEdit. See doc of internalDisjunctionValueEdit. -->
                   <div class="horizontal layout">
-                    <paper-input no-label-float="true" placeholder="Field value" [(ngModel)]="disjunctionValueEdit[i][j].value">
-                      <!-- Bind to disjunctionValueEdit[i][j].value instead of dis.disjunctionValues. See doc of disjunctionValueEdit. -->
+                    <paper-input no-label-float="true" placeholder="Field value" [(ngModel)]="val.value">
                     </paper-input>
                     <paper-icon-button (click)="removeDisjunctionValue(i, j)" title="Remove value" icon="icons:delete"></paper-icon-button>
                   </div>

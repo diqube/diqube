@@ -30,6 +30,7 @@ import {AnalysisService} from "./diqube/analysis/analysis.service";
 import {AnalysisExecutionService} from "./diqube/analysis/execution/analysis.execution.service";
 import {AnalysisStateService} from "./diqube/analysis/state/analysis.state.service";
 import {NavigationStateService} from "./diqube/navigation-state/navigation-state.service";
+import {DragDropService} from "./diqube/analysis/drag-drop/drag-drop.service";
 
 bootstrap(DiqubeAppComponent, [ ROUTER_PROVIDERS, AnalysisService, RemoteService, LoginStateService, CookiesService,
-                                AnalysisExecutionService, AnalysisStateService, NavigationStateService ]);  
+                                AnalysisExecutionService, AnalysisStateService, NavigationStateService, DragDropService ]);  

@@ -44,9 +44,13 @@ h1 {
   color: var(--paper-grey-700);
 }
 
-.main-content {
+body /deep/ .main-content {
   padding: 10px;
-  /*height: 100%;*/
+}
+
+body /deep/ #mainContainer {
+  /* This is a polymer tag inside the paper-scroll-header-panel that contains our main content. Ensure that it has a layout. */
+  @apply(--layout-vertical)
 }
 
 diqube-login {
@@ -62,6 +66,24 @@ diqube-single-query {
 }
 
 diqube-analysis-manage {
+  display: flex;
+  flex: 1;
+  flex-direction: row;
+}
+
+diqube-analysis-create {
+  display: flex;
+  flex: 1;
+  flex-direction: row;
+}
+
+diqube-analysis-root {
+  display: flex;
+  flex: 1;
+  flex-direction: row;
+}
+
+diqube-analysis-main {
   display: flex;
   flex: 1;
   flex-direction: row;
@@ -125,6 +147,10 @@ diqube-table table.mdl-data-table tbody td {
   --paper-tabs-selection-bar-color: var(--paper-grey-600);
   --paper-tab-ink: var(--paper-grey-400);
   --paper-progress-active-color: var(--paper-blue-300);
+}
+
+#dragControlElement {
+  background-color: var(--paper-grey-200)
 }
 
 

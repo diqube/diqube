@@ -36,7 +36,62 @@ export class DiqubeUtil {
    * Deep-copy an arbitrary object. 
    */
   static copy<T>(input: T): T {
+    if (typeof input === "string" || typeof input === "number" || typeof input === "boolean" || input === null)
+      return input;
+    
     return JSON.parse(JSON.stringify(input));
+  }
+  
+  /**
+   * Just like #copy, but copies all values (recursievly) into an object that is already available instead of creating a
+   * new object.
+   * 
+   * Does NOT copy any field starting with "$", NO functions and NO symbols.
+   * 
+   * It will NOT reset a field if that has the correct value already!
+   * 
+   * Does NOT remove any properties from output, except for array-indices that are not present in input. 
+   * 
+   * @returns the output object that was passed as parameter, unless input is native type, then output is not adjusted,
+   *          but input is returned.
+   */
+  static copyTo<T>(input: T, output: T): T {
+    if (typeof input === "string" || typeof input === "number" || typeof input === "boolean" || input === null)
+      return input;
+    
+    for (var k in input) {
+      if (k.indexOf("$") != 0 && input.hasOwnProperty(k)) {
+        var value: any = (<any>input)[k];
+        
+        if (typeof value === "string" || typeof value === "number" || typeof value === "boolean" || value === null) {
+          if (value !== (<any>output)[k])
+            (<any>output)[k] = value;
+        } else if (typeof value === "object") {
+          if (Array.isArray(value)) {
+            if (!output.hasOwnProperty(k) || (<any>output)[k] === null || !(typeof (<any>output)[k] === "object") || !Array.isArray((<any>output)[k]))
+              (<any>output)[k] = [];
+            
+            for (var idx in value) {
+              if ((<any>output)[k].length <= idx)
+                (<any>output)[k].push(DiqubeUtil.copy(value[idx]));
+              else
+                // assign in case value[idx] is native type
+                (<any>output)[k][idx] = DiqubeUtil.copyTo(value[idx], (<any>output)[k][idx]); 
+            }
+            
+            if ((<any>output)[k].length > value.length)
+              // remove objects that are too much in output.
+              (<any>output)[k].splice(value.length, (<any>output)[k].length - value.length);
+             
+          } else {
+            if (!output.hasOwnProperty(k) || (<any>output)[k] === null || !(typeof (<any>output)[k] === "object") || Array.isArray((<any>output)[k]))
+              (<any>output)[k] = {};
+            DiqubeUtil.copyTo((<any>input)[k], (<any>output)[k]);
+          }
+        }
+      }
+    }
+    return output;
   }
   
   /**

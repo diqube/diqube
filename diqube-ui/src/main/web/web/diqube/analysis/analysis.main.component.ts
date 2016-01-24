@@ -28,6 +28,7 @@ import {AnalysisQubeComponent} from "./qube/analysis.qube.component";
 import {AnalysisSlicesComponent} from "./slice/analysis.slices.component";
 import {NavigationStateService} from "../navigation-state/navigation-state.service";
 import {DiqubeBaseNavigatableComponent} from "../diqube.base.component";
+import {DragControlDirective} from "./drag-drop/drag-control.directive";
 
 /**
  * Main component for displaying a specific version of an analysis.
@@ -43,7 +44,7 @@ import {DiqubeBaseNavigatableComponent} from "../diqube.base.component";
 @Component({
   selector: "diqube-analysis-main",
   templateUrl: "diqube/analysis/analysis.main.html",
-  directives: [ ROUTER_DIRECTIVES, AnalysisQubeComponent, AnalysisSlicesComponent ]
+  directives: [ ROUTER_DIRECTIVES, AnalysisQubeComponent, AnalysisSlicesComponent, DragControlDirective ]
 })
 export class AnalysisMainComponent extends DiqubeBaseNavigatableComponent implements OnInit, OnDestroy , CanReuse, OnReuse, AnalysisServiceRenavigator {
   public static ROUTE_PARAM_ANALYSIS_ID: string = "analysisId";

@@ -20,30 +20,34 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -->
-
-<diqube-error *ngIf="error">{{ error }}</diqube-error>
-
-<diqube-warning *ngIf="showNewerVersionWarning()">
-  <b>Warning!</b> You are currently viewing an old version of this analysis. If you make any changes, that will then
-  become the newest version and you might lose (or be unable to find) the currently newest version any more. 
-  <paper-button raised (click)="loadNewestVersion()">Load the currently newest version ({{ newestVersionNumber() }}) now.</paper-button>  
-</diqube-warning>
-
-<diqube-warning *ngIf="showDifferentOwnerWarning()">
-  <b>Warning!</b> This analysis is owned by <b>{{ analysis.user }}</b>, which means you cannot adjust this analysis.
-  <paper-button raised (click)="cloneAndLoadCurrentAnalysis()">Clone this version of the analysis for your own user.</paper-button> 
-</diqube-warning>
-
-<div *ngIf="!error" class="horizontal layout">
-  <paper-fab icon="add" (click)="addQube()" class="fab" title="Add qube"></paper-fab>
+<div class="vertical layout flex" dragControl="dragControlElement">
+  <diqube-error *ngIf="error">{{ error }}</diqube-error>
   
-  <div class="qube-container flex">
-    <p *ngFor="#qube of analysis?.qubes" class="qube-row vertical layout">
-      <diqube-analysis-qube [analysis]="analysis" [qube]="qube"></diqube-analysis-qube>
-    </p>
+  <diqube-warning *ngIf="showNewerVersionWarning()">
+    <b>Warning!</b> You are currently viewing an old version of this analysis. If you make any changes, that will then
+    become the newest version and you might lose (or be unable to find) the currently newest version any more. 
+    <paper-button raised (click)="loadNewestVersion()">Load the currently newest version ({{ newestVersionNumber() }}) now.</paper-button>  
+  </diqube-warning>
+  
+  <diqube-warning *ngIf="showDifferentOwnerWarning()">
+    <b>Warning!</b> This analysis is owned by <b>{{ analysis.user }}</b>, which means you cannot adjust this analysis.
+    <paper-button raised (click)="cloneAndLoadCurrentAnalysis()">Clone this version of the analysis for your own user.</paper-button> 
+  </diqube-warning>
+  
+  <div *ngIf="!error" class="horizontal layout flex">
+    <paper-fab icon="add" (click)="addQube()" class="fab" title="Add qube"></paper-fab>
+    
+    <div class="qube-container flex">
+      <p *ngFor="#qube of analysis?.qubes" class="qube-row vertical layout">
+        <diqube-analysis-qube [analysis]="analysis" [qube]="qube"></diqube-analysis-qube>
+      </p>
+    </div>
+    
+    <div class="slice-container vertical layout">
+      <diqube-analysis-slices class="flex horizontal layout" [analysis]="analysis"></diqube-analysis-slices>
+    </div>
   </div>
-  
-  <div class="slice-container vertical layout">
-    <diqube-analysis-slices class="flex horizontal layout" [analysis]="analysis"></diqube-analysis-slices>
+  <div>
+    <span style="display: none" id="dragControlElement"></span>
   </div>
 </div>
