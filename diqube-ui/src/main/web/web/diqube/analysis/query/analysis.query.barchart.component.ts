@@ -39,6 +39,8 @@ export class AnalysisQueryBarchartComponent implements OnInit, DoCheck, OnDestro
   
   /* ID of the canvas HTML element */
   public chartHtmlId: string;
+  public barChartPrimaryHtmlId: string;
+  
   public chartWidth: number;
   public chartHeight: number;
   
@@ -59,17 +61,22 @@ export class AnalysisQueryBarchartComponent implements OnInit, DoCheck, OnDestro
     this.chartWidth = 600;
     this.chartHeight = 300;
     this.chartHtmlId = DiqubeUtil.newUuid();
+    this.barChartPrimaryHtmlId = DiqubeUtil.newUuid();
   }
   
   public ngOnInit(): any {
     this.canvasElement = document.getElementById(this.chartHtmlId);
-    if (!this.canvasElement) {
+    var barChartPrimaryElement = document.getElementById(this.barChartPrimaryHtmlId);
+    if (!this.canvasElement || !barChartPrimaryElement) {
       // if executed before the ID is inside the html element, try again in next tick.
       setTimeout(() => {
         this.ngOnInit();
       }, 0);
       return;
     }
+    
+    var primaryColor = window.getComputedStyle(barChartPrimaryElement).color;
+    var primaryBackgroundColor = window.getComputedStyle(barChartPrimaryElement).backgroundColor;
     
     var data: Array<any>;
     var labels: Array<any>;
@@ -90,7 +97,7 @@ export class AnalysisQueryBarchartComponent implements OnInit, DoCheck, OnDestro
         labels: labels,
         datasets: [{
           label: "Value",
-          backgroundColor: "#1f77b4",
+          backgroundColor: primaryBackgroundColor,
           data: data
         }]
       },
@@ -100,13 +107,13 @@ export class AnalysisQueryBarchartComponent implements OnInit, DoCheck, OnDestro
             ticks: {
               beginAtZero:true,
               fontFamily: '"Helvetica Neue",Helvetica,Arial,sans-serif',
-              fontColor: "#333",
+              fontColor: primaryColor,
             },
           }],
           xAxes: [{
             ticks: {
               fontFamily: '"Helvetica Neue",Helvetica,Arial,sans-serif',
-              fontColor: "#333",
+              fontColor: primaryColor,
             },
           }]
         },

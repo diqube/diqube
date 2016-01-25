@@ -24,9 +24,9 @@
                 class="slice vertical layout"
                 [class.slice-opened]="!collapsed" 
                 dropTarget="TYPE_RESTRICTION" (drop)="drop($event)">
-  <div class="panel-heading horizontal layout justified">
+  <div class="horizontal layout justified">
     <div class="horizontal layout flex" (click)="toggleCollapsed()">
-      <span class="paper-font-subhead self-center">{{ slice.name }}</span>
+      <span class="slice-title self-center">{{ slice.name }}</span>
     </div>
     <span class="slice-header-actions">
       <paper-icon-button class="slice-header-action" (click)="switchToEditMode()" title="Edit mode" icon="icons:settings"></paper-icon-button>
@@ -72,15 +72,15 @@
                 [class.slice-opened]="!collapsed" 
                 dropTarget="TYPE_RESTRICTION" (drop)="drop($event)">
   <form (submit)="updateSlice()" [ngFormModel]="formControlGroup">
-    <div class="panel-heading horizontal layout justified">
+    <div class="horizontal layout justified">
       <div class="horizontal layout">
-        <paper-input class="self-center" no-label-float="true" placeholder="Name of slice" [(ngModel)]="sliceEdit.name" ngControl="nameControl"></paper-input>
+        <paper-input class="slice-title self-center" no-label-float="true" placeholder="Name of slice" [(ngModel)]="sliceEdit.name" ngControl="nameControl"></paper-input>
       </div>
       <span class="slice-header-actions">
         <paper-icon-button *ngIf="!working" class="slice-header-action" (click)="switchToRemoveMode()" title="Remove slice" icon="icons:delete"></paper-icon-button>
         <paper-icon-button *ngIf="!working" class="slice-header-action" (click)="switchToNormalMode()" title="Cancel edit" icon="icons:cancel"></paper-icon-button>
         <paper-icon-button *ngIf="!working" class="slice-header-action" (click)="updateSlice()" title="Save" icon="icons:save"></paper-icon-button>
-        <paper-spinner-lite *ngIf="working" active></paper-spinner-lite>
+        <paper-spinner-lite *ngIf="working" class="slice-header-action" active></paper-spinner-lite>
       </span>
     </div>
     
@@ -137,8 +137,8 @@
 </paper-material>
 
 <!-- REMOVE MODE -->
-<paper-material elevation="3" class="slice remove-slice remove-query vertical layout" *ngIf="removeMode">
-  <span class="query-header paper-font-subhead">{{ slice.name }}</span>
+<paper-material elevation="3" class="slice remove-slice vertical layout" *ngIf="removeMode">
+  <span class="query-header slice-title">{{ slice.name }}</span>
   
   <diqube-error *ngIf="exception">{{ exception }}</diqube-error>
   

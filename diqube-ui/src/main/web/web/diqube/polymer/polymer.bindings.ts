@@ -219,7 +219,7 @@ export class PolymerCheckboxValueAccessor implements ControlValueAccessor {
     if (value) 
       PolymerUtil.setAttr(<HTMLElement>this._elementRef.nativeElement, "checked", true);
     else
-      PolymerUtil.setAttr(<HTMLElement>this._elementRef.nativeElement, "checked", false);
+      PolymerUtil.setAttr(<HTMLElement>this._elementRef.nativeElement, "checked", undefined);
   }
 
   public registerOnChange(fn: (_: any) => void): void { 

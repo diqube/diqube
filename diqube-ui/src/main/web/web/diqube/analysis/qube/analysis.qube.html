@@ -21,7 +21,7 @@
 
 -->
 <div class="qube vertical layout">
-  <div class="qube-header horizontal layout">
+  <div class="horizontal layout">
   
     <div *ngIf="normalMode" class="horizontal layout flex justified">
       <div class="horizontal layout">
@@ -30,7 +30,7 @@
         <paper-icon-button *ngIf="collapsed" class="qube-collapse" (click)="toggleCollapse()" title="Expand" 
                            icon="hardware:keyboard-arrow-right" [attr.disabled]="transitioning ? true : undefined"></paper-icon-button>
                            
-        <span class="paper-font-title self-center">{{ qube.name }}</span>
+        <span class="qube-title self-center">{{ qube.name }}</span>
       </div>
       <div class="qube-header-actions horizontal layout">
         <span class="qube-slice qube-header-action self-center">
@@ -52,7 +52,7 @@
           <paper-icon-button *ngIf="collapsed" class="qube-collapse" (click)="toggleCollapse()" title="Expand" 
                              icon="hardware:keyboard-arrow-right" [attr.disabled]="transitioning ? true : undefined"></paper-icon-button>
                              
-          <paper-input no-label-float="true" class="qube-name" placeholder="Name" [(ngModel)]="qubeEdit.name" ngControl="nameControl"></paper-input>
+          <paper-input no-label-float="true" class="qube-title" placeholder="Name" [(ngModel)]="qubeEdit.name" ngControl="nameControl"></paper-input>
         </div>
       
         <div class="qube-header-actions">
@@ -68,7 +68,7 @@
           <paper-icon-button *ngIf="!working" class="qube-header-action" (click)="switchToRemoveMode()" title="Remove" icon="icons:delete"></paper-icon-button>
           <paper-icon-button *ngIf="!working" class="qube-header-action" (click)="switchToNormalMode()" title="Cancel" icon="icons:cancel"></paper-icon-button>
           <paper-icon-button *ngIf="!working" class="qube-header-action" (click)="updateQube()" title="Save" icon="icons:save"></paper-icon-button>
-          <paper-spinner-lite *ngIf="working" active></paper-spinner-lite>
+          <paper-spinner-lite *ngIf="working" class="qube-header-action" active></paper-spinner-lite>
         </div>
       </form>
     </div>
@@ -89,7 +89,7 @@
   
   <!-- REMOVE MODE -->
   <div *ngIf="removeMode" class="remove-qube vertical layout flex justified">
-    <span class="qube-header-left paper-font-title">{{ qube.name }}</span>
+    <span class="qube-title">{{ qube.name }}</span>
     <paper-material elevation="1" class="flex vertical layout remove-qube-material">
       <p class="self-center">Are you sure you want to remove this qube?</p>
       <p class="self-center">

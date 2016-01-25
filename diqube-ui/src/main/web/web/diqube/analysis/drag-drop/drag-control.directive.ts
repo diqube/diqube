@@ -55,15 +55,18 @@ export class DragControlDirective implements OnInit, OnDestroy, DragDropListener
         var mouseX = event.pageX;
         var mouseY = event.pageY;
         
-        if (mouseX + width > document.body.clientWidth - 5)
-          mouseX = mouseX - width - 2;
+        var targetX = mouseX - width - 1;
+        var targetY = mouseY + 1;
+        
+        if (targetX < 5)
+          targetX = mouseX + 2;
         if (mouseY + height > document.body.clientHeight - 5)
           mouseY = mouseY - height - 2;
         
         this.dragControlElement.style.zIndex = "200";
         this.dragControlElement.style.position = "absolute";
-        this.dragControlElement.style.left = mouseX + 1 + "px";
-        this.dragControlElement.style.top = mouseY + 1 + "px";
+        this.dragControlElement.style.left = targetX + "px";
+        this.dragControlElement.style.top = targetY + "px";
       }
     };
     
