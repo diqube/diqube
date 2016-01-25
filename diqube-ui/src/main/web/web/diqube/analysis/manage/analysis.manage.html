@@ -22,14 +22,6 @@
 -->
 <div class="flex layout vertical">
 
-  <!-- <button class="btn btn-default" (click)="reloadAnalysis()" [disabled]="reloading">
-    Refresh
-  </button>
-  
-  <button class="btn btn-default" (click)="createAnalysis()">
-    <i class="fa fa-plus add-action"></i> Create
-  </button>-->
-  
   <div class="flex layout horizontal center-justified">
     <paper-spinner-lite *ngIf="loading" active></paper-spinner-lite>
     <paper-material *ngIf="!loading" class="self-center" elevation="1" selectable="none">
@@ -42,6 +34,8 @@
         </paper-item>
       </paper-listbox>
     </paper-material>
+    
+    <div *ngIf="!loading && !allAnalysis.length">No analysis available.</div>
   </div>
 
   
