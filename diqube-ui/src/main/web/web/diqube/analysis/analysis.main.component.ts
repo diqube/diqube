@@ -66,7 +66,15 @@ export class AnalysisMainComponent extends DiqubeBaseNavigatableComponent implem
   }
 
   public analysisServiceReloadNeeded(analysisId: string, analysisVersion: number): boolean {
-    AnalysisMainComponent.navigate(this.router, analysisId, analysisVersion);
+    // do not re-navigate if we're there already. This might happen if we're reusing this component because of a 
+    // back/forward navigation of the user: The paramAnalysisVersion is set first in the URL (by the browser), then
+    // paramAnalysisVersion is set and then this event fires (as analysis service did reload the analysis from the
+    // server) - but in that case we are already at the right location in the browser and must no re-navigate as that
+    // would destroy the browser history (after a back we would push the now-newest URL again right away, deleting the 
+    // original forward-history).
+    if (this.paramAnalysisVersion !== analysisVersion) {
+      AnalysisMainComponent.navigate(this.router, analysisId, analysisVersion);
+    }
     return false; // navigation successful, do not propagate further
   }
   
