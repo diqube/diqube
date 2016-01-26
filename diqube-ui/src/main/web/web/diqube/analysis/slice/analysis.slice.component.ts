@@ -425,7 +425,10 @@ export class AnalysisSliceComponent implements OnInit, AfterViewChecked {
     }
   }
   
-  public topDownTransitionDone(): void {
+  public topDownTransitionDone(event: TransitionEvent): void {
+    if (event.propertyName !== "height")
+      return;
+    
     if (!this.transitioning())
       return;
     

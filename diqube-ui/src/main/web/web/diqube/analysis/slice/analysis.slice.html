@@ -34,7 +34,7 @@
       </span>
     </div>
   
-    <iron-collapse [attr.opened]="(collapsed) ? undefined : true" (transitionend)="topDownTransitionDone()">
+    <iron-collapse [attr.opened]="(collapsed) ? undefined : true" (transitionend)="topDownTransitionDone($event)">
       <table *ngIf="addCollapsedToDom" style="width: 100%">
         <tbody>
           <tr *ngIf="slice.manualConjunction">
@@ -89,7 +89,7 @@
       
       <diqube-error *ngIf="exception">{{ exception }}</diqube-error>
     
-      <iron-collapse [attr.opened]="(collapsed) ? undefined : true" (transitionend)="topDownTransitionDone()">
+      <iron-collapse [attr.opened]="(collapsed) ? undefined : true" (transitionend)="topDownTransitionDone($event)">
         <table *ngIf="addCollapsedToDom">
           <tbody>
             <tr>
