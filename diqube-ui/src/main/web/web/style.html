@@ -28,15 +28,12 @@
     
 :root {
   /* Diqube defintions */
-/*  --diqube-primary-color: var(--paper-blue-500);
-  --diqube-primary-color-light: var(--paper-blue-100);
-  --diqube-primary-color-dark: var(--paper-blue-700);*/
   --diqube-primary-color: var(--paper-deep-orange-500);
   --diqube-primary-color-light: var(--paper-deep-orange-300);
   --diqube-primary-color-dark: var(--paper-deep-orange-700);
-  --diqube-secondary-color: var(--paper-amber-a200);
+  --diqube-secondary-color: var(--paper-amber-a400);
   --diqube-secondary-color-light: var(--paper-amber-a100);
-  --diqube-secondary-color-dark: var(--paper-amber-a400);
+  --diqube-secondary-color-dark: var(--paper-amber-a700);
   
   --diqube-background-color-grey1: var(--paper-grey-50);
   --diqube-background-color-grey2: var(--paper-grey-100);
@@ -53,6 +50,9 @@
   --diqube-text-lightbg-warning: var(--paper-orange-a400);  
   
   --diqube-text-darkbg-primary: rgba(255, 255, 255, var(--light-primary-opacity));
+  
+  /* keep in sync with TransitionBoundaryChanges. */
+  --diqube-transition-time: 300ms;
   
   /* diqube derived mixins */
   --diqube-font-lightbg-title-primary: {
@@ -248,6 +248,31 @@ diqube-table table.mdl-data-table tbody td {
   opacity: .5;
 }
 
+body /deep/ .dragging /deep/ * {
+  cursor: move;
+}
+
+/* If drag and drop is in progress and the currently dragged object is droppable somewhere, show the user that! */
+body /deep/ .droppable {
+  background-color: var(--diqube-secondary-color-light) !important;
+  cursor: copy !important;
+}
+
+body /deep/ .droppable * {
+  cursor: copy !important;
+}
+
+body /deep/ [dropTarget] {
+  /* animate background color changes from dragging/dropping etc. */
+  transition: background-color var(--diqube-transition-time);
+}
+
+/* class temporarily added to an element that something has been dropped to. */
+body /deep/ .dropped {
+  background-color: var(--diqube-secondary-color-dark) !important;
+}
+
+
 
 
 
@@ -408,6 +433,13 @@ body /deep/ .slices-header-actions {
 body /deep/ .slice {
   background-color: var(--diqube-background-color-white);
   padding: 5px;
+  /* transition smoothly if slice is opened, see .slice-opened. Copy background-color transition of d'n'd */
+  transition: margin-top var(--diqube-transition-time), margin-bottom var(--diqube-transition-time), background-color var(--diqube-transition-time);
+}
+
+body /deep/ .slices /deep/ .slice-opened {
+  margin-top: 10px;
+  margin-bottom: 10px;
 }
 
 body /deep/ .slice-title {
@@ -491,11 +523,6 @@ body /deep/ .slices /deep/ table .slice-disjunction-field {
   word-break: break-word;
 }
 
-body /deep/ .slices /deep/ .slice-opened {
-  margin-top: 10px;
-  margin-bottom: 10px;
-}
-
 body /deep/ .slices /deep/ ::-webkit-scrollbar {
   /** for webkit browser disable scrollbar, as that would otherwise be visible when the opening animation runs */
   display: none;
@@ -518,6 +545,7 @@ body /deep/ .slices .remove-slice {
   margin-top: 10px;
   margin-bottom: 10px;
 }
+
     </style>
   </template>
 </dom-module>

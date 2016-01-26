@@ -27,11 +27,15 @@ import * as dragData from "./drag-drop.data";
 /**
  * Directive taking care that a hovered element is displayed during a drag operation. The value set to the directive is
  * the ID of a HTML element that will be used to moved around when dragging (just use an empty <span>, set display: none).
+ * 
+ * This will add the CSS class "dragging" to the parent element when something is being dragged currently.
  */
 @Directive({ 
   selector: "[dragControl]"
 })
 export class DragControlDirective implements OnInit, OnDestroy, DragDropListener {
+  private static CLASS_DRAGGING: string = "dragging";  
+  
   private dragControlElement: HTMLElement = undefined;  
   
   private mouseMoveHandler: (event: MouseEvent) => void;
@@ -55,13 +59,13 @@ export class DragControlDirective implements OnInit, OnDestroy, DragDropListener
         var mouseX = event.pageX;
         var mouseY = event.pageY;
         
-        var targetX = mouseX - width - 1;
-        var targetY = mouseY + 1;
+        var targetX = mouseX - width - 3;
+        var targetY = mouseY + 3;
         
         if (targetX < 5)
-          targetX = mouseX + 2;
+          targetX = mouseX + 3;
         if (mouseY + height > document.body.clientHeight - 5)
-          mouseY = mouseY - height - 2;
+          mouseY = mouseY - height - 3;
         
         this.dragControlElement.style.zIndex = "200";
         this.dragControlElement.style.position = "absolute";
@@ -97,6 +101,9 @@ export class DragControlDirective implements OnInit, OnDestroy, DragDropListener
       this.dragControlElement.textContent = (<dragData.DragDropRestrictionData>element.data).value;
     else
       this.dragControlElement.textContent = " ";
+    
+    if (!((<HTMLElement>this.parentElement.nativeElement).classList.contains(DragControlDirective.CLASS_DRAGGING)))
+      (<HTMLElement>this.parentElement.nativeElement).classList.add(DragControlDirective.CLASS_DRAGGING);
   }
   
   public dragEnded(): void {
@@ -104,6 +111,8 @@ export class DragControlDirective implements OnInit, OnDestroy, DragDropListener
       return;
 
     this.dragControlElement.style.display = "none";
+
+    (<HTMLElement>this.parentElement.nativeElement).classList.remove(DragControlDirective.CLASS_DRAGGING);
   }
 
 }

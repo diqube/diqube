@@ -20,7 +20,7 @@
 ///
 
 
-import {Component, OnInit, Input} from "angular2/core";
+import {Component, OnInit, Input, ElementRef, AfterViewChecked} from "angular2/core";
 import {Control, ControlGroup, FormBuilder, FORM_DIRECTIVES} from "angular2/common";
 import {AnalysisService} from "../analysis.service";
 import {AnalysisStateService} from "../state/analysis.state.service";
@@ -30,6 +30,7 @@ import {DiqubeUtil} from "../../util/diqube.util";
 import {POLYMER_BINDINGS} from "../../polymer/polymer.bindings";
 import * as dragData from "../drag-drop/drag-drop.data";
 import {DropTargetDirective, DragElementProvider} from "../drag-drop/drop-target.directive";
+import {TransitionBoundaryChanges} from "../../util/transition.boundary.changes";
 
 interface AnalysisSliceDisjunctionValueEditListener {
   valueChanged(el: AnalysisSliceDisjunctionValueEdit): void;
@@ -79,12 +80,19 @@ export class AnalysisSliceDisjunctionValueEdit {
   }
 }
 
+/**
+ * Component displaying a single slice.
+ * 
+ * This component is slightly more complex than a usual component, since it implements some nice transitions: The slice
+ * can be opened in which case the iron-collapse will be extended and, because the additional DOM in the collapse
+ * element is usually larger than the slice without it, transitions the width smoothly using a TransitionBoundaryChanges.
+ */
 @Component({
   selector: "diqube-analysis-slice",
   templateUrl: "diqube/analysis/slice/analysis.slice.html",
   directives: [ FORM_DIRECTIVES, POLYMER_BINDINGS, DropTargetDirective ]
 })
-export class AnalysisSliceComponent implements OnInit {
+export class AnalysisSliceComponent implements OnInit, AfterViewChecked {
     
   @Input("slice") public slice: remoteData.UiSlice = undefined;
   
@@ -102,13 +110,34 @@ export class AnalysisSliceComponent implements OnInit {
   public exception: string = undefined;
   
   /** 
+   * Promise "resolve" function of the promise handling the collapsing/uncollpasing of this slice (= the top-down movement).
    * When currently transitioning (= collapsing or un-collapsing) this field holds a pointer to the resolve-function 
-   * that was returned by toggleCollapse() and which will be called as soon as the trnasition finishes 
+   * that resolves the top-down movement.
    */
-  public currentTransitioningPromiseResolve: (a: void) => void = undefined;
-  
+  public currentTopDownTransitioningPromiseResolve: (a: void) => void = undefined;
+
+  /**
+   * Triggers collapsing/uncollapsing the iron-collapse element. 
+   */
   public collapsed: boolean = true;
+  /**
+   * Triggers if the DOM elements inside the iron-collapse element are added to the DOM or if they are removed. When
+   * collapsed, they should in the end be removed to free up the space in the UI.
+   */
   public addCollapsedToDom: boolean = false;
+  
+  /**
+   * Helper class for transitioning the width of the slice when opening/collapsing.
+   */
+  private transitionWidth: TransitionBoundaryChanges;
+  
+  /**
+   * True if the mode is switched currently.
+   */
+  public switchingMode: boolean = false;
+  
+  private htmlId: string;
+  private mainElement: HTMLElement;
   
   /**
    * Map from disjunctionIdx/disjunctionValueIdx to an object having a value property which in turn holds the value of
@@ -133,9 +162,19 @@ export class AnalysisSliceComponent implements OnInit {
         return me.internalRefreshAndGetDisjunctionValueEdit();
       }
     });
+    
+    this.htmlId = DiqubeUtil.newUuid();
   }
   
   public ngOnInit(): any {
+    this.mainElement = document.getElementById(this.htmlId);
+    if (!this.mainElement) {
+      setTimeout(() => { this.ngOnInit(); });
+      return;
+    }
+    
+    this.transitionWidth = new TransitionBoundaryChanges(this.mainElement, "width");
+    
     if (this.analysisSateService.pollOpenSliceInEditModeNextTime(this.slice.id))
       this.switchToEditMode();
     else
@@ -150,7 +189,11 @@ export class AnalysisSliceComponent implements OnInit {
       return;
 
     var closePromise: Promise<void>;
+    var transitionHeaderWidthChange: boolean = true;
     
+    // we chain multiple transitions, make sure transitioning() returns the correct value.
+    this.switchingMode = true;
+
     if (this.collapsed) {
       // closed already.
       closePromise = Promise.resolve(undefined);
@@ -158,7 +201,14 @@ export class AnalysisSliceComponent implements OnInit {
       // opened currently. Close first, then open again later.
       closePromise = new Promise((resolve: (a: void) => void, reject: (a: void) => void) => {
         setTimeout(() => {
-          this.toggleCollapsed().then(() => { 
+          // when collapsing, do not transition width, as the edit width is larger than the normal one and it looks weird
+          // if width is first shrinked and then enlarged again.
+          // Therefore we fix its with. That fixed with will be reset to "auto" by this.transitionWidth automatically.
+          this.mainElement.style.width = getComputedStyle(this.mainElement).width;
+          
+          this.toggleCollapsed(false).then(() => {
+            // do not transition the header change when switching to edit header 
+            transitionHeaderWidthChange = false;
             resolve(undefined); 
          });
         });
@@ -175,18 +225,37 @@ export class AnalysisSliceComponent implements OnInit {
       });
       
       this.sliceEdit = DiqubeUtil.copy(this.slice);
-      this.normalMode = false;
-      this.editMode = true;
-      this.removeMode = false;
-      
       this.internalDisjunctionValueEdit = [];
-      
       this.exception = undefined;
       
-      // toggle open (again)
-      setTimeout(() => {
-        this.toggleCollapsed();
-      });
+      if (transitionHeaderWidthChange) {
+        this.transitionWidth.transitionBoundaryChange(() => {
+            // this will change the header part compared to normal mode, therefore we want a smooth transition.
+            this.normalMode = false;
+            this.editMode = true;
+            this.removeMode = false;
+            return Promise.resolve(undefined);
+          }, 
+          // half time, ease-in, so it looks like this transition is the same as the toggleCollpase width one.
+          TransitionBoundaryChanges.DEFAULT_TRANSITION_TIME_MS / 2,
+          TransitionBoundaryChanges.TRANSITION_TIMING_FUNCTION_EASE_IN
+        ).then(() => {
+          // toggle open (again)
+          setTimeout(() => {
+            this.toggleCollapsed(true, 
+                                 TransitionBoundaryChanges.DEFAULT_TRANSITION_TIME_MS / 2,
+                                 TransitionBoundaryChanges.TRANSITION_TIMING_FUNCTION_EASE_OUT
+                                ).then(() => { this.switchingMode = false; });
+          });
+        });
+      } else {
+        this.normalMode = false;
+        this.editMode = true;
+        this.removeMode = false;
+        setTimeout(() => {
+          this.toggleCollapsed().then(() => { this.switchingMode = false; });
+        });
+      }
     });
   }
 
@@ -196,6 +265,9 @@ export class AnalysisSliceComponent implements OnInit {
   public switchToRemoveMode(): void {
     if (this.transitioning())
       return;
+    
+    // we chain multiple transitions, make sure transitioning() returns the correct value.
+    this.switchingMode = true;
     
     var closePromise: Promise<void>;
     if (this.collapsed) {
@@ -211,10 +283,15 @@ export class AnalysisSliceComponent implements OnInit {
     }
     
     closePromise.then(() => {
-      this.normalMode = false;
-      this.editMode = false;
-      this.removeMode = true;
       this.exception = undefined;
+      
+      this.transitionWidth.transitionBoundaryChange(() => {
+        // nice width transition
+        this.normalMode = false;
+        this.editMode = false;
+        this.removeMode = true;
+        return Promise.resolve(undefined);
+      }).then(() => { this.switchingMode = false; });
     });
   }
   
@@ -225,6 +302,12 @@ export class AnalysisSliceComponent implements OnInit {
     if (this.transitioning())
       return;
     
+    // we chain multiple transitions, make sure transitioning() returns the correct value.
+    this.switchingMode = true;
+    
+    var finalTransitionTime: number = undefined;
+    var finalTransitionTimingFunction: string = undefined;
+    
     var closePromise: Promise<void>;
     if (this.collapsed) {
       // closed already
@@ -232,7 +315,14 @@ export class AnalysisSliceComponent implements OnInit {
     } else {
       // collapse (in setTimeout to get a transition), then switch to normal mode.
       closePromise = new Promise((resolve: (a: void) => void, reject: (a: void) => void) => {
-        setTimeout(() => { this.toggleCollapsed().then(() => {
+        setTimeout(() => { 
+          // close, let the width transition of the toggleCollapse and the final width transition look as the same one.
+          this.toggleCollapsed(true,
+            TransitionBoundaryChanges.DEFAULT_TRANSITION_TIME_MS / 2,
+            TransitionBoundaryChanges.TRANSITION_TIMING_FUNCTION_EASE_IN
+          ).then(() => {
+            finalTransitionTime = TransitionBoundaryChanges.DEFAULT_TRANSITION_TIME_MS / 2;
+            finalTransitionTimingFunction = TransitionBoundaryChanges.TRANSITION_TIMING_FUNCTION_EASE_OUT;
             resolve(undefined);
           })
         });
@@ -242,48 +332,106 @@ export class AnalysisSliceComponent implements OnInit {
     closePromise.then(() => {
       this.sliceEdit = undefined;
       this.internalDisjunctionValueEdit = undefined;
-      this.normalMode = true;
-      this.editMode = false;
-      this.removeMode = false;
-      this.exception = null;
+      this.exception = undefined;
+      
+      this.transitionWidth.transitionBoundaryChange(() => {
+          // changes header compared to edit mode, so make a nice transition.
+          this.normalMode = true;
+          this.editMode = false;
+          this.removeMode = false;
+          return Promise.resolve(undefined);
+        },
+        finalTransitionTime,
+        finalTransitionTimingFunction
+      ).then(() => { this.switchingMode = false; });
     });
   }
   
-  public toggleCollapsed(): Promise<void> {
+  /**
+   * Toggles collapsed state of this slice.
+   * 
+   * If transitionWidth is true (default), then the width change will be transitioned nicely. If false, width will not
+   * be changed.
+   * 
+   * @param widthTransitionTimeMs: optional, for width transition, see TransitionBoundaryChanges.transitionBoundaryChange
+   * @param widthTransitionTimingFunction: optional, for width transition, see TransitionBoundaryChanges.transitionBoundaryChange
+   */
+  public toggleCollapsed(transitionWidth?: boolean, widthTransitionTimeMs?: number, widthTransitionTimingFunction?: string): Promise<void> {
+    if (transitionWidth === undefined) transitionWidth = true;
+    
     if (this.transitioning())
       return Promise.reject(undefined);
     
     if (this.collapsed) {
       // switching to "open"
-      return new Promise((resolve: (a: void) => void, reject: (a: void) => void) => {
-        this.currentTransitioningPromiseResolve = resolve;
-        this.addCollapsedToDom = true;
-        setTimeout(() => {
-          this.collapsed = false;
+      if (transitionWidth) {
+        return new Promise((resolve: (a: void) => void, reject: (a: void) => void) => {
+          this.currentTopDownTransitioningPromiseResolve = resolve;
+          this.addCollapsedToDom = true;
+          // wait until the DOM has actually been added
+          setTimeout(() => {
+            // (1) take source width, (2) start uncollapse, (3) take target width and start width transition, 
+            // (4) stop uncollapse, (5) when width transition finished, start uncollapsing.
+            
+            // we need to trigger the uncollapse in order to get the correct target width.
+            this.transitionWidth.transitionBoundaryChange(() => { 
+                this.collapsed = false; 
+                return Promise.resolve(undefined); 
+              }, 
+              widthTransitionTimeMs, 
+              widthTransitionTimingFunction, 
+              () => {
+                setTimeout(() => { this.collapsed = true; });
+            }).then(() => {
+              this.collapsed = false;
+            });
+          });
         });
-      });
+      } else {
+        return new Promise((resolve: (a: void) => void, reject: (a: void) => void) => {
+          this.currentTopDownTransitioningPromiseResolve = resolve;
+          this.addCollapsedToDom = true;
+          // wait until the DOM has actually been added
+          setTimeout(() => {
+            this.collapsed = false; 
+          });
+        });
+      }
     } else {
       // switching to "closed"
-      return new Promise((resolve: (a: void) => void, reject: (a: void) => void) => {
-        this.currentTransitioningPromiseResolve = resolve;
-        this.collapsed = true;
-        // addCollpasedToDom is changed by toggleDone
-      });
+      if (transitionWidth) {
+        var me = this;
+        // (1) take width, (2) completely collapse iron-collapse, (3) transition width change nicely, (4) remove DOM elements in iron-collapse.
+        return this.transitionWidth.transitionBoundaryChange(() => { 
+            return new Promise(function (resolve: (a: void) => void, reject: (a: void) => void) {
+              me.currentTopDownTransitioningPromiseResolve = resolve;
+              me.collapsed = true;
+            });
+          }, 
+          widthTransitionTimeMs, 
+          widthTransitionTimingFunction
+        ).then(() => { 
+          this.addCollapsedToDom = false; 
+        });
+      } else {
+        var me = this;
+        return new Promise(function (resolve: (a: void) => void, reject: (a: void) => void) {
+          me.currentTopDownTransitioningPromiseResolve = resolve;
+          me.collapsed = true;
+        }).then(() => { 
+          this.addCollapsedToDom = false; 
+        });
+      }
     }
   }
   
-  public toggleDone(): void {
+  public topDownTransitionDone(): void {
     if (!this.transitioning())
       return;
     
-    if (this.collapsed) {
-      // remove stuff from DOM.
-      this.addCollapsedToDom = false;
-    }
-    
-    var resolve: (a: void) => void = this.currentTransitioningPromiseResolve;
-    // "complete" transitioning. Do this before resolving the promise, as the promise might want to start another toggle right away. 
-    this.currentTransitioningPromiseResolve = undefined;
+    var resolve: (a: void) => void = this.currentTopDownTransitioningPromiseResolve;
+    // "complete" top-down transitioning. Do this before resolving the promise, as the promise might want to start another toggle right away. 
+    this.currentTopDownTransitioningPromiseResolve = undefined;
     resolve(undefined);
   }
   
@@ -437,6 +585,14 @@ export class AnalysisSliceComponent implements OnInit {
    * returns true if currently transitioning, i.e. if collapsing or un-collapsing.
    */
   public transitioning(): boolean {
-    return this.currentTransitioningPromiseResolve !== undefined;
+    return this.currentTopDownTransitioningPromiseResolve !== undefined || 
+           (this.transitionWidth && this.transitionWidth.isTransitioning());
   }
+  
+  public ngAfterViewChecked(): any {
+    if (this.transitionWidth)
+      this.transitionWidth.ngAfterViewChecked();
+  }
+  
+
 }

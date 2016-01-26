@@ -37,12 +37,19 @@ export interface DragElementProvider {
  * values of DragDropElement.type that are accepted.
  * 
  * When something is dropped, an event is emitted on the "drop" output. That event is a DragElementProvider, whose
- * handled() method must be called if the handler successfully handled the drop. 
+ * handled() method must be called if the handler successfully handled the drop.
+ * 
+ * When something is being dragged which can be dropped on this element according to the attribute value, the CSS class
+ * "droppable" will be added to the element. After something has been dropped successfully, the CSS class "droppable"
+ * will be removed and for a short time, the class "dropped" will be added. 
  */
 @Directive({
   selector: "[dropTarget]"
 })
 export class DropTargetDirective implements OnInit, OnDestroy, DragDropListener {
+  private static CLASS_DROPPABLE: string = "droppable";
+  private static CLASS_DROPPED: string = "dropped";  
+  
   @Output("drop") drop: EventEmitter<DragElementProvider> = new EventEmitter<DragElementProvider>(false);
   
   private allDropAccept: Array<string>;
@@ -63,6 +70,14 @@ export class DropTargetDirective implements OnInit, OnDestroy, DragDropListener 
           
           if (handled) {
             this.dragDropService.stopDrag();
+            
+            if (!((<HTMLElement>this.element.nativeElement).classList.contains(DropTargetDirective.CLASS_DROPPED))) {
+              (<HTMLElement>this.element.nativeElement).classList.add(DropTargetDirective.CLASS_DROPPED);
+              setTimeout(() => {
+                (<HTMLElement>this.element.nativeElement).classList.remove(DropTargetDirective.CLASS_DROPPED);
+              }, 300);
+            }
+            
             event.stopPropagation();
             event.preventDefault();
           }
@@ -90,12 +105,13 @@ export class DropTargetDirective implements OnInit, OnDestroy, DragDropListener 
   
   public dragStarted(element: dragData.DragDropElement): void {
     if (this.accept(element)) {
-      if (!this.element.nativeElement.className.match(/(^|\s)droppable(?!\S)/))
-        this.element.nativeElement.className += " droppable";
+      if (!((<HTMLElement>this.element.nativeElement).classList.contains(DropTargetDirective.CLASS_DROPPABLE)))
+        (<HTMLElement>this.element.nativeElement).classList.add(DropTargetDirective.CLASS_DROPPABLE);
     }
   }
   
   public dragEnded(): void {
-    this.element.nativeElement.className = this.element.nativeElement.className.replace(/(^|\s)droppable(?!\S)/g , "");
+    (<HTMLElement>this.element.nativeElement).classList.remove(DropTargetDirective.CLASS_DROPPABLE);
   }
+  
 }

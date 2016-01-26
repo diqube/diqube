@@ -19,7 +19,7 @@
 /// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ///
 
-import {Component, OnInit, Input} from "angular2/core";
+import {Component, OnInit, Input, ElementRef} from "angular2/core";
 import * as remoteData from "../../remote/remote";
 import {AnalysisSliceComponent} from "./analysis.slice.component";
 import {AnalysisService} from "../analysis.service";

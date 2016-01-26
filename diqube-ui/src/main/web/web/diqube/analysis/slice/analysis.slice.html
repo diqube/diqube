@@ -20,131 +20,135 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -->
-<paper-material [attr.elevation]="materialElevation()" *ngIf="normalMode" 
-                class="slice vertical layout"
-                [class.slice-opened]="!collapsed" 
-                dropTarget="TYPE_RESTRICTION" (drop)="drop($event)">
-  <div class="horizontal layout justified">
-    <div class="horizontal layout flex" (click)="toggleCollapsed()">
-      <span class="slice-title self-center">{{ slice.name }}</span>
-    </div>
-    <span class="slice-header-actions">
-      <paper-icon-button class="slice-header-action" (click)="switchToEditMode()" title="Edit mode" icon="icons:settings"></paper-icon-button>
-    </span>
-  </div>
-
-  <iron-collapse [attr.opened]="(collapsed) ? undefined : true" (transitionend)="toggleDone()">
-    <table *ngIf="addCollapsedToDom" style="width: 100%">
-      <tbody>
-        <tr *ngIf="slice.manualConjunction">
-          <td colspan="2">
-            <span>{{ slice.manualConjunction }}</span>
-          </td>
-        </tr>
-        <tr *ngFor="#dis of slice.sliceDisjunctions; #i=index" 
-            [class.slice-tr-show-top-border]="i>0 || slice.manualConjunction"
-            [class.slice-tr-show-and]="(i>0 || slice.manualConjunction) && !transitioning() && !collapsed"> <!-- show after transitioning() -->
-          <td class="slice-disjunction-field">{{ dis.fieldName }}</td>
-          <td class="slice-disjunction-value-td">
-            <ul class="slice-disjunction-value-list">
-              <li [class.slice-disjunction-value-first]="j==0"
-                  [class.slice-disjunction-value-show-or]="j>0 && !transitioning() && !collapsed" 
-                  class="slice-disjunction-value"
-                  *ngFor="#val of dis.disjunctionValues; #j=index">{{ val }}</li>
-            </ul>
-          </td>
-        </tr>
-        <tr *ngIf="!slice.manualConjunction && !slice.sliceDisjunctions.length">
-          <td colspan="2">
-            <span>This slice selects <i>everything</i>.</span>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </iron-collapse>
-</paper-material>
-
-
-<!-- EDIT MODE -->
-
-<paper-material [attr.elevation]="materialElevation()" *ngIf="editMode" 
-                class="slice edit-slice vertical layout"
-                [class.slice-opened]="!collapsed" 
-                dropTarget="TYPE_RESTRICTION" (drop)="drop($event)">
-  <form (submit)="updateSlice()" [ngFormModel]="formControlGroup">
+<div [id]="htmlId" class="layout vertical">
+  <paper-material [attr.elevation]="materialElevation()" *ngIf="normalMode" 
+                  class="slice vertical layout"
+                  [class.slice-opened]="!collapsed" 
+                  dropTarget="TYPE_RESTRICTION" (drop)="drop($event)">
     <div class="horizontal layout justified">
-      <div class="horizontal layout">
-        <paper-input class="slice-title self-center" no-label-float="true" placeholder="Name of slice" [(ngModel)]="sliceEdit.name" ngControl="nameControl"></paper-input>
+      <div class="horizontal layout flex" (click)="toggleCollapsed()">
+        <span class="slice-title self-center">{{ slice.name }}</span>
       </div>
       <span class="slice-header-actions">
-        <paper-icon-button *ngIf="!working" class="slice-header-action" (click)="switchToRemoveMode()" title="Remove slice" icon="icons:delete"></paper-icon-button>
-        <paper-icon-button *ngIf="!working" class="slice-header-action" (click)="switchToNormalMode()" title="Cancel edit" icon="icons:cancel"></paper-icon-button>
-        <paper-icon-button *ngIf="!working" class="slice-header-action" (click)="updateSlice()" title="Save" icon="icons:save"></paper-icon-button>
-        <paper-spinner-lite *ngIf="working" class="slice-header-action" active></paper-spinner-lite>
+        <paper-icon-button class="slice-header-action" (click)="switchToEditMode()" title="Edit mode" icon="icons:settings"></paper-icon-button>
       </span>
     </div>
-    
-    <diqube-error *ngIf="exception">{{ exception }}</diqube-error>
   
-    <iron-collapse [attr.opened]="(collapsed) ? undefined : true" (transitionend)="toggleDone()">
-      <table *ngIf="addCollapsedToDom">
+    <iron-collapse [attr.opened]="(collapsed) ? undefined : true" (transitionend)="topDownTransitionDone()">
+      <table *ngIf="addCollapsedToDom" style="width: 100%">
         <tbody>
-          <tr>
+          <tr *ngIf="slice.manualConjunction">
             <td colspan="2">
-              <paper-input no-label-float="true" placeholder="Manual conjunction" [(ngModel)]="sliceEdit.manualConjunction"></paper-input>
+              <span>{{ slice.manualConjunction }}</span>
             </td>
           </tr>
-          <tr *ngFor="#dis of sliceEdit.sliceDisjunctions; #i=index" 
-              [class.slice-tr-show-top-border]="true"
-              [class.slice-tr-show-and]="!transitioning() && !collapsed"> <!-- show after transitioning() -->
-            <td class="slice-disjunction-field">
-              <div class="horizontal layout">
-                <paper-input no-label-float="true" placeholder="Field name" [(ngModel)]="dis.fieldName"></paper-input>
-                <paper-icon-button (click)="removeDisjunctionField(i)" title="Remove field" icon="icons:delete"></paper-icon-button>
-              </div>
-            </td>
+          <tr *ngFor="#dis of slice.sliceDisjunctions; #i=index" 
+              [class.slice-tr-show-top-border]="i>0 || slice.manualConjunction"
+              [class.slice-tr-show-and]="(i>0 || slice.manualConjunction) && !transitioning() && !collapsed"> <!-- show after transitioning() -->
+            <td class="slice-disjunction-field">{{ dis.fieldName }}</td>
             <td class="slice-disjunction-value-td">
               <ul class="slice-disjunction-value-list">
                 <li [class.slice-disjunction-value-first]="j==0"
                     [class.slice-disjunction-value-show-or]="j>0 && !transitioning() && !collapsed" 
                     class="slice-disjunction-value"
-                    *ngFor="#val of disjunctionValueEdit[i]; #j=index">
-                  <!-- Iterate over disjunctionValueEdit[i][j].value instead of dis.internalDisjunctionValueEdit. See doc of internalDisjunctionValueEdit. -->
-                  <div class="horizontal layout">
-                    <paper-input no-label-float="true" placeholder="Field value" [(ngModel)]="val.value">
-                    </paper-input>
-                    <paper-icon-button (click)="removeDisjunctionValue(i, j)" title="Remove value" icon="icons:delete"></paper-icon-button>
-                  </div>
-                </li>
-                  <paper-icon-button (click)="addDisjunctionValue(i)" title="Add value" icon="icons:add"></paper-icon-button>
-                <li>
-                </li>
+                    *ngFor="#val of dis.disjunctionValues; #j=index">{{ val }}</li>
               </ul>
             </td>
           </tr>
-          <tr>
+          <tr *ngIf="!slice.manualConjunction && !slice.sliceDisjunctions.length">
             <td colspan="2">
-              <div class="horizontal layout">
-                <paper-input class="flex" no-label-float="true" placeholder="Field name" #newFieldName></paper-input>
-                <paper-button raised (click)="addDisjunctionField(newFieldName.value)">Add field</paper-button>
-              </div>
+              <span>This slice selects <i>everything</i>.</span>
             </td>
           </tr>
         </tbody>
       </table>
     </iron-collapse>
-  </form>
-</paper-material>
-
-<!-- REMOVE MODE -->
-<paper-material elevation="3" class="slice remove-slice vertical layout" *ngIf="removeMode">
-  <span class="query-header slice-title">{{ slice.name }}</span>
+  </paper-material>
   
-  <diqube-error *ngIf="exception">{{ exception }}</diqube-error>
   
-  <p class="self-center">Are you sure you want to remove this slice?</p>
-  <p class="self-center">
-    <paper-button raised (click)="switchToNormalMode()">Cancel</paper-button>
-    <paper-button raised class="warn-button" (click)="removeSlice()">Yes, remove.</paper-button>
-  </p>
-</paper-material>
+  <!-- EDIT MODE -->
+  
+  <paper-material [attr.elevation]="materialElevation()" *ngIf="editMode" 
+                  class="slice edit-slice vertical layout"
+                  [class.slice-opened]="!collapsed" 
+                  dropTarget="TYPE_RESTRICTION" (drop)="drop($event)">
+    <form (submit)="updateSlice()" [ngFormModel]="formControlGroup">
+      <div class="horizontal layout justified">
+        <div class="horizontal layout">
+          <paper-input class="slice-title self-center" no-label-float="true" placeholder="Name of slice" [(ngModel)]="sliceEdit.name" ngControl="nameControl"></paper-input>
+        </div>
+        <!-- Display slice-header-actions only when not switching the mode (to of from edit mode). Otherwise the div
+             may overflow because of the transition (some icons would be put into a second row) which does not look nice. -->
+        <div class="slice-header-actions" *ngIf="!switchingMode">
+          <paper-icon-button *ngIf="!working" class="slice-header-action" (click)="switchToRemoveMode()" title="Remove slice" icon="icons:delete"></paper-icon-button>
+          <paper-icon-button *ngIf="!working" class="slice-header-action" (click)="switchToNormalMode()" title="Cancel edit" icon="icons:cancel"></paper-icon-button>
+          <paper-icon-button *ngIf="!working" class="slice-header-action" (click)="updateSlice()" title="Save" icon="icons:save"></paper-icon-button>
+          <paper-spinner-lite *ngIf="working" class="slice-header-action" active></paper-spinner-lite>
+        </div>
+      </div>
+      
+      <diqube-error *ngIf="exception">{{ exception }}</diqube-error>
+    
+      <iron-collapse [attr.opened]="(collapsed) ? undefined : true" (transitionend)="topDownTransitionDone()">
+        <table *ngIf="addCollapsedToDom">
+          <tbody>
+            <tr>
+              <td colspan="2">
+                <paper-input no-label-float="true" placeholder="Manual conjunction" [(ngModel)]="sliceEdit.manualConjunction"></paper-input>
+              </td>
+            </tr>
+            <tr *ngFor="#dis of sliceEdit.sliceDisjunctions; #i=index" 
+                [class.slice-tr-show-top-border]="true"
+                [class.slice-tr-show-and]="!transitioning() && !collapsed"> <!-- show after transitioning() -->
+              <td class="slice-disjunction-field">
+                <div class="horizontal layout">
+                  <paper-input no-label-float="true" placeholder="Field name" [(ngModel)]="dis.fieldName"></paper-input>
+                  <paper-icon-button (click)="removeDisjunctionField(i)" title="Remove field" icon="icons:delete"></paper-icon-button>
+                </div>
+              </td>
+              <td class="slice-disjunction-value-td">
+                <ul class="slice-disjunction-value-list">
+                  <li [class.slice-disjunction-value-first]="j==0"
+                      [class.slice-disjunction-value-show-or]="j>0 && !transitioning() && !collapsed" 
+                      class="slice-disjunction-value"
+                      *ngFor="#val of disjunctionValueEdit[i]; #j=index">
+                    <!-- Iterate over disjunctionValueEdit[i][j].value instead of dis.internalDisjunctionValueEdit. See doc of internalDisjunctionValueEdit. -->
+                    <div class="horizontal layout">
+                      <paper-input no-label-float="true" placeholder="Field value" [(ngModel)]="val.value">
+                      </paper-input>
+                      <paper-icon-button (click)="removeDisjunctionValue(i, j)" title="Remove value" icon="icons:delete"></paper-icon-button>
+                    </div>
+                  </li>
+                    <paper-icon-button (click)="addDisjunctionValue(i)" title="Add value" icon="icons:add"></paper-icon-button>
+                  <li>
+                  </li>
+                </ul>
+              </td>
+            </tr>
+            <tr>
+              <td colspan="2">
+                <div class="horizontal layout">
+                  <paper-input class="flex" no-label-float="true" placeholder="Field name" #newFieldName></paper-input>
+                  <paper-button raised (click)="addDisjunctionField(newFieldName.value)">Add field</paper-button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </iron-collapse>
+    </form>
+  </paper-material>
+  
+  <!-- REMOVE MODE -->
+  <paper-material elevation="3" class="slice remove-slice vertical layout" *ngIf="removeMode">
+    <span class="query-header slice-title">{{ slice.name }}</span>
+    
+    <diqube-error *ngIf="exception">{{ exception }}</diqube-error>
+    
+    <p class="self-center">Are you sure you want to remove this slice?</p>
+    <p class="self-center">
+      <paper-button raised (click)="switchToNormalMode()">Cancel</paper-button>
+      <paper-button raised class="warn-button" (click)="removeSlice()">Yes, remove.</paper-button>
+    </p>
+  </paper-material>
+</div>
