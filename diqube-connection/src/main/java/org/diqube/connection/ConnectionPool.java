@@ -365,7 +365,7 @@ public class ConnectionPool implements ClusterNodeStatusDetailListener {
             return res;
           } catch (TException e) {
             // swallow. connection is not alive any more. try next one (or open a new one).
-            cleanupConnection(conn);
+            cleanupConnection(keepAliveConn);
           }
         }
       }
@@ -823,6 +823,12 @@ public class ConnectionPool implements ClusterNodeStatusDetailListener {
 
           // mark connection as available.
           availableConnections.get(keepAliveConn.getAddress()).add(keepAliveConn);
+
+          if (logger.isTraceEnabled()) {
+            logger.trace("Connection {} is still up, there are {} open connections to the same node.",
+                System.identityHashCode(keepAliveConn.getTransport()),
+                availableConnections.get(keepAliveConn.getAddress()).size());
+          }
 
           synchronized (connectionsAvailableWait) {
             connectionsAvailableWait.notifyAll();

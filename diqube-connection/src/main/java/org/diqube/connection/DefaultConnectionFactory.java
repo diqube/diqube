@@ -34,6 +34,8 @@ import org.diqube.connection.integrity.IntegritySecretHelper;
 import org.diqube.thrift.base.services.DiqubeThriftServiceInfoManager.DiqubeThriftServiceInfo;
 import org.diqube.thrift.base.thrift.RNodeAddress;
 import org.diqube.thrift.util.RememberingTransport;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Default implementation for {@link ConnectionFactory}.
@@ -41,6 +43,8 @@ import org.diqube.thrift.util.RememberingTransport;
  * @author Bastian Gloeckle
  */
 /* package */class DefaultConnectionFactory implements ConnectionFactory {
+  private static final Logger logger = LoggerFactory.getLogger(DefaultConnectionFactory.class);
+
   private final ConnectionPool connectionPool;
   private int socketTimeout;
   private byte[][] macKeys;
@@ -99,6 +103,10 @@ import org.diqube.thrift.util.RememberingTransport;
         new Connection<>(connectionPool, serviceInfo, client, oldConnection.getTransport(), oldConnection.getAddress());
     res.setTimeout(oldConnection.getTimeout());
     res.setExecutionUuid(oldConnection.getExecutionUuid());
+
+    logger.trace("Connection {}: Replacing object {} with {}", System.identityHashCode(res.getTransport()),
+        System.identityHashCode(oldConnection), System.identityHashCode(res));
+
     return res;
   }
 

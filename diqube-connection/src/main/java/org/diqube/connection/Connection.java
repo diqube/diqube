@@ -63,7 +63,8 @@ public class Connection<T> implements Closeable, ServiceProvider<T> {
   @Override
   public T getService() throws IllegalStateException {
     if (!enabled)
-      throw new IllegalStateException("Connection disabled!");
+      throw new IllegalStateException(
+          "Connection disabled: " + System.identityHashCode(getTransport()) + " " + System.identityHashCode(this));
     return service;
   }
 
