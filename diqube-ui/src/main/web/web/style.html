@@ -262,7 +262,7 @@ body /deep/ .droppable * {
   cursor: copy !important;
 }
 
-body /deep/ [dropTarget] {
+body /deep/ [dropTarget], body /deep/ [dropTarget] ::before, body /deep/ [dropTarget] ::after {
   /* animate background color changes from dragging/dropping etc. */
   transition: background-color var(--diqube-transition-time);
 }
@@ -490,6 +490,18 @@ body /deep/ .slices .slice /deep/ table tr.slice-tr-show-and::before {
   color: var(--diqube-text-lightbg-third);
 }
 
+body /deep/ .slices .slice.dropped /deep/ table tr.slice-tr-show-and::before {
+  /* Fix: When background changes because of d'n'd, inherit background color. The and will then appear striked through 
+    (because of the td border), but generic ".dropped ::before" classes seem to have the effect that the original color
+    is not restored when the "dropped" class is removed (which seems to be a chrome bug). */
+  background-color: inherit !important;
+}
+
+body /deep/ .slices .slice.droppable /deep/ table tr.slice-tr-show-and::before {
+  /* Analogous to "dropped" above. */
+  background-color: inherit !important;
+}
+
 /* we need to add a "before" for the tr's that should not have a "and", too, otherwise the layout gets messed up */
 body /deep/ .slices .slice /deep/ table tr:not(.slice-tr-show-and)::before {
   content: "";
@@ -504,7 +516,6 @@ body /deep/ .slices .slice /deep/ table .slice-disjunction-value.slice-disjuncti
   position: absolute;
   margin-top: -13px;
   margin-left: -11px;
-  background-color: var(--diqube-background-color-white);
   font-size: x-small;
   font-style: italic;
   color: var(--diqube-text-lightbg-third);

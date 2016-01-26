@@ -22,6 +22,7 @@
 import {Directive, Input, Output, EventEmitter, OnInit, OnDestroy, ElementRef} from "angular2/core";
 import * as dragData from "./drag-drop.data";
 import {DragDropService, DragDropListener} from "./drag-drop.service";
+import {TransitionBoundaryChanges} from "../../util/transition.boundary.changes";
 
 /**
  * Provides a dropped element.
@@ -75,7 +76,7 @@ export class DropTargetDirective implements OnInit, OnDestroy, DragDropListener 
               (<HTMLElement>this.element.nativeElement).classList.add(DropTargetDirective.CLASS_DROPPED);
               setTimeout(() => {
                 (<HTMLElement>this.element.nativeElement).classList.remove(DropTargetDirective.CLASS_DROPPED);
-              }, 300);
+              }, TransitionBoundaryChanges.DEFAULT_TRANSITION_TIME_MS);
             }
             
             event.stopPropagation();
