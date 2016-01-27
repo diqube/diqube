@@ -102,7 +102,7 @@
                 [class.slice-tr-show-and]="!transitioning() && !collapsed"> <!-- show after transitioning() -->
               <td class="slice-disjunction-field">
                 <div class="horizontal layout">
-                  <paper-input no-label-float="true" placeholder="Field name" [(ngModel)]="dis.fieldName"></paper-input>
+                  <paper-textarea no-label-float="true" placeholder="Field name" [(ngModel)]="dis.fieldName"></paper-textarea>
                   <paper-icon-button (click)="removeDisjunctionField(i)" title="Remove field" icon="icons:delete"></paper-icon-button>
                 </div>
               </td>
