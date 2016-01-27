@@ -40,15 +40,16 @@
       }
       .content {
         padding-left: 5px;
+        word-break: break-word;
         @apply(--diqube-warning-content)
       }
     </style>
   
     <p class="container">
       <iron-icon icon="icons:warning" class="element"></iron-icon>
-      <span class="element content">
+      <div class="element content">
         <content></content>
-      </span>
+      </div>
     </p>
   </template>
 

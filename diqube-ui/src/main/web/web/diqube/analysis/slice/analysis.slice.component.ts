@@ -20,7 +20,7 @@
 ///
 
 
-import {Component, OnInit, Input, ElementRef, AfterViewChecked} from "angular2/core";
+import {Component, OnInit, Input, ElementRef, AfterViewChecked, DoCheck} from "angular2/core";
 import {Control, ControlGroup, FormBuilder, FORM_DIRECTIVES} from "angular2/common";
 import {AnalysisService} from "../analysis.service";
 import {AnalysisStateService} from "../state/analysis.state.service";
@@ -92,7 +92,7 @@ export class AnalysisSliceDisjunctionValueEdit {
   templateUrl: "diqube/analysis/slice/analysis.slice.html",
   directives: [ FORM_DIRECTIVES, POLYMER_BINDINGS, DropTargetDirective ]
 })
-export class AnalysisSliceComponent implements OnInit, AfterViewChecked {
+export class AnalysisSliceComponent implements OnInit, AfterViewChecked, DoCheck {
     
   @Input("slice") public slice: remoteData.UiSlice = undefined;
   
@@ -152,6 +152,8 @@ export class AnalysisSliceComponent implements OnInit, AfterViewChecked {
    * dynamically on each call.
    */
   private internalDisjunctionValueEdit: Array<Array<AnalysisSliceDisjunctionValueEdit>>;
+  
+  private errorWidthCache: string;
   
   constructor(private analysisSateService: AnalysisStateService, private analysisService: AnalysisService, 
               private formBuilder: FormBuilder) {
@@ -597,5 +599,19 @@ export class AnalysisSliceComponent implements OnInit, AfterViewChecked {
       this.transitionWidth.ngAfterViewChecked();
   }
   
-
+  public errorWidth(): string {
+    if (!this.errorWidthCache) {
+      if (!this.mainElement)
+        this.errorWidthCache = "10px";
+      else {
+        var mainWidth = parseFloat(getComputedStyle(this.mainElement).width)
+        this.errorWidthCache = (mainWidth - 20 /* padding is 5px on each side, add a bit more. */) + "px";
+      }
+    }
+    return this.errorWidthCache;
+  }
+  
+  public ngDoCheck(): any {
+    this.errorWidthCache = undefined;
+  }
 }
