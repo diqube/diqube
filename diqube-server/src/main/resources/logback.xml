@@ -42,7 +42,8 @@
   <logger name="org.diqube" level="trace" />
   <logger name="org.diqube.loader.compression.CompressedLongArrayBuilder" level="warn" />
   <logger name="org.diqube.data.types.lng.array.RunLengthLongArray" level="warn" />
-  <logger name="org.diqube.connection.ConnectionPool" level="info" /> 
+  <logger name="org.diqube.connection.ConnectionPool" level="info" />
+  <logger name="org.diqube.connection.DefaultConnectionFactory" level="info" />  
   <logger name="org.diqube.consensus.internal.DiqubeCatalystConnection" level="info" />
 
   <root level="info">

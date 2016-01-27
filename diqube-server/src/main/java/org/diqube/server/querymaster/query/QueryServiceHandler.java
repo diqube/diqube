@@ -78,6 +78,7 @@ import org.diqube.thrift.base.thrift.RUUID;
 import org.diqube.thrift.base.thrift.Ticket;
 import org.diqube.thrift.base.util.RUuidUtil;
 import org.diqube.ticket.TicketValidityService;
+import org.diqube.util.DelegateRunnable;
 import org.diqube.util.Holder;
 import org.diqube.util.Triple;
 import org.slf4j.Logger;
@@ -219,6 +220,9 @@ public class QueryServiceHandler implements Iface {
     Holder<ExecuteRemotePlanOnShardsStep> remoteExecutionStepHolder = new Holder<>();
     Holder<ExecutablePlan> masterPlanHolder = new Holder<>();
 
+    // function that cleans up the execution of a query.
+    DelegateRunnable cleanupFn = new DelegateRunnable();
+
     SocketListener resultSocketListener = new SocketListener() {
       @Override
       public void connectionDied(String cause) {
@@ -233,10 +237,7 @@ public class QueryServiceHandler implements Iface {
         if (remoteExecutionStepHolder.getValue() != null)
           cancelExecutionOnTriggeredRemotes(queryRUuid, remoteExecutionStepHolder.getValue());
 
-        queryRegistry.cleanupQueryFully(queryUuid);
-        queryUserNames.remove(queryUuid);
-        // kill all executions, also remote ones.
-        executorManager.shutdownEverythingOfQuery(queryUuid);
+        cleanupFn.run();
       }
     };
 
@@ -251,6 +252,19 @@ public class QueryServiceHandler implements Iface {
       logger.error("Could not open connection to result node", e);
       throw new RQueryException("Could not open connection to result node: " + e.getMessage());
     }
+
+    cleanupFn.setDelegate(() -> {
+      // Implement function to cleanup everything. Note that this cleanupFn might be called multiple times! This happens
+      // e.g. if the query exception handler (below) is executed in parallel to the final result handler (also below).
+      // Therefore the methods we call here must be usable multiple times (=even when cleanup was executed before).
+      // In addition to that, the cleanupFn might also be called when not all the things that are cleaned up here have
+      // been initialized yet. That means all these calls must be able to handle not-initialized values.
+      connectionPool.releaseConnection(resultConnection);
+      queryRegistry.cleanupQueryFully(queryUuid);
+      queryUserNames.remove(queryUuid);
+      // kill all executions, also remote ones. This might also kill the current thread!
+      executorManager.shutdownEverythingOfQuery(queryUuid);
+    });
 
     QueryExceptionHandler exceptionHandler = new QueryExceptionHandler() {
       @Override
@@ -272,11 +286,7 @@ public class QueryServiceHandler implements Iface {
           logger.trace("Cannot cancel execution of {} on remotes because I do not know about the remotes", queryUuid);
 
         // shutdown everything.
-        connectionPool.releaseConnection(resultConnection);
-        queryRegistry.cleanupQueryFully(queryUuid);
-        queryUserNames.remove(queryUuid);
-        // kill all executions, also remote ones.
-        executorManager.shutdownEverythingOfQuery(queryUuid);
+        cleanupFn.run();
       }
     };
 
@@ -325,12 +335,7 @@ public class QueryServiceHandler implements Iface {
 
             gatherAndSendStatistics();
 
-            // be sure to clean up everything.
-            connectionPool.releaseConnection(resultConnection);
-            queryRegistry.cleanupQueryFully(queryUuid);
-            queryUserNames.remove(queryUuid);
-            // kill all executions, also remote ones. THis will kill our thread, too.
-            executorManager.shutdownEverythingOfQuery(queryUuid);
+            cleanupFn.run();
           }
 
           /**
@@ -401,12 +406,7 @@ public class QueryServiceHandler implements Iface {
             if (remoteExecutionStepHolder.getValue() != null)
               cancelExecutionOnTriggeredRemotes(queryRUuid, remoteExecutionStepHolder.getValue());
 
-            // be sure to clean up everything.
-            connectionPool.releaseConnection(resultConnection);
-            queryRegistry.cleanupQueryFully(queryUuid);
-            queryUserNames.remove(queryUuid);
-            // kill all executions, also remote ones. This will kill our thread, too.
-            executorManager.shutdownEverythingOfQuery(queryUuid);
+            cleanupFn.run();
           }
         }, sendPartialUpdates);
 
@@ -415,10 +415,8 @@ public class QueryServiceHandler implements Iface {
     if (toCancelQueries.contains(queryUuid)) {
       // query was cancelled already - as we did not yet start executing it, we can simply return here.
       resultService.queryException(queryRUuid, new RQueryException("Query cancelled"));
-      connectionPool.releaseConnection(resultConnection);
-      queryRegistry.cleanupQueryFully(queryUuid);
+      cleanupFn.run();
       toCancelQueries.remove(queryUuid);
-      queryUserNames.remove(queryUuid);
       return;
     }
 
@@ -432,9 +430,7 @@ public class QueryServiceHandler implements Iface {
         remoteExecutionStepHolder.setValue(t.getRight());
     } catch (ParseException | ValidationException e) {
       logger.warn("Exception while preparing the query execution of {}: {}", queryUuid, e.getMessage());
-      connectionPool.releaseConnection(resultConnection);
-      queryRegistry.cleanupQueryFully(queryUuid);
-      queryUserNames.remove(queryUuid);
+      cleanupFn.run();
       throw new RQueryException(e.getMessage());
     }
 

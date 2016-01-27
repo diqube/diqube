@@ -23,6 +23,7 @@ package org.diqube.connection;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.thrift.transport.TTransport;
@@ -42,7 +43,8 @@ public class Connection<T> implements Closeable, ServiceProvider<T> {
   private RNodeAddress address;
   private ConnectionPool parentPool;
   private UUID executionUuid = null;
-  private boolean enabled = true;
+  private boolean wasReplaced = false;
+  private AtomicBoolean isPooled = new AtomicBoolean(true);
   private AtomicLong timeout = null;
   private DiqubeThriftServiceInfo<T> serviceInfo;
 
@@ -58,13 +60,16 @@ public class Connection<T> implements Closeable, ServiceProvider<T> {
   /**
    * @return Easy to use service bean - each method call on the returned object will actually trigger a remote call.
    * @throws IllegalStateException
-   *           if connection was disabled.
+   *           if connection was replaced or connection is pooled.
    */
   @Override
   public T getService() throws IllegalStateException {
-    if (!enabled)
+    if (wasReplaced)
+      throw new IllegalStateException("Connection disabled (replaced): " + System.identityHashCode(getTransport()) + " "
+          + System.identityHashCode(this));
+    if (isPooled.get())
       throw new IllegalStateException(
-          "Connection disabled: " + System.identityHashCode(getTransport()) + " " + System.identityHashCode(this));
+          "Connection not reserved: " + System.identityHashCode(getTransport()) + " " + System.identityHashCode(this));
     return service;
   }
 
@@ -92,12 +97,27 @@ public class Connection<T> implements Closeable, ServiceProvider<T> {
    *         more because it was used as "oldConnection" in a call to
    *         {@link ConnectionFactory#createConnection(Connection, Class, String)} as "old connection".
    */
-  public boolean isEnabled() {
-    return enabled;
+  public boolean wasReplaced() {
+    return wasReplaced;
   }
 
-  /* package */ void setEnabled(boolean enabled) {
-    this.enabled = enabled;
+  /* package */ void setWasReplaced(boolean wasReplaced) {
+    this.wasReplaced = wasReplaced;
+  }
+
+  /**
+   * @return <code>true</code> if this connection is currently available in the ConnectionPool, <code>false</code> if it
+   *         is reserved by someone. Default value is "true".
+   */
+  public boolean isPooled() {
+    return isPooled.get();
+  }
+
+  /**
+   * comapre-and-set "pooled" value. Returns <code>true</code> if successful.
+   */
+  /* package */ boolean pooledCAS(boolean expected, boolean newValue) {
+    return this.isPooled.compareAndSet(expected, newValue);
   }
 
   /**

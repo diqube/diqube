@@ -109,6 +109,46 @@ public class ConnectionPoolTest {
   }
 
   @Test
+  public void connectionUsableAfterReserve() throws ConnectionException, InterruptedException, IOException {
+    initPool(Integer.MAX_VALUE, 2, Integer.MAX_VALUE, .95);
+
+    TestConnection<ClusterManagementService.Iface> conn = (TestConnection<ClusterManagementService.Iface>) pool
+        .reserveConnection(ClusterManagementService.Iface.class, ADDR1, null);
+
+    conn.getService();
+    // expected: No exception
+  }
+
+  @Test(expectedExceptions = IllegalStateException.class)
+  public void connectionUnusableAfterRelease() throws ConnectionException, InterruptedException, IOException {
+    initPool(Integer.MAX_VALUE, 2, Integer.MAX_VALUE, .95);
+
+    TestConnection<ClusterManagementService.Iface> conn = (TestConnection<ClusterManagementService.Iface>) pool
+        .reserveConnection(ClusterManagementService.Iface.class, ADDR1, null);
+
+    conn.getService();
+    // expected: No exception
+
+    pool.releaseConnection(conn);
+
+    conn.getService();
+  }
+
+  @Test
+  public void connectionReleaseMultipleTimes() throws ConnectionException, InterruptedException, IOException {
+    initPool(Integer.MAX_VALUE, 2, Integer.MAX_VALUE, .95);
+
+    TestConnection<ClusterManagementService.Iface> conn = (TestConnection<ClusterManagementService.Iface>) pool
+        .reserveConnection(ClusterManagementService.Iface.class, ADDR1, null);
+
+    conn.getService();
+
+    pool.releaseConnection(conn);
+    pool.releaseConnection(conn);
+    // expected: No exception
+  }
+
+  @Test
   public void blockTimeoutNewConnectionHighEarlyCloseLevel()
       throws ConnectionException, InterruptedException, IOException {
     initPool(Integer.MAX_VALUE, //
@@ -197,8 +237,12 @@ public class ConnectionPoolTest {
       @Override
       public void accept(TestConnection<?> t) {
         try {
-          if (t.getService() instanceof KeepAliveService.Iface)
+          if (t.getServiceInfo().getServiceInterface().equals(KeepAliveService.Iface.class)) {
+            // temp unpool to install our mock
+            t.pooledCAS(true, false);
             Mockito.doThrow(TException.class).when(((KeepAliveService.Iface) t.getService())).ping();
+            t.pooledCAS(false, true);
+          }
         } catch (TException e) {
           throw new RuntimeException(e);
         }
@@ -246,8 +290,12 @@ public class ConnectionPoolTest {
       @Override
       public void accept(TestConnection<?> t) {
         try {
-          if (t.getService() instanceof KeepAliveService.Iface)
+          if (t.getServiceInfo().getServiceInterface().equals(KeepAliveService.Iface.class)) {
+            // temp unpool to install our mock
+            t.pooledCAS(true, false);
             Mockito.doThrow(TException.class).when(((KeepAliveService.Iface) t.getService())).ping();
+            t.pooledCAS(false, true);
+          }
         } catch (TException e) {
           throw new RuntimeException(e);
         }

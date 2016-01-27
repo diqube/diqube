@@ -97,7 +97,7 @@ import org.slf4j.LoggerFactory;
       throws ConnectionException {
     U client = createProtocolAndClient(serviceInfo, oldConnection.getTransport());
 
-    oldConnection.setEnabled(false);
+    oldConnection.setWasReplaced(true);
 
     Connection<U> res =
         new Connection<>(connectionPool, serviceInfo, client, oldConnection.getTransport(), oldConnection.getAddress());

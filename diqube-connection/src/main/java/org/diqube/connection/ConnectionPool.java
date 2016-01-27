@@ -154,7 +154,7 @@ public class ConnectionPool implements ClusterNodeStatusDetailListener {
    * 
    * timestamps are values from {@link System#nanoTime()}.
    * 
-   * Be aware that the connections contained here may have {@link Connection#isEnabled()} == false! Then, of course,
+   * Be aware that the connections contained here may have {@link Connection#wasReplaced()} == false! Then, of course,
    * they should be ignored.
    * 
    * The values of this map are no collections, but single connections. If there are two connections that time out at
@@ -324,7 +324,8 @@ public class ConnectionPool implements ClusterNodeStatusDetailListener {
    *          see {@link #reserveConnection(Class, RNodeAddress, SocketListener)}.
    * @param socketListener
    *          see {@link #reserveConnection(Class, RNodeAddress, SocketListener)}.
-   * @return the reserved connection or <code>null</code> in case there was no available connection.
+   * @return the reserved connection or <code>null</code> in case there was no available connection. The returned
+   *         connection is unpooled already ({@link Connection#isPooled()} == false).
    */
   @SuppressWarnings("unchecked")
   private <T> Connection<T> reserveAvailableConnection(DiqubeThriftServiceInfo<T> serviceInfo, RNodeAddress addr,
@@ -339,15 +340,23 @@ public class ConnectionPool implements ClusterNodeStatusDetailListener {
 
           // first we fetch a connection to a ClusterManagementService to execute a "ping".
           Connection<KeepAliveService.Iface> keepAliveConn;
-          if (conn.getService() instanceof KeepAliveService.Iface)
+          if (conn.getServiceInfo().getServiceInterface().equals(KeepAliveService.Iface.class))
             keepAliveConn = (Connection<KeepAliveService.Iface>) conn;
           else {
             keepAliveConn = connectionFactory.createConnection(conn,
                 diqubeThriftServiceInfoManager.getServiceInfo(KeepAliveService.Iface.class));
 
+            keepAliveConn.pooledCAS(true, false);
+
             defaultSocketListeners.put(keepAliveConn, defaultSocketListeners.get(conn));
             defaultSocketListeners.remove(conn);
           }
+
+          // unpool connection so we can use it. As noone on the outside should use a KeepAliveService, we have a
+          // different Connection object here than the one the outside used (and returned already), we can therefore
+          // safely unpool it here without risking that someone still holds a reference to the connection (although they
+          // returned it!) and tries to use it: the (outside) connection is "replaced".
+          keepAliveConn.pooledCAS(true, false);
 
           // try to ping connection, see if it is still alive.
           try {
@@ -361,6 +370,10 @@ public class ConnectionPool implements ClusterNodeStatusDetailListener {
             defaultSocketListeners.put(res, defaultSocketListeners.get(keepAliveConn));
             defaultSocketListeners.remove(keepAliveConn);
             defaultSocketListeners.get(res).init(socketListener);
+
+            // ensure returned connection is unpooled
+            res.pooledCAS(true, false);
+
             logger.trace("Re-using connection {} to {}", System.identityHashCode(res.getTransport()), addr);
             return res;
           } catch (TException e) {
@@ -385,7 +398,7 @@ public class ConnectionPool implements ClusterNodeStatusDetailListener {
    *          see {@link #reserveConnection(Class, RNodeAddress, SocketListener)}.
    * @param socketListener
    *          see {@link #reserveConnection(Class, RNodeAddress, SocketListener)}.
-   * @return the reserved or freshly opened connection
+   * @return the reserved or freshly opened connection. Connection is unpooled ({@link Connection#isPooled()} == false).
    * @throws ConnectionException
    *           if connection cannot be opened.
    */
@@ -403,6 +416,7 @@ public class ConnectionPool implements ClusterNodeStatusDetailListener {
         DefaultSocketListener newDefaultSocketListener = new DefaultSocketListener(addr);
 
         res = connectionFactory.createConnection(serviceInfo, addr, newDefaultSocketListener);
+        res.pooledCAS(true, false);
         overallOpenConnections.incrementAndGet();
 
         newDefaultSocketListener.init(socketListener);
@@ -436,6 +450,12 @@ public class ConnectionPool implements ClusterNodeStatusDetailListener {
    *          The connection returned by {@link #reserveConnection(Class, RNodeAddress)}.
    */
   public <T> void releaseConnection(Connection<T> connection) {
+    if (!connection.pooledCAS(false, true))
+      // Connection was released (and is pooled) already.
+      return;
+
+    // now the connection is marked as "pooled" and cannot be used by anyone anymore.
+
     // thread-safe find the deque that contains the available connections of our address. If there is none, create one!
     Deque<Connection<?>> availableConnectionsOnAddr = availableConnections.get(connection.getAddress());
 
@@ -601,7 +621,7 @@ public class ConnectionPool implements ClusterNodeStatusDetailListener {
       connectionTimeoutLock.writeLock().unlock();
     }
 
-    if (!timedOutConn.isEnabled())
+    if (timedOutConn.wasReplaced())
       return false;
 
     Deque<Connection<?>> addrConns = availableConnections.get(timedOutConn.getAddress());
@@ -613,7 +633,7 @@ public class ConnectionPool implements ClusterNodeStatusDetailListener {
       // not be possible!
 
       // re-check if connection should be closed
-      if (!timedOutConn.isEnabled() || timedOutConn.getTimeout() != proposedTimeoutTime) {
+      if (timedOutConn.wasReplaced() || timedOutConn.getTimeout() != proposedTimeoutTime) {
         // no, it's not. It was in the process of being released (compare to procedure in releaseConnection, be VERY
         // careful when changing this!).
         addrConns.add(timedOutConn);
@@ -795,7 +815,7 @@ public class ConnectionPool implements ClusterNodeStatusDetailListener {
         // we reserved "conn".
 
         Connection<KeepAliveService.Iface> keepAliveConn;
-        if (conn.getService() instanceof KeepAliveService.Iface)
+        if (conn.getServiceInfo().getServiceInterface().equals(KeepAliveService.Iface.class))
           keepAliveConn = (Connection<KeepAliveService.Iface>) conn;
         else {
           try {
@@ -816,10 +836,19 @@ public class ConnectionPool implements ClusterNodeStatusDetailListener {
           connectionTimeouts.put(keepAliveConn.getTimeout(), keepAliveConn);
         }
 
+        // unpool temporarily so we can use the connection. We can do this safely, since noone on the outside should use
+        // a KeepAliveService.Iface: That means that the connection object the outside used (and returned already) is
+        // now "replaced", since we created a KeepAlive connection out of it: the outside cannot use the connection,
+        // although we unpool it here - even if they still hold a ref to the connection although they returned it!
+        keepAliveConn.pooledCAS(true, false);
+
         try {
           keepAliveConn.getService().ping();
 
           // connection is alive! wohoo!
+
+          // pool it again.
+          keepAliveConn.pooledCAS(false, true);
 
           // mark connection as available.
           availableConnections.get(keepAliveConn.getAddress()).add(keepAliveConn);

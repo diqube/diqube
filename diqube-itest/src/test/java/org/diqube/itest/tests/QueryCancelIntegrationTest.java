@@ -92,7 +92,7 @@ public class QueryCancelIntegrationTest extends AbstractDiqubeIntegrationTest {
       UUID queryUuid = UUID.randomUUID();
       RUUID queryRUuid = RUuidUtil.toRUuid(queryUuid);
       logger.info("Executing query {}", RUuidUtil.toUuid(queryRUuid));
-      // execute a long-running query. It should just take longer than the timeout we set above...
+      // execute a long-running query.
       serverControl.get(0).getSerivceTestUtil().queryService((queryService) -> queryService.asyncExecuteQuery(ticket,
           queryRUuid, diqlQuery, true, queryRes.getThisServicesAddr().toRNodeAddress()));
 
