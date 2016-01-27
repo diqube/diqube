@@ -22,11 +22,15 @@ package org.diqube.connection;
 
 import org.diqube.connection.integrity.IntegritySecretHelper;
 import org.diqube.connection.integrity.IntegritySecretHelperTestUtil;
+import org.diqube.thrift.base.services.DiqubeThriftServiceInfoManager.DiqubeThriftServiceInfo;
+import org.diqube.thrift.base.thrift.RNodeAddress;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 /**
+ * Connection factory for itests. All returned connections are "unpooled", since the tests do not want to pool the conns
+ * themselves.
  *
  * @author Bastian Gloeckle
  */
@@ -47,6 +51,32 @@ public class DefaultDiqubeConnectionFactoryTestUtil {
     IntegritySecretHelper integritySecretHelper = new IntegritySecretHelper();
     IntegritySecretHelperTestUtil.setMessageIntegritySecret(integritySecretHelper, macKey);
 
-    return new DefaultConnectionFactory(pool, integritySecretHelper, 10000);
+    return new UnpoolingConnectionFactory(new DefaultConnectionFactory(pool, integritySecretHelper, 10000));
+  }
+
+  public static class UnpoolingConnectionFactory implements ConnectionFactory {
+    private ConnectionFactory delegate;
+
+    public UnpoolingConnectionFactory(ConnectionFactory delegate) {
+      this.delegate = delegate;
+    }
+
+    @Override
+    public <T> Connection<T> createConnection(DiqubeThriftServiceInfo<T> serviceInfo, RNodeAddress addr,
+        SocketListener socketListener) throws ConnectionException {
+      Connection<T> res = delegate.createConnection(serviceInfo, addr, socketListener);
+      // unpool
+      res.pooledCAS(true, false);
+      return res;
+    }
+
+    @Override
+    public <T, U> Connection<U> createConnection(Connection<T> oldConnection, DiqubeThriftServiceInfo<U> serviceInfo)
+        throws ConnectionException {
+      Connection<U> res = delegate.createConnection(oldConnection, serviceInfo);
+      // unpool
+      res.pooledCAS(true, false);
+      return res;
+    }
   }
 }
