@@ -20,10 +20,21 @@
  */
 package org.diqube.consensus.internal;
 
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import javax.annotation.PostConstruct;
+import javax.inject.Inject;
+
+import org.diqube.consensus.ConsensusStateMachineManager;
 import org.diqube.context.AutoInstatiate;
 
+import com.google.common.collect.Sets;
+
+import io.atomix.catalyst.serializer.JdkTypeResolver;
+import io.atomix.catalyst.serializer.PrimitiveTypeResolver;
 import io.atomix.catalyst.serializer.Serializer;
-import io.atomix.catalyst.serializer.SerializerRegistry;
 
 /**
  * Catalyst serializer used by diqube.
@@ -32,11 +43,30 @@ import io.atomix.catalyst.serializer.SerializerRegistry;
  */
 @AutoInstatiate
 public class DiqubeCatalystSerializer extends Serializer {
+  private static final int BASE_SERIALIZATION_ID = 2500;
+
+  @Inject
+  private ConsensusStateMachineManager consensusStateMachineManager;
+
   public DiqubeCatalystSerializer() {
-    super(DiqubeCatalystSerializer::resolveTypes);
+    super(new PrimitiveTypeResolver(), new JdkTypeResolver());
   }
 
-  public static void resolveTypes(SerializerRegistry registry) {
+  @PostConstruct
+  public void initialize() {
+    // register all the operation classes in the serializer so they can be serialized (we need to whitelist them).
+    // Register all additional classes, too.
+    this.resolve((registry) -> {
+      Set<Class<?>> allSerializationClasses = Sets.union(consensusStateMachineManager.getAllOperationClasses(),
+          consensusStateMachineManager.getAllAdditionalSerializationClasses());
+      List<Class<?>> serializationClassesSorted = allSerializationClasses.stream()
+          .sorted((c1, c2) -> c1.getName().compareTo(c2.getName())).collect(Collectors.toList());
 
+      // start suing IDs at an arbitrary, but fixed point, so we do not overwrite IDs used internally by copycat.
+      int nextId = BASE_SERIALIZATION_ID;
+      for (Class<?> opClass : serializationClassesSorted) {
+        registry.register(opClass, nextId++);
+      }
+    });
   }
 }

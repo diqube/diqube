@@ -166,7 +166,7 @@ public class LogoutStateMachineImplementation extends AbstractConsensusStateMach
     });
 
     if (prev != null)
-      prev.clean();
+      prev.close();
 
     if (listeners != null)
       listeners.forEach(l -> l.ticketBecameInvalid(t));
@@ -187,8 +187,8 @@ public class LogoutStateMachineImplementation extends AbstractConsensusStateMach
     writeCurrentStateToInternalDb(commit.index(), invalidTickets);
 
     if (prev != null)
-      prev.clean();
-    commit.clean();
+      prev.close();
+    commit.close();
   }
 
   /**

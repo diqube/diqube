@@ -22,9 +22,9 @@ package org.diqube.consensus;
 
 import java.time.Instant;
 
-import io.atomix.copycat.client.Operation;
-import io.atomix.copycat.client.session.Session;
+import io.atomix.copycat.Operation;
 import io.atomix.copycat.server.Commit;
+import io.atomix.copycat.server.session.ServerSession;
 
 /**
  *
@@ -52,7 +52,7 @@ public class ConsensusUtil {
     }
 
     @Override
-    public Session session() {
+    public ServerSession session() {
       return null;
     }
 
@@ -69,10 +69,6 @@ public class ConsensusUtil {
     @Override
     public T operation() {
       return operation;
-    }
-
-    @Override
-    public void clean() {
     }
 
     @Override

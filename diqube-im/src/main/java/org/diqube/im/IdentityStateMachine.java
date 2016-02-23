@@ -25,8 +25,8 @@ import org.diqube.consensus.ConsensusStateMachine;
 import org.diqube.consensus.ConsensusUtil;
 import org.diqube.im.thrift.v1.SUser;
 
-import io.atomix.copycat.client.Command;
-import io.atomix.copycat.client.Query;
+import io.atomix.copycat.Command;
+import io.atomix.copycat.Query;
 import io.atomix.copycat.server.Commit;
 
 /**
@@ -48,7 +48,7 @@ public interface IdentityStateMachine {
    * 
    * @return Either the {@link SUser} or <code>null</code> in case user does not exist.
    */
-  @ConsensusMethod(dataClass = GetUser.class)
+  @ConsensusMethod(dataClass = GetUser.class, additionalSerializationClasses = SUser.class)
   public SUser getUser(Commit<GetUser> commit);
 
   /**
@@ -73,8 +73,8 @@ public interface IdentityStateMachine {
     }
 
     @Override
-    public PersistenceLevel persistence() {
-      return PersistenceLevel.PERSISTENT;
+    public CompactionMode compaction() {
+      return CompactionMode.SEQUENTIAL;
     }
   }
 
@@ -91,6 +91,11 @@ public interface IdentityStateMachine {
       SetUser res = new SetUser();
       res.user = user;
       return ConsensusUtil.localCommit(res);
+    }
+
+    @Override
+    public CompactionMode compaction() {
+      return CompactionMode.FULL;
     }
   }
 

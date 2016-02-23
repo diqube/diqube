@@ -28,8 +28,8 @@ import org.diqube.consensus.ConsensusUtil;
 import org.diqube.remote.query.thrift.IdentityCallbackService;
 import org.diqube.thrift.base.thrift.Ticket;
 
-import io.atomix.copycat.client.Command;
-import io.atomix.copycat.client.Query;
+import io.atomix.copycat.Command;
+import io.atomix.copycat.Query;
 import io.atomix.copycat.server.Commit;
 
 /**
@@ -49,7 +49,7 @@ public interface LogoutStateMachine {
   /**
    * Get all {@link Ticket}s that are currently marked as invalid.
    */
-  @ConsensusMethod(dataClass = GetInvalidTickets.class)
+  @ConsensusMethod(dataClass = GetInvalidTickets.class, additionalSerializationClasses = Ticket.class)
   public List<Ticket> getInvalidTickets(Commit<GetInvalidTickets> commit);
 
   /**
@@ -72,6 +72,11 @@ public interface LogoutStateMachine {
       res.ticket = ticket;
       return ConsensusUtil.localCommit(res);
     }
+
+    @Override
+    public CompactionMode compaction() {
+      return CompactionMode.FULL;
+    }
   }
 
   public static class CleanLogoutTicket implements Command<Void> {
@@ -90,8 +95,8 @@ public interface LogoutStateMachine {
     }
 
     @Override
-    public PersistenceLevel persistence() {
-      return PersistenceLevel.PERSISTENT;
+    public CompactionMode compaction() {
+      return CompactionMode.SEQUENTIAL;
     }
   }
 

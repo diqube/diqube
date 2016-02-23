@@ -89,7 +89,7 @@ public class IdentityCallbackRegistryStateMachineImplementation extends Abstract
     writeCurrentCallbacksToInternalDb(commit.index());
 
     if (prev != null)
-      prev.clean();
+      prev.close();
 
     if (listeners != null)
       listeners.forEach(l -> l.registered(callbackNode, registerTime));
@@ -106,8 +106,8 @@ public class IdentityCallbackRegistryStateMachineImplementation extends Abstract
     writeCurrentCallbacksToInternalDb(commit.index());
 
     if (lastWriteCommit != null)
-      lastWriteCommit.clean();
-    commit.clean();
+      lastWriteCommit.close();
+    commit.close();
 
     if (lastRegisterTime != null && listeners != null)
       listeners.forEach(l -> l.unregistered(callbackNode, lastRegisterTime));

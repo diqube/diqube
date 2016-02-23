@@ -26,7 +26,8 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import io.atomix.copycat.client.Operation;
+import io.atomix.copycat.Operation;
+import io.atomix.copycat.Query;
 
 /**
  * Denotes a method that should be callable through the consensus cluster, i.e. the method will be called on all cluster
@@ -46,4 +47,11 @@ public @interface ConsensusMethod {
    * @return The {@link Operation} class which is used on-the-wire to communicate a call to this method.
    */
   Class<? extends Operation<?>> dataClass();
+
+  /**
+   * @return Additional classes which need to be transferred and therefore serialized on this method call. This is
+   *         usually the classes of return values for {@link Query queries} which are not covered by automatic
+   *         serialization of copycat already.
+   */
+  Class<?>[] additionalSerializationClasses() default Object.class;
 }

@@ -55,11 +55,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
 import io.atomix.catalyst.transport.Address;
+import io.atomix.copycat.Operation;
 import io.atomix.copycat.client.CopycatClient;
-import io.atomix.copycat.client.Operation;
-import io.atomix.copycat.client.RaftClient;
 import io.atomix.copycat.server.CopycatServer;
-import io.atomix.copycat.server.RaftServer.State;
+import io.atomix.copycat.server.CopycatServer.State;
 import io.atomix.copycat.server.StateMachine;
 import io.atomix.copycat.server.StateMachineExecutor;
 import io.atomix.copycat.server.storage.Storage;
@@ -134,6 +133,7 @@ public class ConsensusServer implements ClusterManagerListener {
     Address ourAddr = toCopycatAddress(ourNodeAddressProvider.getOurNodeAddress());
     List<Address> members = consensusClusterNodeAddressProvider.getClusterNodeAddressesForConsensus().stream()
         .map(addr -> toCopycatAddress(addr)).collect(Collectors.toList());
+    members.add(ourAddr); // we will participate as member.
 
     File consensusDataDirFile = new File(consensusDataDir);
 
@@ -154,7 +154,7 @@ public class ConsensusServer implements ClusterManagerListener {
         withSessionTimeout(Duration.ofMillis(sessionTimeoutMs)). //
         withElectionTimeout(Duration.ofMillis(electionTimeoutMs)). //
         withHeartbeatInterval(Duration.ofMillis(keepAliveMs)). //
-        withStateMachine(new DiqubeStateMachine()).build();
+        withStateMachine(() -> new DiqubeStateMachine()).build();
 
     CompletableFuture<?> serverOpenFuture = copycatServer.open().handle((result, error) -> {
       if (error != null)
@@ -162,14 +162,14 @@ public class ConsensusServer implements ClusterManagerListener {
 
       logger.info("Consensus node started successfully.");
 
-      copycatServer.onLeaderElection(leaderAddr -> {
-        if (leaderAddr != null) {
-          lastKnownCopycatLeaderAddress = leaderAddr;
+      copycatServer.cluster().onLeaderElection(leaderMember -> {
+        if (leaderMember != null) {
+          lastKnownCopycatLeaderAddress = leaderMember.address();
           lastKnownCopycatLeaderTimestamp = Instant.now();
           logger.info("New consensus leader address: {}", lastKnownCopycatLeaderAddress);
         }
       });
-      lastKnownCopycatLeaderAddress = copycatServer.leader();
+      lastKnownCopycatLeaderAddress = copycatServer.cluster().leader().address();
       lastKnownCopycatLeaderTimestamp = Instant.now();
       logger.info("New consensus leader address: {}", lastKnownCopycatLeaderAddress);
 
@@ -222,13 +222,13 @@ public class ConsensusServer implements ClusterManagerListener {
    *         in the latter case, no {@link CopycatClient} activity will succeed probably.
    */
   public boolean clusterSeemsFunctional() {
-    return copycatServer != null && copycatServer.leader() != null;
+    return copycatServer != null && copycatServer.cluster().leader() != null;
   }
 
   /* package */ Collection<Address> getClusterMembers() {
     if (copycatServer == null)
       return null;
-    return copycatServer.members();
+    return copycatServer.cluster().members().stream().map(member -> member.address()).collect(Collectors.toList());
   }
 
   private Address toCopycatAddress(NodeAddress addr) {
