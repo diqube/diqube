@@ -304,6 +304,7 @@ public class DiqubeCatalystConnection implements Connection {
 
     try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
       context.serializer().writeObject(message, baos);
+
       if (message instanceof ReferenceCounted)
         ((ReferenceCounted<?>) message).release();
 
@@ -316,7 +317,9 @@ public class DiqubeCatalystConnection implements Connection {
       }
 
     } catch (ConnectionException e) {
+      requests.remove(requestUuid);
       socketListener.connectionDied("Could not connect");
+      res.completeExceptionally(new TransportException("Cannot connect", e));
     } catch (IOException | IllegalStateException | TException | InterruptedException e) {
       requests.remove(requestUuid);
       res.completeExceptionally(new TransportException("Failed to send request", e));

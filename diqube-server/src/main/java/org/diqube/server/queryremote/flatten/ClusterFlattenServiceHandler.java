@@ -60,6 +60,8 @@ import org.diqube.remote.cluster.thrift.ClusterFlattenService;
 import org.diqube.remote.cluster.thrift.RFlattenException;
 import org.diqube.remote.cluster.thrift.ROptionalUuid;
 import org.diqube.remote.cluster.thrift.RRetryLaterException;
+import org.diqube.server.metadata.ServerTableMetadataPublisher;
+import org.diqube.server.metadata.ServerTableMetadataPublisher.MergeImpossibleException;
 import org.diqube.threads.ExecutorManager;
 import org.diqube.thrift.base.thrift.RNodeAddress;
 import org.diqube.thrift.base.thrift.RUUID;
@@ -98,10 +100,13 @@ public class ClusterFlattenServiceHandler implements ClusterFlattenService.Iface
   private ClusterManager clusterManager;
 
   @Inject
-  private FlattenedTableInstanceManager flattenedTableManager;
+  private FlattenedTableInstanceManager flattenedTableInstanceManager;
 
   @Inject
   private FlattenManager flattenManager;
+
+  @Inject
+  private ServerTableMetadataPublisher metadataPublisher;
 
   @Config(ConfigKey.FLATTEN_TIMEOUT_SECONDS)
   private int flattenTimeoutSeconds;
@@ -165,7 +170,7 @@ public class ClusterFlattenServiceHandler implements ClusterFlattenService.Iface
     // flag it to not be removed from FlattenTableManager for some time (should be enough until our caller has received
     // answers from all remotes and can issue his query).
     Pair<UUID, FlattenedTable> newest =
-        flattenedTableManager.getNewestFlattenedTableVersionAndFlagIt(tableName, flattenBy);
+        flattenedTableInstanceManager.getNewestFlattenedTableVersionAndFlagIt(tableName, flattenBy);
     if (newest == null)
       return new ROptionalUuid();
 
@@ -188,7 +193,8 @@ public class ClusterFlattenServiceHandler implements ClusterFlattenService.Iface
   }
 
   /**
-   * Flattens a table locally and informs the {@link ClusterFlattenService} at the result address about the process.
+   * Flattens a table locally asynchronously and informs the {@link ClusterFlattenService} at the result address about
+   * the process.
    * 
    * <p>
    * Note that the query master calls this method. If the execution fails, the query master should retry the process, as
@@ -482,7 +488,8 @@ public class ClusterFlattenServiceHandler implements ClusterFlattenService.Iface
       }
 
       // Okay, all results from other flatteners received and incorporated, we're done!
-      flattenedTableManager.registerFlattenedTableVersion(flattenedTableId, flattenedTable, tableName, flattenBy);
+      flattenedTableInstanceManager.registerFlattenedTableVersion(flattenedTableId, flattenedTable, tableName,
+          flattenBy);
 
       // not in "finally", since we do not want to clear this here if we have an exception -> the
       // uncaughtExceptionHandler will handle that case!
@@ -507,6 +514,16 @@ public class ClusterFlattenServiceHandler implements ClusterFlattenService.Iface
           logger.warn("Could not send flattening result {}/{} to requesting machine at {}. Ignoring.", requestUuid,
               resultPair.getRight(), resultPair.getLeft(), e);
         }
+      }
+
+      // At last, start triggering the computation of the metadata for the flattened table. We do this at last, since we
+      // do not expect this to fail, since the original table was loaded successfully (and has valid metadata) and so
+      // the merging etc for the flattened one should work well, too.
+      try {
+        metadataPublisher.publishMetadataOfTableShards(flattenedTable.getName(), flattenedTable.getShards());
+      } catch (MergeImpossibleException e) {
+        logger.error("Metadata of flattened table '{}' could not be computed.", e);
+        // as we do not expect this to happen, just log and ignore.
       }
     }
   }

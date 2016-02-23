@@ -32,7 +32,7 @@ import org.diqube.itest.annotations.NeedsServer;
 import org.diqube.itest.util.QueryResultServiceTestUtil;
 import org.diqube.itest.util.QueryResultServiceTestUtil.TestQueryResultService;
 import org.diqube.itest.util.Waiter;
-import org.diqube.server.NewDataWatcher;
+import org.diqube.server.ControlFileManager;
 import org.diqube.thrift.base.thrift.RUUID;
 import org.diqube.thrift.base.thrift.RValue;
 import org.diqube.thrift.base.thrift.Ticket;
@@ -56,15 +56,15 @@ public class FlattenIntegrationTest extends AbstractDiqubeIntegrationTest {
   private static final String DATA0_JSON_FILE =
       "/" + FlattenIntegrationTest.class.getSimpleName() + "/flattendata0.json";
   private static final String DATA0_CONTROL_FILE =
-      "/" + FlattenIntegrationTest.class.getSimpleName() + "/flattendata0" + NewDataWatcher.CONTROL_FILE_EXTENSION;
+      "/" + FlattenIntegrationTest.class.getSimpleName() + "/flattendata0" + ControlFileManager.CONTROL_FILE_EXTENSION;
   private static final String DATA3_JSON_FILE =
       "/" + FlattenIntegrationTest.class.getSimpleName() + "/flattendata3.json";
   private static final String DATA3_CONTROL_FILE =
-      "/" + FlattenIntegrationTest.class.getSimpleName() + "/flattendata3" + NewDataWatcher.CONTROL_FILE_EXTENSION;
+      "/" + FlattenIntegrationTest.class.getSimpleName() + "/flattendata3" + ControlFileManager.CONTROL_FILE_EXTENSION;
   private static final String DATA6_JSON_FILE =
       "/" + FlattenIntegrationTest.class.getSimpleName() + "/flattendata6.json";
   private static final String DATA6_CONTROL_FILE =
-      "/" + FlattenIntegrationTest.class.getSimpleName() + "/flattendata6" + NewDataWatcher.CONTROL_FILE_EXTENSION;
+      "/" + FlattenIntegrationTest.class.getSimpleName() + "/flattendata6" + ControlFileManager.CONTROL_FILE_EXTENSION;
 
   @Test
   @NeedsServer(servers = 2)

@@ -29,11 +29,14 @@ import java.nio.file.FileVisitor;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.HashMap;
 import java.util.function.Function;
 
 import org.diqube.consensus.ConsensusServer;
 import org.diqube.consensus.ConsensusServerTestUtil;
 import org.diqube.context.Profiles;
+import org.diqube.data.metadata.FieldMetadata.FieldType;
+import org.diqube.data.metadata.TableMetadata;
 import org.diqube.data.table.TableFactory;
 import org.diqube.data.table.TableShard;
 import org.diqube.executionenv.TableRegistry;
@@ -42,9 +45,17 @@ import org.diqube.loader.CsvLoader;
 import org.diqube.loader.DiqubeLoader;
 import org.diqube.loader.JsonLoader;
 import org.diqube.loader.LoadException;
-import org.diqube.server.ControlFileLoader;
-import org.diqube.server.NewDataWatcher;
+import org.diqube.metadata.TableMetadataManager;
+import org.diqube.metadata.TableShardMetadataBuilderFactory;
+import org.diqube.server.ControlFileManager;
+import org.diqube.server.control.ControlFileLoader;
+import org.diqube.server.metadata.ServerTableMetadataPublisher;
+import org.diqube.server.metadata.ServerTableMetadataPublisherTestUtil;
 import org.diqube.server.queryremote.flatten.ClusterFlattenServiceHandler;
+import org.diqube.util.Pair;
+import org.hamcrest.BaseMatcher;
+import org.hamcrest.Description;
+import org.mockito.Mockito;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
@@ -66,18 +77,18 @@ public class ControlFileLoaderTest {
   /** Location in classpath where test files are available. */
   private static final String TESTDATA_CLASSPATH = "ControlFileLoaderTest/";
   /** A test .control-file with JSON & firstRowId = 0 */
-  private static final String CONTROL_AGE_FIRSTROW0 = "age-firstrow0" + NewDataWatcher.CONTROL_FILE_EXTENSION;
+  private static final String CONTROL_AGE_FIRSTROW0 = "age-firstrow0" + ControlFileManager.CONTROL_FILE_EXTENSION;
   /** A test .control-file with JSON & firstRowId = 5 */
-  private static final String CONTROL_AGE_FIRSTROW5 = "age-firstrow5" + NewDataWatcher.CONTROL_FILE_EXTENSION;
+  private static final String CONTROL_AGE_FIRSTROW5 = "age-firstrow5" + ControlFileManager.CONTROL_FILE_EXTENSION;
   /** Control file where the default column type is "long", but the one for column "age" is "string". */
   private static final String CONTROL_DEFAULT_LONG_AGE_STRING =
-      "age-default-long-age-string" + NewDataWatcher.CONTROL_FILE_EXTENSION;
+      "age-default-long-age-string" + ControlFileManager.CONTROL_FILE_EXTENSION;
   /** Control file where the default column type is "string", but the one for column "age" is "long". */
   private static final String CONTROL_DEFAULT_STRING_AGE_LONG =
-      "age-default-string-age-long" + NewDataWatcher.CONTROL_FILE_EXTENSION;
+      "age-default-string-age-long" + ControlFileManager.CONTROL_FILE_EXTENSION;
   /** Control file where the default column type is "double", but the one for column "age" is "long". */
   private static final String CONTROL_DEFAULT_DOUBLE_AGE_LONG =
-      "age-default-double-age-long" + NewDataWatcher.CONTROL_FILE_EXTENSION;
+      "age-default-double-age-long" + ControlFileManager.CONTROL_FILE_EXTENSION;
   /** Column name of column "age" loaded from "age.json". */
   private static final String TABLE_AGE_COLUMN_AGE = "age";
   /** Column name of column "index" loaded from "age.json". */
@@ -90,6 +101,8 @@ public class ControlFileLoaderTest {
   private File testDir;
   /** The {@link TableRegistry} receiving the {@link Table} after it's been loaded by the tests. */
   private TableRegistry tableRegistry;
+
+  private TableMetadataManager metadataManagerMock;
 
   @BeforeMethod
   public void setup() throws IOException {
@@ -104,6 +117,11 @@ public class ControlFileLoaderTest {
     dataContext.getBeansOfType(ClusterManagerListener.class).values().forEach(l -> l.clusterInitialized());
 
     tableRegistry = dataContext.getBean(TableRegistry.class);
+    metadataManagerMock = Mockito.mock(TableMetadataManager.class);
+
+    ServerTableMetadataPublisher metadataPublisher =
+        ServerTableMetadataPublisherTestUtil.create(dataContext.getBean(TableRegistry.class),
+            dataContext.getBean(TableShardMetadataBuilderFactory.class), metadataManagerMock);
 
     controlFileFactory = new Function<File, ControlFileLoader>() {
       @Override
@@ -115,6 +133,7 @@ public class ControlFileLoaderTest {
             dataContext.getBean(JsonLoader.class), //
             dataContext.getBean(DiqubeLoader.class), //
             dataContext.getBean(ClusterFlattenServiceHandler.class), //
+            metadataPublisher, //
             controlFile);
       }
     };
@@ -176,6 +195,9 @@ public class ControlFileLoaderTest {
     Assert.assertEquals(tableRegistry.getTable(table).getShards().size(), 1, "Correct number of shards expected.");
     TableShard shard = tableRegistry.getTable(table).getShards().iterator().next();
     Assert.assertEquals(shard.getLowestRowId(), 0L, "Expected correct first row");
+
+    assertMetadataPublished(table, new Pair<>(TABLE_AGE_COLUMN_AGE, FieldType.LONG),
+        new Pair<>(TABLE_AGE_COLUMN_INDEX, FieldType.LONG));
   }
 
   @Test
@@ -191,6 +213,9 @@ public class ControlFileLoaderTest {
     Assert.assertEquals(tableRegistry.getTable(table).getShards().size(), 1, "Correct number of shards expected.");
     TableShard shard = tableRegistry.getTable(table).getShards().iterator().next();
     Assert.assertEquals(shard.getLowestRowId(), 5L, "Expected correct first row");
+
+    assertMetadataPublished(table, new Pair<>(TABLE_AGE_COLUMN_AGE, FieldType.LONG),
+        new Pair<>(TABLE_AGE_COLUMN_INDEX, FieldType.LONG));
   }
 
   @Test
@@ -209,6 +234,9 @@ public class ControlFileLoaderTest {
         "Expected column '" + TABLE_AGE_COLUMN_AGE + "' to be of type string.");
     Assert.assertTrue(shard.getLongColumns().containsKey(TABLE_AGE_COLUMN_INDEX),
         "Expected column '" + TABLE_AGE_COLUMN_INDEX + "' to be of type long (=default).");
+
+    assertMetadataPublished(table, new Pair<>(TABLE_AGE_COLUMN_AGE, FieldType.STRING),
+        new Pair<>(TABLE_AGE_COLUMN_INDEX, FieldType.LONG));
   }
 
   @Test
@@ -230,6 +258,9 @@ public class ControlFileLoaderTest {
     // used, but there is not (only a "default" is specified).
     Assert.assertTrue(shard.getLongColumns().containsKey(TABLE_AGE_COLUMN_INDEX),
         "Expected column '" + TABLE_AGE_COLUMN_INDEX + "' to be of type long.");
+
+    assertMetadataPublished(table, new Pair<>(TABLE_AGE_COLUMN_AGE, FieldType.LONG),
+        new Pair<>(TABLE_AGE_COLUMN_INDEX, FieldType.LONG));
   }
 
   @Test
@@ -252,5 +283,58 @@ public class ControlFileLoaderTest {
     // TODO #15 introduce import data specificity - when default is "double" but "long" identified, make it "double"
     Assert.assertTrue(shard.getLongColumns().containsKey(TABLE_AGE_COLUMN_INDEX),
         "Expected column '" + TABLE_AGE_COLUMN_INDEX + "' to be of type long.");
+
+    assertMetadataPublished(table, new Pair<>(TABLE_AGE_COLUMN_AGE, FieldType.LONG),
+        new Pair<>(TABLE_AGE_COLUMN_INDEX, FieldType.LONG));
+  }
+
+  /**
+   * Asserts that correct {@link TableMetadata} has been published.
+   * 
+   * @param tableName
+   *          Name of the table expected in {@link TableMetadata}.
+   * @param fields
+   *          The fields that are required in the {@link TableMetadata}. Pair of field name and field type.
+   */
+  @SafeVarargs
+  private final void assertMetadataPublished(String tableName, Pair<String, FieldType>... fields) {
+    Mockito.verify(metadataManagerMock).adjustTableMetadata(Mockito.anyString(),
+        Mockito.argThat(new BaseMatcher<Function<TableMetadata, TableMetadata>>() {
+          @Override
+          public boolean matches(Object item) {
+            if (!(item instanceof Function))
+              return false;
+
+            @SuppressWarnings("unchecked")
+            Function<TableMetadata, TableMetadata> fn = (Function<TableMetadata, TableMetadata>) item;
+
+            // assert correct metadata if FN receives null
+            TableMetadata m = fn.apply(null);
+
+            Assert.assertEquals(m.getTableName(), tableName, "Table name of table metadata should be correct.");
+            for (Pair<String, FieldType> f : fields) {
+              Assert.assertTrue(m.getFields().containsKey(f.getLeft()), "Field " + f + " should be available");
+              Assert.assertEquals(m.getFields().get(f.getLeft()).getFieldType(), f.getRight(),
+                  "Field type of field " + f + " should be correct.");
+            }
+
+            // assert correct metadata if FN receives another (in this case empty) table metadata
+            m = fn.apply(new TableMetadata(tableName, new HashMap<>()));
+
+            Assert.assertEquals(m.getTableName(), tableName, "Table name of table metadata should be correct.");
+            for (Pair<String, FieldType> f : fields) {
+              Assert.assertTrue(m.getFields().containsKey(f.getLeft()), "Field " + f + " should be available");
+              Assert.assertEquals(m.getFields().get(f.getLeft()).getFieldType(), f.getRight(),
+                  "Field type of field " + f + " should be correct.");
+            }
+
+            return true;
+          }
+
+          @Override
+          public void describeTo(Description description) {
+            description.appendText("Correct TableMetadata is produced");
+          }
+        }));
   }
 }

@@ -31,7 +31,7 @@ import org.diqube.itest.util.QueryResultServiceTestUtil;
 import org.diqube.itest.util.QueryResultServiceTestUtil.TestQueryResultService;
 import org.diqube.itest.util.Waiter;
 import org.diqube.itest.util.Waiter.WaitTimeoutException;
-import org.diqube.server.NewDataWatcher;
+import org.diqube.server.ControlFileManager;
 import org.diqube.thrift.base.thrift.RUUID;
 import org.diqube.thrift.base.thrift.RValue;
 import org.diqube.thrift.base.thrift.Ticket;
@@ -55,11 +55,11 @@ public class SimpleServerDeployIntegrationTest extends AbstractDiqubeIntegration
   private static final String AGE_JSON_FILE =
       "/" + SimpleServerDeployIntegrationTest.class.getSimpleName() + "/age.json";
   private static final String AGE_0_CONTROL_FILE = "/" + SimpleServerDeployIntegrationTest.class.getSimpleName()
-      + "/age_rowId0" + NewDataWatcher.CONTROL_FILE_EXTENSION;
+      + "/age_rowId0" + ControlFileManager.CONTROL_FILE_EXTENSION;
   private static final String AGE_11_CONTROL_FILE = "/" + SimpleServerDeployIntegrationTest.class.getSimpleName()
-      + "/age_rowId11" + NewDataWatcher.CONTROL_FILE_EXTENSION;
+      + "/age_rowId11" + ControlFileManager.CONTROL_FILE_EXTENSION;
   private static final String AGE_10_CONTROL_FILE = "/" + SimpleServerDeployIntegrationTest.class.getSimpleName()
-      + "/age_rowId10" + NewDataWatcher.CONTROL_FILE_EXTENSION;
+      + "/age_rowId10" + ControlFileManager.CONTROL_FILE_EXTENSION;
 
   @Test
   @NeedsServer(servers = 1)

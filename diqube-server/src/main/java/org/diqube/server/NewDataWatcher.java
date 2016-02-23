@@ -21,23 +21,17 @@
 package org.diqube.server;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
-import java.time.LocalDateTime;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
@@ -47,18 +41,7 @@ import org.diqube.config.ConfigKey;
 import org.diqube.config.DerivedConfigKey;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.context.Profiles;
-import org.diqube.data.table.AdjustableTable;
-import org.diqube.data.table.Table;
-import org.diqube.data.table.TableFactory;
-import org.diqube.data.table.TableShard;
-import org.diqube.executionenv.TableRegistry;
 import org.diqube.listeners.ConsensusListener;
-import org.diqube.loader.CsvLoader;
-import org.diqube.loader.DiqubeLoader;
-import org.diqube.loader.JsonLoader;
-import org.diqube.loader.LoadException;
-import org.diqube.server.queryremote.flatten.ClusterFlattenServiceHandler;
-import org.diqube.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
@@ -68,11 +51,10 @@ import org.springframework.context.annotation.Profile;
  * files).
  * 
  * <p>
- * After the data of a control file has been loaded, a .ready file will be placed right next to it. The .ready file will
- * be removed when unloading the control file.
+ * This bean will only be auto instantiated, if {@link Profiles#NEW_DATA_WATCHER} is enabled.
  * 
  * <p>
- * This bean will only be auto instantiated, if {@link Profiles#NEW_DATA_WATCHER} is enabled.
+ * The implementation is somewhat tightly connected to {@link ControlFileManager}.
  *
  * @author Bastian Gloeckle
  */
@@ -82,39 +64,15 @@ public class NewDataWatcher implements ConsensusListener {
 
   private static final Logger logger = LoggerFactory.getLogger(NewDataWatcher.class);
 
-  public static final String CONTROL_FILE_EXTENSION = ".control";
-  public static final String READY_FILE_EXTENSION = ".ready";
-
   @Config(DerivedConfigKey.FINAL_DATA_DIR)
   private String directory;
 
   @Inject
-  private TableRegistry tableRegistry;
-
-  @Inject
-  private TableFactory tableFactory;
-
-  @Inject
-  private CsvLoader csvLoader;
-
-  @Inject
-  private DiqubeLoader diqubeLoader;
-
-  @Inject
-  private JsonLoader jsonLoader;
-
-  @Inject
-  private ClusterFlattenServiceHandler clusterFlattenServiceHandler;
+  private ControlFileManager controlFileManager;
 
   private NewDataWatchThread thread;
 
   private Path watchPath;
-
-  /**
-   * Map from controlFile path to a pair of table name and a list of values of {@link TableShard#getLowestRowId()} of
-   * the tableShards that were loaded from that file.
-   */
-  private Map<String, Pair<String, List<Long>>> tableInfoByControlFilePath = new HashMap<>();
 
   @Override
   public void consensusInitialized() {
@@ -126,9 +84,10 @@ public class NewDataWatcher implements ConsensusListener {
       throw new RuntimeException(watchPath + " is no valid directory.");
     }
 
-    // delete all initial ready files.
-    List<File> readyFiles = Arrays
-        .asList(watchPath.toFile().listFiles((dir, fileName) -> fileName.toLowerCase().endsWith(READY_FILE_EXTENSION)));
+    // delete all initial ready/failure files.
+    List<File> readyFiles = Arrays.asList(watchPath.toFile()
+        .listFiles((dir, fileName) -> fileName.toLowerCase().endsWith(ControlFileManager.READY_FILE_EXTENSION)
+            || fileName.toLowerCase().endsWith(ControlFileManager.FAILURE_FILE_EXTENSION)));
     for (File statusFile : readyFiles)
       statusFile.delete();
 
@@ -151,72 +110,14 @@ public class NewDataWatcher implements ConsensusListener {
     thread.interrupt();
   }
 
-  private void loadControlFile(File controlFile) {
-    if (tableInfoByControlFilePath.containsKey(controlFile.getAbsolutePath())) {
-      logger.info("Found control file {}, but that is loaded already. Skipping.", controlFile.getAbsolutePath());
-      return;
-    }
-
-    logger.info("Found new control file {}. Starting to load new table shard.", controlFile.getAbsolutePath());
-    try {
-      Pair<String, List<Long>> tableInfo = new ControlFileLoader(tableRegistry, tableFactory, csvLoader, jsonLoader,
-          diqubeLoader, clusterFlattenServiceHandler, controlFile).load();
-      tableInfoByControlFilePath.put(controlFile.getAbsolutePath(), tableInfo);
-      logger.info("Data for table '{}' (with starting rowIds {}) loaded successfully from {}'", tableInfo.getLeft(),
-          tableInfo.getRight(), controlFile.getAbsolutePath());
-
-      // write ready file
-      String content = LocalDateTime.now().toString();
-      try (FileOutputStream readyOS = new FileOutputStream(readyFile(controlFile))) {
-        readyOS.write(content.getBytes(Charset.forName("UTF-8")));
-      } catch (IOException e) {
-        logger.warn("Could not write ready file {}", readyFile(controlFile), e);
-      }
-    } catch (LoadException e) {
-      logger.error("Could not load new table shard from {}", controlFile.getAbsolutePath(), e);
-    }
+  private void deployControlFile(File controlFile) {
+    logger.info("Found new control file {}.", controlFile.getAbsolutePath());
+    controlFileManager.deployControlFile(controlFile);
   }
 
-  private void unloadControlFile(File controlFile) {
-    Pair<String, List<Long>> tableInfo = tableInfoByControlFilePath.get(controlFile.getAbsolutePath());
-    if (tableInfo == null) {
-      logger.warn("Identified deletion of control file {}, but could not resolve the table that data from that file "
-          + "was loaded to. Will not remove any in-memory data.", controlFile.getAbsolutePath());
-      return;
-    }
-
-    Table t = tableRegistry.getTable(tableInfo.getLeft());
-    if (t == null)
-      logger.warn("Could not delete anything as table {} is not loaded (anymore?).", tableInfo.getLeft());
-    else {
-      logger.info(
-          "Identified deletion of control file {}; will remove in-memory data from table {} for TableShards with starting rowIds {}.",
-          controlFile.getAbsolutePath(), tableInfo.getLeft(), tableInfo.getRight());
-      List<TableShard> shardsToDelete = t.getShards().stream()
-          .filter(s -> tableInfo.getRight().contains(s.getLowestRowId())).collect(Collectors.toList());
-      shardsToDelete.forEach(s -> ((AdjustableTable) t).removeTableShard(s));
-      if (t.getShards().isEmpty()) {
-        logger.info("Removed last table shard of table '{}', will stop serving this table completely.",
-            tableInfo.getLeft());
-        tableRegistry.removeTable(tableInfo.getLeft());
-      }
-      tableInfoByControlFilePath.remove(controlFile.getAbsolutePath());
-      System.gc();
-    }
-
-    File readyFile = readyFile(controlFile);
-    if (readyFile.exists())
-      if (!readyFile.delete())
-        logger.warn("Could not delete ready file {}", readyFile.getAbsolutePath());
-  }
-
-  /**
-   * @return The ready file for a given control file.
-   */
-  private File readyFile(File controlFile) {
-    return new File(controlFile.getParentFile(),
-        controlFile.getName().substring(0, controlFile.getName().length() - CONTROL_FILE_EXTENSION.length())
-            + READY_FILE_EXTENSION);
+  private void undeployControlFile(File controlFile) {
+    logger.info("Control file was deleted: {}", controlFile.getAbsolutePath());
+    controlFileManager.undeployControlFile(controlFile);
   }
 
   /**
@@ -247,13 +148,13 @@ public class NewDataWatcher implements ConsensusListener {
         if (watchService == null) {
           watchService = watchServiceSupplier.get();
 
-          File[] controlFiles =
-              watchPath.toFile().listFiles((dir, fileName) -> fileName.toLowerCase().endsWith(CONTROL_FILE_EXTENSION));
+          File[] controlFiles = watchPath.toFile()
+              .listFiles((dir, fileName) -> fileName.toLowerCase().endsWith(ControlFileManager.CONTROL_FILE_EXTENSION));
 
           // controlFiles is null if watchPath does not exist.
           if (controlFiles != null) {
             for (File controlFile : controlFiles)
-              loadControlFile(controlFile);
+              deployControlFile(controlFile);
           }
 
           if (watchService == null) {
@@ -283,11 +184,12 @@ public class NewDataWatcher implements ConsensusListener {
             Path createdPath = ((Path) watchKey.watchable()).resolve((Path) event.context());
             File createdFile = createdPath.toFile();
             if (event.kind().equals(StandardWatchEventKinds.ENTRY_CREATE)) {
-              if (createdFile.isFile() && createdFile.getName().toLowerCase().endsWith(CONTROL_FILE_EXTENSION))
-                loadControlFile(createdFile);
+              if (createdFile.isFile()
+                  && createdFile.getName().toLowerCase().endsWith(ControlFileManager.CONTROL_FILE_EXTENSION))
+                deployControlFile(createdFile);
             } else if (event.kind().equals(StandardWatchEventKinds.ENTRY_DELETE)) {
-              if (createdFile.getName().toLowerCase().endsWith(CONTROL_FILE_EXTENSION))
-                unloadControlFile(createdFile);
+              if (createdFile.getName().toLowerCase().endsWith(ControlFileManager.CONTROL_FILE_EXTENSION))
+                undeployControlFile(createdFile);
             }
           }
         }

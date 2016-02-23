@@ -28,7 +28,7 @@ import org.diqube.itest.annotations.NeedsServer;
 import org.diqube.itest.util.QueryResultServiceTestUtil;
 import org.diqube.itest.util.QueryResultServiceTestUtil.TestQueryResultService;
 import org.diqube.itest.util.Waiter;
-import org.diqube.server.NewDataWatcher;
+import org.diqube.server.ControlFileManager;
 import org.diqube.thrift.base.thrift.RUUID;
 import org.diqube.thrift.base.thrift.Ticket;
 import org.diqube.thrift.base.util.RUuidUtil;
@@ -47,10 +47,10 @@ public class DiqlExecutionIntegrationTest extends AbstractDiqubeIntegrationTest 
 
   private static final String AGE_TABLE = "age";
   private static final String AGE_JSON_FILE = "/" + DiqlExecutionIntegrationTest.class.getSimpleName() + "/age.json";
-  private static final String AGE_0_CONTROL_FILE =
-      "/" + DiqlExecutionIntegrationTest.class.getSimpleName() + "/age_rowId0" + NewDataWatcher.CONTROL_FILE_EXTENSION;
-  private static final String AGE_11_CONTROL_FILE =
-      "/" + DiqlExecutionIntegrationTest.class.getSimpleName() + "/age_rowId11" + NewDataWatcher.CONTROL_FILE_EXTENSION;
+  private static final String AGE_0_CONTROL_FILE = "/" + DiqlExecutionIntegrationTest.class.getSimpleName()
+      + "/age_rowId0" + ControlFileManager.CONTROL_FILE_EXTENSION;
+  private static final String AGE_11_CONTROL_FILE = "/" + DiqlExecutionIntegrationTest.class.getSimpleName()
+      + "/age_rowId11" + ControlFileManager.CONTROL_FILE_EXTENSION;
 
   @Test
   @NeedsServer(servers = 1)

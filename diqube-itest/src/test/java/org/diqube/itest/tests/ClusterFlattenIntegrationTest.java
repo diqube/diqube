@@ -36,7 +36,7 @@ import org.diqube.itest.util.ClusterFlattenServiceTestUtil.TestClusterFlattenSer
 import org.diqube.itest.util.TestDataGenerator;
 import org.diqube.itest.util.Waiter;
 import org.diqube.remote.cluster.thrift.ClusterFlattenService;
-import org.diqube.server.NewDataWatcher;
+import org.diqube.server.ControlFileManager;
 import org.diqube.thrift.base.util.RUuidUtil;
 import org.diqube.util.Pair;
 import org.slf4j.Logger;
@@ -56,9 +56,9 @@ public class ClusterFlattenIntegrationTest extends AbstractDiqubeIntegrationTest
 
   private static final String BIG_TABLE = "big";
   private static final String BIG0_CONTROL_FILE =
-      "/" + ClusterFlattenIntegrationTest.class.getSimpleName() + "/big0" + NewDataWatcher.CONTROL_FILE_EXTENSION;
+      "/" + ClusterFlattenIntegrationTest.class.getSimpleName() + "/big0" + ControlFileManager.CONTROL_FILE_EXTENSION;
   private static final String BIG10_CONTROL_FILE =
-      "/" + ClusterFlattenIntegrationTest.class.getSimpleName() + "/big10" + NewDataWatcher.CONTROL_FILE_EXTENSION;
+      "/" + ClusterFlattenIntegrationTest.class.getSimpleName() + "/big10" + ControlFileManager.CONTROL_FILE_EXTENSION;
   private static final String BIG_DATA_FILE_WORK = "big.json";
 
   /**

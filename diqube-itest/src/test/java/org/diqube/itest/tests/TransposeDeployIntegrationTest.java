@@ -34,7 +34,7 @@ import org.diqube.itest.control.ToolControl;
 import org.diqube.itest.util.QueryResultServiceTestUtil;
 import org.diqube.itest.util.QueryResultServiceTestUtil.TestQueryResultService;
 import org.diqube.itest.util.Waiter;
-import org.diqube.server.NewDataWatcher;
+import org.diqube.server.ControlFileManager;
 import org.diqube.thrift.base.thrift.RUUID;
 import org.diqube.thrift.base.thrift.RValue;
 import org.diqube.thrift.base.thrift.Ticket;
@@ -58,10 +58,10 @@ public class TransposeDeployIntegrationTest extends AbstractDiqubeIntegrationTes
   private static final String LOREM_DIQUBE_TABLE = "loremDiqube";
   private static final String LOREM_JSON_FILE =
       "/" + TransposeDeployIntegrationTest.class.getSimpleName() + "/lorem.json";
-  private static final String LOREM_JSON_CONTROL_FILE =
-      "/" + TransposeDeployIntegrationTest.class.getSimpleName() + "/loremJson" + NewDataWatcher.CONTROL_FILE_EXTENSION;
+  private static final String LOREM_JSON_CONTROL_FILE = "/" + TransposeDeployIntegrationTest.class.getSimpleName()
+      + "/loremJson" + ControlFileManager.CONTROL_FILE_EXTENSION;
   private static final String LOREM_DIQUBE_CONTROL_FILE = "/" + TransposeDeployIntegrationTest.class.getSimpleName()
-      + "/loremDiqube" + NewDataWatcher.CONTROL_FILE_EXTENSION;
+      + "/loremDiqube" + ControlFileManager.CONTROL_FILE_EXTENSION;
   private static final String LOREM_DIQUBE_FILE = "lorem.diqube";
 
   private static final String DOUBLEVAL_JSON_TABLE = "doubleValJson";
@@ -69,18 +69,18 @@ public class TransposeDeployIntegrationTest extends AbstractDiqubeIntegrationTes
   private static final String DOUBLEVAL_JSON_FILE =
       "/" + TransposeDeployIntegrationTest.class.getSimpleName() + "/doubleVal.json";
   private static final String DOUBLEVAL_JSON_CONTROL_FILE = "/" + TransposeDeployIntegrationTest.class.getSimpleName()
-      + "/doubleValJson" + NewDataWatcher.CONTROL_FILE_EXTENSION;
+      + "/doubleValJson" + ControlFileManager.CONTROL_FILE_EXTENSION;
   private static final String DOUBLEVAL_DIQUBE_CONTROL_FILE = "/" + TransposeDeployIntegrationTest.class.getSimpleName()
-      + "/doubleValDiqube" + NewDataWatcher.CONTROL_FILE_EXTENSION;
+      + "/doubleValDiqube" + ControlFileManager.CONTROL_FILE_EXTENSION;
   private static final String DOUBLEVAL_DIQUBE_FILE = "doubleVal.diqube";
 
   private static final String AGE_JSON_TABLE = "ageJson";
   private static final String AGE_DIQUBE_TABLE = "ageDiqube";
   private static final String AGE_JSON_FILE = "/" + TransposeDeployIntegrationTest.class.getSimpleName() + "/age.json";
-  private static final String AGE_JSON_CONTROL_FILE =
-      "/" + TransposeDeployIntegrationTest.class.getSimpleName() + "/ageJson" + NewDataWatcher.CONTROL_FILE_EXTENSION;
-  private static final String AGE_DIQUBE_CONTROL_FILE =
-      "/" + TransposeDeployIntegrationTest.class.getSimpleName() + "/ageDiqube" + NewDataWatcher.CONTROL_FILE_EXTENSION;
+  private static final String AGE_JSON_CONTROL_FILE = "/" + TransposeDeployIntegrationTest.class.getSimpleName()
+      + "/ageJson" + ControlFileManager.CONTROL_FILE_EXTENSION;
+  private static final String AGE_DIQUBE_CONTROL_FILE = "/" + TransposeDeployIntegrationTest.class.getSimpleName()
+      + "/ageDiqube" + ControlFileManager.CONTROL_FILE_EXTENSION;
   private static final String AGE_DIQUBE_FILE = "age.diqube";
 
   @Test

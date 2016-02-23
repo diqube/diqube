@@ -18,7 +18,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.server;
+package org.diqube.server.control;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -33,6 +33,7 @@ import java.util.stream.Collectors;
 
 import org.apache.thrift.TException;
 import org.diqube.data.column.ColumnType;
+import org.diqube.data.metadata.TableMetadata;
 import org.diqube.data.table.AdjustableTable;
 import org.diqube.data.table.AdjustableTable.TableShardsOverlappingException;
 import org.diqube.data.table.Table;
@@ -45,6 +46,8 @@ import org.diqube.loader.JsonLoader;
 import org.diqube.loader.LoadException;
 import org.diqube.loader.Loader;
 import org.diqube.loader.LoaderColumnInfo;
+import org.diqube.server.metadata.ServerTableMetadataPublisher;
+import org.diqube.server.metadata.ServerTableMetadataPublisher.MergeImpossibleException;
 import org.diqube.server.queryremote.flatten.ClusterFlattenServiceHandler;
 import org.diqube.thrift.base.util.RUuidUtil;
 import org.diqube.util.Pair;
@@ -78,18 +81,20 @@ public class ControlFileLoader {
   private JsonLoader jsonLoader;
   private DiqubeLoader diqubeLoader;
   private ClusterFlattenServiceHandler clusterFlattenServiceHandler;
+  private ServerTableMetadataPublisher metadataPublisher;
 
   private Object tableRegistrySync = new Object();
 
   public ControlFileLoader(TableRegistry tableRegistry, TableFactory tableFactory, CsvLoader csvLoader,
       JsonLoader jsonLoader, DiqubeLoader diqubeLoader, ClusterFlattenServiceHandler clusterFlattenServiceHandler,
-      File controlFile) {
+      ServerTableMetadataPublisher metadataPublisher, File controlFile) {
     this.tableRegistry = tableRegistry;
     this.tableFactory = tableFactory;
     this.csvLoader = csvLoader;
     this.jsonLoader = jsonLoader;
     this.diqubeLoader = diqubeLoader;
     this.clusterFlattenServiceHandler = clusterFlattenServiceHandler;
+    this.metadataPublisher = metadataPublisher;
     this.controlFile = controlFile;
   }
 
@@ -108,6 +113,16 @@ public class ControlFileLoader {
    * This method will automatically retry loading the .control file if it fails - this is needed if the control file has
    * not been written completely yet. If the validation/loading of the control file still fails after a few attempts, a
    * {@link LoadException} will be thrown.
+   * 
+   * <p>
+   * This method takes care of starting a flattening on the table if "autoFlatten" is available in control file.
+   * 
+   * <p>
+   * This method takes care of calculating {@link TableMetadata} for the resulting table and publish this information in
+   * the cluster.
+   *
+   * <p>
+   * Note that .ready files will not be created.
    * 
    * @return The name of the table under which it was registered at {@link TableRegistry} and a List containing the
    *         values of {@link TableShard#getLowestRowId()} of the table shard(s) that were loaded.
@@ -221,15 +236,27 @@ public class ControlFileLoader {
         if (!(table instanceof AdjustableTable))
           throw new LoadException("The target table '" + tableName + "' cannot be adjusted.");
 
+        List<TableShard> allShards = new ArrayList<>(table.getShards());
+        allShards.addAll(newTableShards);
+
+        distributeNewMetadata(tableName, allShards);
+
         try {
           for (TableShard newTableShard : newTableShards)
             ((AdjustableTable) table).addTableShard(newTableShard);
         } catch (TableShardsOverlappingException e) {
+
+          // remove all those shards that might've been added already.
+          for (TableShard newTableShard : newTableShards)
+            ((AdjustableTable) table).removeTableShard(newTableShard);
+
           throw new LoadException("Cannot load TableShard as it overlaps with an already loaded one", e);
         }
       } else {
         Collection<TableShard> newTableShardCollection = newTableShards;
         table = tableFactory.createDefaultTable(tableName, newTableShardCollection);
+
+        distributeNewMetadata(tableName, newTableShardCollection);
 
         tableRegistry.addTable(tableName, table);
       }
@@ -245,7 +272,7 @@ public class ControlFileLoader {
           flattenId);
       try {
         // these calls start the flattening asynchronously, therefore we just trigger computation here. If there is a
-        // flattened version avauilable in the flattenedDiskCache already, that will be used.
+        // flattened version available in the flattenedDiskCache already, that will be used.
         clusterFlattenServiceHandler.flattenAllLocalShards(RUuidUtil.toRUuid(flattenId), tableName, autoFlattenField,
             new ArrayList<>(), null);
         logger.info("Finished flattening new table '{}' by '{}' locally with flatten ID {}.", tableName,
@@ -259,6 +286,18 @@ public class ControlFileLoader {
     List<Long> firstRowIds =
         newTableShards.stream().map(shard -> shard.getLowestRowId()).sorted().collect(Collectors.toList());
     return new Pair<>(tableName, firstRowIds);
+  }
 
+  /**
+   * Creates new {@link TableMetadata} for the given table with the given shards (all shards of table, with the new
+   * ones) and distributes it across the cluster. Throws {@link LoadException} if metadata is incompatible in any way
+   * and no new shards should be loaded at all now.
+   */
+  private void distributeNewMetadata(String tableName, Collection<TableShard> allShards) throws LoadException {
+    try {
+      metadataPublisher.publishMetadataOfTableShards(tableName, allShards);
+    } catch (MergeImpossibleException e) {
+      throw new LoadException("Cannot load table '" + tableName + "' since its metadata is incompatible", e);
+    }
   }
 }

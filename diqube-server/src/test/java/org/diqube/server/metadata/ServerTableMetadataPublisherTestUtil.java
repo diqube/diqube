@@ -18,21 +18,23 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.data.column;
+package org.diqube.server.metadata;
 
-import org.diqube.data.dictionary.Dictionary;
-import org.diqube.data.metadata.FieldMetadata.FieldType;
+import org.diqube.executionenv.TableRegistry;
+import org.diqube.metadata.TableMetadataManager;
+import org.diqube.metadata.TableShardMetadataBuilderFactory;
 
 /**
- * Type of a column.
- * 
- * <p>
- * This enum basically identifies which subclass of {@link ColumnShard}/which type of {@link Dictionary} is used for a
- * column.
  *
- * @see FieldType
  * @author Bastian Gloeckle
  */
-public enum ColumnType {
-  STRING, DOUBLE, LONG
+public class ServerTableMetadataPublisherTestUtil {
+  public static ServerTableMetadataPublisher create(TableRegistry tableRegistry,
+      TableShardMetadataBuilderFactory tableShardMetadataBuilderFactory, TableMetadataManager tableMetadataManager) {
+    ServerTableMetadataPublisher res = new ServerTableMetadataPublisher();
+    res.setTableRegistry(tableRegistry);
+    res.setTableShardMetadataBuilderFactory(tableShardMetadataBuilderFactory);
+    res.setTableMetadataManager(tableMetadataManager);
+    return res;
+  }
 }
