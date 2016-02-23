@@ -48,11 +48,11 @@ import org.diqube.connection.ConnectionException;
 import org.diqube.connection.ConnectionPool;
 import org.diqube.connection.NodeAddress;
 import org.diqube.connection.OurNodeAddressProvider;
-import org.diqube.consensus.ConsensusClusterNodeAddressProvider;
-import org.diqube.consensus.ConsensusStateMachineClientInterruptedException;
 import org.diqube.consensus.ConsensusClient;
 import org.diqube.consensus.ConsensusClient.ClosableProvider;
-import org.diqube.consensus.ConsensusServer;
+import org.diqube.consensus.ConsensusClusterNodeAddressProvider;
+import org.diqube.consensus.ConsensusIsLeaderProvider;
+import org.diqube.consensus.ConsensusStateMachineClientInterruptedException;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.context.InjectOptional;
 import org.diqube.listeners.ClusterManagerListener;
@@ -116,7 +116,7 @@ public class ClusterManager
   private ConsensusClient consensusClient;
 
   @Inject
-  private ConsensusServer consensusServer;
+  private ConsensusIsLeaderProvider consensusIsLeaderProvider;
 
   @Inject
   private LoadedTablesProvider loadedTablesProvider;
@@ -336,7 +336,7 @@ public class ClusterManager
     // consensus master periodically sends keepAlives to all nodes. We ensure here that we get current information about
     // that new node.
 
-    if (!consensusServer.isLeader())
+    if (!consensusIsLeaderProvider.isLeader())
       // Only let the consensus leader find new alive nodes. This is to reduce the number of times a new node is asked
       // to "publishLoadedTables" and also to limit the number of times "clusterLayout.isNodeKnown" is called: This is
       // pretty slow on non-leader nodes, but we will receive a lot of "nodeAlive" calls.

@@ -47,12 +47,14 @@ import org.diqube.consensus.internal.DiqubeCatalystServer;
 import org.diqube.consensus.internal.DiqubeCatalystTransport;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.context.InjectOptional;
+import org.diqube.context.Profiles;
 import org.diqube.listeners.ClusterManagerListener;
 import org.diqube.listeners.ConsensusListener;
 import org.diqube.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.Profile;
 
 import io.atomix.catalyst.transport.Address;
 import io.atomix.copycat.Operation;
@@ -77,7 +79,8 @@ import io.atomix.copycat.server.storage.StorageLevel;
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
-public class ConsensusServer implements ClusterManagerListener {
+@Profile(Profiles.CONSENSUS)
+public class ConsensusServer implements ClusterManagerListener, ConsensusIsLeaderProvider {
   private static final Logger logger = LoggerFactory.getLogger(ConsensusServer.class);
 
   @Inject
@@ -209,9 +212,7 @@ public class ConsensusServer implements ClusterManagerListener {
     }
   }
 
-  /**
-   * @return true if this node is the leader of the consensus cluster.
-   */
+  @Override
   public boolean isLeader() {
     return copycatServer != null && copycatServer.state().equals(State.LEADER);
   }

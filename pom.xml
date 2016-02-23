@@ -66,6 +66,7 @@
     <module>diqube-connection</module>
     <module>diqube-ticket</module>
     <module>diqube-consensus</module>
+    <module>diqube-consensus-test</module>
     <module>diqube-im</module>
     <module>diqube-permission</module>
     <module>diqube-cluster</module>

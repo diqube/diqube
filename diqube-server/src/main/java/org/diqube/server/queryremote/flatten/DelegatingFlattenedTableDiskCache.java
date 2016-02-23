@@ -29,6 +29,7 @@ import javax.inject.Inject;
 import org.diqube.config.Config;
 import org.diqube.config.DerivedConfigKey;
 import org.diqube.context.AutoInstatiate;
+import org.diqube.context.Profiles;
 import org.diqube.data.flatten.FlattenDataFactory;
 import org.diqube.data.flatten.FlattenedTable;
 import org.diqube.file.DiqubeFileFactory;
@@ -37,6 +38,7 @@ import org.diqube.listeners.TableLoadListener;
 import org.diqube.threads.ExecutorManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Profile;
 
 /**
  * A {@link FlattenedTableDiskCache} that delegates to different implementations of {@link FlattenedTableDiskCache}
@@ -45,6 +47,7 @@ import org.slf4j.LoggerFactory;
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
+@Profile(Profiles.FLATTEN_DISK_CACHE)
 public class DelegatingFlattenedTableDiskCache implements FlattenedTableDiskCache, TableLoadListener {
   private static final Logger logger = LoggerFactory.getLogger(DelegatingFlattenedTableDiskCache.class);
 

@@ -46,14 +46,19 @@ public class Profiles {
   public static final String TOOL = "Tool";
 
   /**
-   * All profiles, but not including {@link #NEW_DATA_WATCHER}.
+   * Profile to instantiate Consensus - in unit tests this is not wanted.
    */
-  public static final String[] ALL_BUT_NEW_DATA_WATCHER = new String[] { CONFIG };
+  public static final String CONSENSUS = "Consensus";
+
+  /**
+   * Profile to instantiate normal flatten disk cache
+   */
+  public static final String FLATTEN_DISK_CACHE = "FlattenDiskCache";
 
   /**
    * All default profiles.
    */
-  public static final String[] ALL = new String[] { NEW_DATA_WATCHER, CONFIG };
+  public static final String[] ALL = new String[] { NEW_DATA_WATCHER, CONFIG, CONSENSUS, FLATTEN_DISK_CACHE };
 
   /**
    * Profile which will instantiate a noop implementation of FlattenedTableDiskCache. Not included in any of the other
@@ -62,14 +67,12 @@ public class Profiles {
   public static final String TEST_NOOP_FLATTENED_DISK_CACHE = "TestNoopFlattenedDiskCache";
 
   /**
-   * All profiles, but not including {@link #NEW_DATA_WATCHER}.
+   * Profile which will instantiate a test ConsensusClient that will relay the calls simply to the local beans.
    */
-  public static final String[] TEST_ALL_BUT_NEW_DATA_WATCHER;
+  public static final String TEST_CONSENSUS = "TestConsensus";
 
-  static {
-    TEST_ALL_BUT_NEW_DATA_WATCHER = new String[ALL_BUT_NEW_DATA_WATCHER.length + 1];
-    for (int i = 0; i < ALL_BUT_NEW_DATA_WATCHER.length; i++)
-      TEST_ALL_BUT_NEW_DATA_WATCHER[i] = ALL_BUT_NEW_DATA_WATCHER[i];
-    TEST_ALL_BUT_NEW_DATA_WATCHER[TEST_ALL_BUT_NEW_DATA_WATCHER.length - 1] = TEST_NOOP_FLATTENED_DISK_CACHE;
-  }
+  /**
+   * All profiles that should be launched when executing unit tests
+   */
+  public static final String[] UNIT_TEST = new String[] { CONFIG, TEST_NOOP_FLATTENED_DISK_CACHE, TEST_CONSENSUS };
 }

@@ -35,9 +35,9 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 
-import org.diqube.consensus.ConsensusStateMachineClientInterruptedException;
 import org.diqube.consensus.ConsensusClient;
 import org.diqube.consensus.ConsensusClient.ClosableProvider;
+import org.diqube.consensus.ConsensusStateMachineClientInterruptedException;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.im.callback.IdentityCallbackRegistryStateMachine.Unregister;
 import org.diqube.im.callback.IdentityCallbackRegistryStateMachineImplementation.IdentityCallbackRegistryListener;

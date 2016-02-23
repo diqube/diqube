@@ -32,9 +32,9 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 
-import org.diqube.consensus.ConsensusStateMachineClientInterruptedException;
 import org.diqube.consensus.ConsensusClient;
 import org.diqube.consensus.ConsensusClient.ClosableProvider;
+import org.diqube.consensus.ConsensusStateMachineClientInterruptedException;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.im.logout.LogoutStateMachine.CleanLogoutTicket;
 import org.diqube.im.logout.LogoutStateMachineImplementation.LogoutStateMachineListener;
