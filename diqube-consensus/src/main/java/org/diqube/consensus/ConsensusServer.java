@@ -83,6 +83,8 @@ import io.atomix.copycat.server.storage.StorageLevel;
 public class ConsensusServer implements ClusterManagerListener, ConsensusIsLeaderProvider {
   private static final Logger logger = LoggerFactory.getLogger(ConsensusServer.class);
 
+  private static final String COPYCAT_SERVER_NAME = "copycat";
+
   @Inject
   private OurNodeAddressProvider ourNodeAddressProvider;
 
@@ -136,7 +138,10 @@ public class ConsensusServer implements ClusterManagerListener, ConsensusIsLeade
     Address ourAddr = toCopycatAddress(ourNodeAddressProvider.getOurNodeAddress());
     List<Address> members = consensusClusterNodeAddressProvider.getClusterNodeAddressesForConsensus().stream()
         .map(addr -> toCopycatAddress(addr)).collect(Collectors.toList());
-    members.add(ourAddr); // we will participate as member.
+
+    if (members.isEmpty())
+      // if there's no member we could connect to, use a single node cluster with only ourselves.
+      members.add(ourAddr);
 
     File consensusDataDirFile = new File(consensusDataDir);
 
@@ -151,6 +156,7 @@ public class ConsensusServer implements ClusterManagerListener, ConsensusIsLeade
     Storage storage = consensusStorageProvider.createStorage();
 
     copycatServer = CopycatServer.builder(ourAddr, members). //
+        withName(COPYCAT_SERVER_NAME). //
         withTransport(transport). //
         withStorage(storage). //
         withSerializer(serializer). //
@@ -258,6 +264,7 @@ public class ConsensusServer implements ClusterManagerListener, ConsensusIsLeade
           }));
         } else {
           executor.register((Class) operationClass, ((Function) new Function<Object, Object>() {
+
             @Override
             public Object apply(Object t) {
               try {
@@ -295,6 +302,7 @@ public class ConsensusServer implements ClusterManagerListener, ConsensusIsLeade
     public Storage createStorage() {
       return Storage.builder().withStorageLevel(StorageLevel.DISK).withDirectory(consensusDataDirFile).build();
     }
+
   }
 
   // for tests
