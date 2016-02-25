@@ -40,6 +40,7 @@ import org.diqube.execution.consumers.AbstractThreadedOverwritingRowIdConsumer;
 import org.diqube.execution.consumers.ColumnValueConsumer;
 import org.diqube.executionenv.ExecutionEnvironment;
 import org.diqube.executionenv.TableRegistry;
+import org.diqube.executionenv.TableRegistry.TableLoadImpossibleException;
 import org.diqube.loader.JsonLoader;
 import org.diqube.loader.LoadException;
 import org.diqube.loader.LoaderColumnInfo;
@@ -281,7 +282,11 @@ public abstract class AbstractDiqlExecutionTest<T> {
 
     TableRegistry tableRegistry = dataContext.getBean(TableRegistry.class);
     TableFactory tableFactory = dataContext.getBean(TableFactory.class);
-    tableRegistry.addTable(TABLE, tableFactory.createDefaultTable(TABLE, Arrays.asList(tableShard)));
+    try {
+      tableRegistry.addTable(TABLE, tableFactory.createDefaultTable(TABLE, Arrays.asList(tableShard)));
+    } catch (TableLoadImpossibleException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   /**
@@ -315,7 +320,11 @@ public abstract class AbstractDiqlExecutionTest<T> {
       firstRowId += colAValues.length;
     }
 
-    tableRegistry.addTable(TABLE, tableFactory.createDefaultTable(TABLE, tableShards));
+    try {
+      tableRegistry.addTable(TABLE, tableFactory.createDefaultTable(TABLE, tableShards));
+    } catch (TableLoadImpossibleException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   /* package */ AnnotationConfigApplicationContext getDataContext() {

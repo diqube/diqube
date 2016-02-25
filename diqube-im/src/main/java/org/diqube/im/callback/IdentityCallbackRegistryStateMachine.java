@@ -57,7 +57,7 @@ public interface IdentityCallbackRegistryStateMachine {
   /**
    * Get all currently registered callbacks.
    */
-  @ConsensusMethod(dataClass = GetAllRegistered.class)
+  @ConsensusMethod(dataClass = GetAllRegistered.class, additionalSerializationClasses = RNodeAddress.class)
   public List<RNodeAddress> getAllRegistered(Commit<GetAllRegistered> commit);
 
   public static class Register implements Command<Void> {

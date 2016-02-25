@@ -31,6 +31,7 @@ import org.diqube.context.InjectOptional;
 import org.diqube.data.flatten.FlattenedTable;
 import org.diqube.data.table.Table;
 import org.diqube.listeners.TableLoadListener;
+import org.diqube.listeners.TableLoadListener.AbortTableLoadException;
 import org.diqube.listeners.providers.LoadedTablesProvider;
 
 /**
@@ -53,13 +54,23 @@ public class TableRegistry implements LoadedTablesProvider {
     return tables.get(name);
   }
 
-  public synchronized void addTable(String name, Table table) throws IllegalStateException {
+  public synchronized void addTable(String name, Table table)
+      throws IllegalStateException, TableLoadImpossibleException {
     if (tables.containsKey(name))
       throw new IllegalStateException("Table '" + name + "' exists already.");
     tables.put(name, table);
 
-    if (tableLoadListeners != null)
-      tableLoadListeners.forEach(l -> l.tableLoaded(name));
+    if (tableLoadListeners != null) {
+      for (int i = 0; i < tableLoadListeners.size(); i++) {
+        try {
+          tableLoadListeners.get(i).tableLoaded(name);
+        } catch (AbortTableLoadException e) {
+          while (i-- > 0)
+            tableLoadListeners.get(i).tableUnloaded(name);
+          throw new TableLoadImpossibleException("Cannot load table " + table, e);
+        }
+      }
+    }
   }
 
   public synchronized void removeTable(String name) {
@@ -75,5 +86,20 @@ public class TableRegistry implements LoadedTablesProvider {
   @Override
   public Collection<String> getNamesOfLoadedTables() {
     return new ArrayList<>(tables.keySet());
+  }
+
+  /**
+   * Table cannot be loaded.
+   */
+  public static class TableLoadImpossibleException extends Exception {
+    private static final long serialVersionUID = 1L;
+
+    public TableLoadImpossibleException(String msg) {
+      super(msg);
+    }
+
+    public TableLoadImpossibleException(String msg, Throwable cause) {
+      super(msg, cause);
+    }
   }
 }

@@ -18,17 +18,20 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.listeners;
+package org.diqube.context.shutdown;
 
 /**
  * Listener to handle graceful shutdown actions.
  *
  * @author Bastian Gloeckle
  */
-public interface DiqubeGracefulShutdownListener {
+public interface ContextShutdownListener {
   /**
    * Called just before the shutdown process starts. All beans in the bean context are still alive. This can be used to
    * gracefully say goodbye.
+   * 
+   * <p>
+   * Note that this method can have {@link ShutdownBefore} and {@link ShutdownAfter} annotations.
    */
-  public void serverAboutToShutdown();
+  public void contextAboutToShutdown();
 }

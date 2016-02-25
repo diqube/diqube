@@ -65,6 +65,6 @@ public class Server {
     ctx.refresh();
 
     ServerImplementation serverImpl = ctx.getBean(ServerImplementation.class);
-    serverImpl.serve(() -> ctx.close());
+    serverImpl.serve();
   }
 }

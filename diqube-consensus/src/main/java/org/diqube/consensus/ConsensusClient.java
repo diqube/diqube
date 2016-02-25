@@ -20,6 +20,7 @@
  */
 package org.diqube.consensus;
 
+import org.diqube.context.shutdown.ContextShutdownListener;
 import org.diqube.util.CloseableNoException;
 
 import io.atomix.copycat.Command;
@@ -31,7 +32,7 @@ import io.atomix.copycat.Query;
  *
  * @author Bastian Gloeckle
  */
-public interface ConsensusClient {
+public interface ConsensusClient extends ContextShutdownListener {
 
   /**
    * Creates and returns an object implementing the given stateMachineInterface which will, when methods are called,
@@ -56,15 +57,31 @@ public interface ConsensusClient {
    * 
    * @param stateMachineInterface
    *          Interface which has the {@link ConsensusStateMachine} annotation.
-   * @throws IllegalStateException
+   * @throws ConsensusClusterUnavailableException
    *           In case the consensus cluster seems to be not available currently.
    */
-  public <T> ClosableProvider<T> getStateMachineClient(Class<T> stateMachineInterface) throws IllegalStateException;
+  public <T> ClosableProvider<T> getStateMachineClient(Class<T> stateMachineInterface)
+      throws ConsensusClusterUnavailableException;
 
   /**
    * Provides a client to a consensus client. Needs to be {@link #close()}d correctly!
    */
   public static interface ClosableProvider<T> extends CloseableNoException {
     public T getClient();
+  }
+
+  /**
+   * The consensus cluster is not available currently.
+   */
+  public static class ConsensusClusterUnavailableException extends Exception {
+    private static final long serialVersionUID = 1L;
+
+    public ConsensusClusterUnavailableException(String msg) {
+      super(msg);
+    }
+
+    public ConsensusClusterUnavailableException(String msg, Throwable cause) {
+      super(msg, cause);
+    }
   }
 }

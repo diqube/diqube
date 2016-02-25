@@ -41,6 +41,7 @@ import org.diqube.connection.ServiceProvider;
 import org.diqube.consensus.AbstractConsensusStateMachine;
 import org.diqube.consensus.ConsensusClient;
 import org.diqube.consensus.ConsensusClient.ClosableProvider;
+import org.diqube.consensus.ConsensusClient.ConsensusClusterUnavailableException;
 import org.diqube.consensus.ConsensusStateMachineClientInterruptedException;
 import org.diqube.consensus.ConsensusStateMachineImplementation;
 import org.diqube.context.InjectOptional;
@@ -140,6 +141,8 @@ public class LogoutStateMachineImplementation extends AbstractConsensusStateMach
         List<RNodeAddress> addrs = p.getClient().getAllRegistered(GetAllRegistered.local());
 
         addrs.forEach(a -> callbackAddresses.add(a));
+      } catch (ConsensusClusterUnavailableException e) {
+        logger.warn("Could not get adresses of logout callbacks from consensus cluster. Will not inform any.", e);
       } catch (ConsensusStateMachineClientInterruptedException e) {
         // quietly exit
         return;

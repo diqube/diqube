@@ -33,7 +33,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Supplier;
 
-import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 
 import org.diqube.consensus.internal.DiqubeCatalystSerializer;
@@ -89,12 +88,14 @@ public class DefaultConsensusClient implements ConsensusListener, ConsensusClien
   private CopycatClientProvider copycatClientProvider = new CopycatClientProvider(() -> CopycatClient
       .builder(consensusServer.getClusterMembers()).withTransport(transport).withSerializer(serializer) //
       .withConnectionStrategy(ConnectionStrategies.EXPONENTIAL_BACKOFF) //
-      .withServerSelectionStrategy(ServerSelectionStrategies.ANY) //
-      .withRetryStrategy(RetryStrategies.RETRY) //
-      .withRecoveryStrategy(RecoveryStrategies.RECOVER).build());
+      .withServerSelectionStrategy(ServerSelectionStrategies.LEADER) //
+      .withRetryStrategy(RetryStrategies.RETRY) // we will retry
+      .withRecoveryStrategy(RecoveryStrategies.RECOVER) // recover from expired sessions
+      .build());
 
   @Override
-  public <T> ClosableProvider<T> getStateMachineClient(Class<T> stateMachineInterface) throws IllegalStateException {
+  public <T> ClosableProvider<T> getStateMachineClient(Class<T> stateMachineInterface)
+      throws ConsensusClusterUnavailableException {
     // only execute this after consensus server was initialized fully!
     waitUntilConsensusServerIsInitialized();
 
@@ -173,7 +174,7 @@ public class DefaultConsensusClient implements ConsensusListener, ConsensusClien
 
     if (!consensusServer.clusterSeemsFunctional()) {
       logger.error("Consensus cluster seems to not be available. Is there an ongoing network partition?");
-      throw new IllegalStateException(
+      throw new ConsensusClusterUnavailableException(
           "Consensus cluster seems to not be available. Is there an ongoing network partition?");
     }
 
@@ -221,8 +222,8 @@ public class DefaultConsensusClient implements ConsensusListener, ConsensusClien
     }
   }
 
-  @PreDestroy
-  public void cleanup() {
+  @Override
+  public void contextAboutToShutdown() {
     copycatClientProvider.shutdown();
   }
 
@@ -360,6 +361,7 @@ public class DefaultConsensusClient implements ConsensusListener, ConsensusClien
         logger.trace("Cleaning up consensus client...");
         currentClient.close().join();
         currentClient = null;
+        logger.trace("Consensus client cleaned up...");
       } finally {
         lock.writeLock().unlock();
       }

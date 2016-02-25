@@ -31,6 +31,7 @@ import org.diqube.cluster.ClusterLayoutStateMachine.SetTablesOfNode;
 import org.diqube.connection.OurNodeAddressProvider;
 import org.diqube.consensus.ConsensusClient;
 import org.diqube.consensus.ConsensusClient.ClosableProvider;
+import org.diqube.consensus.ConsensusClient.ConsensusClusterUnavailableException;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.listeners.providers.LoadedTablesProvider;
 import org.diqube.remote.cluster.thrift.ClusterManagementService;
@@ -67,7 +68,8 @@ public class ClusterManagementServiceHandler implements ClusterManagementService
 
       p.getClient().setTablesOfNode(SetTablesOfNode.local(ourNodeAddressProvider.getOurNodeAddress(),
           loadedTablesProvider.getNamesOfLoadedTables()));
-
+    } catch (ConsensusClusterUnavailableException e) {
+      throw new RuntimeException("Consensus cluster unavailable", e);
     }
   }
 

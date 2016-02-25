@@ -39,6 +39,7 @@ import org.diqube.data.table.Table;
 import org.diqube.data.table.TableFactory;
 import org.diqube.data.table.TableShard;
 import org.diqube.executionenv.TableRegistry;
+import org.diqube.executionenv.TableRegistry.TableLoadImpossibleException;
 import org.diqube.loader.CsvLoader;
 import org.diqube.loader.DiqubeLoader;
 import org.diqube.loader.JsonLoader;
@@ -231,7 +232,11 @@ public class ControlFileLoader {
         Collection<TableShard> newTableShardCollection = newTableShards;
         table = tableFactory.createDefaultTable(tableName, newTableShardCollection);
 
-        tableRegistry.addTable(tableName, table);
+        try {
+          tableRegistry.addTable(tableName, table);
+        } catch (TableLoadImpossibleException e) {
+          throw new LoadException("Cannot load table " + table, e);
+        }
       }
     }
 

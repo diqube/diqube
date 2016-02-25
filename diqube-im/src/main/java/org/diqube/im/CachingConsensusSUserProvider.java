@@ -28,9 +28,12 @@ import org.diqube.config.Config;
 import org.diqube.config.ConfigKey;
 import org.diqube.consensus.ConsensusClient;
 import org.diqube.consensus.ConsensusClient.ClosableProvider;
+import org.diqube.consensus.ConsensusClient.ConsensusClusterUnavailableException;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.im.IdentityStateMachine.GetUser;
 import org.diqube.im.thrift.v1.SUser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A {@link SUserProvider} that caches {@link SUser} objects for a configured amount of time, so we do not need to query
@@ -40,6 +43,7 @@ import org.diqube.im.thrift.v1.SUser;
  */
 @AutoInstatiate
 public class CachingConsensusSUserProvider implements SUserProvider, IdentityStateMachine.UserChangedListener {
+  private static final Logger logger = LoggerFactory.getLogger(CachingConsensusSUserProvider.class);
 
   private static final Long K2 = 0L;
   private static final SUser NO_USER = new SUser();
@@ -70,6 +74,9 @@ public class CachingConsensusSUserProvider implements SUserProvider, IdentitySta
     SUser newUser;
     try (ClosableProvider<IdentityStateMachine> p = consensusClient.getStateMachineClient(IdentityStateMachine.class)) {
       newUser = p.getClient().getUser(GetUser.local(username));
+    } catch (ConsensusClusterUnavailableException e) {
+      logger.warn("Could not access consensus cluster and cannot load user info therefore!", e);
+      return null;
     }
 
     userCache.offer(username, K2, (newUser != null) ? newUser : NO_USER);

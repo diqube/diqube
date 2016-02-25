@@ -99,7 +99,7 @@ public class DelegatingFlattenedTableDiskCache implements FlattenedTableDiskCach
   }
 
   @Override
-  public void tableLoaded(String tableName) {
+  public void tableLoaded(String tableName) throws AbortTableLoadException {
     if (delegate instanceof TableLoadListener)
       ((TableLoadListener) delegate).tableLoaded(tableName);
   }

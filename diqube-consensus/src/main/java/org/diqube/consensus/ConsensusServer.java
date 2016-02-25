@@ -33,7 +33,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 
 import org.diqube.config.Config;
@@ -48,6 +47,8 @@ import org.diqube.consensus.internal.DiqubeCatalystTransport;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.context.InjectOptional;
 import org.diqube.context.Profiles;
+import org.diqube.context.shutdown.ContextShutdownListener;
+import org.diqube.context.shutdown.ShutdownAfter;
 import org.diqube.listeners.ClusterManagerListener;
 import org.diqube.listeners.ConsensusListener;
 import org.diqube.util.Pair;
@@ -63,6 +64,7 @@ import io.atomix.copycat.server.CopycatServer;
 import io.atomix.copycat.server.CopycatServer.State;
 import io.atomix.copycat.server.StateMachine;
 import io.atomix.copycat.server.StateMachineExecutor;
+import io.atomix.copycat.server.cluster.Member;
 import io.atomix.copycat.server.storage.Storage;
 import io.atomix.copycat.server.storage.StorageLevel;
 
@@ -80,7 +82,7 @@ import io.atomix.copycat.server.storage.StorageLevel;
  */
 @AutoInstatiate
 @Profile(Profiles.CONSENSUS)
-public class ConsensusServer implements ClusterManagerListener, ConsensusIsLeaderProvider {
+public class ConsensusServer implements ClusterManagerListener, ConsensusIsLeaderProvider, ContextShutdownListener {
   private static final Logger logger = LoggerFactory.getLogger(ConsensusServer.class);
 
   private static final String COPYCAT_SERVER_NAME = "copycat";
@@ -129,8 +131,8 @@ public class ConsensusServer implements ClusterManagerListener, ConsensusIsLeade
 
   @PostConstruct
   public void initialize() {
-    sessionTimeoutMs = 30 * keepAliveMs; // same approx distribution as the defaults of copycat.
-    electionTimeoutMs = 6 * keepAliveMs;
+    sessionTimeoutMs = 10 * keepAliveMs;
+    electionTimeoutMs = 3 * keepAliveMs;
   }
 
   @Override
@@ -157,6 +159,7 @@ public class ConsensusServer implements ClusterManagerListener, ConsensusIsLeade
 
     copycatServer = CopycatServer.builder(ourAddr, members). //
         withName(COPYCAT_SERVER_NAME). //
+        withType(Member.Type.ACTIVE). //
         withTransport(transport). //
         withStorage(storage). //
         withSerializer(serializer). //
@@ -193,7 +196,12 @@ public class ConsensusServer implements ClusterManagerListener, ConsensusIsLeade
     serverOpenFuture.join();
   }
 
-  @PreDestroy
+  @Override
+  @ShutdownAfter(DefaultConsensusClient.class)
+  public void contextAboutToShutdown() {
+    stop();
+  }
+
   public void stop() {
     if (copycatServer != null) {
       logger.debug("Closing consensus server...");
@@ -313,4 +321,5 @@ public class ConsensusServer implements ClusterManagerListener, ConsensusIsLeade
   /* package */ long getElectionTimeoutMs() {
     return electionTimeoutMs;
   }
+
 }

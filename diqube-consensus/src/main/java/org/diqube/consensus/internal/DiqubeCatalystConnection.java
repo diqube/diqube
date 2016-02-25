@@ -276,7 +276,7 @@ public class DiqubeCatalystConnection implements Connection {
           sp.getService().reply(RUuidUtil.toRUuid(remoteEndpointUuid), RUuidUtil.toRUuid(requestUuid),
               ByteBuffer.wrap(baos.toByteArray()));
         }
-      } catch (IOException | InterruptedException | IllegalStateException | TException | SerializationException e) {
+      } catch (IOException | InterruptedException | TException | RuntimeException e) {
         logger.error("Could not send result/exception to {}", remoteAddr, e);
         throw new RuntimeException("Could not send result/exception to " + remoteAddr, e);
       } catch (ConnectionException e) {
@@ -381,7 +381,7 @@ public class DiqubeCatalystConnection implements Connection {
           sp.getService().close(RUuidUtil.toRUuid(remoteEndpointUuid));
 
         } catch (ConnectionException | IOException | InterruptedException | IllegalStateException | TException e) {
-          logger.info("Could not send 'close' to remote at {}", remoteAddr);
+          logger.info("Could not send 'close' to remote at {}", remoteAddr, e);
           // swallow otherwise, since we're trying to close the conn anyway.
         }
       }

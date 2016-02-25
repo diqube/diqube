@@ -37,6 +37,7 @@ import javax.inject.Inject;
 
 import org.diqube.consensus.ConsensusClient;
 import org.diqube.consensus.ConsensusClient.ClosableProvider;
+import org.diqube.consensus.ConsensusClient.ConsensusClusterUnavailableException;
 import org.diqube.consensus.ConsensusStateMachineClientInterruptedException;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.im.callback.IdentityCallbackRegistryStateMachine.Unregister;
@@ -152,6 +153,9 @@ public class IdentityCallbackRegistryCleaner implements IdentityCallbackRegistry
               consensusClient.getStateMachineClient(IdentityCallbackRegistryStateMachine.class)) {
             for (RNodeAddress addr : callbackNodesToUnregister)
               p.getClient().unregister(Unregister.local(addr));
+          } catch (ConsensusClusterUnavailableException e) {
+            logger.warn("Could not execute unregister calls since consensus cluster to find "
+                + "addresses is unavailable. Ignoring.", e);
           } catch (ConsensusStateMachineClientInterruptedException e) {
             // interrupted, exit quietly.
             return;

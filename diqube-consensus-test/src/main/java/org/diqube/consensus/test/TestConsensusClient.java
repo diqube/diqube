@@ -79,4 +79,9 @@ public class TestConsensusClient implements ConsensusClient {
     };
   }
 
+  @Override
+  public void contextAboutToShutdown() {
+    // noop
+  }
+
 }
