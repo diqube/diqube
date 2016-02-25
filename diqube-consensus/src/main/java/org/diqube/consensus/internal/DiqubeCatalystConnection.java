@@ -263,6 +263,8 @@ public class DiqubeCatalystConnection implements Connection {
           if (response != null && response instanceof ReferenceCounted)
             ((ReferenceCounted<?>) response).release();
 
+          logger.warn("There was an error executing request {}", requestUuid, error);
+
           context.serializer().writeObject(error, baos);
 
           sp.getService().replyException(RUuidUtil.toRUuid(remoteEndpointUuid), RUuidUtil.toRUuid(requestUuid),
