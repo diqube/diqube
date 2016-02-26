@@ -243,6 +243,8 @@ public class DiqubeCatalystConnection implements Connection {
 
     if (p != null) {
       p.getRight().executor().execute(() -> {
+        logger.debug("Working on request on endpoint {} from remote endpoint {}: {}", connectionEndpointUuid,
+            remoteEndpointUuid, message);
         CompletableFuture<Object> result = p.getLeft().handle(message);
         handleRequestResult(requestUuid, p.getRight(), result);
       });
@@ -302,11 +304,12 @@ public class DiqubeCatalystConnection implements Connection {
     CompletableFuture<U> res = new CompletableFuture<>();
     UUID requestUuid = UUID.randomUUID();
 
-    logger.trace("Sending from connection endpoint {} to remote endpoint {}, requestId {}", connectionEndpointUuid,
-        remoteEndpointUuid, requestUuid);
+    logger.trace("Sending from connection endpoint {} to remote endpoint {}, requestId {}, message {}",
+        connectionEndpointUuid, remoteEndpointUuid, requestUuid, message);
 
     try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
       context.serializer().writeObject(message, baos);
+
       if (message instanceof ReferenceCounted)
         ((ReferenceCounted<?>) message).release();
 

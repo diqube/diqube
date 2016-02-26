@@ -39,7 +39,7 @@
     <appender-ref ref="STDOUT_FileLine" />
   </logger>
   
-  <logger name="org.diqube" level="trace" />
+  <logger name="org.diqube" level="debug" />
   <logger name="org.diqube.loader.compression.CompressedLongArrayBuilder" level="warn" />
   <logger name="org.diqube.data.types.lng.array.RunLengthLongArray" level="warn" />
   <logger name="org.diqube.connection.ConnectionPool" level="info" />

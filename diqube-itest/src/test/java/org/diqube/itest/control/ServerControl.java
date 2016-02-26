@@ -48,8 +48,8 @@ import org.diqube.itest.util.ProcessPidUtil;
 import org.diqube.itest.util.ServiceTestUtil;
 import org.diqube.itest.util.Waiter;
 import org.diqube.itest.util.Waiter.WaitTimeoutException;
-import org.diqube.server.ControlFileLoader;
-import org.diqube.server.NewDataWatcher;
+import org.diqube.server.ControlFileManager;
+import org.diqube.server.control.ControlFileLoader;
 import org.diqube.thrift.base.services.DiqubeThriftServiceInfoManager;
 import org.diqube.thrift.base.thrift.RNodeAddress;
 import org.diqube.thrift.base.thrift.RNodeDefaultAddress;
@@ -225,7 +225,7 @@ public class ServerControl implements LogfileSaver {
         boolean stopped = serverProcess.waitFor(10, TimeUnit.SECONDS);
 
         // cleanup ready files
-        for (File readyFile : workDir.listFiles((dir, file) -> file.endsWith(NewDataWatcher.READY_FILE_EXTENSION)))
+        for (File readyFile : workDir.listFiles((dir, file) -> file.endsWith(ControlFileManager.READY_FILE_EXTENSION)))
           if (!readyFile.delete())
             logger.warn("Could not delete ready file {}", readyFile);
 
@@ -302,8 +302,8 @@ public class ServerControl implements LogfileSaver {
   private File readyFile(File controlFile) {
     return new File(controlFile.getParentFile(),
         controlFile.getName().substring(0,
-            controlFile.getName().length() - NewDataWatcher.CONTROL_FILE_EXTENSION.length())
-        + NewDataWatcher.READY_FILE_EXTENSION);
+            controlFile.getName().length() - ControlFileManager.CONTROL_FILE_EXTENSION.length())
+        + ControlFileManager.READY_FILE_EXTENSION);
   }
 
   public void deploy(File controlFile, File dataFile) throws WaitTimeoutException {

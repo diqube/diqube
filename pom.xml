@@ -76,6 +76,7 @@
     <module>diqube-file</module>
     <module>diqube-tool</module>
     <module>diqube-name</module>
+    <module>diqube-metadata</module>
     <module>diqube-diql</module>
     <module>diqube-optimize</module>
     <module>diqube-loader</module>

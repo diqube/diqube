@@ -30,7 +30,7 @@ import org.diqube.itest.annotations.NeedsServer;
 import org.diqube.itest.util.QueryResultServiceTestUtil;
 import org.diqube.itest.util.QueryResultServiceTestUtil.TestQueryResultService;
 import org.diqube.itest.util.Waiter;
-import org.diqube.server.NewDataWatcher;
+import org.diqube.server.ControlFileManager;
 import org.diqube.thrift.base.thrift.RUUID;
 import org.diqube.thrift.base.thrift.RValue;
 import org.diqube.thrift.base.thrift.Ticket;
@@ -54,11 +54,11 @@ public class DeadServerIntegrationTest extends AbstractDiqubeIntegrationTest {
   private static final String DOUBLEVAL_JSON_FILE =
       "/" + DeadServerIntegrationTest.class.getSimpleName() + "/doubleVal.json";
   private static final String DOUBLEVAL_0_CONTROL_FILE = "/" + DeadServerIntegrationTest.class.getSimpleName()
-      + "/doubleVal_rowId0" + NewDataWatcher.CONTROL_FILE_EXTENSION;
+      + "/doubleVal_rowId0" + ControlFileManager.CONTROL_FILE_EXTENSION;
   private static final String DOUBLEVAL_10_CONTROL_FILE = "/" + DeadServerIntegrationTest.class.getSimpleName()
-      + "/doubleVal_rowId10" + NewDataWatcher.CONTROL_FILE_EXTENSION;
+      + "/doubleVal_rowId10" + ControlFileManager.CONTROL_FILE_EXTENSION;
   private static final String DOUBLEVAL_20_CONTROL_FILE = "/" + DeadServerIntegrationTest.class.getSimpleName()
-      + "/doubleVal_rowId20" + NewDataWatcher.CONTROL_FILE_EXTENSION;
+      + "/doubleVal_rowId20" + ControlFileManager.CONTROL_FILE_EXTENSION;
 
   @Test
   @NeedsServer(servers = 3)

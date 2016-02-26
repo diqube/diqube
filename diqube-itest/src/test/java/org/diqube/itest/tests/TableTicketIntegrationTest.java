@@ -33,7 +33,7 @@ import org.diqube.itest.util.QueryResultServiceTestUtil;
 import org.diqube.itest.util.QueryResultServiceTestUtil.TestQueryResultService;
 import org.diqube.itest.util.Waiter;
 import org.diqube.permission.Permissions;
-import org.diqube.server.NewDataWatcher;
+import org.diqube.server.ControlFileManager;
 import org.diqube.thrift.base.thrift.AuthenticationException;
 import org.diqube.thrift.base.thrift.AuthorizationException;
 import org.diqube.thrift.base.thrift.Ticket;
@@ -63,10 +63,10 @@ public class TableTicketIntegrationTest extends AbstractDiqubeIntegrationTest {
 
   private static final String FIRST_TABLE = "age";
   private static final String FIRST_CONTROL_FILE =
-      "/" + TableTicketIntegrationTest.class.getSimpleName() + "/age" + NewDataWatcher.CONTROL_FILE_EXTENSION;
+      "/" + TableTicketIntegrationTest.class.getSimpleName() + "/age" + ControlFileManager.CONTROL_FILE_EXTENSION;
   private static final String SECOND_TABLE = "age2";
   private static final String SECOND_CONTROL_FILE =
-      "/" + TableTicketIntegrationTest.class.getSimpleName() + "/age2" + NewDataWatcher.CONTROL_FILE_EXTENSION;
+      "/" + TableTicketIntegrationTest.class.getSimpleName() + "/age2" + ControlFileManager.CONTROL_FILE_EXTENSION;
   private static final String JSON_FILE = "/" + MergeDeployIntegrationTest.class.getSimpleName() + "/age.json";
 
   private static final String USER = "testUser";

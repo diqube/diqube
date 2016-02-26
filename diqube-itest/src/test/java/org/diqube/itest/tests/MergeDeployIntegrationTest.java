@@ -34,7 +34,7 @@ import org.diqube.itest.control.ToolControl;
 import org.diqube.itest.util.QueryResultServiceTestUtil;
 import org.diqube.itest.util.QueryResultServiceTestUtil.TestQueryResultService;
 import org.diqube.itest.util.Waiter;
-import org.diqube.server.NewDataWatcher;
+import org.diqube.server.ControlFileManager;
 import org.diqube.thrift.base.thrift.RUUID;
 import org.diqube.thrift.base.thrift.RValue;
 import org.diqube.thrift.base.thrift.Ticket;
@@ -56,8 +56,8 @@ public class MergeDeployIntegrationTest extends AbstractDiqubeIntegrationTest {
 
   private static final String AGE_TABLE = "age";
   private static final String AGE_JSON_FILE = "/" + MergeDeployIntegrationTest.class.getSimpleName() + "/age.json";
-  private static final String AGE_CONTROL_FILE =
-      "/" + MergeDeployIntegrationTest.class.getSimpleName() + "/age_rowId0" + NewDataWatcher.CONTROL_FILE_EXTENSION;
+  private static final String AGE_CONTROL_FILE = "/" + MergeDeployIntegrationTest.class.getSimpleName() + "/age_rowId0"
+      + ControlFileManager.CONTROL_FILE_EXTENSION;
   private static final String AGE_DIQUBE_PART1_FILE = "age1.diqube";
   private static final String AGE_DIQUBE_PART2_FILE = "age2.diqube";
   private static final String AGE_DIQUBE_MERGED_FILE = "age_merged.diqube";

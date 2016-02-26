@@ -44,7 +44,7 @@ import org.diqube.plan.ExecutionPlanBuilder;
 import org.diqube.plan.ExecutionPlanBuilderFactory;
 import org.diqube.remote.cluster.thrift.RExecutionPlan;
 import org.diqube.remote.query.thrift.QueryService;
-import org.diqube.server.NewDataWatcher;
+import org.diqube.server.ControlFileManager;
 import org.diqube.thrift.base.thrift.RUUID;
 import org.diqube.thrift.base.thrift.Ticket;
 import org.diqube.thrift.base.util.RUuidUtil;
@@ -65,9 +65,9 @@ public class QueryCancelIntegrationTest extends AbstractDiqubeIntegrationTest {
 
   private static final String BIG_TABLE = "big";
   private static final String BIG_CONTROL_FILE =
-      "/" + QueryCancelIntegrationTest.class.getSimpleName() + "/big" + NewDataWatcher.CONTROL_FILE_EXTENSION;
+      "/" + QueryCancelIntegrationTest.class.getSimpleName() + "/big" + ControlFileManager.CONTROL_FILE_EXTENSION;
   private static final String BIG2_CONTROL_FILE =
-      "/" + QueryCancelIntegrationTest.class.getSimpleName() + "/big2" + NewDataWatcher.CONTROL_FILE_EXTENSION;
+      "/" + QueryCancelIntegrationTest.class.getSimpleName() + "/big2" + ControlFileManager.CONTROL_FILE_EXTENSION;
   private static final String BIG_DATA_FILE_WORK = "big.json";
 
   @Test

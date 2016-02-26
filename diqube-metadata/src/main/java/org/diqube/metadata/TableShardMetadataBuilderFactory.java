@@ -18,21 +18,23 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.data.column;
+package org.diqube.metadata;
 
-import org.diqube.data.dictionary.Dictionary;
-import org.diqube.data.metadata.FieldMetadata.FieldType;
+import javax.inject.Inject;
+
+import org.diqube.context.AutoInstatiate;
+import org.diqube.name.RepeatedColumnNameGenerator;
 
 /**
- * Type of a column.
- * 
- * <p>
- * This enum basically identifies which subclass of {@link ColumnShard}/which type of {@link Dictionary} is used for a
- * column.
  *
- * @see FieldType
  * @author Bastian Gloeckle
  */
-public enum ColumnType {
-  STRING, DOUBLE, LONG
+@AutoInstatiate
+public class TableShardMetadataBuilderFactory {
+  @Inject
+  private RepeatedColumnNameGenerator repeatedColumnNameGenerator;
+
+  public TableShardMetadataBuilder createTableShardMetadataBuilder() {
+    return new TableShardMetadataBuilder(repeatedColumnNameGenerator);
+  }
 }

@@ -34,7 +34,7 @@ import org.diqube.itest.util.QueryResultServiceTestUtil;
 import org.diqube.itest.util.QueryResultServiceTestUtil.TestQueryResultService;
 import org.diqube.itest.util.TestDataGenerator;
 import org.diqube.itest.util.Waiter;
-import org.diqube.server.NewDataWatcher;
+import org.diqube.server.ControlFileManager;
 import org.diqube.thrift.base.thrift.RUUID;
 import org.diqube.thrift.base.thrift.Ticket;
 import org.diqube.thrift.base.util.RUuidUtil;
@@ -52,7 +52,7 @@ public class QueryTimeoutIntegrationTest extends AbstractDiqubeIntegrationTest {
 
   private static final String BIG_TABLE = "big";
   private static final String BIG_CONTROL_FILE =
-      "/" + QueryTimeoutIntegrationTest.class.getSimpleName() + "/big" + NewDataWatcher.CONTROL_FILE_EXTENSION;
+      "/" + QueryTimeoutIntegrationTest.class.getSimpleName() + "/big" + ControlFileManager.CONTROL_FILE_EXTENSION;
   private static final String BIG_DATA_FILE_WORK = "big.json";
 
   @Test

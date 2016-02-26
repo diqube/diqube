@@ -20,6 +20,11 @@
  */
 package org.diqube.consensus.internal;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -33,9 +38,15 @@ import org.diqube.context.AutoInstatiate;
 
 import com.google.common.collect.Sets;
 
+import io.atomix.catalyst.buffer.BufferInput;
+import io.atomix.catalyst.buffer.BufferOutput;
+import io.atomix.catalyst.buffer.OutputStreamBufferOutput;
 import io.atomix.catalyst.serializer.JdkTypeResolver;
 import io.atomix.catalyst.serializer.PrimitiveTypeResolver;
+import io.atomix.catalyst.serializer.SerializationException;
 import io.atomix.catalyst.serializer.Serializer;
+import io.atomix.catalyst.serializer.TypeSerializer;
+import io.atomix.catalyst.serializer.util.JavaSerializableSerializer;
 
 /**
  * Catalyst serializer used by diqube.
@@ -77,8 +88,70 @@ public class DiqubeCatalystSerializer extends Serializer {
       // start suing IDs at an arbitrary, but fixed point, so we do not overwrite IDs used internally by copycat.
       int nextId = BASE_SERIALIZATION_ID;
       for (Class<?> opClass : serializationClassesSorted) {
-        registry.register(opClass, nextId++);
+        registry.register(opClass, nextId++, DiqubeJavaSerializableSerializer.class);
       }
     });
   }
+
+  /**
+   * Helper method to validate an object can be sent as parameter for the consensus client.
+   * 
+   * TODO #107: Remove this.
+   * 
+   * @throws IllegalArgumentException
+   *           If object is invalid.
+   */
+  public void validateSerializationObject(Object o) throws IllegalArgumentException {
+    try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+      new DiqubeJavaSerializableSerializer<>().write(o, new OutputStreamBufferOutput(baos), this);
+    } catch (IOException | SerializationException e) {
+      throw new IllegalArgumentException("Object invalid", e);
+    }
+  }
+
+  /**
+   * As long as catalysts {@link JavaSerializableSerializer} is buggy, we use this fixed implementation.
+   * 
+   * TODO #107: remove workaround.
+   */
+  public static class DiqubeJavaSerializableSerializer<T> implements TypeSerializer<T> {
+    private static final int MAX_UNSIGNED_SHORT = (1 << 16) - 1;
+
+    @SuppressWarnings("rawtypes")
+    @Override
+    public void write(T object, BufferOutput buffer, Serializer serializer) {
+      try (ByteArrayOutputStream os = new ByteArrayOutputStream();
+          ObjectOutputStream out = new ObjectOutputStream(os)) {
+        out.writeObject(object);
+        out.flush();
+        byte[] bytes = os.toByteArray();
+
+        // Workaround for copycat #173: The copycat Log uses an unsigned short length field, too.
+        if (bytes.length > MAX_UNSIGNED_SHORT)
+          throw new SerializationException("Cannot serialize java object because it is too big.");
+
+        // Workaround for catalyst #30: Write "int", not "unsigned short"
+        buffer.writeInt(bytes.length).write(bytes);
+      } catch (IOException e) {
+        throw new SerializationException("failed to serialize Java object", e);
+      }
+    }
+
+    @Override
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    public T read(Class<T> type, BufferInput buffer, Serializer serializer) {
+      byte[] bytes = new byte[buffer.readInt()];
+      buffer.read(bytes);
+      try (ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(bytes))) {
+        try {
+          return (T) in.readObject();
+        } catch (ClassNotFoundException e) {
+          throw new SerializationException("failed to deserialize Java object", e);
+        }
+      } catch (IOException e) {
+        throw new SerializationException("failed to deserialize Java object", e);
+      }
+    }
+  }
+
 }

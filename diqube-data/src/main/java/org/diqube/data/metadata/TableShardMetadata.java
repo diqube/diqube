@@ -18,21 +18,28 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.data.column;
+package org.diqube.data.metadata;
 
-import org.diqube.data.dictionary.Dictionary;
-import org.diqube.data.metadata.FieldMetadata.FieldType;
+import java.util.Map;
+
+import org.diqube.data.table.TableShard;
 
 /**
- * Type of a column.
- * 
- * <p>
- * This enum basically identifies which subclass of {@link ColumnShard}/which type of {@link Dictionary} is used for a
- * column.
+ * A {@link TableMetadata} for a single local {@link TableShard}.
  *
- * @see FieldType
  * @author Bastian Gloeckle
  */
-public enum ColumnType {
-  STRING, DOUBLE, LONG
+public class TableShardMetadata extends TableMetadata {
+  private static final long serialVersionUID = 1L;
+
+  private long firstRowIdOfShard;
+
+  public TableShardMetadata(String tableName, Map<String, FieldMetadata> fields, long firstRowIdOfShard) {
+    super(tableName, fields);
+    this.firstRowIdOfShard = firstRowIdOfShard;
+  }
+
+  public long getFirstRowIdOfShard() {
+    return firstRowIdOfShard;
+  }
 }

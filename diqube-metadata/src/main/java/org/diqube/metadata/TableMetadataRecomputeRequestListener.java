@@ -18,21 +18,19 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.data.column;
+package org.diqube.metadata;
 
-import org.diqube.data.dictionary.Dictionary;
-import org.diqube.data.metadata.FieldMetadata.FieldType;
+import org.diqube.data.metadata.TableMetadata;
 
 /**
- * Type of a column.
- * 
- * <p>
- * This enum basically identifies which subclass of {@link ColumnShard}/which type of {@link Dictionary} is used for a
- * column.
+ * Listener on requests to recompute the metadata of a table.
  *
- * @see FieldType
  * @author Bastian Gloeckle
  */
-public enum ColumnType {
-  STRING, DOUBLE, LONG
+public interface TableMetadataRecomputeRequestListener {
+
+  /**
+   * The request to recompute the {@link TableMetadata} of a specific table has been received by this cluster node.
+   */
+  public void tableMetadataRecomputeRequestReceived(String tableName);
 }
