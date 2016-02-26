@@ -31,6 +31,7 @@ import javax.inject.Inject;
 
 import org.diqube.consensus.ConsensusClient;
 import org.diqube.consensus.ConsensusClient.ClosableProvider;
+import org.diqube.consensus.ConsensusClient.ConsensusClusterUnavailableException;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.context.InjectOptional;
 import org.diqube.data.metadata.TableMetadata;
@@ -97,6 +98,8 @@ public class TableMetadataManager {
     try (ClosableProvider<TableMetadataStateMachine> p =
         consensusClient.getStateMachineClient(TableMetadataStateMachine.class)) {
       current = p.getClient().getTableMetadata(GetTableMetadata.local(tableName));
+    } catch (ConsensusClusterUnavailableException e) {
+      return null;
     }
 
     return (current != null) ? current.getLeft() : null;
@@ -145,6 +148,8 @@ public class TableMetadataManager {
       }
 
       logger.debug("Sent the current metadata of the local '{}' table to the cluster.", tableName);
+    } catch (ConsensusClusterUnavailableException e) {
+      throw new IllegalStateException("Consensus cluster not available", e);
     }
   }
 
@@ -160,6 +165,8 @@ public class TableMetadataManager {
         consensusClient.getStateMachineClient(TableMetadataStateMachine.class)) {
       p.getClient().recomputeTableMetadata(RecomputeTableMetadata.local(tableName));
       logger.debug("Informing cluster that metadata for table '{}' needs to be recomputed.", tableName);
+    } catch (ConsensusClusterUnavailableException e) {
+      throw new IllegalStateException("Consensus cluster not available", e);
     }
   }
 

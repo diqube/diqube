@@ -28,8 +28,6 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
-import org.diqube.consensus.ConsensusServer;
-import org.diqube.consensus.ConsensusServerTestUtil;
 import org.diqube.context.Profiles;
 import org.diqube.data.column.ColumnType;
 import org.diqube.data.column.StandardColumnShard;
@@ -42,7 +40,7 @@ import org.diqube.execution.consumers.AbstractThreadedOverwritingRowIdConsumer;
 import org.diqube.execution.consumers.ColumnValueConsumer;
 import org.diqube.executionenv.ExecutionEnvironment;
 import org.diqube.executionenv.TableRegistry;
-import org.diqube.listeners.ClusterManagerListener;
+import org.diqube.executionenv.TableRegistry.TableLoadImpossibleException;
 import org.diqube.loader.JsonLoader;
 import org.diqube.loader.LoadException;
 import org.diqube.loader.LoaderColumnInfo;
@@ -164,15 +162,15 @@ public abstract class AbstractDiqlExecutionTest<T> {
   @BeforeMethod
   public void setUp() {
     dataContext = new AnnotationConfigApplicationContext();
-    dataContext.getEnvironment().setActiveProfiles(Profiles.ALL_BUT_NEW_DATA_WATCHER);
+    dataContext.getEnvironment().setActiveProfiles(Profiles.UNIT_TEST);
     dataContext.scan("org.diqube");
     adjustContextBeforeRefresh(dataContext);
     dataContext.refresh();
 
     // simulate "cluster initialized", although we do not start our local server. But we need to get the consensus
     // running!
-    ConsensusServerTestUtil.configureMemoryOnlyStorage(dataContext.getBean(ConsensusServer.class));
-    dataContext.getBeansOfType(ClusterManagerListener.class).values().forEach(l -> l.clusterInitialized());
+    // ConsensusServerTestUtil.configureMemoryOnlyStorage(dataContext.getBean(ConsensusServer.class));
+    // dataContext.getBeansOfType(ClusterManagerListener.class).values().forEach(l -> l.clusterInitialized());
 
     columnValueConsumerIsDone = false;
     resultValues = new ConcurrentHashMap<>();
@@ -284,7 +282,11 @@ public abstract class AbstractDiqlExecutionTest<T> {
 
     TableRegistry tableRegistry = dataContext.getBean(TableRegistry.class);
     TableFactory tableFactory = dataContext.getBean(TableFactory.class);
-    tableRegistry.addTable(TABLE, tableFactory.createDefaultTable(TABLE, Arrays.asList(tableShard)));
+    try {
+      tableRegistry.addTable(TABLE, tableFactory.createDefaultTable(TABLE, Arrays.asList(tableShard)));
+    } catch (TableLoadImpossibleException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   /**
@@ -318,7 +320,11 @@ public abstract class AbstractDiqlExecutionTest<T> {
       firstRowId += colAValues.length;
     }
 
-    tableRegistry.addTable(TABLE, tableFactory.createDefaultTable(TABLE, tableShards));
+    try {
+      tableRegistry.addTable(TABLE, tableFactory.createDefaultTable(TABLE, tableShards));
+    } catch (TableLoadImpossibleException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   /* package */ AnnotationConfigApplicationContext getDataContext() {

@@ -86,7 +86,7 @@ public class ClusterLayoutStateMachineImplementation extends AbstractConsensusSt
     writeCurrentLayoutToInternalDb(commit.index());
 
     if (prev != null)
-      prev.clean();
+      prev.close();
   }
 
   @Override
@@ -99,8 +99,8 @@ public class ClusterLayoutStateMachineImplementation extends AbstractConsensusSt
     writeCurrentLayoutToInternalDb(commit.index());
 
     if (prev != null)
-      prev.clean();
-    commit.clean();
+      prev.close();
+    commit.close();
   }
 
   @Override

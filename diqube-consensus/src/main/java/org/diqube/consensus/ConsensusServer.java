@@ -33,7 +33,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 
 import org.diqube.config.Config;
@@ -47,21 +46,25 @@ import org.diqube.consensus.internal.DiqubeCatalystServer;
 import org.diqube.consensus.internal.DiqubeCatalystTransport;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.context.InjectOptional;
+import org.diqube.context.Profiles;
+import org.diqube.context.shutdown.ContextShutdownListener;
+import org.diqube.context.shutdown.ShutdownAfter;
 import org.diqube.listeners.ClusterManagerListener;
 import org.diqube.listeners.ConsensusListener;
 import org.diqube.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.Profile;
 
 import io.atomix.catalyst.transport.Address;
+import io.atomix.copycat.Operation;
 import io.atomix.copycat.client.CopycatClient;
-import io.atomix.copycat.client.Operation;
-import io.atomix.copycat.client.RaftClient;
 import io.atomix.copycat.server.CopycatServer;
-import io.atomix.copycat.server.RaftServer.State;
+import io.atomix.copycat.server.CopycatServer.State;
 import io.atomix.copycat.server.StateMachine;
 import io.atomix.copycat.server.StateMachineExecutor;
+import io.atomix.copycat.server.cluster.Member;
 import io.atomix.copycat.server.storage.Storage;
 import io.atomix.copycat.server.storage.StorageLevel;
 
@@ -78,8 +81,11 @@ import io.atomix.copycat.server.storage.StorageLevel;
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
-public class ConsensusServer implements ClusterManagerListener {
+@Profile(Profiles.CONSENSUS)
+public class ConsensusServer implements ClusterManagerListener, ConsensusIsLeaderProvider, ContextShutdownListener {
   private static final Logger logger = LoggerFactory.getLogger(ConsensusServer.class);
+
+  private static final String COPYCAT_SERVER_NAME = "copycat";
 
   @Inject
   private OurNodeAddressProvider ourNodeAddressProvider;
@@ -125,8 +131,8 @@ public class ConsensusServer implements ClusterManagerListener {
 
   @PostConstruct
   public void initialize() {
-    sessionTimeoutMs = 30 * keepAliveMs; // same approx distribution as the defaults of copycat.
-    electionTimeoutMs = 6 * keepAliveMs;
+    sessionTimeoutMs = 10 * keepAliveMs;
+    electionTimeoutMs = 3 * keepAliveMs;
   }
 
   @Override
@@ -134,6 +140,10 @@ public class ConsensusServer implements ClusterManagerListener {
     Address ourAddr = toCopycatAddress(ourNodeAddressProvider.getOurNodeAddress());
     List<Address> members = consensusClusterNodeAddressProvider.getClusterNodeAddressesForConsensus().stream()
         .map(addr -> toCopycatAddress(addr)).collect(Collectors.toList());
+
+    if (members.isEmpty())
+      // if there's no member we could connect to, use a single node cluster with only ourselves.
+      members.add(ourAddr);
 
     File consensusDataDirFile = new File(consensusDataDir);
 
@@ -148,13 +158,15 @@ public class ConsensusServer implements ClusterManagerListener {
     Storage storage = consensusStorageProvider.createStorage();
 
     copycatServer = CopycatServer.builder(ourAddr, members). //
+        withName(COPYCAT_SERVER_NAME). //
+        withType(Member.Type.ACTIVE). //
         withTransport(transport). //
         withStorage(storage). //
         withSerializer(serializer). //
         withSessionTimeout(Duration.ofMillis(sessionTimeoutMs)). //
         withElectionTimeout(Duration.ofMillis(electionTimeoutMs)). //
         withHeartbeatInterval(Duration.ofMillis(keepAliveMs)). //
-        withStateMachine(new DiqubeStateMachine()).build();
+        withStateMachine(() -> new DiqubeStateMachine()).build();
 
     CompletableFuture<?> serverOpenFuture = copycatServer.open().handle((result, error) -> {
       if (error != null)
@@ -162,14 +174,14 @@ public class ConsensusServer implements ClusterManagerListener {
 
       logger.info("Consensus node started successfully.");
 
-      copycatServer.onLeaderElection(leaderAddr -> {
-        if (leaderAddr != null) {
-          lastKnownCopycatLeaderAddress = leaderAddr;
+      copycatServer.cluster().onLeaderElection(leaderMember -> {
+        if (leaderMember != null) {
+          lastKnownCopycatLeaderAddress = leaderMember.address();
           lastKnownCopycatLeaderTimestamp = Instant.now();
           logger.info("New consensus leader address: {}", lastKnownCopycatLeaderAddress);
         }
       });
-      lastKnownCopycatLeaderAddress = copycatServer.leader();
+      lastKnownCopycatLeaderAddress = copycatServer.cluster().leader().address();
       lastKnownCopycatLeaderTimestamp = Instant.now();
       logger.info("New consensus leader address: {}", lastKnownCopycatLeaderAddress);
 
@@ -184,7 +196,12 @@ public class ConsensusServer implements ClusterManagerListener {
     serverOpenFuture.join();
   }
 
-  @PreDestroy
+  @Override
+  @ShutdownAfter(DefaultConsensusClient.class)
+  public void contextAboutToShutdown() {
+    stop();
+  }
+
   public void stop() {
     if (copycatServer != null) {
       logger.debug("Closing consensus server...");
@@ -209,9 +226,7 @@ public class ConsensusServer implements ClusterManagerListener {
     }
   }
 
-  /**
-   * @return true if this node is the leader of the consensus cluster.
-   */
+  @Override
   public boolean isLeader() {
     return copycatServer != null && copycatServer.state().equals(State.LEADER);
   }
@@ -222,13 +237,13 @@ public class ConsensusServer implements ClusterManagerListener {
    *         in the latter case, no {@link CopycatClient} activity will succeed probably.
    */
   public boolean clusterSeemsFunctional() {
-    return copycatServer != null && copycatServer.leader() != null;
+    return copycatServer != null && copycatServer.cluster().leader() != null;
   }
 
   /* package */ Collection<Address> getClusterMembers() {
     if (copycatServer == null)
       return null;
-    return copycatServer.members();
+    return copycatServer.cluster().members().stream().map(member -> member.address()).collect(Collectors.toList());
   }
 
   private Address toCopycatAddress(NodeAddress addr) {
@@ -257,6 +272,7 @@ public class ConsensusServer implements ClusterManagerListener {
           }));
         } else {
           executor.register((Class) operationClass, ((Function) new Function<Object, Object>() {
+
             @Override
             public Object apply(Object t) {
               try {
@@ -294,6 +310,7 @@ public class ConsensusServer implements ClusterManagerListener {
     public Storage createStorage() {
       return Storage.builder().withStorageLevel(StorageLevel.DISK).withDirectory(consensusDataDirFile).build();
     }
+
   }
 
   // for tests
@@ -304,4 +321,5 @@ public class ConsensusServer implements ClusterManagerListener {
   /* package */ long getElectionTimeoutMs() {
     return electionTimeoutMs;
   }
+
 }

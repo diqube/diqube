@@ -28,8 +28,8 @@ import org.diqube.consensus.ConsensusMethod;
 import org.diqube.consensus.ConsensusStateMachine;
 import org.diqube.consensus.ConsensusUtil;
 
-import io.atomix.copycat.client.Command;
-import io.atomix.copycat.client.Query;
+import io.atomix.copycat.Command;
+import io.atomix.copycat.Query;
 import io.atomix.copycat.server.Commit;
 
 /**
@@ -55,13 +55,13 @@ public interface ClusterLayoutStateMachine {
   /**
    * Query that returns those node addresses which serve a specific table.
    */
-  @ConsensusMethod(dataClass = FindNodesServingTable.class)
+  @ConsensusMethod(dataClass = FindNodesServingTable.class, additionalSerializationClasses = NodeAddress.class)
   public Set<NodeAddress> findNodesServingTable(Commit<FindNodesServingTable> commit);
 
   /**
    * Query that returns a list of all known reachable nodes.
    */
-  @ConsensusMethod(dataClass = GetAllNodes.class)
+  @ConsensusMethod(dataClass = GetAllNodes.class, additionalSerializationClasses = NodeAddress.class)
   public Set<NodeAddress> getAllNodes(Commit<GetAllNodes> commit);
 
   /**
@@ -146,8 +146,8 @@ public interface ClusterLayoutStateMachine {
     private NodeAddress node;
 
     @Override
-    public PersistenceLevel persistence() {
-      return PersistenceLevel.PERSISTENT;
+    public CompactionMode compaction() {
+      return CompactionMode.SEQUENTIAL;
     }
 
     public NodeAddress getNode() {
@@ -165,6 +165,11 @@ public interface ClusterLayoutStateMachine {
     private static final long serialVersionUID = 1L;
     private NodeAddress node;
     private Collection<String> tables;
+
+    @Override
+    public CompactionMode compaction() {
+      return CompactionMode.FULL;
+    }
 
     public NodeAddress getNode() {
       return node;

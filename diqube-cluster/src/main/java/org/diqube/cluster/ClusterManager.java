@@ -48,15 +48,18 @@ import org.diqube.connection.ConnectionException;
 import org.diqube.connection.ConnectionPool;
 import org.diqube.connection.NodeAddress;
 import org.diqube.connection.OurNodeAddressProvider;
-import org.diqube.consensus.ConsensusClusterNodeAddressProvider;
-import org.diqube.consensus.ConsensusStateMachineClientInterruptedException;
 import org.diqube.consensus.ConsensusClient;
 import org.diqube.consensus.ConsensusClient.ClosableProvider;
+import org.diqube.consensus.ConsensusClient.ConsensusClusterUnavailableException;
+import org.diqube.consensus.ConsensusClusterNodeAddressProvider;
+import org.diqube.consensus.ConsensusIsLeaderProvider;
 import org.diqube.consensus.ConsensusServer;
+import org.diqube.consensus.ConsensusStateMachineClientInterruptedException;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.context.InjectOptional;
+import org.diqube.context.shutdown.ContextShutdownListener;
+import org.diqube.context.shutdown.ShutdownBefore;
 import org.diqube.listeners.ClusterManagerListener;
-import org.diqube.listeners.DiqubeGracefulShutdownListener;
 import org.diqube.listeners.ServingListener;
 import org.diqube.listeners.TableLoadListener;
 import org.diqube.listeners.providers.LoadedTablesProvider;
@@ -81,7 +84,7 @@ import com.google.common.collect.Iterables;
 @AutoInstatiate
 public class ClusterManager
     implements ServingListener, TableLoadListener, OurNodeAddressStringProvider, ClusterNodeStatusDetailListener,
-    OurNodeAddressProvider, ConsensusClusterNodeAddressProvider, DiqubeGracefulShutdownListener {
+    OurNodeAddressProvider, ConsensusClusterNodeAddressProvider, ContextShutdownListener {
   private static final Logger logger = LoggerFactory.getLogger(ClusterManager.class);
 
   private static final String OUR_HOST_AUTOMATIC = "*";
@@ -116,7 +119,7 @@ public class ClusterManager
   private ConsensusClient consensusClient;
 
   @Inject
-  private ConsensusServer consensusServer;
+  private ConsensusIsLeaderProvider consensusIsLeaderProvider;
 
   @Inject
   private LoadedTablesProvider loadedTablesProvider;
@@ -168,7 +171,8 @@ public class ClusterManager
   }
 
   @Override
-  public void serverAboutToShutdown() {
+  @ShutdownBefore({ ConsensusClient.class, ConsensusServer.class })
+  public void contextAboutToShutdown() {
     // try to gracefully tell the ClusterLayout that we're gone. If it does not work within a second, skip it. The other
     // nodes might then try to submit stuff to our node, but will soon discover that we're down and remove us from the
     // ClusterLayout themselves.
@@ -178,6 +182,8 @@ public class ClusterManager
         try (ClosableProvider<ClusterLayoutStateMachine> p =
             consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class)) {
           p.getClient().removeNode(RemoveNode.local(ourHostAddr));
+        } catch (ConsensusClusterUnavailableException e) {
+          logger.warn("Could not access consensus cluster to remove ourselves from cluster layout.");
         }
       }).get(1, TimeUnit.SECONDS);
     } catch (TimeoutException | InterruptedException | ExecutionException e) {
@@ -313,6 +319,8 @@ public class ClusterManager
             try (ClosableProvider<ClusterLayoutStateMachine> p =
                 consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class)) {
               p.getClient().removeNode(RemoveNode.local(addr));
+            } catch (ConsensusClusterUnavailableException e) {
+              logger.warn("Could not remove node {} from cluster layout since consensus cluster is unavailable", addr);
             }
           } else
             logger.trace("Cluster node died. No need to distribute information since that node was unknown to the "
@@ -336,7 +344,7 @@ public class ClusterManager
     // consensus master periodically sends keepAlives to all nodes. We ensure here that we get current information about
     // that new node.
 
-    if (!consensusServer.isLeader())
+    if (!consensusIsLeaderProvider.isLeader())
       // Only let the consensus leader find new alive nodes. This is to reduce the number of times a new node is asked
       // to "publishLoadedTables" and also to limit the number of times "clusterLayout.isNodeKnown" is called: This is
       // pretty slow on non-leader nodes, but we will receive a lot of "nodeAlive" calls.
@@ -358,11 +366,14 @@ public class ClusterManager
   }
 
   @Override
-  public synchronized void tableLoaded(String newTableName) {
+  public synchronized void tableLoaded(String newTableName) throws AbortTableLoadException {
     logger.info("Informing consensus cluster of our updated table list.");
     try (ClosableProvider<ClusterLayoutStateMachine> p =
         consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class)) {
       p.getClient().setTablesOfNode(SetTablesOfNode.local(ourHostAddr, loadedTablesProvider.getNamesOfLoadedTables()));
+    } catch (ConsensusClusterUnavailableException e) {
+      logger.error("Table cannot be loaded because consensus cluster is not available", e);
+      throw new AbortTableLoadException("Table cannot be loaded because consensus cluster is not available", e);
     }
     logger.trace("Informed consensus cluster of our updated table list.");
   }
@@ -373,8 +384,10 @@ public class ClusterManager
     try (ClosableProvider<ClusterLayoutStateMachine> p =
         consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class)) {
       p.getClient().setTablesOfNode(SetTablesOfNode.local(ourHostAddr, loadedTablesProvider.getNamesOfLoadedTables()));
+      logger.trace("Informed consensus cluster of our updated table list.");
+    } catch (ConsensusClusterUnavailableException e) {
+      logger.warn("Could not inform consensus cluster that we do not serve the table any more.", e);
     }
-    logger.trace("Informed consensus cluster of our updated table list.");
   }
 
   @Override

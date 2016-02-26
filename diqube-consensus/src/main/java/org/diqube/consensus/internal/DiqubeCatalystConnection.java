@@ -48,6 +48,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 
+import io.atomix.catalyst.serializer.SerializationException;
 import io.atomix.catalyst.transport.Address;
 import io.atomix.catalyst.transport.Connection;
 import io.atomix.catalyst.transport.MessageHandler;
@@ -262,6 +263,8 @@ public class DiqubeCatalystConnection implements Connection {
           if (response != null && response instanceof ReferenceCounted)
             ((ReferenceCounted<?>) response).release();
 
+          logger.warn("There was an error executing request {}", requestUuid, error);
+
           context.serializer().writeObject(error, baos);
 
           sp.getService().replyException(RUuidUtil.toRUuid(remoteEndpointUuid), RUuidUtil.toRUuid(requestUuid),
@@ -275,7 +278,7 @@ public class DiqubeCatalystConnection implements Connection {
           sp.getService().reply(RUuidUtil.toRUuid(remoteEndpointUuid), RUuidUtil.toRUuid(requestUuid),
               ByteBuffer.wrap(baos.toByteArray()));
         }
-      } catch (IOException | InterruptedException | IllegalStateException | TException e) {
+      } catch (IOException | InterruptedException | TException | RuntimeException e) {
         logger.error("Could not send result/exception to {}", remoteAddr, e);
         throw new RuntimeException("Could not send result/exception to " + remoteAddr, e);
       } catch (ConnectionException e) {
@@ -315,11 +318,14 @@ public class DiqubeCatalystConnection implements Connection {
         sp.getService().request(RUuidUtil.toRUuid(remoteEndpointUuid), RUuidUtil.toRUuid(requestUuid),
             ByteBuffer.wrap(baos.toByteArray()));
       }
-
+    } catch (SerializationException e) {
+      logger.error("Could not serialize message that should have been sent", e);
+      requests.remove(requestUuid);
+      res.completeExceptionally(new TransportException("Could not serialize", e));
     } catch (ConnectionException e) {
       requests.remove(requestUuid);
       socketListener.connectionDied("Could not connect");
-      res.completeExceptionally(new TransportException("Cannot connect", e));
+      res.completeExceptionally(new TransportException("Could not connect", e));
     } catch (IOException | IllegalStateException | TException | InterruptedException e) {
       requests.remove(requestUuid);
       res.completeExceptionally(new TransportException("Failed to send request", e));
@@ -378,7 +384,7 @@ public class DiqubeCatalystConnection implements Connection {
           sp.getService().close(RUuidUtil.toRUuid(remoteEndpointUuid));
 
         } catch (ConnectionException | IOException | InterruptedException | IllegalStateException | TException e) {
-          logger.info("Could not send 'close' to remote at {}", remoteAddr);
+          logger.info("Could not send 'close' to remote at {}", remoteAddr, e);
           // swallow otherwise, since we're trying to close the conn anyway.
         }
       }

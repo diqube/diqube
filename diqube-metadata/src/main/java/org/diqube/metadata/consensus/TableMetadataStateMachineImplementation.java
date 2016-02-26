@@ -86,7 +86,7 @@ public class TableMetadataStateMachineImplementation extends AbstractConsensusSt
 
     if ((expectedVersion != Long.MIN_VALUE ^ metadata.containsKey(tableName)) || //
         (metadata.containsKey(tableName) && metadata.get(tableName).getRight() != expectedVersion)) {
-      commit.clean();
+      commit.close();
       return false;
     }
 
@@ -97,7 +97,7 @@ public class TableMetadataStateMachineImplementation extends AbstractConsensusSt
     writeCurrentStateToInternalDb(commit.index());
 
     if (prev != null)
-      prev.clean();
+      prev.close();
 
     return true;
   }
@@ -121,12 +121,12 @@ public class TableMetadataStateMachineImplementation extends AbstractConsensusSt
       metadata.put(tableName, new Pair<>(null, metadata.get(tableName).getRight() + 1));
 
       writeCurrentStateToInternalDb(commit.index());
-      commit.clean();
+      commit.close();
 
       if (recomputeConsumer != null)
         recomputeConsumer.accept(tableName);
     } else
-      commit.clean();
+      commit.close();
 
   }
 

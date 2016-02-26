@@ -169,7 +169,7 @@ public class QueryCancelIntegrationTest extends AbstractDiqubeIntegrationTest {
 
   private int calculateNumberOfRemoteSteps(String diql) {
     try (AnnotationConfigApplicationContext dataContext = new AnnotationConfigApplicationContext()) {
-      dataContext.getEnvironment().setActiveProfiles(Profiles.ALL_BUT_NEW_DATA_WATCHER);
+      dataContext.getEnvironment().setActiveProfiles(Profiles.UNIT_TEST);
       dataContext.scan("org.diqube");
       dataContext.refresh();
 

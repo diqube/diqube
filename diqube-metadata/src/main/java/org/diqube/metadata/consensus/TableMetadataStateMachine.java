@@ -26,8 +26,8 @@ import org.diqube.consensus.ConsensusUtil;
 import org.diqube.data.metadata.TableMetadata;
 import org.diqube.util.Pair;
 
-import io.atomix.copycat.client.Command;
-import io.atomix.copycat.client.Query;
+import io.atomix.copycat.Command;
+import io.atomix.copycat.Query;
 import io.atomix.copycat.server.Commit;
 
 /**

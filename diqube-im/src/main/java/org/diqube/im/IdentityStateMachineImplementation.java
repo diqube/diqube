@@ -74,7 +74,7 @@ public class IdentityStateMachineImplementation extends AbstractConsensusStateMa
     writeCurrentStateToInternalDb(commit.index(), users.values());
 
     if (prev != null)
-      prev.clean();
+      prev.close();
 
     if (userChangedListeners != null)
       userChangedListeners.forEach(l -> l.userChanged(username));
@@ -96,8 +96,8 @@ public class IdentityStateMachineImplementation extends AbstractConsensusStateMa
     writeCurrentStateToInternalDb(commit.index(), users.values());
 
     if (prev != null)
-      prev.clean();
-    commit.clean();
+      prev.close();
+    commit.close();
 
     if (userChangedListeners != null)
       userChangedListeners.forEach(l -> l.userChanged(username));

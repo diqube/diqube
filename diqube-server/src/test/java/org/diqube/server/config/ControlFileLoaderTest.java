@@ -32,15 +32,12 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.HashMap;
 import java.util.function.Function;
 
-import org.diqube.consensus.ConsensusServer;
-import org.diqube.consensus.ConsensusServerTestUtil;
 import org.diqube.context.Profiles;
 import org.diqube.data.metadata.FieldMetadata.FieldType;
 import org.diqube.data.metadata.TableMetadata;
 import org.diqube.data.table.TableFactory;
 import org.diqube.data.table.TableShard;
 import org.diqube.executionenv.TableRegistry;
-import org.diqube.listeners.ClusterManagerListener;
 import org.diqube.loader.CsvLoader;
 import org.diqube.loader.DiqubeLoader;
 import org.diqube.loader.JsonLoader;
@@ -107,14 +104,9 @@ public class ControlFileLoaderTest {
   @BeforeMethod
   public void setup() throws IOException {
     dataContext = new AnnotationConfigApplicationContext();
-    dataContext.getEnvironment().setActiveProfiles(Profiles.ALL_BUT_NEW_DATA_WATCHER);
+    dataContext.getEnvironment().setActiveProfiles(Profiles.UNIT_TEST);
     dataContext.scan("org.diqube");
     dataContext.refresh();
-
-    // simulate "cluster initialized", although we do not start our local server. But we need to get the consensus
-    // running!
-    ConsensusServerTestUtil.configureMemoryOnlyStorage(dataContext.getBean(ConsensusServer.class));
-    dataContext.getBeansOfType(ClusterManagerListener.class).values().forEach(l -> l.clusterInitialized());
 
     tableRegistry = dataContext.getBean(TableRegistry.class);
     metadataManagerMock = Mockito.mock(TableMetadataManager.class);

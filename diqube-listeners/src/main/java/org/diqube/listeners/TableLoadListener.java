@@ -37,7 +37,7 @@ public interface TableLoadListener {
    * @param newTableName
    *          Name of the table the new shard belongs to.
    */
-  public void tableLoaded(String newTableName);
+  public void tableLoaded(String newTableName) throws AbortTableLoadException;
 
   /**
    * A Table has been unloaded and is no longer available in the TableRegistry.
@@ -46,4 +46,19 @@ public interface TableLoadListener {
    *          Name of the table the shard belonged to.
    */
   public void tableUnloaded(String tableName);
+
+  /**
+   * Loading the table must be aborted.
+   */
+  public static class AbortTableLoadException extends Exception {
+    private static final long serialVersionUID = 1L;
+
+    public AbortTableLoadException(String msg) {
+      super(msg);
+    }
+
+    public AbortTableLoadException(String msg, Throwable cause) {
+      super(msg, cause);
+    }
+  }
 }

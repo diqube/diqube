@@ -27,11 +27,13 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
-import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 
 import org.apache.thrift.TException;
+import org.diqube.consensus.ConsensusServer;
 import org.diqube.context.AutoInstatiate;
+import org.diqube.context.shutdown.ContextShutdownListener;
+import org.diqube.context.shutdown.ShutdownAfter;
 import org.diqube.remote.cluster.thrift.ClusterConsensusService;
 import org.diqube.remote.cluster.thrift.RConnectionUnknownException;
 import org.diqube.thrift.base.thrift.RNodeAddress;
@@ -48,7 +50,7 @@ import io.atomix.catalyst.util.concurrent.ThreadPoolContext;
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
-public class ClusterConsensusHandler implements ClusterConsensusService.Iface {
+public class ClusterConsensusHandler implements ClusterConsensusService.Iface, ContextShutdownListener {
 
   @Inject
   private ClusterConsensusConnectionRegistry registry;
@@ -66,8 +68,9 @@ public class ClusterConsensusHandler implements ClusterConsensusService.Iface {
 
   private Deque<Runnable> cleanupActions = new ConcurrentLinkedDeque<>();
 
-  @PreDestroy
-  public void cleanup() {
+  @Override
+  @ShutdownAfter(ConsensusServer.class)
+  public void contextAboutToShutdown() {
     while (!cleanupActions.isEmpty())
       cleanupActions.poll().run();
   }

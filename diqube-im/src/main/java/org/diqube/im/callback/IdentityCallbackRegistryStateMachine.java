@@ -28,8 +28,8 @@ import org.diqube.consensus.ConsensusUtil;
 import org.diqube.remote.query.thrift.IdentityCallbackService;
 import org.diqube.thrift.base.thrift.RNodeAddress;
 
-import io.atomix.copycat.client.Command;
-import io.atomix.copycat.client.Query;
+import io.atomix.copycat.Command;
+import io.atomix.copycat.Query;
 import io.atomix.copycat.server.Commit;
 
 /**
@@ -57,7 +57,7 @@ public interface IdentityCallbackRegistryStateMachine {
   /**
    * Get all currently registered callbacks.
    */
-  @ConsensusMethod(dataClass = GetAllRegistered.class)
+  @ConsensusMethod(dataClass = GetAllRegistered.class, additionalSerializationClasses = RNodeAddress.class)
   public List<RNodeAddress> getAllRegistered(Commit<GetAllRegistered> commit);
 
   public static class Register implements Command<Void> {
@@ -81,6 +81,11 @@ public interface IdentityCallbackRegistryStateMachine {
       res.registerTimeMs = registerTimeMs;
       return ConsensusUtil.localCommit(res);
     }
+
+    @Override
+    public CompactionMode compaction() {
+      return CompactionMode.FULL;
+    }
   }
 
   public static class Unregister implements Command<Void> {
@@ -99,8 +104,8 @@ public interface IdentityCallbackRegistryStateMachine {
     }
 
     @Override
-    public PersistenceLevel persistence() {
-      return PersistenceLevel.PERSISTENT;
+    public CompactionMode compaction() {
+      return CompactionMode.SEQUENTIAL;
     }
   }
 

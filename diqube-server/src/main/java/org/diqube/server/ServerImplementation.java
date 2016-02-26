@@ -38,7 +38,8 @@ import org.diqube.connection.integrity.IntegrityCheckingProtocol;
 import org.diqube.connection.integrity.IntegritySecretHelper;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.context.InjectOptional;
-import org.diqube.listeners.DiqubeGracefulShutdownListener;
+import org.diqube.context.shutdown.ContextShutdownListener;
+import org.diqube.context.shutdown.ShutdownUtil;
 import org.diqube.listeners.ServingListener;
 import org.diqube.remote.cluster.ClusterConsensusServiceConstants;
 import org.diqube.remote.cluster.ClusterFlattenServiceConstants;
@@ -65,6 +66,7 @@ import org.diqube.threads.ExecutorManager;
 import org.diqube.thrift.util.RememberingTransport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ConfigurableApplicationContext;
 
 /**
  * Starts a thrift server and serves any incoming connections.
@@ -125,11 +127,14 @@ public class ServerImplementation {
   private List<ServingListener> servingListeners;
 
   @InjectOptional
-  private List<DiqubeGracefulShutdownListener> gracefulShutdownListeners;
+  private List<ContextShutdownListener> gracefulShutdownListeners;
+
+  @Inject
+  private ConfigurableApplicationContext applicationContext;
 
   private TThreadedSelectorServer server;
 
-  public void serve(Runnable shutdownContextRunnable) {
+  public void serve() {
     TThreadedSelectorServer.Args serverArgs = createServerArgs();
 
     if (serverArgs == null)
@@ -144,10 +149,10 @@ public class ServerImplementation {
         logger.info("Shutting down server...");
         if (gracefulShutdownListeners != null) {
           logger.debug("Executing graceful shutdown listeners...");
-          gracefulShutdownListeners.forEach(l -> l.serverAboutToShutdown());
+          new ShutdownUtil(applicationContext).callShutdownListeners();
         }
         logger.debug("Stopping all local beans...");
-        shutdownContextRunnable.run();
+        applicationContext.close();
         logger.debug("Stopping thrift server...");
         server.stop();
         logger.debug("Shutting down everything of remaining queries...");

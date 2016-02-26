@@ -29,53 +29,10 @@
     <artifactId>diqube</artifactId>
     <version>1-SNAPSHOT</version>
   </parent>
-  <artifactId>diqube-flatten</artifactId>
+  <artifactId>diqube-consensus-test</artifactId>
   <packaging>jar</packaging>
-  <name>diqube - Flatten</name>
+  <name>diqube - Consensus Test classes</name>
   <url>http://www.diqube.org</url>
-
-  <dependencies>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>diqube-executionenv</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>diqube-cluster</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>diqube-remote-cluster</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>diqube-config</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>diqube-name</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    
-    <!-- Test -->
-    
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>diqube-test-util</artifactId>
-      <version>${project.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>diqube-consensus-test</artifactId>
-      <version>${project.version}</version>
-      <scope>test</scope>
-    </dependency>
-  </dependencies>
 
   <build>
     <plugins>
@@ -85,13 +42,27 @@
         <executions>
           <execution>
             <id>update-license-headers</id>
-          <configuration>
-            <skip>true</skip>
-          </configuration>
+            <configuration>
+              <skip>true</skip>
+            </configuration>
           </execution>
         </executions>
       </plugin>
     </plugins>
   </build>
 
+  <dependencies>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>diqube-consensus</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    
+    <!-- TEST -->
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>diqube-test-util</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+  </dependencies>
 </project>

@@ -32,9 +32,10 @@ import org.diqube.cluster.ClusterLayoutStateMachine.GetAllNodes;
 import org.diqube.cluster.ClusterLayoutStateMachine.GetAllTablesServed;
 import org.diqube.cluster.ClusterLayoutStateMachine.IsNodeKnown;
 import org.diqube.connection.NodeAddress;
-import org.diqube.consensus.ConsensusStateMachineClientInterruptedException;
 import org.diqube.consensus.ConsensusClient;
 import org.diqube.consensus.ConsensusClient.ClosableProvider;
+import org.diqube.consensus.ConsensusClient.ConsensusClusterUnavailableException;
+import org.diqube.consensus.ConsensusStateMachineClientInterruptedException;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.thrift.base.thrift.RNodeAddress;
 import org.slf4j.Logger;
@@ -73,7 +74,8 @@ public class ClusterLayout {
         consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class)) {
 
       return new HashSet<>(p.getClient().getAllNodes(GetAllNodes.local()));
-
+    } catch (ConsensusClusterUnavailableException e) {
+      throw new RuntimeException("Consensus cluster unavailable", e);
     } catch (ConsensusStateMachineClientInterruptedException e) {
       logger.error("Interrupted.", e);
       throw e.getInterruptedException();
@@ -90,6 +92,10 @@ public class ClusterLayout {
 
       return p.getClient().isNodeKnown(IsNodeKnown.local(addr));
 
+    } catch (ConsensusClusterUnavailableException e) {
+      logger.warn("Could not access the consensus cluster to identify if node {} is known to the "
+          + "clusterlayout. Assuming 'no'.", addr);
+      return false;
     } catch (ConsensusStateMachineClientInterruptedException e) {
       logger.error("Interrupted.", e);
       throw e.getInterruptedException();
@@ -105,6 +111,8 @@ public class ClusterLayout {
       Set<NodeAddress> res = p.getClient().findNodesServingTable(FindNodesServingTable.local(table));
 
       return res.stream().map(addr -> addr.createRemote()).collect(Collectors.toSet());
+    } catch (ConsensusClusterUnavailableException e) {
+      throw new RuntimeException("Consensus cluster unavailable", e);
     } catch (ConsensusStateMachineClientInterruptedException e) {
       logger.error("Interrupted.", e);
       throw e.getInterruptedException();
@@ -120,6 +128,8 @@ public class ClusterLayout {
 
       return p.getClient().getAllTablesServed(GetAllTablesServed.local());
 
+    } catch (ConsensusClusterUnavailableException e) {
+      throw new RuntimeException("Consensus cluster unavailable", e);
     } catch (ConsensusStateMachineClientInterruptedException e) {
       logger.error("Interrupted.", e);
       throw e.getInterruptedException();

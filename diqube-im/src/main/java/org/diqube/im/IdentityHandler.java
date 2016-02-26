@@ -50,6 +50,7 @@ import org.diqube.connection.ConnectionPool;
 import org.diqube.connection.OurNodeAddressProvider;
 import org.diqube.consensus.ConsensusClient;
 import org.diqube.consensus.ConsensusClient.ClosableProvider;
+import org.diqube.consensus.ConsensusClient.ConsensusClusterUnavailableException;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.im.IdentityStateMachine.DeleteUser;
 import org.diqube.im.IdentityStateMachine.GetUser;
@@ -172,6 +173,9 @@ public class IdentityHandler implements IdentityService.Iface {
     SUser user;
     try (ClosableProvider<IdentityStateMachine> p = consensusClient.getStateMachineClient(IdentityStateMachine.class)) {
       user = p.getClient().getUser(GetUser.local(userName));
+    } catch (ConsensusClusterUnavailableException e) {
+      logger.warn("Consensus cluster offline, cannot load user!", e);
+      user = null;
     }
     if (user == null) {
       logger.info("User '{}' tried to login, but does not exist", userName);
@@ -239,6 +243,8 @@ public class IdentityHandler implements IdentityService.Iface {
     // all registered callbacks are called accordingly.
     try (ClosableProvider<LogoutStateMachine> p = consensusClient.getStateMachineClient(LogoutStateMachine.class)) {
       p.getClient().logout(Logout.local(ticket));
+    } catch (ConsensusClusterUnavailableException e) {
+      throw new RuntimeException("Consensus cluster unavailable", e);
     }
 
     logger.info("Logout of user '{}', ticket {}, valid until {} successful.", ticket.getClaim().getUsername(),
@@ -267,6 +273,8 @@ public class IdentityHandler implements IdentityService.Iface {
       internalSetUserPassword(user, newPassword);
 
       p.getClient().setUser(SetUser.local(user));
+    } catch (ConsensusClusterUnavailableException e) {
+      throw new RuntimeException("Consensus cluster unavailable", e);
     }
   }
 
@@ -292,6 +300,8 @@ public class IdentityHandler implements IdentityService.Iface {
       user.setEmail(newEmail);
 
       p.getClient().setUser(SetUser.local(user));
+    } catch (ConsensusClusterUnavailableException e) {
+      throw new RuntimeException("Consensus cluster unavailable", e);
     }
   }
 
@@ -339,6 +349,8 @@ public class IdentityHandler implements IdentityService.Iface {
       }
 
       p.getClient().setUser(SetUser.local(user));
+    } catch (ConsensusClusterUnavailableException e) {
+      throw new RuntimeException("Consensus cluster unavailable", e);
     }
   }
 
@@ -383,6 +395,8 @@ public class IdentityHandler implements IdentityService.Iface {
       }
 
       p.getClient().setUser(SetUser.local(user));
+    } catch (ConsensusClusterUnavailableException e) {
+      throw new RuntimeException("Consensus cluster unavailable", e);
     }
   }
 
@@ -400,6 +414,8 @@ public class IdentityHandler implements IdentityService.Iface {
     SUser user;
     try (ClosableProvider<IdentityStateMachine> p = consensusClient.getStateMachineClient(IdentityStateMachine.class)) {
       user = p.getClient().getUser(GetUser.local(username));
+    } catch (ConsensusClusterUnavailableException e) {
+      throw new RuntimeException("Consensus cluster unavailable", e);
     }
     if (user == null)
       throw new AuthorizationException("User does not exist");
@@ -438,6 +454,8 @@ public class IdentityHandler implements IdentityService.Iface {
 
     try (ClosableProvider<IdentityStateMachine> p = consensusClient.getStateMachineClient(IdentityStateMachine.class)) {
       p.getClient().setUser(SetUser.local(user));
+    } catch (ConsensusClusterUnavailableException e) {
+      throw new RuntimeException("Consensus cluster unavailable", e);
     }
   }
 
@@ -456,6 +474,8 @@ public class IdentityHandler implements IdentityService.Iface {
 
     try (ClosableProvider<IdentityStateMachine> p = consensusClient.getStateMachineClient(IdentityStateMachine.class)) {
       p.getClient().deleteUser(DeleteUser.local(username));
+    } catch (ConsensusClusterUnavailableException e) {
+      throw new RuntimeException("Consensus cluster unavailable", e);
     }
   }
 
@@ -472,6 +492,8 @@ public class IdentityHandler implements IdentityService.Iface {
     SUser user;
     try (ClosableProvider<IdentityStateMachine> p = consensusClient.getStateMachineClient(IdentityStateMachine.class)) {
       user = p.getClient().getUser(GetUser.local(username));
+    } catch (ConsensusClusterUnavailableException e) {
+      throw new RuntimeException("Consensus cluster unavailable", e);
     }
     if (user == null)
       throw new AuthorizationException("User does not exist");
@@ -484,6 +506,8 @@ public class IdentityHandler implements IdentityService.Iface {
     try (ClosableProvider<IdentityCallbackRegistryStateMachine> p =
         consensusClient.getStateMachineClient(IdentityCallbackRegistryStateMachine.class)) {
       p.getClient().register(Register.local(nodeAddress, System.currentTimeMillis()));
+    } catch (ConsensusClusterUnavailableException e) {
+      throw new RuntimeException("Consensus cluster unavailable", e);
     }
     logger.info("Registered identity callback at '{}' (service level).", nodeAddress);
   }
@@ -493,6 +517,8 @@ public class IdentityHandler implements IdentityService.Iface {
     try (ClosableProvider<IdentityCallbackRegistryStateMachine> p =
         consensusClient.getStateMachineClient(IdentityCallbackRegistryStateMachine.class)) {
       p.getClient().unregister(Unregister.local(nodeAddress));
+    } catch (ConsensusClusterUnavailableException e) {
+      throw new RuntimeException("Consensus cluster unavailable", e);
     }
     logger.info("Removed identity callback at '{}' (service level).", nodeAddress);
   }
@@ -502,6 +528,8 @@ public class IdentityHandler implements IdentityService.Iface {
     List<Ticket> invalidTickets;
     try (ClosableProvider<LogoutStateMachine> p = consensusClient.getStateMachineClient(LogoutStateMachine.class)) {
       invalidTickets = p.getClient().getInvalidTickets(GetInvalidTickets.local());
+    } catch (ConsensusClusterUnavailableException e) {
+      throw new RuntimeException("Consensus cluster unavailable", e);
     }
 
     return invalidTickets.stream().map(t -> TicketInfoUtil.fromTicket(t)).collect(Collectors.toList());

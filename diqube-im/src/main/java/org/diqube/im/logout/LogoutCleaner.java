@@ -32,9 +32,10 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 
-import org.diqube.consensus.ConsensusStateMachineClientInterruptedException;
 import org.diqube.consensus.ConsensusClient;
 import org.diqube.consensus.ConsensusClient.ClosableProvider;
+import org.diqube.consensus.ConsensusClient.ConsensusClusterUnavailableException;
+import org.diqube.consensus.ConsensusStateMachineClientInterruptedException;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.im.logout.LogoutStateMachine.CleanLogoutTicket;
 import org.diqube.im.logout.LogoutStateMachineImplementation.LogoutStateMachineListener;
@@ -118,6 +119,8 @@ public class LogoutCleaner implements LogoutStateMachineListener {
               p.getClient().cleanLogoutTicket(CleanLogoutTicket.local(t));
 
             timeoutedTickets.clear();
+          } catch (ConsensusClusterUnavailableException e) {
+            logger.warn("Could not contact consensus cluster to remove old logged out tickets.", e);
           } catch (ConsensusStateMachineClientInterruptedException e) {
             // exit quietly
             return;

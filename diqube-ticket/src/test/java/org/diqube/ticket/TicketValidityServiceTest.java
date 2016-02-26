@@ -148,7 +148,7 @@ public class TicketValidityServiceTest {
 
   private void startNewContext(long now) {
     dataContext = new AnnotationConfigApplicationContext();
-    dataContext.getEnvironment().setActiveProfiles(Profiles.ALL_BUT_NEW_DATA_WATCHER);
+    dataContext.getEnvironment().setActiveProfiles(Profiles.UNIT_TEST);
     dataContext.scan("org.diqube");
     dataContext.registerBeanDefinition("a", new RootBeanDefinition(TestTicketRsaKeyFileProvider.class));
     dataContext.refresh();

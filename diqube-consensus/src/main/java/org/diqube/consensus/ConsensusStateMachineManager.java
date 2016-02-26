@@ -43,7 +43,7 @@ import com.google.common.collect.Sets;
 import com.google.common.reflect.ClassPath;
 import com.google.common.reflect.ClassPath.ClassInfo;
 
-import io.atomix.copycat.client.Operation;
+import io.atomix.copycat.Operation;
 import io.atomix.copycat.server.Commit;
 
 /**
@@ -62,6 +62,10 @@ public class ConsensusStateMachineManager {
   private Map<Class<? extends Operation<?>>, Triple<Class<?>, String, Class<?>[]>> dataClassToInterfaceAndMethodNameAndParameters;
   private Map<Class<?>, Class<?>> interfaceToImpl;
   private Map<Class<?>, Set<Class<? extends Operation<?>>>> interfaceToOperations;
+  /**
+   * A set of all values specified in {@link ConsensusMethod#additionalSerializationClasses()}.
+   */
+  private Set<Class<?>> allAdditionalSerializationClasses;
 
   /**
    * @return All Copycat {@link Operation} classes that the central copycat state machine needs to support.
@@ -112,6 +116,14 @@ public class ConsensusStateMachineManager {
     return res;
   }
 
+  /**
+   * @return All those classes which have been used in {@link ConsensusMethod#additionalSerializationClasses()} and
+   *         which need to be supported by copycat serialization therefore.
+   */
+  public Set<Class<?>> getAllAdditionalSerializationClasses() {
+    return allAdditionalSerializationClasses;
+  }
+
   @PostConstruct
   public void initialize() {
     ImmutableSet<ClassInfo> classInfos;
@@ -147,6 +159,7 @@ public class ConsensusStateMachineManager {
 
     dataClassToInterfaceAndMethodNameAndParameters = new HashMap<>();
     interfaceToOperations = new HashMap<>();
+    allAdditionalSerializationClasses = new HashSet<>();
 
     Class<?>[] expectedParamTypes = new Class<?>[] { Commit.class };
 
@@ -166,9 +179,13 @@ public class ConsensusStateMachineManager {
           dataClassToInterfaceAndMethodNameAndParameters.put(dataClass,
               new Triple<Class<?>, String, Class<?>[]>(interfaceClass, m.getName(), m.getParameterTypes()));
           interfaceToOperations.get(interfaceClass).add(dataClass);
+
+          allAdditionalSerializationClasses.addAll(Arrays.asList(consensusMethod.additionalSerializationClasses()));
         }
       }
     }
+
+    allAdditionalSerializationClasses.remove(Object.class); // remove default value of annotation
 
     logger.debug("Loaded {} consensus operations of {} interfaces",
         dataClassToInterfaceAndMethodNameAndParameters.keySet().size(), interfaceToImpl.keySet().size());
