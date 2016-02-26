@@ -62,7 +62,21 @@ public class DeadServerIntegrationTest extends AbstractDiqubeIntegrationTest {
 
   @Test
   @NeedsServer(servers = 3)
-  public void queryDiesQueryResurrectsQuery() {
+  public void queryDiesQueryResurrectsQueryKill1() {
+    internalQueryDiesQueryResurrectsQuery(1);
+  }
+
+  @Test
+  @NeedsServer(servers = 3)
+  public void queryDiesQueryResurrectsQueryKill0() {
+    // "0" is probably the consensus leader, since it is started first.
+    internalQueryDiesQueryResurrectsQuery(0);
+  }
+
+  /**
+   * Implementation of test that kills a server with a specific index.
+   */
+  public void internalQueryDiesQueryResurrectsQuery(int killIdx) {
     serverControl.get(0).deploy(cp(DOUBLEVAL_0_CONTROL_FILE), cp(DOUBLEVAL_JSON_FILE));
     serverControl.get(1).deploy(cp(DOUBLEVAL_10_CONTROL_FILE), cp(DOUBLEVAL_JSON_FILE));
     serverControl.get(2).deploy(cp(DOUBLEVAL_20_CONTROL_FILE), cp(DOUBLEVAL_JSON_FILE));
