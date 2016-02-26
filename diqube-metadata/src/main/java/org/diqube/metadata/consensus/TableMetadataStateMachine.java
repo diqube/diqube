@@ -54,7 +54,8 @@ public interface TableMetadataStateMachine {
    * @return <code>null</code> if not available. Note that also {@link Pair#getLeft()} can be null, but have a version
    *         number (in case the metadata is up for recomputation currently.
    */
-  @ConsensusMethod(dataClass = GetTableMetadata.class)
+  @ConsensusMethod(dataClass = GetTableMetadata.class,
+      additionalSerializationClasses = { Pair.class, TableMetadata.class })
   public Pair<TableMetadata, Long> getTableMetadata(Commit<GetTableMetadata> commit);
 
   /**

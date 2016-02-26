@@ -67,6 +67,9 @@ public interface ConsensusClient extends ContextShutdownListener {
    * Provides a client to a consensus client. Needs to be {@link #close()}d correctly!
    */
   public static interface ClosableProvider<T> extends CloseableNoException {
+    /**
+     * See {@link ConsensusClient#getStateMachineClient(Class)}.
+     */
     public T getClient();
   }
 

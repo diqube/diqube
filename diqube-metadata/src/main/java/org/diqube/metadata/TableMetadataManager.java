@@ -32,6 +32,7 @@ import javax.inject.Inject;
 import org.diqube.consensus.ConsensusClient;
 import org.diqube.consensus.ConsensusClient.ClosableProvider;
 import org.diqube.consensus.ConsensusClient.ConsensusClusterUnavailableException;
+import org.diqube.consensus.internal.DiqubeCatalystSerializer;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.context.InjectOptional;
 import org.diqube.data.metadata.TableMetadata;
@@ -68,6 +69,9 @@ public class TableMetadataManager {
 
   @InjectOptional
   private ExecutorManager executorManager;
+
+  @Inject
+  private DiqubeCatalystSerializer diqubeCatalystSerializer;
 
   private ExecutorService recomputeExecutor;
 
@@ -143,13 +147,21 @@ public class TableMetadataManager {
           previousVersion = currentMetadataPair.getRight();
         }
 
+        try {
+          diqubeCatalystSerializer.validateSerializationObject(newMetadata);
+        } catch (IllegalArgumentException e) {
+          logger.warn("Cannot publish metadata for table {} because metadata cannot be accepted by consensus cluster.",
+              tableName, e);
+          return;
+        }
+
         success =
             p.getClient().compareAndSetTableMetadata(CompareAndSetTableMetadata.local(previousVersion, newMetadata));
       }
 
       logger.debug("Sent the current metadata of the local '{}' table to the cluster.", tableName);
     } catch (ConsensusClusterUnavailableException e) {
-      throw new IllegalStateException("Consensus cluster not available", e);
+      logger.warn("Could not publish metadata becuase consensus cluster is not available", e);
     }
   }
 
