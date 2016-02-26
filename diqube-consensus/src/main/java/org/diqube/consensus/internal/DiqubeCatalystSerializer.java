@@ -20,6 +20,7 @@
  */
 package org.diqube.consensus.internal;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -45,6 +46,15 @@ import io.atomix.catalyst.serializer.Serializer;
 public class DiqubeCatalystSerializer extends Serializer {
   private static final int BASE_SERIALIZATION_ID = 2500;
 
+  /**
+   * Additional classes that we need to register in order to serialize them correctly.
+   */
+  private static final Class<?>[] ADDITIONAL_SERIALIZATION_CLASSES = { //
+      // IllegalStateException is send e.g. by InactiveState if a client tries to communicate with an inactive server -
+      // be sure that the server response is received by the client and it can retry.
+      IllegalStateException.class //
+  };
+
   @Inject
   private ConsensusStateMachineManager consensusStateMachineManager;
 
@@ -61,6 +71,8 @@ public class DiqubeCatalystSerializer extends Serializer {
           consensusStateMachineManager.getAllAdditionalSerializationClasses());
       List<Class<?>> serializationClassesSorted = allSerializationClasses.stream()
           .sorted((c1, c2) -> c1.getName().compareTo(c2.getName())).collect(Collectors.toList());
+
+      serializationClassesSorted.addAll(Arrays.asList(ADDITIONAL_SERIALIZATION_CLASSES));
 
       // start suing IDs at an arbitrary, but fixed point, so we do not overwrite IDs used internally by copycat.
       int nextId = BASE_SERIALIZATION_ID;
