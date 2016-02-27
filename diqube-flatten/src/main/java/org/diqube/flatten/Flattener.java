@@ -71,7 +71,7 @@ import org.diqube.loader.columnshard.ColumnShardBuilder;
 import org.diqube.loader.compression.CompressedDoubleDictionaryBuilder;
 import org.diqube.loader.compression.CompressedLongDictionaryBuilder;
 import org.diqube.loader.compression.CompressedStringDictionaryBuilder;
-import org.diqube.name.FlattenedTableNameGenerator;
+import org.diqube.name.FlattenedTableNameUtil;
 import org.diqube.name.RepeatedColumnNameGenerator;
 import org.diqube.util.Pair;
 import org.slf4j.Logger;
@@ -130,7 +130,7 @@ public class Flattener {
   private RepeatedColumnNameGenerator repeatedColNameGen;
 
   @Inject
-  private FlattenedTableNameGenerator flattenedTableNameGen;
+  private FlattenedTableNameUtil flattenedTableNameGen;
 
   @Inject
   private ColumnPatternUtil colPatternUtil;

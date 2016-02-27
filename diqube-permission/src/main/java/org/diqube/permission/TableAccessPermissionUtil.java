@@ -23,6 +23,7 @@ package org.diqube.permission;
 import javax.inject.Inject;
 
 import org.diqube.context.AutoInstatiate;
+import org.diqube.name.FlattenedTableNameUtil;
 import org.diqube.thrift.base.thrift.Ticket;
 
 /**
@@ -35,11 +36,20 @@ public class TableAccessPermissionUtil {
   @Inject
   private PermissionCheckUtil permissionsUtil;
 
+  @Inject
+  private FlattenedTableNameUtil flattenedTableNameUtil;
+
   /**
+   * @param tableName
+   *          name of the table to check access for. If this is the name of a flattened table, access to the original
+   *          table will be checked.
    * @param ticket
    *          Must have been validated before!
    */
   public boolean hasAccessToTable(Ticket ticket, String tableName) {
+    if (flattenedTableNameUtil.isFlattenedTableName(tableName))
+      tableName = flattenedTableNameUtil.getOriginalTableNameFromFlatten(tableName);
+
     return permissionsUtil.hasPermission(ticket, Permissions.TABLE_ACCESS, tableName);
   }
 

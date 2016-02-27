@@ -1,0 +1,5 @@
+table=testtable
+file=flattendata.json
+type=json
+firstRowId=0
+autoFlatten=a[*]

@@ -60,6 +60,11 @@
       <artifactId>diqube-permission</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>diqube-diql</artifactId>
+      <version>${project.version}</version>
+    </dependency>
     
     <!-- Test -->
     

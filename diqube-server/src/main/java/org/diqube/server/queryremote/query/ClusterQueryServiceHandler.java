@@ -50,7 +50,7 @@ import org.diqube.executionenv.cache.ColumnShardCacheRegistry;
 import org.diqube.executionenv.cache.WritableColumnShardCache;
 import org.diqube.executionenv.querystats.QueryableColumnShard;
 import org.diqube.function.IntermediaryResult;
-import org.diqube.name.FlattenedTableNameGenerator;
+import org.diqube.name.FlattenedTableNameUtil;
 import org.diqube.queries.QueryRegistry;
 import org.diqube.queries.QueryRegistry.QueryExceptionHandler;
 import org.diqube.queries.QueryRegistry.QueryPercentHandler;
@@ -270,7 +270,7 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
                 String flattenBy = executionPlan.getFromSpec().getFlattened().getFlattenBy();
                 UUID flattenId = RUuidUtil.toUuid(executionPlan.getFromSpec().getFlattened().getFlattenId());
                 finalTableName =
-                    new FlattenedTableNameGenerator().createFlattenedTableName(origTableName, flattenBy, flattenId);
+                    new FlattenedTableNameUtil().createFlattenedTableName(origTableName, flattenBy, flattenId);
               }
               WritableColumnShardCache tableCache = tableCacheRegistry.getColumnShardCache(finalTableName);
               if (tableCache != null) {

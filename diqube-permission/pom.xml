@@ -57,6 +57,11 @@
       <artifactId>diqube-im</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>diqube-name</artifactId>
+      <version>${project.version}</version>
+    </dependency>
    
     
     <!-- TEST -->

@@ -23,6 +23,7 @@ package org.diqube.metadata.consensus;
 import org.diqube.consensus.ConsensusMethod;
 import org.diqube.consensus.ConsensusStateMachine;
 import org.diqube.consensus.ConsensusUtil;
+import org.diqube.name.FlattenedTableNameUtil;
 import org.diqube.thrift.base.thrift.TableMetadata;
 import org.diqube.util.Pair;
 
@@ -50,6 +51,10 @@ public interface TableMetadataStateMachine {
 
   /**
    * Return the currently valid TableMetadata and its version number.
+   * 
+   * Note that the table name that can be searched for typically has to be a "valid table name", meaning either a normal
+   * table name, or, if its for a flattened table, then one created by {@link FlattenedTableNameUtil} (including the
+   * flattenId).
    * 
    * @return <code>null</code> if not available. Note that also {@link Pair#getLeft()} can be null, but have a version
    *         number (in case the metadata is up for recomputation currently.

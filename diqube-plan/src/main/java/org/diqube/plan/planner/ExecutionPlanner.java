@@ -49,7 +49,7 @@ import org.diqube.execution.steps.ExecuteRemotePlanOnShardsStep;
 import org.diqube.execution.steps.FlattenStep;
 import org.diqube.execution.steps.HavingResultStep;
 import org.diqube.executionenv.ExecutionEnvironment;
-import org.diqube.name.FlattenedTableNameGenerator;
+import org.diqube.name.FlattenedTableNameUtil;
 import org.diqube.plan.PlannerColumnInfo;
 import org.diqube.plan.PlannerColumnInfoBuilder;
 import org.diqube.plan.RemoteExecutionPlanFactory;
@@ -75,14 +75,14 @@ public class ExecutionPlanner {
 
   private ColumnVersionManagerFactory columnVersionManagerFactory;
 
-  private FlattenedTableNameGenerator flattenedTableNameGenerator;
+  private FlattenedTableNameUtil flattenedTableNameGenerator;
 
   private int nextMasterStepId = 0;
   private int nextRemoteStepId = 0;
 
   public ExecutionPlanner(ExecutablePlanFactory executablePlanFactory,
       RemoteExecutionPlanFactory remoteExecutionPlanFactory, ColumnVersionManagerFactory columnVersionManagerFactory,
-      FlattenedTableNameGenerator flattenedTableNameGenerator) {
+      FlattenedTableNameUtil flattenedTableNameGenerator) {
     this.executablePlanFactory = executablePlanFactory;
     this.remoteExecutionPlanFactory = remoteExecutionPlanFactory;
     this.columnVersionManagerFactory = columnVersionManagerFactory;

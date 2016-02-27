@@ -25,7 +25,7 @@ import javax.inject.Inject;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.execution.ColumnVersionManagerFactory;
 import org.diqube.execution.ExecutablePlanFactory;
-import org.diqube.name.FlattenedTableNameGenerator;
+import org.diqube.name.FlattenedTableNameUtil;
 import org.diqube.plan.planner.ExecutionPlanner;
 
 /**
@@ -45,7 +45,7 @@ public class ExecutionPlannerFactory {
   private ColumnVersionManagerFactory columnVersionManagerFactory;
 
   @Inject
-  private FlattenedTableNameGenerator flattenedTableNameGenerator;
+  private FlattenedTableNameUtil flattenedTableNameGenerator;
 
   public ExecutionPlanner createExecutionPlanner() {
     return new ExecutionPlanner(executablePlanFactory, remoteExecutionPlanFactory, columnVersionManagerFactory,

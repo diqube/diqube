@@ -43,7 +43,7 @@ import org.diqube.data.table.TableShard;
 import org.diqube.data.types.dbl.DoubleStandardColumnShard;
 import org.diqube.data.types.lng.LongStandardColumnShard;
 import org.diqube.data.types.str.StringStandardColumnShard;
-import org.diqube.name.FlattenedTableNameGenerator;
+import org.diqube.name.FlattenedTableNameUtil;
 
 /**
  * Util for {@link FlattenedTable}s.
@@ -57,7 +57,7 @@ public class FlattenedTableUtil {
   private FlattenDataFactory factory;
 
   @Inject
-  private FlattenedTableNameGenerator flattenedTableNameGenerator;
+  private FlattenedTableNameUtil flattenedTableNameGenerator;
 
   @Inject
   private ColumnPageFactory columnPageFactory;

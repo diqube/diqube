@@ -26,7 +26,7 @@ import java.util.concurrent.ConcurrentMap;
 import org.diqube.config.Config;
 import org.diqube.config.ConfigKey;
 import org.diqube.context.AutoInstatiate;
-import org.diqube.name.FlattenedTableNameGenerator;
+import org.diqube.name.FlattenedTableNameUtil;
 
 /**
  * Manages {@link WritableColumnShardCache} instances.
@@ -43,7 +43,7 @@ public class ColumnShardCacheRegistry {
   /**
    * @param tableName
    *          If non-flattened table, this is simply the plain name of the table. If flattened table: Use
-   *          {@link FlattenedTableNameGenerator} to generate the name.
+   *          {@link FlattenedTableNameUtil} to generate the name.
    * @return The cache for the given table or <code>null</code> if not available.
    */
   public WritableColumnShardCache getColumnShardCache(String tableName) {
@@ -53,7 +53,7 @@ public class ColumnShardCacheRegistry {
   /**
    * @param tableName
    *          If non-flattened table, this is simply the plain name of the table. If flattened table: Use
-   *          {@link FlattenedTableNameGenerator} to generate the name.
+   *          {@link FlattenedTableNameUtil} to generate the name.
    * @return The cache for the given table. If there was none, one is created.
    */
   public WritableColumnShardCache getOrCreateColumnShardCache(String tableName) {
