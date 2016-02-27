@@ -25,18 +25,23 @@ import java.util.UUID;
 
 import org.diqube.itest.AbstractDiqubeIntegrationTest;
 import org.diqube.itest.annotations.NeedsServer;
+import org.diqube.itest.control.ServerControl;
 import org.diqube.itest.util.QueryResultServiceTestUtil;
 import org.diqube.itest.util.QueryResultServiceTestUtil.TestQueryResultService;
 import org.diqube.itest.util.Waiter;
 import org.diqube.name.FlattenedTableNameUtil;
+import org.diqube.permission.Permissions;
 import org.diqube.remote.query.thrift.ROptionalTableMetadata;
 import org.diqube.server.ControlFileManager;
+import org.diqube.thrift.base.thrift.AuthorizationException;
 import org.diqube.thrift.base.thrift.FieldMetadata;
 import org.diqube.thrift.base.thrift.FieldType;
 import org.diqube.thrift.base.thrift.RUUID;
 import org.diqube.thrift.base.thrift.TableMetadata;
 import org.diqube.thrift.base.thrift.Ticket;
 import org.diqube.thrift.base.util.RUuidUtil;
+import org.diqube.tool.im.AddPermissionActualIdentityToolFunction;
+import org.diqube.tool.im.CreateUserActualIdentityToolFunction;
 import org.diqube.util.Holder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,6 +74,10 @@ public class TableMetadataIntegrationTest extends AbstractDiqubeIntegrationTest 
           + ControlFileManager.CONTROL_FILE_EXTENSION;
   private static final String FLATTEN_JSON_FILE =
       "/" + TableMetadataIntegrationTest.class.getSimpleName() + "/flattendata.json";
+
+  private static final String USER = "user1";
+  private static final String PASSWD = "passwd";
+  private static final String EMAIL = "a@b.c";
 
   @Test
   @NeedsServer(servers = 2)
@@ -346,6 +355,113 @@ public class TableMetadataIntegrationTest extends AbstractDiqubeIntegrationTest 
         Assert.assertEquals(fieldMetadata.getFieldName(), "a.b", "Expected correct field name");
         Assert.assertEquals(fieldMetadata.getFieldType(), FieldType.LONG, "Expected correct field type");
         Assert.assertEquals(fieldMetadata.isRepeated(), false, "Expected correct repeated state of field");
+      }
+    });
+  }
+
+  @Test
+  @NeedsServer
+  public void flattenByAutoflattenNonRoot() {
+    serverControl.get(0).deploy(cp(FLATTEN_AUTOFLATTEN_CONTROL_FILE), cp(FLATTEN_JSON_FILE));
+
+    logger.info("Creating new user with access to test table");
+    toolControl.im(serverControl.get(0).getAddr(), CreateUserActualIdentityToolFunction.FUNCTION_NAME, //
+        ServerControl.ROOT_USER, ServerControl.ROOT_PASSWORD, //
+        USER, // paramUser
+        PASSWD, // paramPassword
+        EMAIL, // paramEmail
+        null, // paramPermission
+        null // paramPermissionObject
+    );
+
+    toolControl.im(serverControl.get(0).getAddr(), AddPermissionActualIdentityToolFunction.FUNCTION_NAME, //
+        ServerControl.ROOT_USER, ServerControl.ROOT_PASSWORD, //
+        USER, // paramUser
+        null, // paramPassword
+        null, // paramEmail
+        Permissions.TABLE_ACCESS, // paramPermission
+        TABLE // paramPermissionObject
+    );
+
+    Ticket ticket = serverControl.get(0).login(USER, PASSWD);
+
+    // this one does not include the flattenId! It is more like the statement used in a diql query.
+    String incompleteFlattenTableName = "flatten(" + TABLE + ", a[*])";
+
+    logger.info("Checking if metadata is available for flattened table.");
+    serverControl.get(0).getSerivceTestUtil().tableMetadataService(tableMetadataService -> {
+      new Waiter().waitUntil("Metadata of flattened table is available", 10, 500, () -> {
+        ROptionalTableMetadata m;
+        try {
+          m = tableMetadataService.getTableMetadata(ticket, incompleteFlattenTableName);
+        } catch (Exception e) {
+          logger.warn("Excpetion when trying to fetch metadata", e);
+          return false;
+        }
+        return m.isSetTableMetadata() && m.getTableMetadata().getFields().size() == 2;
+      });
+
+      ROptionalTableMetadata m = tableMetadataService.getTableMetadata(ticket, incompleteFlattenTableName);
+
+      Assert.assertTrue(m.isSetTableMetadata(), "Expected to receive table metadata");
+      // the function should NOT return the table name with the flattenId. If the user did not know the flattenId, we do
+      // not want to tell him - because in the end this is some internal information he should not care about!
+      Assert.assertEquals(m.getTableMetadata().getTableName(), incompleteFlattenTableName,
+          "Expected correct table name in returned metadata");
+      Assert.assertEquals(m.getTableMetadata().getFields().size(), 2, "Expected correct number of fields in metadata");
+
+      FieldMetadata fieldMetadata = m.getTableMetadata().getFields().get(0);
+      if (fieldMetadata.getFieldName().equals("a")) {
+        Assert.assertEquals(fieldMetadata.getFieldType(), FieldType.CONTAINER, "Expected correct field type");
+        Assert.assertEquals(fieldMetadata.isRepeated(), false, "Expected correct repeated state of field");
+      } else {
+        Assert.assertEquals(fieldMetadata.getFieldName(), "a.b", "Expected correct field name");
+        Assert.assertEquals(fieldMetadata.getFieldType(), FieldType.LONG, "Expected correct field type");
+        Assert.assertEquals(fieldMetadata.isRepeated(), false, "Expected correct repeated state of field");
+      }
+    });
+  }
+
+  @Test
+  @NeedsServer
+  public void flattenByAutoflattenNonRootNoAccess() {
+    serverControl.get(0).deploy(cp(FLATTEN_AUTOFLATTEN_CONTROL_FILE), cp(FLATTEN_JSON_FILE));
+
+    logger.info("Creating new user WITHOUT access to test table");
+    toolControl.im(serverControl.get(0).getAddr(), CreateUserActualIdentityToolFunction.FUNCTION_NAME, //
+        ServerControl.ROOT_USER, ServerControl.ROOT_PASSWORD, //
+        USER, // paramUser
+        PASSWD, // paramPassword
+        EMAIL, // paramEmail
+        null, // paramPermission
+        null // paramPermissionObject
+    );
+
+    Ticket ticket = serverControl.get(0).login(USER, PASSWD);
+    Ticket superuserTicket = serverControl.get(0).loginSuperuser();
+
+    // this one does not include the flattenId! It is more like the statement used in a diql query.
+    String incompleteFlattenTableName = "flatten(" + TABLE + ", a[*])";
+
+    logger.info("Checking if metadata is available for flattened table.");
+    serverControl.get(0).getSerivceTestUtil().tableMetadataService(tableMetadataService -> {
+      new Waiter().waitUntil("Metadata of flattened table is available for superuser", 10, 500, () -> {
+        ROptionalTableMetadata m;
+        try {
+          m = tableMetadataService.getTableMetadata(superuserTicket, incompleteFlattenTableName);
+        } catch (Exception e) {
+          logger.warn("Excpetion when trying to fetch metadata", e);
+          return false;
+        }
+        return m.isSetTableMetadata() && m.getTableMetadata().getFields().size() == 2;
+      });
+
+      try {
+        ROptionalTableMetadata res = tableMetadataService.getTableMetadata(ticket, incompleteFlattenTableName);
+        Assert.fail("Did expect that service returns with "
+            + "authorizationException, but did return something instead: " + res);
+      } catch (AuthorizationException e) {
+        // fine, exception is expected
       }
     });
   }

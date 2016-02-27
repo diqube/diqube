@@ -29,15 +29,20 @@ import java.util.stream.Collectors;
 
 import org.diqube.itest.AbstractDiqubeIntegrationTest;
 import org.diqube.itest.annotations.NeedsServer;
+import org.diqube.itest.control.ServerControl;
 import org.diqube.itest.util.QueryResultServiceTestUtil;
 import org.diqube.itest.util.QueryResultServiceTestUtil.TestQueryResultService;
 import org.diqube.itest.util.Waiter;
+import org.diqube.permission.Permissions;
 import org.diqube.server.ControlFileManager;
+import org.diqube.thrift.base.thrift.AuthorizationException;
 import org.diqube.thrift.base.thrift.RUUID;
 import org.diqube.thrift.base.thrift.RValue;
 import org.diqube.thrift.base.thrift.Ticket;
 import org.diqube.thrift.base.util.RUuidUtil;
 import org.diqube.thrift.base.util.RValueUtil;
+import org.diqube.tool.im.AddPermissionActualIdentityToolFunction;
+import org.diqube.tool.im.CreateUserActualIdentityToolFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
@@ -65,6 +70,10 @@ public class FlattenIntegrationTest extends AbstractDiqubeIntegrationTest {
       "/" + FlattenIntegrationTest.class.getSimpleName() + "/flattendata6.json";
   private static final String DATA6_CONTROL_FILE =
       "/" + FlattenIntegrationTest.class.getSimpleName() + "/flattendata6" + ControlFileManager.CONTROL_FILE_EXTENSION;
+
+  private static final String USER = "user1";
+  private static final String PASSWD = "passwd";
+  private static final String EMAIL = "a@b.c";
 
   @Test
   @NeedsServer(servers = 2)
@@ -133,6 +142,97 @@ public class FlattenIntegrationTest extends AbstractDiqubeIntegrationTest {
       List<List<Long>> actual = transformResult(queryRes.getFinalUpdate().getRows());
 
       Assert.assertEquals(actual, expectedResult, "Expected to get correct result AFTER adding additional shard.");
+    } catch (IOException e) {
+      throw new RuntimeException("Could not execute query", e);
+    }
+  }
+
+  @Test
+  @NeedsServer
+  public void flattenTestNonRoot() throws IOException {
+    // GIVEN
+    serverControl.get(0).deploy(cp(DATA0_CONTROL_FILE), cp(DATA0_JSON_FILE));
+
+    logger.info("Creating new user with access to test table");
+    toolControl.im(serverControl.get(0).getAddr(), CreateUserActualIdentityToolFunction.FUNCTION_NAME, //
+        ServerControl.ROOT_USER, ServerControl.ROOT_PASSWORD, //
+        USER, // paramUser
+        PASSWD, // paramPassword
+        EMAIL, // paramEmail
+        null, // paramPermission
+        null // paramPermissionObject
+    );
+
+    toolControl.im(serverControl.get(0).getAddr(), AddPermissionActualIdentityToolFunction.FUNCTION_NAME, //
+        ServerControl.ROOT_USER, ServerControl.ROOT_PASSWORD, //
+        USER, // paramUser
+        null, // paramPassword
+        null, // paramEmail
+        Permissions.TABLE_ACCESS, // paramPermission
+        TABLE // paramPermissionObject
+    );
+
+    Ticket ticket = serverControl.get(0).login(USER, PASSWD);
+
+    // WHEN: query
+    try (TestQueryResultService queryRes = QueryResultServiceTestUtil.createQueryResultService()) {
+      RUUID queryUuid = RUuidUtil.toRUuid(UUID.randomUUID());
+      logger.info("Executing query {}", RUuidUtil.toUuid(queryUuid));
+      serverControl.get(0).getSerivceTestUtil()
+          .queryService((queryService) -> queryService.asyncExecuteQuery(ticket, queryUuid,
+              "select a.b, count() from flatten(" + TABLE + ", a[*]) group by a.b order by a.b asc", true,
+              queryRes.getThisServicesAddr().toRNodeAddress()));
+
+      new Waiter().waitUntil("Final result of query received", 10, 500,
+          () -> queryRes.check() && queryRes.getFinalUpdate() != null);
+
+      // THEN: valid result.
+      Assert.assertTrue(queryRes.getFinalUpdate().isSetRows(), "Expected to get a result");
+
+      List<List<Long>> expectedResult = new ArrayList<>();
+      expectedResult.add(Arrays.asList(1L, 3L)); // a.b = 1, count = 3
+      expectedResult.add(Arrays.asList(2L, 3L)); // a.b = 2, count = 3
+
+      List<List<Long>> actual = transformResult(queryRes.getFinalUpdate().getRows());
+
+      Assert.assertEquals(actual, expectedResult, "Expected to get correct result BEFORE adding additional shard.");
+    } catch (IOException e) {
+      throw new RuntimeException("Could not execute query", e);
+    }
+  }
+
+  @Test
+  @NeedsServer
+  public void flattenTestNonRootNoAccess() throws IOException {
+    // GIVEN
+    serverControl.get(0).deploy(cp(DATA0_CONTROL_FILE), cp(DATA0_JSON_FILE));
+
+    logger.info("Creating new user WITHOUT access to test table");
+    toolControl.im(serverControl.get(0).getAddr(), CreateUserActualIdentityToolFunction.FUNCTION_NAME, //
+        ServerControl.ROOT_USER, ServerControl.ROOT_PASSWORD, //
+        USER, // paramUser
+        PASSWD, // paramPassword
+        EMAIL, // paramEmail
+        null, // paramPermission
+        null // paramPermissionObject
+    );
+
+    Ticket ticket = serverControl.get(0).login(USER, PASSWD);
+
+    // WHEN: query
+    try (TestQueryResultService queryRes = QueryResultServiceTestUtil.createQueryResultService()) {
+      RUUID queryUuid = RUuidUtil.toRUuid(UUID.randomUUID());
+      logger.info("Executing query {}", RUuidUtil.toUuid(queryUuid));
+      serverControl.get(0).getSerivceTestUtil().queryService((queryService) -> {
+        try {
+          queryService.asyncExecuteQuery(ticket, queryUuid,
+              "select a.b, count() from flatten(" + TABLE + ", a[*]) group by a.b order by a.b asc", true,
+              queryRes.getThisServicesAddr().toRNodeAddress());
+          Assert.fail("Expected to receive an AuthorizationException, but none received!");
+        } catch (AuthorizationException e) {
+          // fine, this is expected!
+        }
+      });
     } catch (IOException e) {
       throw new RuntimeException("Could not execute query", e);
     }
