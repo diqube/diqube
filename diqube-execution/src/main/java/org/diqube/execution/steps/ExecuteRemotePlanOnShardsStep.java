@@ -40,6 +40,7 @@ import org.diqube.connection.ConnectionOrLocalHelper;
 import org.diqube.connection.OurNodeAddressProvider;
 import org.diqube.connection.ServiceProvider;
 import org.diqube.connection.SocketListener;
+import org.diqube.consensus.ConsensusClient.ConsensusClusterUnavailableException;
 import org.diqube.execution.RemotesTriggeredListener;
 import org.diqube.execution.consumers.AbstractThreadedTableFlattenedConsumer;
 import org.diqube.execution.consumers.ColumnValueConsumer;
@@ -219,6 +220,8 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
         // exit quietly.
         doneProcessing();
         return;
+      } catch (ConsensusClusterUnavailableException e) {
+        throw new ExecutablePlanExecutionException("Cannot execute plan since consensus cluster is unavailable", e);
       }
       if (remoteNodes.isEmpty())
         throw new ExecutablePlanExecutionException("There are no cluster nodes serving table '" + tableName + "'");

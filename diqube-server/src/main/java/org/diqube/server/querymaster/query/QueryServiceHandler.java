@@ -52,6 +52,7 @@ import org.diqube.diql.request.FromRequest;
 import org.diqube.diql.visitors.SelectStmtVisitor;
 import org.diqube.execution.ExecutablePlan;
 import org.diqube.execution.steps.ExecuteRemotePlanOnShardsStep;
+import org.diqube.im.SuperuserCheckUtil;
 import org.diqube.name.FunctionBasedColumnNameBuilderFactory;
 import org.diqube.name.RepeatedColumnNameGenerator;
 import org.diqube.permission.TableAccessPermissionUtil;
@@ -122,6 +123,9 @@ public class QueryServiceHandler implements Iface {
   @Inject
   private FunctionBasedColumnNameBuilderFactory functionBasedColumnNameBuilderFactory;
 
+  @Inject
+  private SuperuserCheckUtil superuserCheckUtil;
+
   private ExecutorService cancelExecutors;
 
   private Set<UUID> toCancelQueries = new ConcurrentSkipListSet<>();
@@ -158,7 +162,7 @@ public class QueryServiceHandler implements Iface {
 
     UUID queryUuid = RUuidUtil.toUuid(queryRUuid);
 
-    if (!ticket.getClaim().isIsSuperUser() && (!queryUserNames.containsKey(queryUuid)
+    if (!superuserCheckUtil.isSuperuser(ticket) && (!queryUserNames.containsKey(queryUuid)
         || !queryUserNames.get(queryUuid).equals(ticket.getClaim().getUsername())))
       // use can cancel his own queries, superuser can cancel all.
       throw new AuthorizationException();

@@ -132,7 +132,7 @@ public class IdentityHandler implements IdentityService.Iface {
   private TicketValidityService ticketValidityService;
 
   @Inject
-  private PermissionCheckUtil permissionCheck;
+  private SuperuserCheckUtil superuserCheck;
 
   @Inject
   private TicketSignatureService ticketSignatureService;
@@ -160,7 +160,7 @@ public class IdentityHandler implements IdentityService.Iface {
     if (password == null || "".equals(password.trim()))
       throw new AuthenticationException("Empty password.");
 
-    if (permissionCheck.isSuperuser(userName)) {
+    if (superuserCheck.isSuperuser(userName)) {
       if (!password.equals(superuserPassword))
         throw new AuthenticationException("Invalid credentials.");
 
@@ -256,10 +256,10 @@ public class IdentityHandler implements IdentityService.Iface {
       throws AuthenticationException, AuthorizationException, TException {
     ticketValidityService.validateTicket(ticket);
 
-    if (!ticket.getClaim().getUsername().equals(username) && !permissionCheck.isSuperuser(ticket))
+    if (!ticket.getClaim().getUsername().equals(username) && !superuserCheck.isSuperuser(ticket))
       throw new AuthorizationException();
 
-    if (permissionCheck.isSuperuser(username))
+    if (superuserCheck.isSuperuser(username))
       throw new AuthorizationException("Superuser password cannot be changed. Change in configuration of server.");
 
     logger.info("Password of user '{}' is being changed, authorized by ticket of '{}'", username,
@@ -283,10 +283,10 @@ public class IdentityHandler implements IdentityService.Iface {
       throws AuthenticationException, AuthorizationException, TException {
     ticketValidityService.validateTicket(ticket);
 
-    if (!ticket.getClaim().getUsername().equals(username) && !permissionCheck.isSuperuser(ticket))
+    if (!ticket.getClaim().getUsername().equals(username) && !superuserCheck.isSuperuser(ticket))
       throw new AuthorizationException();
 
-    if (!permissionCheck.isSuperuser(username))
+    if (!superuserCheck.isSuperuser(username))
       throw new AuthorizationException("Superuser password cannot be changed. Change in configuration of server.");
 
     logger.info("E-Mail of user '{}' is being changed, authorized by ticket of '{}'", username,
@@ -310,10 +310,10 @@ public class IdentityHandler implements IdentityService.Iface {
       throws AuthenticationException, AuthorizationException, TException {
     ticketValidityService.validateTicket(ticket);
 
-    if (!permissionCheck.isSuperuser(ticket))
+    if (!superuserCheck.isSuperuser(ticket))
       throw new AuthorizationException();
 
-    if (permissionCheck.isSuperuser(username))
+    if (superuserCheck.isSuperuser(username))
       throw new AuthorizationException("Superuser permissions cannot be changed.");
 
     logger.info("Permission ({}/{}) is added to user '{}', authorized by ticket of '{}'", permission, object, username,
@@ -359,10 +359,10 @@ public class IdentityHandler implements IdentityService.Iface {
       throws AuthenticationException, AuthorizationException, TException {
     ticketValidityService.validateTicket(ticket);
 
-    if (!permissionCheck.isSuperuser(ticket))
+    if (!superuserCheck.isSuperuser(ticket))
       throw new AuthorizationException();
 
-    if (permissionCheck.isSuperuser(username))
+    if (superuserCheck.isSuperuser(username))
       throw new AuthorizationException("Superuser permissions cannot be changed.");
 
     logger.info("Permission ({}/{}) is removed from user '{}', authorized by ticket of '{}'", permission, object,
@@ -405,10 +405,10 @@ public class IdentityHandler implements IdentityService.Iface {
       throws AuthenticationException, AuthorizationException, TException {
     ticketValidityService.validateTicket(ticket);
 
-    if (!ticket.getClaim().getUsername().equals(username) && !permissionCheck.isSuperuser(ticket))
+    if (!ticket.getClaim().getUsername().equals(username) && !superuserCheck.isSuperuser(ticket))
       throw new AuthorizationException();
 
-    if (permissionCheck.isSuperuser(username))
+    if (superuserCheck.isSuperuser(username))
       throw new AuthorizationException("Cannot query permissions of superuser.");
 
     SUser user;
@@ -439,10 +439,10 @@ public class IdentityHandler implements IdentityService.Iface {
       throws AuthenticationException, AuthorizationException, TException {
     ticketValidityService.validateTicket(ticket);
 
-    if (!permissionCheck.isSuperuser(ticket))
+    if (!superuserCheck.isSuperuser(ticket))
       throw new AuthorizationException();
 
-    if (permissionCheck.isSuperuser(username))
+    if (superuserCheck.isSuperuser(username))
       throw new AuthorizationException("Superuser permissions cannot be changed.");
 
     logger.info("User '{}' is being created, authorized by ticket of '{}'", username, ticket.getClaim().getUsername());
@@ -464,10 +464,10 @@ public class IdentityHandler implements IdentityService.Iface {
       throws AuthenticationException, AuthorizationException, TException {
     ticketValidityService.validateTicket(ticket);
 
-    if (!permissionCheck.isSuperuser(ticket))
+    if (!superuserCheck.isSuperuser(ticket))
       throw new AuthorizationException();
 
-    if (permissionCheck.isSuperuser(username))
+    if (superuserCheck.isSuperuser(username))
       throw new AuthorizationException("Superuser cannot be deleted.");
 
     logger.info("User '{}' is being deleted, authorized by ticket of '{}'", username, ticket.getClaim().getUsername());
@@ -483,10 +483,10 @@ public class IdentityHandler implements IdentityService.Iface {
   public String getEmail(Ticket ticket, String username) throws TException {
     ticketValidityService.validateTicket(ticket);
 
-    if (!ticket.getClaim().getUsername().equals(username) && !permissionCheck.isSuperuser(ticket))
+    if (!ticket.getClaim().getUsername().equals(username) && !superuserCheck.isSuperuser(ticket))
       throw new AuthorizationException();
 
-    if (permissionCheck.isSuperuser(username))
+    if (superuserCheck.isSuperuser(username))
       throw new AuthorizationException("Cannot query permissions of superuser.");
 
     SUser user;

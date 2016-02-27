@@ -18,28 +18,19 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.data.metadata;
+package org.diqube.metadata.create;
 
-import java.util.Map;
-
-import org.diqube.data.table.TableShard;
+import org.diqube.thrift.base.thrift.TableMetadata;
 
 /**
- * A {@link TableMetadata} for a single local {@link TableShard}.
+ * Listener on requests to recompute the metadata of a table.
  *
  * @author Bastian Gloeckle
  */
-public class TableShardMetadata extends TableMetadata {
-  private static final long serialVersionUID = 1L;
+public interface TableMetadataRecomputeRequestListener {
 
-  private long firstRowIdOfShard;
-
-  public TableShardMetadata(String tableName, Map<String, FieldMetadata> fields, long firstRowIdOfShard) {
-    super(tableName, fields);
-    this.firstRowIdOfShard = firstRowIdOfShard;
-  }
-
-  public long getFirstRowIdOfShard() {
-    return firstRowIdOfShard;
-  }
+  /**
+   * The request to recompute the {@link TableMetadata} of a specific table has been received by this cluster node.
+   */
+  public void tableMetadataRecomputeRequestReceived(String tableName);
 }

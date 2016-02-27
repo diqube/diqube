@@ -1,0 +1,4 @@
+table=testtable
+file=field1.json
+type=json
+firstRowId=11

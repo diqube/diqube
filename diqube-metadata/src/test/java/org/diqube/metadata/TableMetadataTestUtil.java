@@ -20,15 +20,18 @@
  */
 package org.diqube.metadata;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.diqube.data.column.ColumnType;
 import org.diqube.data.column.StandardColumnShard;
-import org.diqube.data.metadata.FieldMetadata;
-import org.diqube.data.metadata.FieldMetadata.FieldType;
-import org.diqube.data.metadata.TableMetadata;
 import org.diqube.data.table.TableShard;
+import org.diqube.thrift.base.thrift.FieldMetadata;
+import org.diqube.thrift.base.thrift.FieldType;
+import org.diqube.thrift.base.thrift.TableMetadata;
 import org.diqube.util.Pair;
 import org.diqube.util.Triple;
 import org.mockito.Mockito;
@@ -64,25 +67,24 @@ public class TableMetadataTestUtil {
 
   @SafeVarargs
   public final static TableMetadata createMetadata(Triple<String, FieldType, Boolean>... targetFields) {
-    Map<String, FieldMetadata> fields = new HashMap<>();
+    List<FieldMetadata> fields = new ArrayList<>();
 
     for (Triple<String, FieldType, Boolean> t : targetFields)
-      fields.put(t.getLeft(), new FieldMetadata(t.getLeft(), t.getMiddle(), t.getRight()));
+      fields.add(new FieldMetadata(t.getLeft(), t.getMiddle(), t.getRight()));
 
     return new TableMetadata(TABLE, fields);
   }
 
   public static void assertField(TableMetadata tableMetadata, String fieldName, FieldType fieldType,
       boolean isRepeated) {
-    Assert.assertTrue(tableMetadata.getFields().containsKey(fieldName),
-        "Expected to have metadata for field '" + fieldName + "'");
-    Assert.assertNotNull(tableMetadata.getFields().get(fieldName),
-        "Expected to have non-null metadata for field '" + fieldName + "'");
-    Assert.assertEquals(tableMetadata.getFields().get(fieldName).getFieldType(), fieldType,
+    Optional<FieldMetadata> field =
+        tableMetadata.getFields().stream().filter(f -> f.getFieldName().equals(fieldName)).findAny();
+    Assert.assertTrue(field.isPresent(), "Expected to have metadata for field '" + fieldName + "'");
+    Assert.assertEquals(field.get().getFieldType(), fieldType,
         "Expected correct fieldType for field '" + fieldName + "'");
-    Assert.assertEquals(tableMetadata.getFields().get(fieldName).isRepeated(), isRepeated,
+    Assert.assertEquals(field.get().isRepeated(), isRepeated,
         "Expected correct isRepeated for field '" + fieldName + "'");
-    Assert.assertEquals(tableMetadata.getFields().get(fieldName).getFieldName(), fieldName,
+    Assert.assertEquals(field.get().getFieldName(), fieldName,
         "Expected correct fieldName in FieldMetadata object for field '" + fieldName + "'");
   }
 }

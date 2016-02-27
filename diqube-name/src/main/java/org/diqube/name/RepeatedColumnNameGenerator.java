@@ -21,13 +21,12 @@
 package org.diqube.name;
 
 import org.diqube.context.AutoInstatiate;
-import org.diqube.data.metadata.FieldNameUtil;
 
 /**
  * A class that can generate the column names of repeated columns.
  * 
  * <p>
- * If changing the naming scheme of repeated cols, also check {@link FieldNameUtil} class!
+ * If changing the naming scheme of repeated cols, also check FieldNameUtil class!
  *
  * @author Bastian Gloeckle
  */

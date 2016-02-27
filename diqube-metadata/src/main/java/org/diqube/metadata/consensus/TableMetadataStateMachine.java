@@ -23,7 +23,7 @@ package org.diqube.metadata.consensus;
 import org.diqube.consensus.ConsensusMethod;
 import org.diqube.consensus.ConsensusStateMachine;
 import org.diqube.consensus.ConsensusUtil;
-import org.diqube.data.metadata.TableMetadata;
+import org.diqube.thrift.base.thrift.TableMetadata;
 import org.diqube.util.Pair;
 
 import io.atomix.copycat.Command;

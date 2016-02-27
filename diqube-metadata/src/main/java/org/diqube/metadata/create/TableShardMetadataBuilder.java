@@ -18,7 +18,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.metadata;
+package org.diqube.metadata.create;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -29,12 +29,11 @@ import java.util.Map.Entry;
 
 import org.diqube.data.column.ColumnShard;
 import org.diqube.data.column.ColumnType;
-import org.diqube.data.metadata.FieldMetadata;
-import org.diqube.data.metadata.FieldMetadata.FieldType;
-import org.diqube.data.metadata.FieldNameUtil;
-import org.diqube.data.metadata.TableShardMetadata;
 import org.diqube.data.table.TableShard;
 import org.diqube.name.RepeatedColumnNameGenerator;
+import org.diqube.thrift.base.thrift.FieldMetadata;
+import org.diqube.thrift.base.thrift.FieldType;
+import org.diqube.thrift.base.thrift.TableMetadata;
 import org.diqube.util.Pair;
 
 /**
@@ -55,7 +54,7 @@ public class TableShardMetadataBuilder {
     return this;
   }
 
-  public TableShardMetadata build() throws IllegalTableShardLayoutException {
+  public TableMetadata build() throws IllegalTableShardLayoutException {
     Map<String, Pair<FieldType, Boolean>> fields = new HashMap<>();
 
     for (ColumnShard colShard : tableShard.getColumns().values()) {
@@ -77,13 +76,11 @@ public class TableShardMetadataBuilder {
     }
 
     // create final objects
-    Map<String, FieldMetadata> resFields = new HashMap<>();
-    for (Entry<String, Pair<FieldType, Boolean>> e : fields.entrySet()) {
-      FieldMetadata f = new FieldMetadata(e.getKey(), e.getValue().getLeft(), e.getValue().getRight());
-      resFields.put(f.getFieldName(), f);
-    }
+    List<FieldMetadata> resFields = new ArrayList<>();
+    for (Entry<String, Pair<FieldType, Boolean>> e : fields.entrySet())
+      resFields.add(new FieldMetadata(e.getKey(), e.getValue().getLeft(), e.getValue().getRight()));
 
-    return new TableShardMetadata(tableShard.getTableName(), resFields, tableShard.getLowestRowId());
+    return new TableMetadata(tableShard.getTableName(), resFields);
   }
 
   /**

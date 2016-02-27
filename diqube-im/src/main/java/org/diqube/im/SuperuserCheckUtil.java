@@ -18,23 +18,46 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.metadata;
+package org.diqube.im;
 
-import javax.inject.Inject;
+import javax.annotation.PostConstruct;
 
+import org.diqube.config.Config;
+import org.diqube.config.ConfigKey;
 import org.diqube.context.AutoInstatiate;
-import org.diqube.name.RepeatedColumnNameGenerator;
+import org.diqube.thrift.base.thrift.Ticket;
 
 /**
+ * Utility class to check is a user is a valid superuser.
  *
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
-public class TableShardMetadataBuilderFactory {
-  @Inject
-  private RepeatedColumnNameGenerator repeatedColumnNameGenerator;
+public class SuperuserCheckUtil {
 
-  public TableShardMetadataBuilder createTableShardMetadataBuilder() {
-    return new TableShardMetadataBuilder(repeatedColumnNameGenerator);
+  private static final String NONE = "none";
+
+  @Config(ConfigKey.SUPERUSER)
+  private String superuser;
+
+  private boolean superuserEnabled;
+
+  @PostConstruct
+  public void initialize() {
+    superuserEnabled = superuser != null && !superuser.equals("") && !superuser.equals(NONE);
+  }
+
+  public boolean isSuperuser(Ticket ticket) {
+    if (!superuserEnabled)
+      return false;
+
+    return ticket.getClaim().isIsSuperUser() && ticket.getClaim().getUsername().equals(superuser);
+  }
+
+  public boolean isSuperuser(String username) {
+    if (!superuserEnabled)
+      return false;
+
+    return username.equals(superuser);
   }
 }

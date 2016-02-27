@@ -18,19 +18,23 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.metadata;
+package org.diqube.metadata.create;
 
-import org.diqube.data.metadata.TableMetadata;
+import javax.inject.Inject;
+
+import org.diqube.context.AutoInstatiate;
+import org.diqube.name.RepeatedColumnNameGenerator;
 
 /**
- * Listener on requests to recompute the metadata of a table.
  *
  * @author Bastian Gloeckle
  */
-public interface TableMetadataRecomputeRequestListener {
+@AutoInstatiate
+public class TableShardMetadataBuilderFactory {
+  @Inject
+  private RepeatedColumnNameGenerator repeatedColumnNameGenerator;
 
-  /**
-   * The request to recompute the {@link TableMetadata} of a specific table has been received by this cluster node.
-   */
-  public void tableMetadataRecomputeRequestReceived(String tableName);
+  public TableShardMetadataBuilder createTableShardMetadataBuilder() {
+    return new TableShardMetadataBuilder(repeatedColumnNameGenerator);
+  }
 }

@@ -21,6 +21,7 @@
 
 namespace java org.diqube.thrift.base.thrift
 
+// ======= NODE =======
 
 union RNodeAddress {
   1: optional RNodeDefaultAddress defaultAddr,
@@ -46,12 +47,15 @@ struct RUUID {
   2: i64 upper
 }
 
+// ======= VALUE =======
+
 union RValue {
   1: optional string strValue,
   2: optional i64 longValue,
   3: optional double doubleValue
 }
 
+// ======= AUTH =======
 
 struct TicketClaim {
     1: RUUID ticketId,
@@ -74,4 +78,35 @@ exception AuthenticationException {
 
 exception AuthorizationException {
     1: string message 
+}
+
+// ======= METADATA =======
+
+enum FieldType {
+  // keep in sync with ColumnType
+  STRING, LONG, DOUBLE,
+  // additional FieldType for which there is no ColumnType. This is for field which do not contain data themselves, but
+  // only different fields. See Doc for FieldMetadata.
+  CONTAINER
+}
+
+// Metadata of a field of a table.
+//
+// Note that for a repeated field, only one FieldMetadata will be available, although there are multiple
+// ColumnShards (i.e. there is a ColumnShard for each index of the repeated field). The field name is stripped
+// of all repetition indices the column name might have (like "[0]", "[5]" or "[length]").
+//
+// Note that there are also fields for which no direct ColumnShard is available, as for each column "a.b", "a"
+// is a field, too (FieldType#CONTAINER), although "a" does not contain any values directly and there is no
+// ColumnShard therefore.
+struct FieldMetadata {
+  1: string fieldName,
+  2: FieldType fieldType,
+  3: bool repeated
+}
+
+// Additional information about a table like the fields it contains and what data types these fields have.
+struct TableMetadata {
+  1: string tableName,
+  2: list<FieldMetadata> fields
 }

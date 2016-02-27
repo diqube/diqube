@@ -23,9 +23,10 @@ package org.diqube.metadata;
 import java.util.Arrays;
 import java.util.List;
 
-import org.diqube.data.metadata.FieldMetadata.FieldType;
-import org.diqube.data.metadata.TableMetadata;
-import org.diqube.metadata.TableMetadataMerger.IllegalTableLayoutException;
+import org.diqube.metadata.create.TableMetadataMerger;
+import org.diqube.metadata.create.TableMetadataMerger.IllegalTableLayoutException;
+import org.diqube.thrift.base.thrift.FieldType;
+import org.diqube.thrift.base.thrift.TableMetadata;
 import org.diqube.util.Triple;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;

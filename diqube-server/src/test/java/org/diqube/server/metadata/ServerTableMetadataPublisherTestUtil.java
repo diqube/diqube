@@ -22,7 +22,7 @@ package org.diqube.server.metadata;
 
 import org.diqube.executionenv.TableRegistry;
 import org.diqube.metadata.TableMetadataManager;
-import org.diqube.metadata.TableShardMetadataBuilderFactory;
+import org.diqube.metadata.create.TableShardMetadataBuilderFactory;
 
 /**
  *

@@ -18,20 +18,23 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.data.column;
+package org.diqube.remote.query;
 
-import org.diqube.data.dictionary.Dictionary;
+import org.apache.thrift.protocol.TMultiplexedProtocol;
+import org.diqube.remote.query.thrift.TableMetadataService;
+import org.diqube.thrift.base.services.DiqubeThriftService;
 
 /**
- * Type of a column.
- * 
- * <p>
- * This enum basically identifies which subclass of {@link ColumnShard}/which type of {@link Dictionary} is used for a
- * column.
+ * Constants to be used when using {@link TableMetadataService}.
  *
- * @see FieldType
  * @author Bastian Gloeckle
  */
-public enum ColumnType {
-  STRING, DOUBLE, LONG
+@DiqubeThriftService( //
+    serviceInterface = TableMetadataService.Iface.class, //
+    clientClass = TableMetadataService.Client.class, //
+    serviceName = TableMetadataServiceConstants.SERVICE_NAME, //
+    integrityChecked = false)
+public class TableMetadataServiceConstants {
+  /** Name of the query service as set up in {@link TMultiplexedProtocol}. */
+  public static final String SERVICE_NAME = "D";
 }

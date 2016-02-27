@@ -68,14 +68,13 @@ public class ClusterLayout {
 
   /**
    * @return Addresses of all cluster nodes that are known (including our node).
+   * @throws ConsensusClusterUnavailableException
    */
-  public Set<NodeAddress> getNodes() throws InterruptedException {
+  public Set<NodeAddress> getNodes() throws InterruptedException, ConsensusClusterUnavailableException {
     try (ClosableProvider<ClusterLayoutStateMachine> p =
         consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class)) {
 
       return new HashSet<>(p.getClient().getAllNodes(GetAllNodes.local()));
-    } catch (ConsensusClusterUnavailableException e) {
-      throw new RuntimeException("Consensus cluster unavailable", e);
     } catch (ConsensusStateMachineClientInterruptedException e) {
       logger.error("Interrupted.", e);
       throw e.getInterruptedException();
@@ -85,17 +84,14 @@ public class ClusterLayout {
   /**
    * @return true if the layout knows that the given node is alive. Note that when executed on nodes that are not the
    *         consensus master, this might be slow, despite it is expected to be quick!
+   * @throws ConsensusClusterUnavailableException
    */
-  public boolean isNodeKnown(NodeAddress addr) throws InterruptedException {
+  public boolean isNodeKnown(NodeAddress addr) throws InterruptedException, ConsensusClusterUnavailableException {
     try (ClosableProvider<ClusterLayoutStateMachine> p =
         consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class)) {
 
       return p.getClient().isNodeKnown(IsNodeKnown.local(addr));
 
-    } catch (ConsensusClusterUnavailableException e) {
-      logger.warn("Could not access the consensus cluster to identify if node {} is known to the "
-          + "clusterlayout. Assuming 'no'.", addr);
-      return false;
     } catch (ConsensusStateMachineClientInterruptedException e) {
       logger.error("Interrupted.", e);
       throw e.getInterruptedException();
@@ -104,15 +100,16 @@ public class ClusterLayout {
 
   /**
    * Finds the addresses of nodes of which is known that they serve parts of a specific table.
+   * 
+   * @throws ConsensusClusterUnavailableException
    */
-  public Collection<RNodeAddress> findNodesServingTable(String table) throws InterruptedException {
+  public Collection<RNodeAddress> findNodesServingTable(String table)
+      throws InterruptedException, ConsensusClusterUnavailableException {
     try (ClosableProvider<ClusterLayoutStateMachine> p =
         consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class)) {
       Set<NodeAddress> res = p.getClient().findNodesServingTable(FindNodesServingTable.local(table));
 
       return res.stream().map(addr -> addr.createRemote()).collect(Collectors.toSet());
-    } catch (ConsensusClusterUnavailableException e) {
-      throw new RuntimeException("Consensus cluster unavailable", e);
     } catch (ConsensusStateMachineClientInterruptedException e) {
       logger.error("Interrupted.", e);
       throw e.getInterruptedException();
@@ -122,14 +119,12 @@ public class ClusterLayout {
   /**
    * @return A set with all tablenames that are served from at least one cluster node.
    */
-  public Set<String> getAllTablesServed() throws InterruptedException {
+  public Set<String> getAllTablesServed() throws InterruptedException, ConsensusClusterUnavailableException {
     try (ClosableProvider<ClusterLayoutStateMachine> p =
         consensusClient.getStateMachineClient(ClusterLayoutStateMachine.class)) {
 
       return p.getClient().getAllTablesServed(GetAllTablesServed.local());
 
-    } catch (ConsensusClusterUnavailableException e) {
-      throw new RuntimeException("Consensus cluster unavailable", e);
     } catch (ConsensusStateMachineClientInterruptedException e) {
       logger.error("Interrupted.", e);
       throw e.getInterruptedException();

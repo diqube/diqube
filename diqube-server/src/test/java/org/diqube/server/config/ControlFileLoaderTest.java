@@ -29,12 +29,11 @@ import java.nio.file.FileVisitor;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.Optional;
 import java.util.function.Function;
 
 import org.diqube.context.Profiles;
-import org.diqube.data.metadata.FieldMetadata.FieldType;
-import org.diqube.data.metadata.TableMetadata;
 import org.diqube.data.table.TableFactory;
 import org.diqube.data.table.TableShard;
 import org.diqube.executionenv.TableRegistry;
@@ -43,12 +42,15 @@ import org.diqube.loader.DiqubeLoader;
 import org.diqube.loader.JsonLoader;
 import org.diqube.loader.LoadException;
 import org.diqube.metadata.TableMetadataManager;
-import org.diqube.metadata.TableShardMetadataBuilderFactory;
+import org.diqube.metadata.create.TableShardMetadataBuilderFactory;
 import org.diqube.server.ControlFileManager;
 import org.diqube.server.control.ControlFileLoader;
 import org.diqube.server.metadata.ServerTableMetadataPublisher;
 import org.diqube.server.metadata.ServerTableMetadataPublisherTestUtil;
 import org.diqube.server.queryremote.flatten.ClusterFlattenServiceHandler;
+import org.diqube.thrift.base.thrift.FieldMetadata;
+import org.diqube.thrift.base.thrift.FieldType;
+import org.diqube.thrift.base.thrift.TableMetadata;
 import org.diqube.util.Pair;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
@@ -305,18 +307,22 @@ public class ControlFileLoaderTest {
 
             Assert.assertEquals(m.getTableName(), tableName, "Table name of table metadata should be correct.");
             for (Pair<String, FieldType> f : fields) {
-              Assert.assertTrue(m.getFields().containsKey(f.getLeft()), "Field " + f + " should be available");
-              Assert.assertEquals(m.getFields().get(f.getLeft()).getFieldType(), f.getRight(),
+              Optional<FieldMetadata> metatdata =
+                  m.getFields().stream().filter(fm -> fm.getFieldName().equals(f.getLeft())).findAny();
+              Assert.assertTrue(metatdata.isPresent(), "Field " + f + " should be available");
+              Assert.assertEquals(metatdata.get().getFieldType(), f.getRight(),
                   "Field type of field " + f + " should be correct.");
             }
 
             // assert correct metadata if FN receives another (in this case empty) table metadata
-            m = fn.apply(new TableMetadata(tableName, new HashMap<>()));
+            m = fn.apply(new TableMetadata(tableName, new ArrayList<>()));
 
             Assert.assertEquals(m.getTableName(), tableName, "Table name of table metadata should be correct.");
             for (Pair<String, FieldType> f : fields) {
-              Assert.assertTrue(m.getFields().containsKey(f.getLeft()), "Field " + f + " should be available");
-              Assert.assertEquals(m.getFields().get(f.getLeft()).getFieldType(), f.getRight(),
+              Optional<FieldMetadata> metatdata =
+                  m.getFields().stream().filter(fm -> fm.getFieldName().equals(f.getLeft())).findAny();
+              Assert.assertTrue(metatdata.isPresent(), "Field " + f + " should be available");
+              Assert.assertEquals(metatdata.get().getFieldType(), f.getRight(),
                   "Field type of field " + f + " should be correct.");
             }
 

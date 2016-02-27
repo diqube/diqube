@@ -325,7 +325,8 @@ public class ClusterManager
           } else
             logger.trace("Cluster node died. No need to distribute information since that node was unknown to the "
                 + "consensus cluster anyway.");
-        } catch (InterruptedException | ConsensusStateMachineClientInterruptedException e) {
+        } catch (InterruptedException | ConsensusStateMachineClientInterruptedException
+            | ConsensusClusterUnavailableException e) {
           // exit quietly.
         }
       });
@@ -352,15 +353,20 @@ public class ClusterManager
 
     if (remoteNodeAddr.isSetDefaultAddr()) {
       NodeAddress addr = new NodeAddress(remoteNodeAddr);
-      if (!clusterLayout.isNodeKnown(addr)) {
-        logger.info("Cluster node seems to be accessible now: {}. As we do not have information on the tables this "
-            + "new node serves, we ask it to publicize that.", addr);
+      try {
+        if (!clusterLayout.isNodeKnown(addr)) {
+          logger.info("Cluster node seems to be accessible now: {}. As we do not have information on the tables this "
+              + "new node serves, we ask it to publicize that.", addr);
 
-        try (Connection<ClusterManagementService.Iface> conn = reserveConnection(addr)) {
-          conn.getService().publishLoadedTablesInConsensus();
-        } catch (ConnectionException | TException | IOException e) {
-          logger.warn("Could not contact cluster node at {}.", addr, e);
+          try (Connection<ClusterManagementService.Iface> conn = reserveConnection(addr)) {
+            conn.getService().publishLoadedTablesInConsensus();
+          } catch (ConnectionException | TException | IOException e) {
+            logger.warn("Could not contact cluster node at {}.", addr, e);
+          }
         }
+      } catch (ConsensusClusterUnavailableException e) {
+        logger.warn("Could not inform cluster about the node {} becoming alive, since the consensus "
+            + "cluster is not reachable", e);
       }
     }
   }

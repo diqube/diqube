@@ -18,16 +18,16 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.metadata;
+package org.diqube.metadata.create;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 
-import org.diqube.data.metadata.FieldMetadata;
-import org.diqube.data.metadata.TableMetadata;
+import org.diqube.thrift.base.thrift.FieldMetadata;
+import org.diqube.thrift.base.thrift.TableMetadata;
 
 /**
  * Merges multiple {@link TableMetadata} while validating that they are compatible.
@@ -64,12 +64,12 @@ public class TableMetadataMerger {
       else if (!tableName.equals(m.getTableName()))
         throw new IllegalTableLayoutException("Table names are not equal");
 
-      for (Entry<String, FieldMetadata> e : m.getFields().entrySet()) {
-        safePutCopy(e.getKey(), e.getValue(), finalFields);
+      for (FieldMetadata field : m.getFields()) {
+        safePutCopy(field.getFieldName(), field, finalFields);
       }
     }
 
-    return new TableMetadata(tableName, finalFields);
+    return new TableMetadata(tableName, new ArrayList<>(finalFields.values()));
   }
 
   /**

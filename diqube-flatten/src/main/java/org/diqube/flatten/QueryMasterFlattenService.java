@@ -46,6 +46,7 @@ import org.diqube.connection.ConnectionException;
 import org.diqube.connection.ConnectionOrLocalHelper;
 import org.diqube.connection.OurNodeAddressProvider;
 import org.diqube.connection.ServiceProvider;
+import org.diqube.consensus.ConsensusClient.ConsensusClusterUnavailableException;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.remote.cluster.thrift.ClusterFlattenService;
 import org.diqube.remote.cluster.thrift.ROptionalUuid;
@@ -144,6 +145,10 @@ public class QueryMasterFlattenService {
         } catch (InterruptedException e1) {
           logger.error("Interrupted", e1);
           // exit quietly.
+          return;
+        } catch (ConsensusClusterUnavailableException e) {
+          threadIdToRequestUuidAndCallback.remove(Thread.currentThread().getId());
+          callback.flattenException("Cannot flatten since consensus cluster is unavailable", e);
           return;
         }
 

@@ -23,7 +23,7 @@ package org.diqube.server.metadata;
 import javax.inject.Inject;
 
 import org.diqube.context.AutoInstatiate;
-import org.diqube.metadata.TableMetadataRecomputeRequestListener;
+import org.diqube.metadata.create.TableMetadataRecomputeRequestListener;
 import org.diqube.server.ControlFileManager;
 import org.diqube.server.metadata.ServerTableMetadataPublisher.MergeImpossibleException;
 import org.diqube.server.metadata.ServerTableMetadataPublisher.TableNotExistsException;

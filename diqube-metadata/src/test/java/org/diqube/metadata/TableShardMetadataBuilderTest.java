@@ -21,12 +21,12 @@
 package org.diqube.metadata;
 
 import org.diqube.data.column.ColumnType;
-import org.diqube.data.metadata.FieldMetadata.FieldType;
-import org.diqube.data.metadata.TableMetadata;
-import org.diqube.data.metadata.TableShardMetadata;
 import org.diqube.data.table.TableShard;
-import org.diqube.metadata.TableShardMetadataBuilder.IllegalTableShardLayoutException;
+import org.diqube.metadata.create.TableShardMetadataBuilder;
+import org.diqube.metadata.create.TableShardMetadataBuilder.IllegalTableShardLayoutException;
 import org.diqube.name.RepeatedColumnNameGenerator;
+import org.diqube.thrift.base.thrift.FieldType;
+import org.diqube.thrift.base.thrift.TableMetadata;
 import org.diqube.util.Pair;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
@@ -53,17 +53,15 @@ public class TableShardMetadataBuilderTest {
         new Pair<>("b", ColumnType.LONG), new Pair<>("c", ColumnType.DOUBLE));
 
     // WHEN
-    TableShardMetadata metadata = builder.from(table).build();
+    TableMetadata metadata = builder.from(table).build();
 
     // THEN
     Assert.assertEquals(metadata.getTableName(), TableMetadataTestUtil.TABLE,
         "Expected table name being filled correctly");
-    Assert.assertEquals(metadata.getFirstRowIdOfShard(), TableMetadataTestUtil.LOWEST_ROW_ID,
-        "Expected lowestRowId being filled correctly");
     TableMetadataTestUtil.assertField(metadata, "a", FieldType.STRING, false);
     TableMetadataTestUtil.assertField(metadata, "b", FieldType.LONG, false);
     TableMetadataTestUtil.assertField(metadata, "c", FieldType.DOUBLE, false);
-    Assert.assertEquals(metadata.getFields().keySet().size(), 3, "Expected field info for all fields");
+    Assert.assertEquals(metadata.getFields().size(), 3, "Expected field info for all fields");
   }
 
   @Test
@@ -77,7 +75,7 @@ public class TableShardMetadataBuilderTest {
 
     // THEN
     TableMetadataTestUtil.assertField(metadata, "a", FieldType.STRING, true);
-    Assert.assertEquals(metadata.getFields().keySet().size(), 1, "Expected field info for all fields");
+    Assert.assertEquals(metadata.getFields().size(), 1, "Expected field info for all fields");
   }
 
   @Test
@@ -94,7 +92,7 @@ public class TableShardMetadataBuilderTest {
     TableMetadataTestUtil.assertField(metadata, "a.b", FieldType.STRING, false);
     TableMetadataTestUtil.assertField(metadata, "a.c", FieldType.LONG, false);
     TableMetadataTestUtil.assertField(metadata, "a.d", FieldType.DOUBLE, false);
-    Assert.assertEquals(metadata.getFields().keySet().size(), 4, "Expected field info for all fields");
+    Assert.assertEquals(metadata.getFields().size(), 4, "Expected field info for all fields");
   }
 
   @Test
@@ -109,7 +107,7 @@ public class TableShardMetadataBuilderTest {
     // THEN
     TableMetadataTestUtil.assertField(metadata, "a", FieldType.CONTAINER, false);
     TableMetadataTestUtil.assertField(metadata, "a.b", FieldType.LONG, true);
-    Assert.assertEquals(metadata.getFields().keySet().size(), 2, "Expected field info for all fields");
+    Assert.assertEquals(metadata.getFields().size(), 2, "Expected field info for all fields");
   }
 
   @Test
@@ -124,7 +122,7 @@ public class TableShardMetadataBuilderTest {
     // THEN
     TableMetadataTestUtil.assertField(metadata, "a", FieldType.CONTAINER, true);
     TableMetadataTestUtil.assertField(metadata, "a.b", FieldType.DOUBLE, false);
-    Assert.assertEquals(metadata.getFields().keySet().size(), 2, "Expected field info for all fields");
+    Assert.assertEquals(metadata.getFields().size(), 2, "Expected field info for all fields");
   }
 
   @Test(expectedExceptions = IllegalTableShardLayoutException.class)

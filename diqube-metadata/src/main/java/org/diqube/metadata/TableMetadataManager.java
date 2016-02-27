@@ -35,13 +35,14 @@ import org.diqube.consensus.ConsensusClient.ConsensusClusterUnavailableException
 import org.diqube.consensus.internal.DiqubeCatalystSerializer;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.context.InjectOptional;
-import org.diqube.data.metadata.TableMetadata;
 import org.diqube.metadata.consensus.TableMetadataStateMachine;
 import org.diqube.metadata.consensus.TableMetadataStateMachine.CompareAndSetTableMetadata;
 import org.diqube.metadata.consensus.TableMetadataStateMachine.GetTableMetadata;
 import org.diqube.metadata.consensus.TableMetadataStateMachine.RecomputeTableMetadata;
+import org.diqube.metadata.create.TableMetadataRecomputeRequestListener;
 import org.diqube.metadata.consensus.TableMetadataStateMachineImplementation;
 import org.diqube.threads.ExecutorManager;
+import org.diqube.thrift.base.thrift.TableMetadata;
 import org.diqube.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -19,11 +19,16 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-namespace java org.diqube.metadata.thrift.v1
+namespace java org.diqube.remote.query.thrift
 
 include "${diqube.thrift.dependencies}/base.thrift"
 
-struct SMetadataEntry {
-  1: i64 versionNumber,
-  2: optional base.TableMetadata metadata // can be null in case the tabel was up for recomputation currently.
+
+struct ROptionalTableMetadata {
+  1: optional base.TableMetadata tableMetadata
+}
+
+service TableMetadataService {
+  ROptionalTableMetadata getTableMetadata(1: base.Ticket ticket, 2: string tableName) throws 
+    (1: base.AuthenticationException authenticationException, 2: base.AuthorizationException authorizationException)
 }

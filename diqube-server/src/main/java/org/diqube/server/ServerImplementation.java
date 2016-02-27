@@ -55,12 +55,14 @@ import org.diqube.remote.query.IdentityCallbackServiceConstants;
 import org.diqube.remote.query.IdentityServiceConstants;
 import org.diqube.remote.query.KeepAliveServiceConstants;
 import org.diqube.remote.query.QueryServiceConstants;
+import org.diqube.remote.query.TableMetadataServiceConstants;
 import org.diqube.remote.query.thrift.ClusterInformationService;
 import org.diqube.remote.query.thrift.FlattenPreparationService;
 import org.diqube.remote.query.thrift.IdentityCallbackService;
 import org.diqube.remote.query.thrift.IdentityService;
 import org.diqube.remote.query.thrift.KeepAliveService;
 import org.diqube.remote.query.thrift.QueryService;
+import org.diqube.remote.query.thrift.TableMetadataService;
 import org.diqube.server.thrift.ThriftServer;
 import org.diqube.threads.ExecutorManager;
 import org.diqube.thrift.util.RememberingTransport;
@@ -119,6 +121,9 @@ public class ServerImplementation {
 
   @Inject
   private IdentityCallbackService.Iface identityCallbackHandler;
+
+  @Inject
+  private TableMetadataService.Iface tableMetadataHandler;
 
   @Inject
   private ExecutorManager executorManager;
@@ -190,6 +195,9 @@ public class ServerImplementation {
     multiProcessor.registerProcessor(IdentityCallbackServiceConstants.SERVICE_NAME,
         new IntegrityCheckingProtocol.IntegrityCheckDisablingProcessor(
             new IdentityCallbackService.Processor<IdentityCallbackService.Iface>(identityCallbackHandler)));
+    multiProcessor.registerProcessor(TableMetadataServiceConstants.SERVICE_NAME,
+        new IntegrityCheckingProtocol.IntegrityCheckDisablingProcessor(
+            new TableMetadataService.Processor<TableMetadataService.Iface>(tableMetadataHandler)));
 
     // integrity-checked services: Communication between diqube-servers
     multiProcessor.registerProcessor(ClusterQueryServiceConstants.SERVICE_NAME,

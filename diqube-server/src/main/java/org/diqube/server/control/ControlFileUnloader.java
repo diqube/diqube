@@ -24,12 +24,12 @@ import java.io.File;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.diqube.data.metadata.TableMetadata;
 import org.diqube.data.table.AdjustableTable;
 import org.diqube.data.table.Table;
 import org.diqube.data.table.TableShard;
 import org.diqube.executionenv.TableRegistry;
 import org.diqube.metadata.TableMetadataManager;
+import org.diqube.thrift.base.thrift.TableMetadata;
 import org.diqube.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

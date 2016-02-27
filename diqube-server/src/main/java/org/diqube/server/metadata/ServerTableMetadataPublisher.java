@@ -27,15 +27,15 @@ import java.util.List;
 import javax.inject.Inject;
 
 import org.diqube.context.AutoInstatiate;
-import org.diqube.data.metadata.TableMetadata;
 import org.diqube.data.table.Table;
 import org.diqube.data.table.TableShard;
 import org.diqube.executionenv.TableRegistry;
 import org.diqube.metadata.TableMetadataManager;
-import org.diqube.metadata.TableMetadataMerger;
-import org.diqube.metadata.TableMetadataMerger.IllegalTableLayoutException;
-import org.diqube.metadata.TableShardMetadataBuilder.IllegalTableShardLayoutException;
-import org.diqube.metadata.TableShardMetadataBuilderFactory;
+import org.diqube.metadata.create.TableMetadataMerger;
+import org.diqube.metadata.create.TableShardMetadataBuilderFactory;
+import org.diqube.metadata.create.TableMetadataMerger.IllegalTableLayoutException;
+import org.diqube.metadata.create.TableShardMetadataBuilder.IllegalTableShardLayoutException;
+import org.diqube.thrift.base.thrift.TableMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

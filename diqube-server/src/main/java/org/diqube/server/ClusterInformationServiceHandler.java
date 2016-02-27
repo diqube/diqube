@@ -28,6 +28,7 @@ import javax.inject.Inject;
 
 import org.apache.thrift.TException;
 import org.diqube.cluster.ClusterLayout;
+import org.diqube.consensus.ConsensusClient.ConsensusClusterUnavailableException;
 import org.diqube.context.AutoInstatiate;
 import org.diqube.permission.TableAccessPermissionUtil;
 import org.diqube.remote.query.thrift.ClusterInformationService;
@@ -66,7 +67,9 @@ public class ClusterInformationServiceHandler implements ClusterInformationServi
           .filter(s -> tableAccessPermissionUtil.hasAccessToTable(ticket, s)).collect(Collectors.toList());
       return tablesWithAccess;
     } catch (InterruptedException e) {
-      throw new TException("Interrupted", e);
+      throw new RuntimeException("Interrupted", e);
+    } catch (ConsensusClusterUnavailableException e) {
+      throw new RuntimeException("Consensus cluster unavailable", e);
     }
   }
 }

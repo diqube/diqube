@@ -33,7 +33,6 @@ import java.util.stream.Collectors;
 
 import org.apache.thrift.TException;
 import org.diqube.data.column.ColumnType;
-import org.diqube.data.metadata.TableMetadata;
 import org.diqube.data.table.AdjustableTable;
 import org.diqube.data.table.AdjustableTable.TableShardsOverlappingException;
 import org.diqube.data.table.Table;
@@ -50,6 +49,7 @@ import org.diqube.loader.LoaderColumnInfo;
 import org.diqube.server.metadata.ServerTableMetadataPublisher;
 import org.diqube.server.metadata.ServerTableMetadataPublisher.MergeImpossibleException;
 import org.diqube.server.queryremote.flatten.ClusterFlattenServiceHandler;
+import org.diqube.thrift.base.thrift.TableMetadata;
 import org.diqube.thrift.base.util.RUuidUtil;
 import org.diqube.util.Pair;
 import org.slf4j.Logger;

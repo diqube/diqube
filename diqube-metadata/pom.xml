@@ -37,7 +37,7 @@
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>diqube-data</artifactId>
+      <artifactId>diqube-thrift-base</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
@@ -53,6 +53,11 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>diqube-threads</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>diqube-permission</artifactId>
       <version>${project.version}</version>
     </dependency>
     

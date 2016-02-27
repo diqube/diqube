@@ -35,6 +35,7 @@ import org.diqube.remote.query.thrift.FlattenPreparationService;
 import org.diqube.remote.query.thrift.IdentityService;
 import org.diqube.remote.query.thrift.KeepAliveService;
 import org.diqube.remote.query.thrift.QueryService;
+import org.diqube.remote.query.thrift.TableMetadataService;
 import org.diqube.thrift.base.services.DiqubeThriftServiceInfoManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -231,6 +232,27 @@ public class ServiceTestUtil {
     } catch (TException | ConnectionException | IOException e) {
       logger.error("Exception while accessing IdentityService of {}", server.getAddr(), e);
       throw new RuntimeException("Exception while accessing IdentityService of " + server.getAddr(), e);
+    }
+  }
+
+  /**
+   * Open a connection to the {@link TableMetadataService} of a specific node and then execute something.
+   * 
+   * @throws RuntimeException
+   *           if anything goes wrong.
+   */
+  public void tableMetadataService(RemoteConsumer<TableMetadataService.Iface> execute) {
+    try (Connection<TableMetadataService.Iface> con = connectionFactory.createConnection(
+        diqubeThriftServiceInfoManager.getServiceInfo(TableMetadataService.Iface.class),
+        server.getAddr().toRNodeAddress(), SOCKET_LISTENER)) {
+
+      logger.info("Opened connection to TableMetadataService at {}.", server.getAddr());
+      execute.accept(con.getService());
+      logger.info("Closing connection to TableMetadataService at {}.", server.getAddr());
+
+    } catch (TException | ConnectionException | IOException e) {
+      logger.error("Exception while accessing TableMetadataService of {}", server.getAddr(), e);
+      throw new RuntimeException("Exception while accessing TableMetadataService of " + server.getAddr(), e);
     }
   }
 

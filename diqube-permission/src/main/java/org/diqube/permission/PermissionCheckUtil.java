@@ -24,20 +24,24 @@ import javax.inject.Inject;
 
 import org.diqube.context.AutoInstatiate;
 import org.diqube.im.SUserProvider;
+import org.diqube.im.SuperuserCheckUtil;
 import org.diqube.im.thrift.v1.SPermission;
 import org.diqube.im.thrift.v1.SUser;
 import org.diqube.thrift.base.thrift.Ticket;
 import org.diqube.ticket.TicketValidityService;
 
 /**
- * Utility class for checking {@link Permissions}.
+ * Utility class for checking if users have specific {@link Permissions}.
  *
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
-public class PermissionsUtil {
+public class PermissionCheckUtil {
   @Inject
   private SUserProvider userProvider;
+
+  @Inject
+  private SuperuserCheckUtil superuserCheckUtil;
 
   /**
    * Checks if a user has a "object-free" permission, i.e. a permission that is not restricted to specific objects.
@@ -47,7 +51,7 @@ public class PermissionsUtil {
    *          before!
    */
   public boolean hasPermission(Ticket ticket, String permission) {
-    if (ticket.getClaim().isIsSuperUser())
+    if (superuserCheckUtil.isSuperuser(ticket))
       return true;
 
     SUser user = userProvider.getUser(ticket.getClaim().getUsername());
@@ -73,7 +77,7 @@ public class PermissionsUtil {
    *          before!
    */
   public boolean hasPermission(Ticket ticket, String permission, String object) {
-    if (ticket.getClaim().isIsSuperUser())
+    if (superuserCheckUtil.isSuperuser(ticket))
       return true;
 
     SUser user = userProvider.getUser(ticket.getClaim().getUsername());

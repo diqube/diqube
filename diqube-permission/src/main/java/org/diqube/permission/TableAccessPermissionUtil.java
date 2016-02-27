@@ -33,7 +33,7 @@ import org.diqube.thrift.base.thrift.Ticket;
 @AutoInstatiate
 public class TableAccessPermissionUtil {
   @Inject
-  private PermissionsUtil permissionsUtil;
+  private PermissionCheckUtil permissionsUtil;
 
   /**
    * @param ticket
