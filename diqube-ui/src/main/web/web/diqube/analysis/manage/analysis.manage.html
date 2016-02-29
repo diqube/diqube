@@ -24,7 +24,7 @@
 
   <div class="flex layout horizontal center-justified">
     <paper-spinner-lite *ngIf="loading" active></paper-spinner-lite>
-    <paper-material *ngIf="!loading" class="self-center" elevation="1" selectable="none">
+    <paper-material *ngIf="!loading" elevation="1" selectable="none">
       <paper-listbox>
         <paper-item *ngFor="#analysis of allAnalysis" (click)="openAnalysis(analysis)" style="cursor: pointer">
           <paper-item-body two-line>
