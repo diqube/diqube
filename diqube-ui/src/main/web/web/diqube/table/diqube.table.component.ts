@@ -19,8 +19,14 @@
 /// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ///
 
-import {Component, Input, OnInit} from "angular2/core";
+import {Component, Input, OnInit, Output, EventEmitter} from "angular2/core";
 import {DiqubeUtil} from "../util/diqube.util";
+
+
+export class DiqubeTableDragStartEvent {
+  public mouseEvent: MouseEvent;
+  public rowIdx: number;
+}
 
 @Component({
   selector: "diqube-table",
@@ -50,7 +56,19 @@ export class DiqubeTableComponent implements OnInit {
    */
   @Input("rowspanCols") public rowspanCols: Array<string>;
   
+  /**
+   * Indices of those rows which should be draggable.
+   */
+  @Input("draggableRows") public draggableRows: Array<number>;
+  
+  /**
+   * Called when a drag starts. The DiqubeTableDragStartEvent is available using "$event".
+   */
+  @Output("dragStart") public dragStart: EventEmitter<DiqubeTableDragStartEvent> = new EventEmitter<DiqubeTableDragStartEvent>();
+  
   public elementId: string;
+  public hoveredRow: number = undefined;
+  
   private cachedFinalRes: Array<Array<{rowspan: number, colspan: number, value: any}>> = undefined;
   
   constructor() {
@@ -130,5 +148,27 @@ export class DiqubeTableComponent implements OnInit {
       this.cachedFinalRes = res;
     
     return this.cachedFinalRes;
+  }
+  
+  public mouseEnter(row: number): void {
+    this.hoveredRow = row;
+  }
+  
+  public mouseLeave(row: number): void {
+    this.hoveredRow = undefined;
+  }
+
+  public dragStarted(event: MouseEvent, rowIdx: number): void {
+    event.stopPropagation();
+    event.preventDefault();
+    
+    this.dragStart.emit({
+      mouseEvent: event,
+      rowIdx: rowIdx
+    });
+  }
+  
+  public isRowDraggable(rowIdx: number): boolean {
+    return this.draggableRows && this.draggableRows.indexOf(rowIdx) >= 0;
   }
 }

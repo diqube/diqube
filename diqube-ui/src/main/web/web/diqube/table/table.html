@@ -20,16 +20,23 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -->
-<table id="{{elementId}}" class="mdl-data-table mdl-js-data-table">
+<table id="{{elementId}}" class="mdl-data-table mdl-js-data-table diqube-table">
   <thead>
     <tr>
       <th *ngFor="#col of columns, #i=index" [class.mdl-data-table__cell--non-numeric]="columnIndexIsStringColumn(i)">{{ col }}</th>
     </tr>
   </thead>
   <tbody>
-    <tr *ngFor="#row of finalRows()">
-      <td *ngFor="#cell of row, #i=index" [class.mdl-data-table__cell--non-numeric]="columnIndexIsStringColumn(i)" 
-          [attr.colspan]="cell.colspan" [attr.rowspan]="cell.rowspan">{{ cell.value }}</td>
+    <tr *ngFor="#row of finalRows(), #rowIdx=index" (mouseenter)="mouseEnter(rowIdx)" (mouseleave)="mouseLeave(rowIdx)">
+      <td *ngFor="#cell of row, #i=index, #l=last" [class.mdl-data-table__cell--non-numeric]="columnIndexIsStringColumn(i)" 
+          [attr.colspan]="cell.colspan" [attr.rowspan]="cell.rowspan">
+          <div class="layout horizontal justified">
+            <span>{{ cell.value }}</span>
+            <iron-icon class="drag-handle" 
+                icon="editor:drag-handle" (mousedown)="dragStarted($event, rowIdx)" 
+                style="visibility: {{ (l && isRowDraggable(rowIdx) && rowIdx === hoveredRow) ? 'visible' : 'hidden' }}"></iron-icon>
+          </div>
+      </td>
     </tr>
   </tbody>
 </table>
