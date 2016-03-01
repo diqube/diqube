@@ -355,8 +355,11 @@ public class QueryMasterFlattenService {
       }
     });
 
-    synchronized (sync) {
-      sync.wait();
+    while (true) {
+      synchronized (sync) {
+        if (exceptionMsg.getValue() == null && exceptionCause.getValue() == null && res.getValue() == null)
+          sync.wait(500);
+      }
 
       if (exceptionMsg.getValue() != null || exceptionCause.getValue() != null) {
         if (exceptionCause.getValue() instanceof InterruptedException)
@@ -365,7 +368,10 @@ public class QueryMasterFlattenService {
         throw new FlattenException(exceptionMsg.getValue(), exceptionCause.getValue());
       }
 
-      return res.getValue();
+      if (res.getValue() != null) {
+        logger.debug("Flattened version of {} by '{}' available: {}", table, flattenBy, res.getValue().getLeft());
+        return res.getValue();
+      }
     }
   }
 
