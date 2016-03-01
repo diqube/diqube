@@ -273,15 +273,11 @@ public class ControlFileLoader {
     // flatten on ourselves; but query masters that issued the flattening should be able to cope with that).
     for (String autoFlattenField : autoFlatten) {
       UUID flattenId = UUID.randomUUID();
-      logger.info("Starting to flatten new table '{}' by '{}' locally. Flatten ID is {}.", tableName, autoFlattenField,
-          flattenId);
       try {
         // these calls start the flattening asynchronously, therefore we just trigger computation here. If there is a
         // flattened version available in the flattenedDiskCache already, that will be used.
         clusterFlattenServiceHandler.flattenAllLocalShards(RUuidUtil.toRUuid(flattenId), tableName, autoFlattenField,
             new ArrayList<>(), null);
-        logger.info("Finished flattening new table '{}' by '{}' locally with flatten ID {}.", tableName,
-            autoFlattenField, flattenId);
       } catch (TException e) {
         logger.error("Failed to flatten new table '{}' by '{}' locally with flatten ID {}.", tableName,
             autoFlattenField, flattenId, e);

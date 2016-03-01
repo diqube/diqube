@@ -118,7 +118,10 @@ export class AnalysisQueryBarchartComponent implements OnInit, DoCheck, OnDestro
           }]
         },
         responsive: true,
-        maintainAspectRatio: false
+        maintainAspectRatio: false,
+        animation: {
+          duration: 10
+        }
       }
     });
 

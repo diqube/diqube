@@ -28,12 +28,7 @@
         <diqube-error *ngIf="error">{{ error }}</diqube-error>
         <paper-input label="Name" [(ngModel)]="newAnalysis.name" ngControl="nameControl"></paper-input>
         
-        <paper-dropdown-menu label="Table">
-          <paper-menu class="dropdown-content" attr-for-selected="value" polymerSelectable [(ngModel)]="newAnalysis.table" 
-                      ngControl="tableControl">
-            <paper-item *ngFor="#table of getValidTables()" [value]="table">{{ table }}</paper-item>
-          </paper-menu>
-        </paper-dropdown-menu>
+        <paper-input label="Table" [(ngModel)]="newAnalysis.table" ngControl="tableControl" [errorMessages]="errorMessages()"></paper-input>
       </div>
       <div class="card-actions vertical layout end">
         <div class="horizontal layout">

@@ -134,4 +134,10 @@ export class AnalysisCreateComponent extends DiqubeBaseNavigatableComponent {
        return { "tableDoesNotExist": true };
      return null;
    }
+  
+  public errorMessages(): {[key: string]:string} {
+    return {
+      "tableDoesNotExist": "Warning: Table might not exist"
+    };
+  }
 }
