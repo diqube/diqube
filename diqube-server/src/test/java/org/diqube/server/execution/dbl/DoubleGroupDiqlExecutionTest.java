@@ -34,6 +34,7 @@ import java.util.concurrent.Future;
 
 import org.diqube.data.column.ColumnType;
 import org.diqube.execution.ExecutablePlan;
+import org.diqube.function.aggregate.util.BigDecimalHelper;
 import org.diqube.server.execution.GroupDiqlExecutionTest;
 import org.diqube.util.DoubleUtil;
 import org.diqube.util.Pair;
@@ -81,9 +82,11 @@ public class DoubleGroupDiqlExecutionTest extends GroupDiqlExecutionTest<Double>
       Assert.assertEquals(resultValues.size(), 2, "Result values should be available for one column only");
 
       Map<Double, Double> expected = new HashMap<>();
-      expected.put(dp.v(1), (0. + 2. + 2.) / 3);
+      expected.put(dp.v(1), new BigDecimal(0.).add(new BigDecimal(2.)).add(new BigDecimal(2.))
+          .divide(new BigDecimal(3.), BigDecimalHelper.defaultMathContext()).doubleValue());
       expected.put(dp.v(5), 4.5);
-      expected.put(dp.v(100), (5.1 + 5.3) / 2);
+      expected.put(dp.v(100), new BigDecimal(5.1).add(new BigDecimal(5.3))
+          .divide(new BigDecimal(2l), BigDecimalHelper.defaultMathContext()).doubleValue());
       expected.put(dp.v(99), 100.01);
 
       Map<Double, Double> actual = new HashMap<>();
@@ -135,11 +138,13 @@ public class DoubleGroupDiqlExecutionTest extends GroupDiqlExecutionTest<Double>
       // ColA: v(99), avg: 100.01
       expectedResult.add(new Pair<>(dp.v(99), 100.01));
       // ColA: v(100), avg: 5.2
-      expectedResult.add(new Pair<>(dp.v(100), (5.1 + 5.3) / 2));
+      expectedResult.add(new Pair<>(dp.v(100), new BigDecimal(5.1).add(new BigDecimal(5.3))
+          .divide(new BigDecimal(2), BigDecimalHelper.defaultMathContext()).doubleValue()));
       // ColA: v(5), avg: 4.5
       expectedResult.add(new Pair<>(dp.v(5), 4.5));
       // ColA: v(1), avg: 4/3
-      expectedResult.add(new Pair<>(dp.v(1), (0. + 2. + 2.) / 3));
+      expectedResult.add(new Pair<>(dp.v(1), new BigDecimal(0.).add(new BigDecimal(2.)).add(new BigDecimal(2.))
+          .divide(new BigDecimal(3), BigDecimalHelper.defaultMathContext()).doubleValue()));
 
       for (int orderedRowId = 0; orderedRowId < expectedResult.size(); orderedRowId++) {
         long rowId = resultOrderRowIds.get(orderedRowId);
@@ -273,8 +278,9 @@ public class DoubleGroupDiqlExecutionTest extends GroupDiqlExecutionTest<Double>
           .add(BigDecimal.valueOf(Double.MAX_VALUE));
 
       Map<Double, Double> expected = new HashMap<>();
-      expected.put(dp.v(1), sum.divide(BigDecimal.valueOf(3l)).doubleValue());
-      expected.put(dp.v(5), (Double.MAX_VALUE - Double.MIN_VALUE) / 2.);
+      expected.put(dp.v(1), sum.divide(BigDecimal.valueOf(3l), BigDecimalHelper.defaultMathContext()).doubleValue());
+      expected.put(dp.v(5), new BigDecimal(Double.MAX_VALUE).subtract(new BigDecimal(Double.MIN_VALUE))
+          .divide(new BigDecimal(2), BigDecimalHelper.defaultMathContext()).doubleValue());
       expected.put(dp.v(99), 0.);
 
       for (long rowId : resultValues.get(COL_A).keySet()) {

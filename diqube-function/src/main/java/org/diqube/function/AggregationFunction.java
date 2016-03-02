@@ -21,8 +21,8 @@
 package org.diqube.function;
 
 import org.diqube.data.column.ColumnType;
-import org.diqube.function.aggregate.result.IntermediaryResultValueSink;
 import org.diqube.function.aggregate.result.IntermediaryResultValueIterator;
+import org.diqube.function.aggregate.result.IntermediaryResultValueSink;
 
 /**
  * A function that aggregates values that have been grouped.
@@ -77,6 +77,17 @@ public interface AggregationFunction<I, O> {
   public void provideConstantParameter(int idx, I value);
 
   /**
+   * Add actual values to the internal state of this function.
+   * 
+   * <p>
+   * The values are not provided directly, but by an instance of a {@link ValueProvider}. The implementing class should
+   * call only that method of the ValueProvider which returns the minimum information needed by the function to proceed.
+   * 
+   * @see #needsActualValues()
+   */
+  public void addValues(ValueProvider<I> valueProvider);
+
+  /**
    * Add intermediary values to the internal state of this instance.
    * 
    * The values provided by the passed iterator have been created by
@@ -93,17 +104,6 @@ public interface AggregationFunction<I, O> {
    * {@link AggregationFunction} class before.
    */
   public void removeIntermediary(IntermediaryResultValueIterator intermediary);
-
-  /**
-   * Add actual values to the internal state of this function.
-   * 
-   * <p>
-   * The values are not provided directly, but by an instance of a {@link ValueProvider}. The implementing class should
-   * call only that method of the ValueProvider which returns the minimum information needed by the function to proceed.
-   * 
-   * @see #needsActualValues()
-   */
-  public void addValues(ValueProvider<I> valueProvider);
 
   /**
    * Populate a given instance of {@link IntermediaryResultValueSink} with the current internal state of this

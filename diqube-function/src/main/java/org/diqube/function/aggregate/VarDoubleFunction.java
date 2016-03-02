@@ -21,8 +21,6 @@
 package org.diqube.function.aggregate;
 
 import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.function.Supplier;
 
 import org.diqube.data.column.ColumnType;
 import org.diqube.function.AggregationFunction;
@@ -33,20 +31,24 @@ import org.diqube.function.aggregate.result.IntermediaryResultValueSink;
 import org.diqube.function.aggregate.util.BigDecimalHelper;
 
 /**
- * Average function that takes Longs as input.
+ * Calculates the population variance.
+ * 
+ * <p>
+ * 1/N * sum(x_i^2) - avg(x_i)^2.
  *
  * @author Bastian Gloeckle
  */
-@Function(name = AvgLongFunction.NAME)
-public class AvgLongFunction implements AggregationFunction<Long, Double> {
+@Function(name = VarDoubleFunction.NAME)
+public class VarDoubleFunction implements AggregationFunction<Double, Double> {
+  public static final String NAME = "var";
 
-  public static final String NAME = "avg";
+  private AvgDoubleFunction avgFn;
+  private long count = 0l;
+  private BigDecimal squaredSum = BigDecimalHelper.zeroCreate();
 
-  private static final Supplier<BigDecimal> ZERO_DECIMAL = () -> new BigDecimal("0.000000");
-  private static final Supplier<BigInteger> ZERO_INT = () -> BigInteger.valueOf(0l);
-
-  private BigInteger sum = ZERO_INT.get();
-  private long count = 0L;
+  public VarDoubleFunction() {
+    avgFn = new AvgDoubleFunction();
+  }
 
   @Override
   public String getNameLowerCase() {
@@ -54,55 +56,72 @@ public class AvgLongFunction implements AggregationFunction<Long, Double> {
   }
 
   @Override
+  public void provideConstantParameter(int idx, Double value) {
+    // noop
+  }
+
+  @Override
+  public void addValues(ValueProvider<Double> valueProvider) {
+    Double[] values = valueProvider.getValues();
+
+    for (Double value : values) {
+      squaredSum = squaredSum.add(BigDecimal.valueOf(value).pow(2));
+      count++;
+    }
+
+    avgFn.addValues(new ValueProvider<Double>() {
+      @Override
+      public long size() {
+        return values.length;
+      }
+
+      @Override
+      public Double[] getValues() {
+        return values;
+      }
+    });
+  }
+
+  @Override
   public void addIntermediary(IntermediaryResultValueIterator intermediary) {
-    BigInteger otherSum = (BigInteger) intermediary.next();
     long otherCount = (Long) intermediary.next();
+    BigDecimal otherSquaredSum = (BigDecimal) intermediary.next();
+    avgFn.addIntermediary(intermediary);
 
-    if (otherCount == 0)
-      return;
-
-    sum = sum.add(otherSum);
     count += otherCount;
+    squaredSum = squaredSum.add(otherSquaredSum);
   }
 
   @Override
   public void removeIntermediary(IntermediaryResultValueIterator intermediary) {
-    BigInteger otherSum = (BigInteger) intermediary.next();
     long otherCount = (Long) intermediary.next();
-
-    if (otherCount == 0)
-      return;
+    BigDecimal otherSquaredSum = (BigDecimal) intermediary.next();
+    avgFn.removeIntermediary(intermediary);
 
     if (otherCount == count) {
-      sum = ZERO_INT.get();
       count = 0;
+      squaredSum = BigDecimalHelper.zeroCreate();
       return;
     }
 
-    sum = sum.subtract(otherSum);
     count -= otherCount;
-  }
-
-  @Override
-  public void addValues(ValueProvider<Long> valueProvider) {
-    Long[] values = valueProvider.getValues();
-
-    for (Long value : values) {
-      sum = sum.add(BigInteger.valueOf(value));
-      count++;
-    }
+    squaredSum = squaredSum.subtract(otherSquaredSum);
   }
 
   @Override
   public void populateIntermediary(IntermediaryResultValueSink res) throws FunctionException {
-    res.pushValue(sum);
     res.pushValue(count);
+    res.pushValue(squaredSum);
+    avgFn.populateIntermediary(res);
   }
 
   @Override
   public Double calculate() throws FunctionException {
-    BigDecimal sumDec = BigDecimalHelper.zeroCreate().add(new BigDecimal(sum));
-    return sumDec.divide(new BigDecimal(count), BigDecimalHelper.defaultMathContext()).doubleValue();
+    double avg = avgFn.calculate();
+
+    BigDecimal res = squaredSum.divide(BigDecimal.valueOf(count), BigDecimalHelper.defaultMathContext());
+    res = res.subtract(BigDecimal.valueOf(avg).pow(2));
+    return res.doubleValue();
   }
 
   @Override
@@ -112,17 +131,11 @@ public class AvgLongFunction implements AggregationFunction<Long, Double> {
 
   @Override
   public ColumnType getInputType() {
-    return ColumnType.LONG;
-  }
-
-  @Override
-  public void provideConstantParameter(int idx, Long value) {
-    // noop.
+    return ColumnType.DOUBLE;
   }
 
   @Override
   public boolean needsActualValues() {
     return true;
   }
-
 }

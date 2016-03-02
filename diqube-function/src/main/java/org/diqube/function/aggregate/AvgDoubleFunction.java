@@ -21,7 +21,6 @@
 package org.diqube.function.aggregate;
 
 import java.math.BigDecimal;
-import java.util.function.Supplier;
 
 import org.diqube.data.column.ColumnType;
 import org.diqube.function.AggregationFunction;
@@ -29,6 +28,7 @@ import org.diqube.function.Function;
 import org.diqube.function.FunctionException;
 import org.diqube.function.aggregate.result.IntermediaryResultValueIterator;
 import org.diqube.function.aggregate.result.IntermediaryResultValueSink;
+import org.diqube.function.aggregate.util.BigDecimalHelper;
 
 /**
  * Average function that takes Doubles as input.
@@ -40,9 +40,7 @@ public class AvgDoubleFunction implements AggregationFunction<Double, Double> {
 
   public static final String NAME = "avg";
 
-  private static final Supplier<BigDecimal> ZERO_SUM = () -> new BigDecimal("0.000000");
-
-  private BigDecimal sum = ZERO_SUM.get();
+  private BigDecimal sum = BigDecimalHelper.zeroCreate();
   private long count = 0L;
 
   @Override
@@ -71,7 +69,7 @@ public class AvgDoubleFunction implements AggregationFunction<Double, Double> {
       return;
 
     if (otherCount == count) {
-      sum = ZERO_SUM.get();
+      sum = BigDecimalHelper.zeroCreate();
       count = 0;
       return;
     }
@@ -98,7 +96,7 @@ public class AvgDoubleFunction implements AggregationFunction<Double, Double> {
 
   @Override
   public Double calculate() throws FunctionException {
-    return sum.divide(new BigDecimal(count)).doubleValue();
+    return sum.divide(new BigDecimal(count), BigDecimalHelper.defaultMathContext()).doubleValue();
   }
 
   @Override
