@@ -26,6 +26,9 @@ import java.io.ObjectInputStream;
 import java.io.ObjectStreamClass;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * A {@link ObjectInputStream} that limits reading whitelisted classes.
  * 
@@ -41,6 +44,7 @@ import java.util.Set;
  * @author Bastian Gloeckle
  */
 public class SafeObjectInputStream extends ObjectInputStream {
+  private static final Logger logger = LoggerFactory.getLogger(SafeObjectInputStream.class);
 
   private Set<String> whitelistedClassNames;
 
@@ -51,8 +55,24 @@ public class SafeObjectInputStream extends ObjectInputStream {
 
   @Override
   protected Class<?> resolveClass(ObjectStreamClass desc) throws IOException, ClassNotFoundException {
-    if (!whitelistedClassNames.contains(desc.getName()))
-      throw new ClassNotFoundException("Class '" + desc.getName() + "' is not whitelisted.");
+    String actualClassName = desc.getName();
+    if (actualClassName.startsWith("[")) {
+      // seems to be an array. For description of how the string looks like, see Class#getName()
+      while (actualClassName.startsWith("["))
+        actualClassName = actualClassName.substring(1);
+
+      if (actualClassName.startsWith("L"))
+        // array of a specific class, whose name follows. Class needs to be whitelisted.
+        actualClassName = actualClassName.substring(1);
+      else
+        // array of primitive type (boolean, int, etc). Whitelist by default. This is reasonable, as properties that
+        // have a primitive type (non-array), will not call this #resolveClass method anyway.
+        actualClassName = null;
+    }
+    if (actualClassName != null && !whitelistedClassNames.contains(actualClassName)) {
+      logger.error("Class '{}' is not whitelisted", actualClassName);
+      throw new ClassNotFoundException("Class '" + actualClassName + "' is not whitelisted.");
+    }
 
     return super.resolveClass(desc);
   }

@@ -25,21 +25,16 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.Serializable;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Consumer;
 
 import org.diqube.data.column.ColumnType;
-import org.diqube.function.AggregationFunction;
 import org.diqube.function.IntermediaryResult;
 import org.diqube.function.aggregate.result.IntermediaryResultValueIterator;
+import org.diqube.function.aggregate.result.serialization.IntermediateResultSerialization;
+import org.diqube.function.aggregate.result.serialization.IntermediateResultSerializationResolver;
 import org.diqube.remote.cluster.thrift.RColumnType;
 import org.diqube.remote.cluster.thrift.RIntermediateAggregationResult;
 import org.diqube.remote.cluster.thrift.RIntermediateAggregationResultValue;
@@ -54,7 +49,9 @@ import com.google.common.reflect.ClassPath;
 import com.google.common.reflect.ClassPath.ClassInfo;
 
 /**
- * Util for {@link RIntermediateAggregationResult}
+ * Util for {@link RIntermediateAggregationResult}.
+ * 
+ * Serialization/deserialization adheres to {@link IntermediateResultSerialization}.
  *
  * @author Bastian Gloeckle
  */
@@ -63,7 +60,7 @@ public class RIntermediateAggregationResultUtil {
 
   private static final Logger logger = LoggerFactory.getLogger(RIntermediateAggregationResultUtil.class);
 
-  private static Set<String> whitelistedSerializableClassNames = null;
+  private volatile static Set<String> whitelistedSerializableClassNames = null;
 
   /**
    * Deserialize a {@link RIntermediateAggregationResult} to a {@link IntermediaryResult}.
@@ -97,7 +94,8 @@ public class RIntermediateAggregationResultUtil {
       if (val.isSetValue()) {
         res.pushValue(RValueUtil.createValue(val.getValue()));
       } else {
-        try (ByteArrayInputStream bais = new ByteArrayInputStream(val.getSerialized())) {
+        byte[] serialized = val.getSerialized();
+        try (ByteArrayInputStream bais = new ByteArrayInputStream(serialized)) {
           try (ObjectInputStream ois = new SafeObjectInputStream(bais, whitelistedSerializableClassNames)) {
             res.pushValue(ois.readObject());
           }
@@ -170,30 +168,6 @@ public class RIntermediateAggregationResultUtil {
     res.setValues(values);
 
     return res;
-  }
-
-  /**
-   * Annotation for a class implementing {@link IntermediateResultSerializationResolver} that should be enabled for
-   * resolving {@link Serializable} classes that are used in {@link IntermediaryResult}s of {@link AggregationFunction}
-   * s.
-   */
-  @Retention(RetentionPolicy.RUNTIME)
-  @Target(ElementType.TYPE)
-  public static @interface IntermediateResultSerialization {
-  }
-
-  /**
-   * Capable of resolving whitelisted classes for serialization.
-   */
-  public static interface IntermediateResultSerializationResolver {
-    /**
-     * Called when a {@link IntermediateResultSerialization} annotation is on the class.
-     * 
-     * @param enableConsumer
-     *          call this consumer with the class that should be whitelisted for java serialization (= class that is
-     *          used in {@link IntermediaryResult} of {@link AggregationFunction}s and implements {@link Serializable}).
-     */
-    public void resolve(Consumer<Class<? extends Serializable>> enableConsumer);
   }
 
   private synchronized static void initialize() {

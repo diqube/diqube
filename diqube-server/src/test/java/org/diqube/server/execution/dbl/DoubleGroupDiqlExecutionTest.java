@@ -20,6 +20,7 @@
  */
 package org.diqube.server.execution.dbl;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -268,14 +269,11 @@ public class DoubleGroupDiqlExecutionTest extends GroupDiqlExecutionTest<Double>
           "Result values should be available for result avg column");
       Assert.assertEquals(resultValues.size(), 2, "Result values should be available for two columns only");
 
-      // calculate result for dp.v(1) exactly the same way as the unction calculates it - to get the same inaccurancies
-      // in rounding etc.
-      Double resultOne = Double.MAX_VALUE;
-      Double resultTwo = resultOne / 2. + ((Double.MAX_VALUE - 1) / 2.);
-      Double resultThree = resultTwo * (2. / 3.) + (Double.MAX_VALUE / 3.);
+      BigDecimal sum = BigDecimal.valueOf(Double.MAX_VALUE).add(BigDecimal.valueOf(Double.MAX_VALUE - 1))
+          .add(BigDecimal.valueOf(Double.MAX_VALUE));
 
       Map<Double, Double> expected = new HashMap<>();
-      expected.put(dp.v(1), resultThree);
+      expected.put(dp.v(1), sum.divide(BigDecimal.valueOf(3l)).doubleValue());
       expected.put(dp.v(5), (Double.MAX_VALUE - Double.MIN_VALUE) / 2.);
       expected.put(dp.v(99), 0.);
 

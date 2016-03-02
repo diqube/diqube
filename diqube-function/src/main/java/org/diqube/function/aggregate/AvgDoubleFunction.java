@@ -20,6 +20,9 @@
  */
 package org.diqube.function.aggregate;
 
+import java.math.BigDecimal;
+import java.util.function.Supplier;
+
 import org.diqube.data.column.ColumnType;
 import org.diqube.function.AggregationFunction;
 import org.diqube.function.Function;
@@ -37,7 +40,9 @@ public class AvgDoubleFunction implements AggregationFunction<Double, Double> {
 
   public static final String NAME = "avg";
 
-  private double avg = .0;
+  private static final Supplier<BigDecimal> ZERO_SUM = () -> new BigDecimal("0.000000");
+
+  private BigDecimal sum = ZERO_SUM.get();
   private long count = 0L;
 
   @Override
@@ -47,33 +52,31 @@ public class AvgDoubleFunction implements AggregationFunction<Double, Double> {
 
   @Override
   public void addIntermediary(IntermediaryResultValueIterator intermediary) {
-    double otherAvg = (Double) intermediary.next();
+    BigDecimal otherSum = (BigDecimal) intermediary.next();
     long otherCount = (Long) intermediary.next();
 
     if (otherCount == 0)
       return;
 
-    avg =
-        (avg * (((double) count) / (count + otherCount))) + (otherAvg * (((double) otherCount) / (count + otherCount)));
+    sum = sum.add(otherSum);
     count += otherCount;
   }
 
   @Override
   public void removeIntermediary(IntermediaryResultValueIterator intermediary) {
-    double otherAvg = (Double) intermediary.next();
+    BigDecimal otherSum = (BigDecimal) intermediary.next();
     long otherCount = (Long) intermediary.next();
 
     if (otherCount == 0)
       return;
 
     if (otherCount == count) {
-      avg = 0.;
+      sum = ZERO_SUM.get();
       count = 0;
       return;
     }
 
-    avg =
-        (avg * (((double) count) / (count - otherCount))) - (otherAvg * (((double) otherCount) / (count - otherCount)));
+    sum = sum.subtract(otherSum);
     count -= otherCount;
   }
 
@@ -82,20 +85,20 @@ public class AvgDoubleFunction implements AggregationFunction<Double, Double> {
     Double[] values = valueProvider.getValues();
 
     for (Double value : values) {
-      avg = (avg * (((double) count) / (count + 1))) + (value / (count + 1));
+      sum = sum.add(new BigDecimal(value));
       count++;
     }
   }
 
   @Override
   public void populateIntermediary(IntermediaryResultValueSink res) throws FunctionException {
-    res.pushValue(avg);
+    res.pushValue(sum);
     res.pushValue(count);
   }
 
   @Override
   public Double calculate() throws FunctionException {
-    return avg;
+    return sum.divide(new BigDecimal(count)).doubleValue();
   }
 
   @Override
