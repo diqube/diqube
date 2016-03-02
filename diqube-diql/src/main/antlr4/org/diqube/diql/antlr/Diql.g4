@@ -136,6 +136,9 @@ aggregationFunctionName
  | F_MAX
  | F_CONCATGROUP
  | F_SUM
+ | F_VAR
+ | F_SD
+ | F_RSD
  ;
 
 projectionFunctionName
@@ -228,6 +231,9 @@ F_STRING: S T R I N G '(';
 F_INT: I N T '(';
 F_LONG: L O N G '(';
 F_DOUBLE: D O U B L E '(';
+F_VAR: V A R '(';
+F_SD: S D '(';
+F_RSD: R S D '(';
 
 F_FLATTEN: F L A T T E N '(';
 

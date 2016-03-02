@@ -35,14 +35,14 @@ import org.diqube.function.aggregate.result.IntermediaryResultValueSink;
  *
  * @author Bastian Gloeckle
  */
-@Function(name = StdDevDoubleFunction.NAME)
-public class StdDevDoubleFunction implements AggregationFunction<Double, Double> {
-  public static final String NAME = "stddev";
+@Function(name = StandardDeviationLongFunction.NAME)
+public class StandardDeviationLongFunction implements AggregationFunction<Long, Double> {
+  public static final String NAME = "sd";
 
-  private VarDoubleFunction varianceFunction;
+  private VarLongFunction varianceFunction;
 
-  public StdDevDoubleFunction() {
-    varianceFunction = new VarDoubleFunction();
+  public StandardDeviationLongFunction() {
+    varianceFunction = new VarLongFunction();
   }
 
   @Override
@@ -51,12 +51,12 @@ public class StdDevDoubleFunction implements AggregationFunction<Double, Double>
   }
 
   @Override
-  public void provideConstantParameter(int idx, Double value) {
+  public void provideConstantParameter(int idx, Long value) {
     // noop
   }
 
   @Override
-  public void addValues(ValueProvider<Double> valueProvider) {
+  public void addValues(ValueProvider<Long> valueProvider) {
     varianceFunction.addValues(valueProvider);
   }
 
@@ -89,7 +89,7 @@ public class StdDevDoubleFunction implements AggregationFunction<Double, Double>
 
   @Override
   public ColumnType getInputType() {
-    return ColumnType.DOUBLE;
+    return ColumnType.LONG;
   }
 
   @Override

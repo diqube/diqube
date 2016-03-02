@@ -28,21 +28,23 @@ import org.diqube.function.aggregate.result.IntermediaryResultValueIterator;
 import org.diqube.function.aggregate.result.IntermediaryResultValueSink;
 
 /**
- * Calculates the standard deviation of the population variance.
+ * Calculates the relative standard deviation of the population variance.
  * 
  * <p>
- * sqrt(var(x))
+ * sd(x) / avg(x)
  *
  * @author Bastian Gloeckle
  */
-@Function(name = StdDevLongFunction.NAME)
-public class StdDevLongFunction implements AggregationFunction<Long, Double> {
-  public static final String NAME = "stddev";
+@Function(name = RelativeStandardDeviationLongFunction.NAME)
+public class RelativeStandardDeviationLongFunction implements AggregationFunction<Long, Double> {
+  public static final String NAME = "rsd";
 
-  private VarLongFunction varianceFunction;
+  private StandardDeviationLongFunction sdFunction;
+  private AvgLongFunction avgFunction;
 
-  public StdDevLongFunction() {
-    varianceFunction = new VarLongFunction();
+  public RelativeStandardDeviationLongFunction() {
+    sdFunction = new StandardDeviationLongFunction();
+    avgFunction = new AvgLongFunction();
   }
 
   @Override
@@ -57,29 +59,48 @@ public class StdDevLongFunction implements AggregationFunction<Long, Double> {
 
   @Override
   public void addValues(ValueProvider<Long> valueProvider) {
-    varianceFunction.addValues(valueProvider);
+    Long[] values = valueProvider.getValues();
+
+    ValueProvider<Long> childValueProvider = new ValueProvider<Long>() {
+      @Override
+      public long size() {
+        return values.length;
+      }
+
+      @Override
+      public Long[] getValues() {
+        return values;
+      }
+    };
+
+    sdFunction.addValues(childValueProvider);
+    avgFunction.addValues(childValueProvider);
   }
 
   @Override
   public void addIntermediary(IntermediaryResultValueIterator intermediary) {
-    varianceFunction.addIntermediary(intermediary);
+    sdFunction.addIntermediary(intermediary);
+    avgFunction.addIntermediary(intermediary);
   }
 
   @Override
   public void removeIntermediary(IntermediaryResultValueIterator intermediary) {
-    varianceFunction.removeIntermediary(intermediary);
+    sdFunction.removeIntermediary(intermediary);
+    avgFunction.removeIntermediary(intermediary);
   }
 
   @Override
   public void populateIntermediary(IntermediaryResultValueSink res) throws FunctionException {
-    varianceFunction.populateIntermediary(res);
+    sdFunction.populateIntermediary(res);
+    avgFunction.populateIntermediary(res);
   }
 
   @Override
   public Double calculate() throws FunctionException {
-    double variance = varianceFunction.calculate();
+    double standardDeviation = sdFunction.calculate();
+    double avg = avgFunction.calculate();
 
-    return Math.sqrt(variance);
+    return standardDeviation / avg;
   }
 
   @Override
