@@ -150,8 +150,7 @@ public class RemoteExecutionPlanExecutor {
 
           @Override
           protected void doConsumeIntermediaryAggregationResult(long groupId, String colName,
-              IntermediaryResult<Object, Object, Object> oldIntermediaryResult,
-              IntermediaryResult<Object, Object, Object> newIntermediaryResult) {
+              IntermediaryResult oldIntermediaryResult, IntermediaryResult newIntermediaryResult) {
             ROldNewIntermediateAggregationResult res = new ROldNewIntermediateAggregationResult();
             if (oldIntermediaryResult != null)
               res.setOldResult(

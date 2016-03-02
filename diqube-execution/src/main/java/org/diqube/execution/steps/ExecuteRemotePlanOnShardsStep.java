@@ -139,9 +139,8 @@ public class ExecuteRemotePlanOnShardsStep extends AbstractThreadedExecutablePla
     }
 
     @Override
-    public void newIntermediaryAggregationResult(long groupId, String colName,
-        IntermediaryResult<Object, Object, Object> oldIntermediaryResult,
-        IntermediaryResult<Object, Object, Object> newIntermediaryResult) {
+    public void newIntermediaryAggregationResult(long groupId, String colName, IntermediaryResult oldIntermediaryResult,
+        IntermediaryResult newIntermediaryResult) {
       logger.trace("Received intermediary results for group {} col {} from remote", groupId, colName);
       forEachOutputConsumerOfType(GroupIntermediaryAggregationConsumer.class,
           c -> c.consumeIntermediaryAggregationResult(groupId, colName, oldIntermediaryResult, newIntermediaryResult));

@@ -24,7 +24,8 @@ import org.diqube.data.column.ColumnType;
 import org.diqube.function.AggregationFunction;
 import org.diqube.function.Function;
 import org.diqube.function.FunctionException;
-import org.diqube.function.IntermediaryResult;
+import org.diqube.function.aggregate.result.IntermediaryResultValueIterator;
+import org.diqube.function.aggregate.result.IntermediaryResultValueSink;
 
 /**
  * Aggregation function that calculates the sum of longs.
@@ -32,8 +33,7 @@ import org.diqube.function.IntermediaryResult;
  * @author Bastian Gloeckle
  */
 @Function(name = SumDoubleFunction.NAME)
-public class SumDoubleFunction
-    implements AggregationFunction<Double, IntermediaryResult<Double, Object, Object>, Double> {
+public class SumDoubleFunction implements AggregationFunction<Double, Double> {
 
   public static final String NAME = "sum";
 
@@ -50,24 +50,24 @@ public class SumDoubleFunction
   }
 
   @Override
-  public void addIntermediary(IntermediaryResult<Double, Object, Object> intermediary) {
-    sum += intermediary.getLeft();
+  public void addIntermediary(IntermediaryResultValueIterator intermediary) {
+    sum += (Double) intermediary.next();
   }
 
   @Override
-  public void removeIntermediary(IntermediaryResult<Double, Object, Object> intermediary) {
-    sum -= intermediary.getLeft();
+  public void removeIntermediary(IntermediaryResultValueIterator intermediary) {
+    sum -= (Double) intermediary.next();
   }
 
   @Override
-  public void addValues(org.diqube.function.AggregationFunction.ValueProvider<Double> valueProvider) {
+  public void addValues(ValueProvider<Double> valueProvider) {
     for (Double d : valueProvider.getValues())
       sum += d;
   }
 
   @Override
-  public IntermediaryResult<Double, Object, Object> calculateIntermediary() throws FunctionException {
-    return new IntermediaryResult<Double, Object, Object>(sum, null, null, ColumnType.DOUBLE);
+  public void populateIntermediary(IntermediaryResultValueSink res) throws FunctionException {
+    res.pushValue(sum);
   }
 
   @Override

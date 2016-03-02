@@ -52,7 +52,7 @@ public class FunctionFactory {
    * FuncName -> Input data type -> factory supplier.
    */
   private Map<String, Map<ColumnType, Supplier<ProjectionFunction<?, ?>>>> projectionFunctionFactories;
-  private Map<String, Map<ColumnType, Supplier<AggregationFunction<?, ?, ?>>>> aggregationFunctionFactories;
+  private Map<String, Map<ColumnType, Supplier<AggregationFunction<?, ?>>>> aggregationFunctionFactories;
 
   /**
    * @return The projection function or <code>null</code> if not found.
@@ -82,12 +82,12 @@ public class FunctionFactory {
    * @return The projection function or <code>null</code> if not found.
    */
   @SuppressWarnings("unchecked")
-  public <I, M extends IntermediaryResult<?, ?, ?>, O> AggregationFunction<I, M, O> createAggregationFunction(
-      String functionNameLowerCase, ColumnType inputColumnType) {
+  public <I, O> AggregationFunction<I, O> createAggregationFunction(String functionNameLowerCase,
+      ColumnType inputColumnType) {
     if (!aggregationFunctionFactories.containsKey(functionNameLowerCase)
         || !aggregationFunctionFactories.get(functionNameLowerCase).containsKey(inputColumnType))
       return null;
-    return (AggregationFunction<I, M, O>) aggregationFunctionFactories.get(functionNameLowerCase).get(inputColumnType)
+    return (AggregationFunction<I, O>) aggregationFunctionFactories.get(functionNameLowerCase).get(inputColumnType)
         .get();
   }
 
@@ -130,15 +130,15 @@ public class FunctionFactory {
           if (!aggregationFunctionFactories.containsKey(funcName))
             aggregationFunctionFactories.put(funcName, new HashMap<>());
 
-          Supplier<AggregationFunction<?, ?, ?>> supplier = () -> {
+          Supplier<AggregationFunction<?, ?>> supplier = () -> {
             try {
-              return (AggregationFunction<?, ?, ?>) clazz.newInstance();
+              return (AggregationFunction<?, ?>) clazz.newInstance();
             } catch (Exception e) {
               throw new RuntimeException("Could not instantiate " + clazz.getName());
             }
           };
 
-          AggregationFunction<?, ?, ?> tempInstance = supplier.get();
+          AggregationFunction<?, ?> tempInstance = supplier.get();
 
           aggregationFunctionFactories.get(funcName).put(tempInstance.getInputType(), supplier);
         }

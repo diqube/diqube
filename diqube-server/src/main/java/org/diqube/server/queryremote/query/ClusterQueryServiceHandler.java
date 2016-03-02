@@ -346,10 +346,10 @@ public class ClusterQueryServiceHandler implements ClusterQueryService.Iface {
       ROldNewIntermediateAggregationResult result, short percentDoneDelta) throws TException {
     logger.trace("Received new group intermediary values in service. Constructing final objects to work on...");
 
-    IntermediaryResult<Object, Object, Object> oldRes = null;
+    IntermediaryResult oldRes = null;
     if (result.isSetOldResult())
       oldRes = RIntermediateAggregationResultUtil.buildIntermediateAggregationResult(result.getOldResult());
-    IntermediaryResult<Object, Object, Object> newRes = null;
+    IntermediaryResult newRes = null;
     if (result.isSetNewResult())
       newRes = RIntermediateAggregationResultUtil.buildIntermediateAggregationResult(result.getNewResult());
 

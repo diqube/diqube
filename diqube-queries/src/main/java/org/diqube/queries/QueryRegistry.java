@@ -377,9 +377,8 @@ public class QueryRegistry {
     /**
      * A new {@link IntermediaryResult} is available from a remote.
      */
-    public void newIntermediaryAggregationResult(long groupId, String colName,
-        IntermediaryResult<Object, Object, Object> oldIntermediaryResult,
-        IntermediaryResult<Object, Object, Object> newIntermediaryResult);
+    public void newIntermediaryAggregationResult(long groupId, String colName, IntermediaryResult oldIntermediaryResult,
+        IntermediaryResult newIntermediaryResult);
 
     /**
      * New column values are available from a remote.

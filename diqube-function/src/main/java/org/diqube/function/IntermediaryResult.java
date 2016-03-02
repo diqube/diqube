@@ -20,25 +20,28 @@
  */
 package org.diqube.function;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.diqube.data.column.ColumnType;
-import org.diqube.util.Triple;
+import org.diqube.function.aggregate.result.IntermediaryResultValueIterator;
+import org.diqube.function.aggregate.result.IntermediaryResultValueSink;
 
 /**
  * An intermediary result of an aggregation function.
  * 
- * <p>
- * As each aggregation function may have different type of intermediary results, this is simply a {@link Triple}.
- * 
  * @author Bastian Gloeckle
  */
-public class IntermediaryResult<X, Y, Z> extends Triple<X, Y, Z> {
+public class IntermediaryResult implements IntermediaryResultValueSink {
 
   private ColumnType inputColumnType;
 
   private String outputColName;
 
-  public IntermediaryResult(X left, Y middle, Z right, ColumnType inputColumnType) {
-    super(left, middle, right);
+  private List<Object> values = new ArrayList<>();
+
+  public IntermediaryResult(String outputColName, ColumnType inputColumnType) {
+    this.outputColName = outputColName;
     this.inputColumnType = inputColumnType;
   }
 
@@ -58,8 +61,16 @@ public class IntermediaryResult<X, Y, Z> extends Triple<X, Y, Z> {
     return outputColName;
   }
 
-  public void setOutputColName(String outputColName) {
-    this.outputColName = outputColName;
+  @Override
+  public void pushValue(Object o) {
+    values.add(o);
+  }
+
+  /**
+   * @return A new iterator on the values of this intermediary result.
+   */
+  public IntermediaryResultValueIterator createValueIterator() {
+    return new IntermediaryResultValueIterator(values.iterator());
   }
 
   @Override
@@ -74,5 +85,4 @@ public class IntermediaryResult<X, Y, Z> extends Triple<X, Y, Z> {
     sb.append("]");
     return sb.toString();
   }
-
 }

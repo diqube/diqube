@@ -304,8 +304,7 @@ public abstract class QueryMasterParallelDiqlExecutionTest<T> extends AbstractRe
     }
   }
 
-  @SuppressWarnings({ "unchecked", "rawtypes" })
-  private IntermediaryResult<Object, Object, Object> intermediary(String outputColName, int count) {
+  private IntermediaryResult intermediary(String outputColName, int count) {
     CountFunction fn = new CountFunction();
     fn.addValues(new ValueProvider<Object>() {
 
@@ -320,8 +319,8 @@ public abstract class QueryMasterParallelDiqlExecutionTest<T> extends AbstractRe
       }
     });
 
-    IntermediaryResult<Object, Object, Object> res = (IntermediaryResult) fn.calculateIntermediary();
-    res.setOutputColName(outputColName);
+    IntermediaryResult res = new IntermediaryResult(outputColName, null);
+    fn.populateIntermediary(res);
     return res;
   }
 }

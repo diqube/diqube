@@ -20,11 +20,38 @@
  */
 package org.diqube.remote.cluster;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.function.Consumer;
+
 import org.diqube.data.column.ColumnType;
+import org.diqube.function.AggregationFunction;
 import org.diqube.function.IntermediaryResult;
+import org.diqube.function.aggregate.result.IntermediaryResultValueIterator;
 import org.diqube.remote.cluster.thrift.RColumnType;
 import org.diqube.remote.cluster.thrift.RIntermediateAggregationResult;
+import org.diqube.remote.cluster.thrift.RIntermediateAggregationResultValue;
+import org.diqube.thrift.base.thrift.RValue;
 import org.diqube.thrift.base.util.RValueUtil;
+import org.diqube.util.SafeObjectInputStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.ImmutableSet;
+import com.google.common.reflect.ClassPath;
+import com.google.common.reflect.ClassPath.ClassInfo;
 
 /**
  * Util for {@link RIntermediateAggregationResult}
@@ -32,15 +59,22 @@ import org.diqube.thrift.base.util.RValueUtil;
  * @author Bastian Gloeckle
  */
 public class RIntermediateAggregationResultUtil {
-  public static IntermediaryResult<Object, Object, Object> buildIntermediateAggregationResult(
-      RIntermediateAggregationResult input) {
-    Object left = RValueUtil.createValue(input.getValue1());
-    Object middle = null;
-    if (input.isSetValue2())
-      middle = RValueUtil.createValue(input.getValue2());
-    Object right = null;
-    if (input.isSetValue3())
-      right = RValueUtil.createValue(input.getValue3());
+  private static final String ROOT_PKG = "org.diqube";
+
+  private static final Logger logger = LoggerFactory.getLogger(RIntermediateAggregationResultUtil.class);
+
+  private static Set<String> whitelistedSerializableClassNames = null;
+
+  /**
+   * Deserialize a {@link RIntermediateAggregationResult} to a {@link IntermediaryResult}.
+   * 
+   * @throws IllegalArgumentException
+   *           if data cannot be deserialized.
+   */
+  public static IntermediaryResult buildIntermediateAggregationResult(RIntermediateAggregationResult input)
+      throws IllegalArgumentException {
+    if (whitelistedSerializableClassNames == null)
+      initialize();
 
     ColumnType type = null;
     if (input.isSetInputColumnType()) {
@@ -57,22 +91,39 @@ public class RIntermediateAggregationResultUtil {
       }
     }
 
-    IntermediaryResult<Object, Object, Object> res =
-        new IntermediaryResult<Object, Object, Object>(left, middle, right, type);
-    res.setOutputColName(input.getOutputColName());
+    IntermediaryResult res = new IntermediaryResult(input.getOutputColName(), type);
+
+    for (RIntermediateAggregationResultValue val : input.getValues()) {
+      if (val.isSetValue()) {
+        res.pushValue(RValueUtil.createValue(val.getValue()));
+      } else {
+        try (ByteArrayInputStream bais = new ByteArrayInputStream(val.getSerialized())) {
+          try (ObjectInputStream ois = new SafeObjectInputStream(bais, whitelistedSerializableClassNames)) {
+            res.pushValue(ois.readObject());
+          }
+        } catch (IOException | ClassNotFoundException e) {
+          logger.error("Could not deserialize intermediate result", e);
+          throw new IllegalArgumentException("Could not deserialize intermediate result", e);
+        }
+      }
+    }
+
     return res;
   }
 
-  public static RIntermediateAggregationResult buildRIntermediateAggregationResult(
-      IntermediaryResult<Object, Object, Object> input) {
+  /**
+   * Serialize a {@link IntermediaryResult}.
+   * 
+   * @throws IllegalArgumentException
+   *           If cannot be serialized
+   */
+  public static RIntermediateAggregationResult buildRIntermediateAggregationResult(IntermediaryResult input)
+      throws IllegalArgumentException {
+    if (whitelistedSerializableClassNames == null)
+      initialize();
+
     RIntermediateAggregationResult res = new RIntermediateAggregationResult();
     res.setOutputColName(input.getOutputColName());
-    res.setValue1(RValueUtil.createRValue(input.getLeft()));
-    if (input.getMiddle() != null)
-      res.setValue2(RValueUtil.createRValue(input.getMiddle()));
-    if (input.getRight() != null)
-      res.setValue3(RValueUtil.createRValue(input.getRight()));
-
     if (input.getInputColumnType() != null) {
       switch (input.getInputColumnType()) {
       case STRING:
@@ -87,7 +138,100 @@ public class RIntermediateAggregationResultUtil {
       }
     }
 
+    List<RIntermediateAggregationResultValue> values = new ArrayList<>();
+    IntermediaryResultValueIterator it = input.createValueIterator();
+    while (it.hasNext()) {
+      Object valueObject = it.next();
+
+      RIntermediateAggregationResultValue resValue = new RIntermediateAggregationResultValue();
+
+      RValue rvalue = RValueUtil.createRValue(valueObject);
+      if (rvalue != null) {
+        resValue.setValue(rvalue);
+      } else {
+        if (!whitelistedSerializableClassNames.contains(valueObject.getClass().getName()))
+          // only a shallow check, but better than no check at all.
+          throw new IllegalArgumentException("Class " + valueObject.getClass().getName() + " is not whitelisted.");
+
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+          try (ObjectOutputStream oos = new ObjectOutputStream(baos)) {
+            oos.writeObject(valueObject);
+          }
+
+          resValue.setSerialized(baos.toByteArray());
+        } catch (IOException e) {
+          logger.error("Could not serialize intermediary result", e);
+          throw new IllegalArgumentException("Could not serialize intermediary result", e);
+        }
+      }
+
+      values.add(resValue);
+    }
+    res.setValues(values);
+
     return res;
   }
 
+  /**
+   * Annotation for a class implementing {@link IntermediateResultSerializationResolver} that should be enabled for
+   * resolving {@link Serializable} classes that are used in {@link IntermediaryResult}s of {@link AggregationFunction}
+   * s.
+   */
+  @Retention(RetentionPolicy.RUNTIME)
+  @Target(ElementType.TYPE)
+  public static @interface IntermediateResultSerialization {
+  }
+
+  /**
+   * Capable of resolving whitelisted classes for serialization.
+   */
+  public static interface IntermediateResultSerializationResolver {
+    /**
+     * Called when a {@link IntermediateResultSerialization} annotation is on the class.
+     * 
+     * @param enableConsumer
+     *          call this consumer with the class that should be whitelisted for java serialization (= class that is
+     *          used in {@link IntermediaryResult} of {@link AggregationFunction}s and implements {@link Serializable}).
+     */
+    public void resolve(Consumer<Class<? extends Serializable>> enableConsumer);
+  }
+
+  private synchronized static void initialize() {
+    if (whitelistedSerializableClassNames != null)
+      return;
+
+    ClassPath cp;
+    try {
+      cp = ClassPath.from(RIntermediateAggregationResultUtil.class.getClassLoader());
+    } catch (IOException e) {
+      throw new RuntimeException("Could not initialize classpath scanning!", e);
+    }
+    ImmutableSet<ClassInfo> classInfos = cp.getTopLevelClassesRecursive(ROOT_PKG);
+
+    whitelistedSerializableClassNames = new HashSet<>();
+
+    for (ClassInfo classInfo : classInfos) {
+      Class<?> clazz = classInfo.load();
+      if (clazz.getAnnotation(IntermediateResultSerialization.class) != null) {
+        if (!IntermediateResultSerializationResolver.class.isAssignableFrom(clazz)) {
+          logger.warn("Class {} has {} annotation, but does not implement {}. Ignoring.", clazz.getName(),
+              IntermediateResultSerialization.class.getSimpleName(),
+              IntermediateResultSerializationResolver.class.getName());
+          continue;
+        }
+
+        try {
+          IntermediateResultSerializationResolver resolver =
+              (IntermediateResultSerializationResolver) clazz.newInstance();
+
+          resolver.resolve(cls -> {
+            whitelistedSerializableClassNames.add(cls.getName());
+            logger.debug("Whitelisted class {} for being de-/serialized for intermediate aggregation results", cls);
+          });
+        } catch (InstantiationException | IllegalAccessException e) {
+          logger.warn("Could not instantiate {}. Ignoring.", clazz.getName(), e);
+        }
+      }
+    }
+  }
 }

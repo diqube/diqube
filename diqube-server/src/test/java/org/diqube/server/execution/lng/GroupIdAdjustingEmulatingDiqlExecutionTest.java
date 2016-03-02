@@ -118,8 +118,7 @@ public class GroupIdAdjustingEmulatingDiqlExecutionTest extends AbstractRemoteEm
     }
   }
 
-  @SuppressWarnings({ "unchecked", "rawtypes" })
-  private IntermediaryResult<Object, Object, Object> intermediary(String outputColName, int count) {
+  private IntermediaryResult intermediary(String outputColName, int count) {
     CountFunction fn = new CountFunction();
     fn.addValues(new ValueProvider<Object>() {
       @Override
@@ -133,8 +132,8 @@ public class GroupIdAdjustingEmulatingDiqlExecutionTest extends AbstractRemoteEm
       }
     });
 
-    IntermediaryResult<Object, Object, Object> res = (IntermediaryResult) fn.calculateIntermediary();
-    res.setOutputColName(outputColName);
+    IntermediaryResult res = new IntermediaryResult(outputColName, null);
+    fn.populateIntermediary(res);
     return res;
   }
 

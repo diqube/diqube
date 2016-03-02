@@ -30,7 +30,8 @@ import org.diqube.data.column.ColumnType;
 import org.diqube.function.AggregationFunction;
 import org.diqube.function.Function;
 import org.diqube.function.FunctionException;
-import org.diqube.function.IntermediaryResult;
+import org.diqube.function.aggregate.result.IntermediaryResultValueIterator;
+import org.diqube.function.aggregate.result.IntermediaryResultValueSink;
 
 /**
  * MAX function for double cols.
@@ -38,8 +39,7 @@ import org.diqube.function.IntermediaryResult;
  * @author Bastian Gloeckle
  */
 @Function(name = MaxDoubleFunction.NAME)
-public class MaxDoubleFunction
-    implements AggregationFunction<Double, IntermediaryResult<Double, Object, Object>, Double> {
+public class MaxDoubleFunction implements AggregationFunction<Double, Double> {
 
   public static final String NAME = "max";
 
@@ -56,8 +56,8 @@ public class MaxDoubleFunction
   }
 
   @Override
-  public void addIntermediary(IntermediaryResult<Double, Object, Object> intermediary) {
-    double max = intermediary.getLeft();
+  public void addIntermediary(IntermediaryResultValueIterator intermediary) {
+    double max = (Double) intermediary.next();
     int count = valueCount.merge(max, 1, (a, b) -> a + b);
 
     if (count == 1)
@@ -65,8 +65,8 @@ public class MaxDoubleFunction
   }
 
   @Override
-  public void removeIntermediary(IntermediaryResult<Double, Object, Object> intermediary) {
-    double max = intermediary.getLeft();
+  public void removeIntermediary(IntermediaryResultValueIterator intermediary) {
+    double max = (Double) intermediary.next();
     Integer count = valueCount.compute(max, (k, v) -> (v == null || v <= 1) ? null : (v - 1));
 
     if (count == null || count == 0)
@@ -85,8 +85,8 @@ public class MaxDoubleFunction
   }
 
   @Override
-  public IntermediaryResult<Double, Object, Object> calculateIntermediary() throws FunctionException {
-    return new IntermediaryResult<Double, Object, Object>(calculate(), null, null, ColumnType.DOUBLE);
+  public void populateIntermediary(IntermediaryResultValueSink res) throws FunctionException {
+    res.pushValue(calculate());
   }
 
   @Override

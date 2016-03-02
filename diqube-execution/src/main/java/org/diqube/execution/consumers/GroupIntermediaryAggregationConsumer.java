@@ -46,6 +46,5 @@ public interface GroupIntermediaryAggregationConsumer extends OverwritingConsume
    *          The currently valid intermediary result returned from the {@link AggregationFunction}.
    */
   public void consumeIntermediaryAggregationResult(long groupId, String colName,
-      IntermediaryResult<Object, Object, Object> oldIntermediaryResult,
-      IntermediaryResult<Object, Object, Object> newIntermediaryResult);
+      IntermediaryResult oldIntermediaryResult, IntermediaryResult newIntermediaryResult);
 }

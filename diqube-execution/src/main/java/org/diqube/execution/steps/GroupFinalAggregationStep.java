@@ -75,7 +75,7 @@ public class GroupFinalAggregationStep extends AbstractThreadedExecutablePlanSte
 
   private AtomicBoolean sourceIsDone = new AtomicBoolean(false);
 
-  private ConcurrentLinkedDeque<Triple<Long, IntermediaryResult<Object, Object, Object>, IntermediaryResult<Object, Object, Object>>> groupIntermediaryUpdates =
+  private ConcurrentLinkedDeque<Triple<Long, IntermediaryResult, IntermediaryResult>> groupIntermediaryUpdates =
       new ConcurrentLinkedDeque<>();
 
   private AbstractThreadedGroupIntermediaryAggregationConsumer groupIntermediaryConsumer =
@@ -88,8 +88,7 @@ public class GroupFinalAggregationStep extends AbstractThreadedExecutablePlanSte
 
         @Override
         protected void doConsumeIntermediaryAggregationResult(long groupId, String colName,
-            IntermediaryResult<Object, Object, Object> oldIntermediaryResult,
-            IntermediaryResult<Object, Object, Object> newIntermediaryResult) {
+            IntermediaryResult oldIntermediaryResult, IntermediaryResult newIntermediaryResult) {
           if (newIntermediaryResult.getOutputColName().equals(outputColName))
             groupIntermediaryUpdates.add(new Triple<>(groupId, oldIntermediaryResult, newIntermediaryResult));
         }
@@ -99,8 +98,7 @@ public class GroupFinalAggregationStep extends AbstractThreadedExecutablePlanSte
   private FunctionFactory functionFactory;
   private String functionNameLowerCase;
   private String outputColName;
-  private Map<Long, AggregationFunction<Object, IntermediaryResult<Object, Object, Object>, Object>> aggregationFunctions =
-      new HashMap<>();
+  private Map<Long, AggregationFunction<Object, Object>> aggregationFunctions = new HashMap<>();
 
   private ColumnShardBuilderFactory columnShardBuilderFactory;
 
@@ -136,24 +134,23 @@ public class GroupFinalAggregationStep extends AbstractThreadedExecutablePlanSte
   protected void execute() {
 
     @SuppressWarnings("unchecked")
-    Triple<Long, IntermediaryResult<Object, Object, Object>, IntermediaryResult<Object, Object, Object>>[] activeUpdates =
-        new Triple[groupIntermediaryUpdates.size()];
+    Triple<Long, IntermediaryResult, IntermediaryResult>[] activeUpdates = new Triple[groupIntermediaryUpdates.size()];
     for (int i = 0; i < activeUpdates.length; i++)
       activeUpdates[i] = groupIntermediaryUpdates.poll();
 
     if (activeUpdates.length > 0) {
       Set<Long> groupIdsChanged = new HashSet<>();
-      for (Triple<Long, IntermediaryResult<Object, Object, Object>, IntermediaryResult<Object, Object, Object>> update : activeUpdates) {
+      for (Triple<Long, IntermediaryResult, IntermediaryResult> update : activeUpdates) {
         Long groupId = update.getLeft();
         groupIdsChanged.add(groupId);
-        IntermediaryResult<Object, Object, Object> oldIntermediary = update.getMiddle();
-        IntermediaryResult<Object, Object, Object> newIntermediary = update.getRight();
+        IntermediaryResult oldIntermediary = update.getMiddle();
+        IntermediaryResult newIntermediary = update.getRight();
 
         logger.trace("Processing update of group {} on col {}: new {}, old {}", groupId, outputColName, newIntermediary,
             oldIntermediary);
 
         if (!aggregationFunctions.containsKey(groupId)) {
-          AggregationFunction<Object, IntermediaryResult<Object, Object, Object>, Object> fn =
+          AggregationFunction<Object, Object> fn =
               functionFactory.createAggregationFunction(functionNameLowerCase, newIntermediary.getInputColumnType());
 
           if (fn == null)
@@ -163,13 +160,13 @@ public class GroupFinalAggregationStep extends AbstractThreadedExecutablePlanSte
           for (int i = 0; i < constantFunctionParameters.size(); i++)
             fn.provideConstantParameter(i, constantFunctionParameters.get(i));
 
-          fn.addIntermediary(newIntermediary);
+          fn.addIntermediary(newIntermediary.createValueIterator());
           aggregationFunctions.put(groupId, fn);
         } else {
           if (oldIntermediary != null)
-            aggregationFunctions.get(groupId).removeIntermediary(oldIntermediary);
+            aggregationFunctions.get(groupId).removeIntermediary(oldIntermediary.createValueIterator());
 
-          aggregationFunctions.get(groupId).addIntermediary(newIntermediary);
+          aggregationFunctions.get(groupId).addIntermediary(newIntermediary.createValueIterator());
         }
       }
 

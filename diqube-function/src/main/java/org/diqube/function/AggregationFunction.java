@@ -21,6 +21,8 @@
 package org.diqube.function;
 
 import org.diqube.data.column.ColumnType;
+import org.diqube.function.aggregate.result.IntermediaryResultValueSink;
+import org.diqube.function.aggregate.result.IntermediaryResultValueIterator;
 
 /**
  * A function that aggregates values that have been grouped.
@@ -28,7 +30,7 @@ import org.diqube.data.column.ColumnType;
  * <p>
  * An aggregate function object is alive during the computation of one group, which means it is intended to hold a
  * state. Additionally, it is required to calculate an {@link IntermediaryResult} from time to time (
- * {@link #calculateIntermediary()}) : The {@link AggregationFunction} is executed on each cluster node, where the
+ * {@link #populateIntermediary()}) : The {@link AggregationFunction} is executed on each cluster node, where the
  * {@link AggregationFunction} object on each node produces an {@link IntermediaryResult} which is passed on to the
  * Query Master node. That node collects the {@link IntermediaryResult}s of all cluster nodes and needs to merge the
  * results for equal groups (i.e. a group that had elements not only on one cluster node). This means that the Query
@@ -58,7 +60,7 @@ import org.diqube.data.column.ColumnType;
  *
  * @author Bastian Gloeckle
  */
-public interface AggregationFunction<I, M extends IntermediaryResult<?, ?, ?>, O> {
+public interface AggregationFunction<I, O> {
   /**
    * @return Name of the function, lowercase.
    */
@@ -75,14 +77,22 @@ public interface AggregationFunction<I, M extends IntermediaryResult<?, ?, ?>, O
   public void provideConstantParameter(int idx, I value);
 
   /**
-   * Add a specific intermediary to the internal value of this instance.
+   * Add intermediary values to the internal state of this instance.
+   * 
+   * The values provided by the passed iterator have been created by
+   * {@link #populateIntermediary(IntermediaryResultValueSink)} of a potentially different instance of this
+   * {@link AggregationFunction} class before.
    */
-  public void addIntermediary(M intermediary);
+  public void addIntermediary(IntermediaryResultValueIterator intermediary);
 
   /**
-   * Remove a specific intermediary to the internal value of this instance.
+   * Remove intermediary values to the internal state of this instance.
+   * 
+   * The values provided by the passed iterator have been created by
+   * {@link #populateIntermediary(IntermediaryResultValueSink)} of a potentially different instance of this
+   * {@link AggregationFunction} class before.
    */
-  public void removeIntermediary(M intermediary);
+  public void removeIntermediary(IntermediaryResultValueIterator intermediary);
 
   /**
    * Add actual values to the internal state of this function.
@@ -96,13 +106,19 @@ public interface AggregationFunction<I, M extends IntermediaryResult<?, ?, ?>, O
   public void addValues(ValueProvider<I> valueProvider);
 
   /**
-   * Create and return a new instance of {@link IntermediaryResult} which represents the current internal state of this
+   * Populate a given instance of {@link IntermediaryResultValueSink} with the current internal state of this
    * {@link AggregationFunction}.
+   * 
+   * <p>
+   * Expect a {@link IntermediaryResultValueIterator} with the same value-ordering to be passed to
+   * {@link #addIntermediary(IntermediaryResultValueSink)} and/or
+   * {@link #removeIntermediary(IntermediaryResultValueSink)} on different instances of this {@link AggregationFunction}
+   * later on.
    * 
    * @throws FunctionException
    *           If the intermediary cannot be calculated.
    */
-  public M calculateIntermediary() throws FunctionException;
+  public void populateIntermediary(IntermediaryResultValueSink res) throws FunctionException;
 
   /**
    * Calculate and return the final result.

@@ -36,15 +36,13 @@ public abstract class AbstractThreadedGroupIntermediaryAggregationConsumer exten
 
   @Override
   public void consumeIntermediaryAggregationResult(long groupId, String colName,
-      IntermediaryResult<Object, Object, Object> oldIntermediaryResult,
-      IntermediaryResult<Object, Object, Object> newIntermediaryResult) {
+      IntermediaryResult oldIntermediaryResult, IntermediaryResult newIntermediaryResult) {
     doConsumeIntermediaryAggregationResult(groupId, colName, oldIntermediaryResult, newIntermediaryResult);
     if (planStep != null)
       planStep.continueProcessing();
   }
 
   abstract protected void doConsumeIntermediaryAggregationResult(long groupId, String colName,
-      IntermediaryResult<Object, Object, Object> oldIntermediaryResult,
-      IntermediaryResult<Object, Object, Object> newIntermediaryResult);
+      IntermediaryResult oldIntermediaryResult, IntermediaryResult newIntermediaryResult);
 
 }

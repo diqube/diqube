@@ -27,7 +27,8 @@ import org.diqube.data.column.ColumnType;
 import org.diqube.function.AggregationFunction;
 import org.diqube.function.Function;
 import org.diqube.function.FunctionException;
-import org.diqube.function.IntermediaryResult;
+import org.diqube.function.aggregate.result.IntermediaryResultValueIterator;
+import org.diqube.function.aggregate.result.IntermediaryResultValueSink;
 import org.diqube.util.DoubleUtil;
 
 /**
@@ -38,7 +39,7 @@ import org.diqube.util.DoubleUtil;
  * @author Bastian Gloeckle
  */
 @Function(name = AnyDoubleFunction.NAME)
-public class AnyDoubleFunction implements AggregationFunction<Double, IntermediaryResult<Long, Object, Object>, Long> {
+public class AnyDoubleFunction implements AggregationFunction<Double, Long> {
 
   public static final String NAME = "any";
 
@@ -52,24 +53,24 @@ public class AnyDoubleFunction implements AggregationFunction<Double, Intermedia
   }
 
   @Override
-  public void addIntermediary(IntermediaryResult<Long, Object, Object> intermediary) {
-    matched += intermediary.getLeft();
+  public void addIntermediary(IntermediaryResultValueIterator intermediary) {
+    matched += (Long) intermediary.next();
   }
 
   @Override
-  public void removeIntermediary(IntermediaryResult<Long, Object, Object> intermediary) {
-    matched -= intermediary.getLeft();
+  public void removeIntermediary(IntermediaryResultValueIterator intermediary) {
+    matched -= (Long) intermediary.next();
   }
 
   @Override
-  public void addValues(org.diqube.function.AggregationFunction.ValueProvider<Double> valueProvider) {
+  public void addValues(ValueProvider<Double> valueProvider) {
     for (Double val : valueProvider.getValues())
       matched += DoubleUtil.equals(val, constantParameters.get(0)) ? 1 : 0;
   }
 
   @Override
-  public IntermediaryResult<Long, Object, Object> calculateIntermediary() throws FunctionException {
-    return new IntermediaryResult<Long, Object, Object>(calculate(), null, null, ColumnType.DOUBLE);
+  public void populateIntermediary(IntermediaryResultValueSink res) throws FunctionException {
+    res.pushValue(calculate());
   }
 
   @Override

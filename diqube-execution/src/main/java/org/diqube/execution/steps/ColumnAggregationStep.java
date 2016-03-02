@@ -52,7 +52,6 @@ import org.diqube.executionenv.util.ColumnPatternUtil.LengthColumnMissingExcepti
 import org.diqube.function.AggregationFunction;
 import org.diqube.function.AggregationFunction.ValueProvider;
 import org.diqube.function.FunctionFactory;
-import org.diqube.function.IntermediaryResult;
 import org.diqube.loader.LoaderColumnInfo;
 import org.diqube.loader.columnshard.ColumnShardBuilder;
 import org.diqube.loader.columnshard.ColumnShardBuilderFactory;
@@ -170,7 +169,7 @@ public class ColumnAggregationStep extends AbstractThreadedExecutablePlanStep {
     logger.trace("Starting to column aggregate with output col {}", outputColName);
 
     ColumnType inputColType = defaultEnv.getColumnShard(Iterables.getFirst(allColNames, null)).getColumnType();
-    AggregationFunction<Object, IntermediaryResult<Object, Object, Object>, Object> tmpFunction =
+    AggregationFunction<Object, Object> tmpFunction =
         functionFactory.createAggregationFunction(functionNameLowerCase, inputColType);
 
     if (tmpFunction == null)
@@ -229,7 +228,7 @@ public class ColumnAggregationStep extends AbstractThreadedExecutablePlanStep {
                 final long finalRowId = rowId;
                 Set<String> colNamesForCurRow = finalColumnPatternContainer.getColumnPatternsSinglePattern(finalRowId);
 
-                AggregationFunction<Object, IntermediaryResult<Object, Object, Object>, Object> aggFunction =
+                AggregationFunction<Object, Object> aggFunction =
                     functionFactory.createAggregationFunction(functionNameLowerCase, inputColType);
 
                 for (int i = 0; i < constantFunctionParameters.size(); i++)

@@ -24,7 +24,8 @@ import org.diqube.data.column.ColumnType;
 import org.diqube.function.AggregationFunction;
 import org.diqube.function.Function;
 import org.diqube.function.FunctionException;
-import org.diqube.function.IntermediaryResult;
+import org.diqube.function.aggregate.result.IntermediaryResultValueIterator;
+import org.diqube.function.aggregate.result.IntermediaryResultValueSink;
 
 /**
  * Aggregation function that calculates the sum of longs.
@@ -32,7 +33,7 @@ import org.diqube.function.IntermediaryResult;
  * @author Bastian Gloeckle
  */
 @Function(name = SumLongFunction.NAME)
-public class SumLongFunction implements AggregationFunction<Long, IntermediaryResult<Long, Object, Object>, Long> {
+public class SumLongFunction implements AggregationFunction<Long, Long> {
 
   public static final String NAME = "sum";
 
@@ -49,24 +50,24 @@ public class SumLongFunction implements AggregationFunction<Long, IntermediaryRe
   }
 
   @Override
-  public void addIntermediary(IntermediaryResult<Long, Object, Object> intermediary) {
-    sum += intermediary.getLeft();
+  public void addIntermediary(IntermediaryResultValueIterator intermediary) {
+    sum += (Long) intermediary.next();
   }
 
   @Override
-  public void removeIntermediary(IntermediaryResult<Long, Object, Object> intermediary) {
-    sum -= intermediary.getLeft();
+  public void removeIntermediary(IntermediaryResultValueIterator intermediary) {
+    sum -= (Long) intermediary.next();
   }
 
   @Override
-  public void addValues(org.diqube.function.AggregationFunction.ValueProvider<Long> valueProvider) {
+  public void addValues(ValueProvider<Long> valueProvider) {
     for (Long l : valueProvider.getValues())
       sum += l;
   }
 
   @Override
-  public IntermediaryResult<Long, Object, Object> calculateIntermediary() throws FunctionException {
-    return new IntermediaryResult<Long, Object, Object>(sum, null, null, ColumnType.LONG);
+  public void populateIntermediary(IntermediaryResultValueSink res) throws FunctionException {
+    res.pushValue(sum);
   }
 
   @Override

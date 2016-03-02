@@ -102,8 +102,7 @@ public class GroupIntermediaryAggregationStep extends AbstractThreadedExecutable
   private FunctionFactory functionFactory;
   private String functionNameLowerCase;
   private String outputColName;
-  private Map<Long, AggregationFunction<Object, IntermediaryResult<Object, Object, Object>, Object>> aggregationFunctions =
-      new HashMap<>();
+  private Map<Long, AggregationFunction<Object, Object>> aggregationFunctions = new HashMap<>();
   /** can be null if no parameter is specified for the aggregation function (e.g. count()) */
   private String inputColumnName;
 
@@ -154,7 +153,7 @@ public class GroupIntermediaryAggregationStep extends AbstractThreadedExecutable
         inputColType = null;
       else
         inputColType = env.getColumnType(inputColumnName);
-      AggregationFunction<Object, IntermediaryResult<Object, Object, Object>, Object> tmpFn =
+      AggregationFunction<Object, Object> tmpFn =
           functionFactory.createAggregationFunction(functionNameLowerCase, inputColType);
 
       if (tmpFn == null)
@@ -188,7 +187,7 @@ public class GroupIntermediaryAggregationStep extends AbstractThreadedExecutable
         Long groupId = groupDeltaEntry.getKey();
         List<Long> newRowIds = groupDeltaEntry.getValue();
         if (!aggregationFunctions.containsKey(groupId)) {
-          AggregationFunction<Object, IntermediaryResult<Object, Object, Object>, Object> newFn =
+          AggregationFunction<Object, Object> newFn =
               functionFactory.createAggregationFunction(functionNameLowerCase, inputColType);
 
           if (newFn == null)
@@ -201,9 +200,8 @@ public class GroupIntermediaryAggregationStep extends AbstractThreadedExecutable
           aggregationFunctions.put(groupId, newFn);
         }
 
-        IntermediaryResult<Object, Object, Object> oldIntermediary =
-            aggregationFunctions.get(groupId).calculateIntermediary();
-        oldIntermediary.setOutputColName(outputColName);
+        IntermediaryResult oldIntermediary = new IntermediaryResult(outputColName, inputColType);
+        aggregationFunctions.get(groupId).populateIntermediary(oldIntermediary);
 
         // update AggregationFunction object with new values.
         aggregationFunctions.get(groupId).addValues(new ValueProvider<Object>() {
@@ -224,9 +222,8 @@ public class GroupIntermediaryAggregationStep extends AbstractThreadedExecutable
           }
         });
 
-        IntermediaryResult<Object, Object, Object> newIntermediary =
-            aggregationFunctions.get(groupId).calculateIntermediary();
-        newIntermediary.setOutputColName(outputColName);
+        IntermediaryResult newIntermediary = new IntermediaryResult(outputColName, inputColType);
+        aggregationFunctions.get(groupId).populateIntermediary(newIntermediary);
 
         logger.trace("New intermediary for group {} in col {}: new {}, old: {}", groupId, outputColName,
             newIntermediary, oldIntermediary);

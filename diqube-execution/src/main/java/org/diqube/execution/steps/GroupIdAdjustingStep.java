@@ -86,7 +86,7 @@ public class GroupIdAdjustingStep extends AbstractThreadedExecutablePlanStep {
   };
 
   /** sync additions/removals by value of {@link #incomingGroupIntermediariesSync}. */
-  private volatile ConcurrentMap<Long, Deque<Triple<String, IntermediaryResult<Object, Object, Object>, IntermediaryResult<Object, Object, Object>>>> incomingGroupIntermediaries =
+  private volatile ConcurrentMap<Long, Deque<Triple<String, IntermediaryResult, IntermediaryResult>>> incomingGroupIntermediaries =
       new ConcurrentHashMap<>();
 
   private AtomicBoolean groupInputIsDone = new AtomicBoolean(false);
@@ -102,15 +102,13 @@ public class GroupIdAdjustingStep extends AbstractThreadedExecutablePlanStep {
 
         @Override
         protected void doConsumeIntermediaryAggregationResult(long groupId, String colName,
-            IntermediaryResult<Object, Object, Object> oldIntermediaryResult,
-            IntermediaryResult<Object, Object, Object> newIntermediaryResult) {
+            IntermediaryResult oldIntermediaryResult, IntermediaryResult newIntermediaryResult) {
           incomingGroupIntermediariesSync.putIfAbsent(groupId, new Object());
 
           synchronized (incomingGroupIntermediariesSync.get(groupId)) {
             incomingGroupIntermediaries.compute(groupId, (key, value) -> {
               if (value == null)
-                value =
-                    new ConcurrentLinkedDeque<Triple<String, IntermediaryResult<Object, Object, Object>, IntermediaryResult<Object, Object, Object>>>();
+                value = new ConcurrentLinkedDeque<Triple<String, IntermediaryResult, IntermediaryResult>>();
               value.addLast(new Triple<>(colName, oldIntermediaryResult, newIntermediaryResult));
               return value;
             });
@@ -203,7 +201,7 @@ public class GroupIdAdjustingStep extends AbstractThreadedExecutablePlanStep {
       for (Long inputGroupId : activeGroupIds) {
         long newGroupId = groupIdMap.get(inputGroupId);
 
-        Deque<Triple<String, IntermediaryResult<Object, Object, Object>, IntermediaryResult<Object, Object, Object>>> intermediaries =
+        Deque<Triple<String, IntermediaryResult, IntermediaryResult>> intermediaries =
             incomingGroupIntermediaries.get(inputGroupId);
 
         if (intermediaries.isEmpty()) {
@@ -219,8 +217,7 @@ public class GroupIdAdjustingStep extends AbstractThreadedExecutablePlanStep {
         logger.trace("Processing collected changes for group {}", newGroupId);
         List<String> colNamesProcessed = new ArrayList<>();
         while (!intermediaries.isEmpty()) {
-          Triple<String, IntermediaryResult<Object, Object, Object>, IntermediaryResult<Object, Object, Object>> update =
-              intermediaries.poll();
+          Triple<String, IntermediaryResult, IntermediaryResult> update = intermediaries.poll();
 
           colNamesProcessed.add(update.getLeft());
 
@@ -234,10 +231,8 @@ public class GroupIdAdjustingStep extends AbstractThreadedExecutablePlanStep {
     }
   }
 
-  private boolean isEmpty(
-      Map<Long, Deque<Triple<String, IntermediaryResult<Object, Object, Object>, IntermediaryResult<Object, Object, Object>>>> map) {
-    for (Deque<Triple<String, IntermediaryResult<Object, Object, Object>, IntermediaryResult<Object, Object, Object>>> deque : map
-        .values()) {
+  private boolean isEmpty(Map<Long, Deque<Triple<String, IntermediaryResult, IntermediaryResult>>> map) {
+    for (Deque<Triple<String, IntermediaryResult, IntermediaryResult>> deque : map.values()) {
       if (!deque.isEmpty())
         return false;
     }

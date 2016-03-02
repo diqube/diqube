@@ -24,7 +24,8 @@ import org.diqube.data.column.ColumnType;
 import org.diqube.function.AggregationFunction;
 import org.diqube.function.Function;
 import org.diqube.function.FunctionException;
-import org.diqube.function.IntermediaryResult;
+import org.diqube.function.aggregate.result.IntermediaryResultValueIterator;
+import org.diqube.function.aggregate.result.IntermediaryResultValueSink;
 
 /**
  * Count function.
@@ -32,7 +33,7 @@ import org.diqube.function.IntermediaryResult;
  * @author Bastian Gloeckle
  */
 @Function(name = CountFunction.NAME)
-public class CountFunction implements AggregationFunction<Object, IntermediaryResult<Long, Object, Object>, Long> {
+public class CountFunction implements AggregationFunction<Object, Long> {
 
   public static final String NAME = "count";
 
@@ -44,13 +45,13 @@ public class CountFunction implements AggregationFunction<Object, IntermediaryRe
   }
 
   @Override
-  public void addIntermediary(IntermediaryResult<Long, Object, Object> intermediary) {
-    curCount += intermediary.getLeft();
+  public void addIntermediary(IntermediaryResultValueIterator intermediary) {
+    curCount += (Long) intermediary.next();
   }
 
   @Override
-  public void removeIntermediary(IntermediaryResult<Long, Object, Object> intermediary) {
-    curCount -= intermediary.getLeft();
+  public void removeIntermediary(IntermediaryResultValueIterator intermediary) {
+    curCount -= (Long) intermediary.next();
   }
 
   @Override
@@ -59,8 +60,8 @@ public class CountFunction implements AggregationFunction<Object, IntermediaryRe
   }
 
   @Override
-  public IntermediaryResult<Long, Object, Object> calculateIntermediary() throws FunctionException {
-    return new IntermediaryResult<Long, Object, Object>(curCount, null, null, null);
+  public void populateIntermediary(IntermediaryResultValueSink res) throws FunctionException {
+    res.pushValue(curCount);
   }
 
   @Override

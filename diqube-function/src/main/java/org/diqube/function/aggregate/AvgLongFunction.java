@@ -24,7 +24,8 @@ import org.diqube.data.column.ColumnType;
 import org.diqube.function.AggregationFunction;
 import org.diqube.function.Function;
 import org.diqube.function.FunctionException;
-import org.diqube.function.IntermediaryResult;
+import org.diqube.function.aggregate.result.IntermediaryResultValueIterator;
+import org.diqube.function.aggregate.result.IntermediaryResultValueSink;
 
 /**
  * Average function that takes Longs as input.
@@ -32,7 +33,7 @@ import org.diqube.function.IntermediaryResult;
  * @author Bastian Gloeckle
  */
 @Function(name = AvgLongFunction.NAME)
-public class AvgLongFunction implements AggregationFunction<Long, IntermediaryResult<Double, Long, Object>, Double> {
+public class AvgLongFunction implements AggregationFunction<Long, Double> {
 
   public static final String NAME = "avg";
 
@@ -45,9 +46,9 @@ public class AvgLongFunction implements AggregationFunction<Long, IntermediaryRe
   }
 
   @Override
-  public void addIntermediary(IntermediaryResult<Double, Long, Object> intermediary) {
-    double otherAvg = intermediary.getLeft();
-    long otherCount = intermediary.getMiddle();
+  public void addIntermediary(IntermediaryResultValueIterator intermediary) {
+    double otherAvg = (Double) intermediary.next();
+    long otherCount = (Long) intermediary.next();
 
     if (otherCount == 0)
       return;
@@ -58,9 +59,9 @@ public class AvgLongFunction implements AggregationFunction<Long, IntermediaryRe
   }
 
   @Override
-  public void removeIntermediary(IntermediaryResult<Double, Long, Object> intermediary) {
-    double otherAvg = intermediary.getLeft();
-    long otherCount = intermediary.getMiddle();
+  public void removeIntermediary(IntermediaryResultValueIterator intermediary) {
+    double otherAvg = (Double) intermediary.next();
+    long otherCount = (Long) intermediary.next();
 
     if (otherCount == 0)
       return;
@@ -87,8 +88,9 @@ public class AvgLongFunction implements AggregationFunction<Long, IntermediaryRe
   }
 
   @Override
-  public IntermediaryResult<Double, Long, Object> calculateIntermediary() throws FunctionException {
-    return new IntermediaryResult<Double, Long, Object>(avg, count, null, ColumnType.LONG);
+  public void populateIntermediary(IntermediaryResultValueSink res) throws FunctionException {
+    res.pushValue(avg);
+    res.pushValue(count);
   }
 
   @Override

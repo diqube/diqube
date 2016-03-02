@@ -28,7 +28,8 @@ import org.diqube.data.column.ColumnType;
 import org.diqube.function.AggregationFunction;
 import org.diqube.function.Function;
 import org.diqube.function.FunctionException;
-import org.diqube.function.IntermediaryResult;
+import org.diqube.function.aggregate.result.IntermediaryResultValueIterator;
+import org.diqube.function.aggregate.result.IntermediaryResultValueSink;
 
 /**
  * Aggregation function that concatenates all string values. A custom delimiter can be specified as constant param.
@@ -36,8 +37,7 @@ import org.diqube.function.IntermediaryResult;
  * @author Bastian Gloeckle
  */
 @Function(name = ConcatGroupFunction.NAME)
-public class ConcatGroupFunction
-    implements AggregationFunction<String, IntermediaryResult<String, Object, Object>, String> {
+public class ConcatGroupFunction implements AggregationFunction<String, String> {
 
   public static final String NAME = "concatgroup";
 
@@ -52,24 +52,24 @@ public class ConcatGroupFunction
   }
 
   @Override
-  public void addIntermediary(IntermediaryResult<String, Object, Object> intermediary) {
-    values.add(intermediary.getLeft());
+  public void addIntermediary(IntermediaryResultValueIterator intermediary) {
+    values.add((String) intermediary.next());
   }
 
   @Override
-  public void removeIntermediary(IntermediaryResult<String, Object, Object> intermediary) {
-    values.remove(intermediary.getLeft()); // remove any value - if the same value is in the list twice, it does not
-                                           // matter which one we remove.
+  public void removeIntermediary(IntermediaryResultValueIterator intermediary) {
+    values.remove(intermediary.next()); // remove any value - if the same value is in the list twice, it does not
+                                        // matter which one we remove.
   }
 
   @Override
-  public void addValues(org.diqube.function.AggregationFunction.ValueProvider<String> valueProvider) {
+  public void addValues(ValueProvider<String> valueProvider) {
     values.addAll(Arrays.asList(valueProvider.getValues()));
   }
 
   @Override
-  public IntermediaryResult<String, Object, Object> calculateIntermediary() throws FunctionException {
-    return new IntermediaryResult<String, Object, Object>(calculate(), null, null, ColumnType.STRING);
+  public void populateIntermediary(IntermediaryResultValueSink res) throws FunctionException {
+    res.pushValue(calculate());
   }
 
   @Override

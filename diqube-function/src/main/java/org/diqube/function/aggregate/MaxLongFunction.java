@@ -30,7 +30,8 @@ import org.diqube.data.column.ColumnType;
 import org.diqube.function.AggregationFunction;
 import org.diqube.function.Function;
 import org.diqube.function.FunctionException;
-import org.diqube.function.IntermediaryResult;
+import org.diqube.function.aggregate.result.IntermediaryResultValueIterator;
+import org.diqube.function.aggregate.result.IntermediaryResultValueSink;
 
 /**
  * MAX function for long cols.
@@ -38,7 +39,7 @@ import org.diqube.function.IntermediaryResult;
  * @author Bastian Gloeckle
  */
 @Function(name = MaxLongFunction.NAME)
-public class MaxLongFunction implements AggregationFunction<Long, IntermediaryResult<Long, Object, Object>, Long> {
+public class MaxLongFunction implements AggregationFunction<Long, Long> {
 
   public static final String NAME = "max";
 
@@ -55,8 +56,8 @@ public class MaxLongFunction implements AggregationFunction<Long, IntermediaryRe
   }
 
   @Override
-  public void addIntermediary(IntermediaryResult<Long, Object, Object> intermediary) {
-    long max = intermediary.getLeft();
+  public void addIntermediary(IntermediaryResultValueIterator intermediary) {
+    long max = (Long) intermediary.next();
     int count = valueCount.merge(max, 1, (a, b) -> a + b);
 
     if (count == 1)
@@ -64,8 +65,8 @@ public class MaxLongFunction implements AggregationFunction<Long, IntermediaryRe
   }
 
   @Override
-  public void removeIntermediary(IntermediaryResult<Long, Object, Object> intermediary) {
-    long max = intermediary.getLeft();
+  public void removeIntermediary(IntermediaryResultValueIterator intermediary) {
+    long max = (Long) intermediary.next();
     Integer count = valueCount.compute(max, (k, v) -> (v == null || v <= 1) ? null : (v - 1));
 
     if (count == null || count == 0)
@@ -84,8 +85,8 @@ public class MaxLongFunction implements AggregationFunction<Long, IntermediaryRe
   }
 
   @Override
-  public IntermediaryResult<Long, Object, Object> calculateIntermediary() throws FunctionException {
-    return new IntermediaryResult<Long, Object, Object>(calculate(), null, null, ColumnType.LONG);
+  public void populateIntermediary(IntermediaryResultValueSink res) throws FunctionException {
+    res.pushValue(calculate());
   }
 
   @Override

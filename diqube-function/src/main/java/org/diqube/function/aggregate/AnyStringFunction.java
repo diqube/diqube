@@ -27,7 +27,8 @@ import org.diqube.data.column.ColumnType;
 import org.diqube.function.AggregationFunction;
 import org.diqube.function.Function;
 import org.diqube.function.FunctionException;
-import org.diqube.function.IntermediaryResult;
+import org.diqube.function.aggregate.result.IntermediaryResultValueIterator;
+import org.diqube.function.aggregate.result.IntermediaryResultValueSink;
 
 /**
  * Function that creates a result of 0 or 1, depending on if a specific value was received.
@@ -37,7 +38,7 @@ import org.diqube.function.IntermediaryResult;
  * @author Bastian Gloeckle
  */
 @Function(name = AnyStringFunction.NAME)
-public class AnyStringFunction implements AggregationFunction<String, IntermediaryResult<Long, Object, Object>, Long> {
+public class AnyStringFunction implements AggregationFunction<String, Long> {
 
   public static final String NAME = "any";
 
@@ -51,24 +52,24 @@ public class AnyStringFunction implements AggregationFunction<String, Intermedia
   }
 
   @Override
-  public void addIntermediary(IntermediaryResult<Long, Object, Object> intermediary) {
-    matched += intermediary.getLeft();
+  public void addIntermediary(IntermediaryResultValueIterator intermediary) {
+    matched += (Long) intermediary.next();
   }
 
   @Override
-  public void removeIntermediary(IntermediaryResult<Long, Object, Object> intermediary) {
-    matched -= intermediary.getLeft();
+  public void removeIntermediary(IntermediaryResultValueIterator intermediary) {
+    matched -= (Long) intermediary.next();
   }
 
   @Override
-  public void addValues(org.diqube.function.AggregationFunction.ValueProvider<String> valueProvider) {
+  public void addValues(ValueProvider<String> valueProvider) {
     for (String val : valueProvider.getValues())
       matched += val.equals(constantParameters.get(0)) ? 1 : 0;
   }
 
   @Override
-  public IntermediaryResult<Long, Object, Object> calculateIntermediary() throws FunctionException {
-    return new IntermediaryResult<Long, Object, Object>(calculate(), null, null, ColumnType.STRING);
+  public void populateIntermediary(IntermediaryResultValueSink res) throws FunctionException {
+    res.pushValue(calculate());
   }
 
   @Override

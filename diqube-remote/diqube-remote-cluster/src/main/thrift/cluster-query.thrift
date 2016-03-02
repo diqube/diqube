@@ -39,12 +39,15 @@ enum RColumnType {
   LONG
 }
 
+union RIntermediateAggregationResultValue {
+  1: optional base.RValue value,
+  2: optional binary serialized
+}
+
 struct RIntermediateAggregationResult {
-  1: RColumnType inputColumnType,
+  1: optional RColumnType inputColumnType, // can be null in case no column is passed as input (e.g. count()).
   2: string outputColName,
-  3: base.RValue value1,
-  4: optional base.RValue value2,
-  5: optional base.RValue value3
+  3: list<RIntermediateAggregationResultValue> values
 }
 
 struct ROldNewIntermediateAggregationResult {

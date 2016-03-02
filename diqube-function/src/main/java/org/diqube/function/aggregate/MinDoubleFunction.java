@@ -30,7 +30,8 @@ import org.diqube.data.column.ColumnType;
 import org.diqube.function.AggregationFunction;
 import org.diqube.function.Function;
 import org.diqube.function.FunctionException;
-import org.diqube.function.IntermediaryResult;
+import org.diqube.function.aggregate.result.IntermediaryResultValueIterator;
+import org.diqube.function.aggregate.result.IntermediaryResultValueSink;
 
 /**
  * MIN function for long cols.
@@ -38,8 +39,7 @@ import org.diqube.function.IntermediaryResult;
  * @author Bastian Gloeckle
  */
 @Function(name = MinDoubleFunction.NAME)
-public class MinDoubleFunction
-    implements AggregationFunction<Double, IntermediaryResult<Double, Object, Object>, Double> {
+public class MinDoubleFunction implements AggregationFunction<Double, Double> {
 
   public static final String NAME = "min";
 
@@ -52,8 +52,8 @@ public class MinDoubleFunction
   }
 
   @Override
-  public void addIntermediary(IntermediaryResult<Double, Object, Object> intermediary) {
-    double min = intermediary.getLeft();
+  public void addIntermediary(IntermediaryResultValueIterator intermediary) {
+    double min = (Double) intermediary.next();
     int count = valueCount.merge(min, 1, (a, b) -> a + b);
 
     if (count == 1)
@@ -61,8 +61,8 @@ public class MinDoubleFunction
   }
 
   @Override
-  public void removeIntermediary(IntermediaryResult<Double, Object, Object> intermediary) {
-    double min = intermediary.getLeft();
+  public void removeIntermediary(IntermediaryResultValueIterator intermediary) {
+    double min = (Double) intermediary.next();
     Integer count = valueCount.compute(min, (k, v) -> (v == null || v <= 1) ? null : (v - 1));
 
     if (count == null || count == 0)
@@ -81,8 +81,8 @@ public class MinDoubleFunction
   }
 
   @Override
-  public IntermediaryResult<Double, Object, Object> calculateIntermediary() throws FunctionException {
-    return new IntermediaryResult<Double, Object, Object>(calculate(), null, null, ColumnType.DOUBLE);
+  public void populateIntermediary(IntermediaryResultValueSink res) throws FunctionException {
+    res.pushValue(calculate());
   }
 
   @Override
