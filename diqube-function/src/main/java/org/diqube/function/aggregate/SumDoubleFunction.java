@@ -45,7 +45,7 @@ public class SumDoubleFunction implements AggregationFunction<Double, Double> {
   }
 
   @Override
-  public void provideConstantParameter(int idx, Double value) {
+  public void provideConstantParameter(int idx, Object value) throws FunctionException {
     // noop.
   }
 

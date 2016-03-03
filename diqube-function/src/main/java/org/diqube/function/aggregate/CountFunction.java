@@ -81,7 +81,7 @@ public class CountFunction implements AggregationFunction<Object, Long> {
   }
 
   @Override
-  public void provideConstantParameter(int idx, Object value) {
+  public void provideConstantParameter(int idx, Object value) throws FunctionException {
     // noop.
   }
 

@@ -60,7 +60,7 @@ public class VarLongFunction implements AggregationFunction<Long, Double> {
   }
 
   @Override
-  public void provideConstantParameter(int idx, Long value) {
+  public void provideConstantParameter(int idx, Object value) throws FunctionException {
     // noop
   }
 
@@ -82,6 +82,11 @@ public class VarLongFunction implements AggregationFunction<Long, Double> {
       @Override
       public Long[] getValues() {
         return values;
+      }
+
+      @Override
+      public boolean isFinalSetOfValues() {
+        return valueProvider.isFinalSetOfValues();
       }
     });
   }

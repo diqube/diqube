@@ -88,10 +88,14 @@ public class AnyLongFunction implements AggregationFunction<Long, Long> {
   }
 
   @Override
-  public void provideConstantParameter(int idx, Long value) {
+  public void provideConstantParameter(int idx, Object value) throws FunctionException {
+    if (!(value instanceof Long))
+      throw new FunctionException(
+          "Parameter to " + NAME + " function can be a LONG only, because the column is a LONG column.");
+
     while (constantParameters.size() <= idx)
       constantParameters.add(null);
-    constantParameters.set(idx, value);
+    constantParameters.set(idx, (Long) value);
   }
 
   @Override

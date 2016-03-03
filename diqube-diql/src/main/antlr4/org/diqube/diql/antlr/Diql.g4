@@ -139,6 +139,8 @@ aggregationFunctionName
  | F_VAR
  | F_SD
  | F_RSD
+ | F_QUANTILE
+ | F_QVC
  ;
 
 projectionFunctionName
@@ -234,6 +236,8 @@ F_DOUBLE: D O U B L E '(';
 F_VAR: V A R '(';
 F_SD: S D '(';
 F_RSD: R S D '(';
+F_QUANTILE: Q U A N T I L E '(';
+F_QVC: Q V C '(';
 
 F_FLATTEN: F L A T T E N '(';
 

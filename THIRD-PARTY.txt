@@ -32,6 +32,7 @@ diqube source code.
         * Spring Core (org.springframework:spring-core:4.1.6.RELEASE - https://github.com/spring-projects/spring-framework)
         * Spring Expression Language (SpEL) (org.springframework:spring-expression:4.1.6.RELEASE - https://github.com/spring-projects/spring-framework)
         * Spring Web (org.springframework:spring-web:4.1.6.RELEASE - https://github.com/spring-projects/spring-framework)
+        * T-Digest (com.tdunning:t-digest:3.1 - https://github.com/tdunning/t-digest)
         * TestNG (org.testng:testng:6.9.4 - http://testng.org)
         * jackson-databind (com.fasterxml.jackson.core:jackson-databind:2.6.2 - http://github.com/FasterXML/jackson)
         * javax.inject (javax.inject:javax.inject:1 - http://code.google.com/p/atinject/)

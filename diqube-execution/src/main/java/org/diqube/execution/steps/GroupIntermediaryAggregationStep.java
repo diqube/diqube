@@ -200,11 +200,7 @@ public class GroupIntermediaryAggregationStep extends AbstractThreadedExecutable
           aggregationFunctions.put(groupId, newFn);
         }
 
-        IntermediaryResult oldIntermediary = new IntermediaryResult(outputColName, inputColType);
-        aggregationFunctions.get(groupId).populateIntermediary(oldIntermediary);
-
-        // update AggregationFunction object with new values.
-        aggregationFunctions.get(groupId).addValues(new ValueProvider<Object>() {
+        calculateAndSendUpdates(groupId, aggregationFunctions.get(groupId), new ValueProvider<Object>() {
           @Override
           public Object[] getValues() {
             Long[] columnValueIds;
@@ -220,24 +216,81 @@ public class GroupIntermediaryAggregationStep extends AbstractThreadedExecutable
           public long size() {
             return newRowIds.size();
           }
+
+          @Override
+          public boolean isFinalSetOfValues() {
+            return false; // last set of calls see below
+          }
         });
-
-        IntermediaryResult newIntermediary = new IntermediaryResult(outputColName, inputColType);
-        aggregationFunctions.get(groupId).populateIntermediary(newIntermediary);
-
-        logger.trace("New intermediary for group {} in col {}: new {}, old: {}", groupId, outputColName,
-            newIntermediary, oldIntermediary);
-
-        forEachOutputConsumerOfType(GroupIntermediaryAggregationConsumer.class,
-            c -> c.consumeIntermediaryAggregationResult(groupId, outputColName, oldIntermediary, newIntermediary));
       }
 
     }
 
     if (groupDeltaSourceIsDone.get() && newGroupChanges.isEmpty()) {
+      sendFinalAggregationFunctionUpdates();
       forEachOutputConsumerOfType(GenericConsumer.class, c -> c.sourceIsDone());
       doneProcessing();
     }
+  }
+
+  private void sendFinalAggregationFunctionUpdates() {
+    for (Entry<Long, AggregationFunction<Object, Object>> e : aggregationFunctions.entrySet()) {
+      AggregationFunction<Object, Object> aggFn = e.getValue();
+      long groupId = e.getKey();
+
+      Object[] resValues;
+      switch (aggFn.getInputType()) {
+      case STRING:
+        resValues = new String[0];
+        break;
+      case LONG:
+        resValues = new Long[0];
+        break;
+      default:
+        resValues = new Double[0];
+      }
+
+      calculateAndSendUpdates(groupId, aggFn, new ValueProvider<Object>() {
+        @Override
+        public long size() {
+          return 0;
+        }
+
+        @Override
+        public boolean isFinalSetOfValues() {
+          return true;
+        }
+
+        @Override
+        public Object[] getValues() {
+          return resValues;
+        }
+      });
+
+    }
+  }
+
+  private void calculateAndSendUpdates(long groupId, AggregationFunction<Object, Object> aggFn,
+      ValueProvider<Object> valueProvider) {
+    ColumnType inputColType;
+    if (inputColumnName == null)
+      inputColType = null;
+    else
+      inputColType = env.getColumnType(inputColumnName);
+
+    IntermediaryResult oldIntermediary = new IntermediaryResult(outputColName, inputColType);
+    aggFn.populateIntermediary(oldIntermediary);
+
+    aggFn.addValues(valueProvider);
+
+    IntermediaryResult newIntermediary = new IntermediaryResult(outputColName, inputColType);
+    aggFn.populateIntermediary(newIntermediary);
+
+    logger.trace("New intermediary for group {} in col {}: new {}, old: {}", groupId, outputColName, newIntermediary,
+        oldIntermediary);
+
+    forEachOutputConsumerOfType(GroupIntermediaryAggregationConsumer.class,
+        c -> c.consumeIntermediaryAggregationResult(groupId, outputColName, oldIntermediary, newIntermediary));
   }
 
   @Override

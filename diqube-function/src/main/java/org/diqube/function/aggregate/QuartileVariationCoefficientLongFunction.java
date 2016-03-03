@@ -28,21 +28,26 @@ import org.diqube.function.aggregate.result.IntermediaryResultValueIterator;
 import org.diqube.function.aggregate.result.IntermediaryResultValueSink;
 
 /**
- * Calculates the standard deviation of the population variance.
+ * Calculates the Quartile Variantion Coefficient (= Quartile coefficient of dispersion).
  * 
  * <p>
- * sqrt(var(x))
+ * (Q3 - Q1) / (Q3 + Q1) = (quantile(0.75) - quantile(0.25)) / (quantile(0.75) + quantile(0.25))
  *
  * @author Bastian Gloeckle
  */
-@Function(name = StandardDeviationLongFunction.NAME)
-public class StandardDeviationLongFunction implements AggregationFunction<Long, Double> {
-  public static final String NAME = "sd";
+@Function(name = QuartileVariationCoefficientLongFunction.NAME)
+public class QuartileVariationCoefficientLongFunction implements AggregationFunction<Long, Double> {
+  public static final String NAME = "qvc";
 
-  private VarLongFunction varianceFunction;
+  private QuantileLongFunction q1;
+  private QuantileLongFunction q3;
 
-  public StandardDeviationLongFunction() {
-    varianceFunction = new VarLongFunction();
+  public QuartileVariationCoefficientLongFunction() {
+    q1 = new QuantileLongFunction();
+    q1.provideConstantParameter(0, 0.25);
+
+    q3 = new QuantileLongFunction();
+    q3.provideConstantParameter(0, 0.75);
   }
 
   @Override
@@ -52,34 +57,61 @@ public class StandardDeviationLongFunction implements AggregationFunction<Long, 
 
   @Override
   public void provideConstantParameter(int idx, Object value) throws FunctionException {
-    // noop
+    // noop.
   }
 
   @Override
   public void addValues(ValueProvider<Long> valueProvider) {
-    varianceFunction.addValues(valueProvider);
+    Long[] values = valueProvider.getValues();
+
+    ValueProvider<Long> childValueProvider = new ValueProvider<Long>() {
+      @Override
+      public long size() {
+        return values.length;
+      }
+
+      @Override
+      public boolean isFinalSetOfValues() {
+        return valueProvider.isFinalSetOfValues();
+      }
+
+      @Override
+      public Long[] getValues() {
+        return values;
+      }
+    };
+
+    q1.addValues(childValueProvider);
+    q3.addValues(childValueProvider);
   }
 
   @Override
   public void addIntermediary(IntermediaryResultValueIterator intermediary) {
-    varianceFunction.addIntermediary(intermediary);
+    q1.addIntermediary(intermediary);
+    q3.addIntermediary(intermediary);
   }
 
   @Override
   public void removeIntermediary(IntermediaryResultValueIterator intermediary) {
-    varianceFunction.removeIntermediary(intermediary);
+    q1.removeIntermediary(intermediary);
+    q3.removeIntermediary(intermediary);
   }
 
   @Override
   public void populateIntermediary(IntermediaryResultValueSink res) throws FunctionException {
-    varianceFunction.populateIntermediary(res);
+    q1.populateIntermediary(res);
+    q3.populateIntermediary(res);
   }
 
   @Override
   public Double calculate() throws FunctionException {
-    double variance = varianceFunction.calculate();
+    double q1Res = q1.calculate();
+    double q3Res = q3.calculate();
 
-    return Math.sqrt(variance);
+    if (q1Res + q3Res == 0.)
+      return -1.;
+
+    return (q3Res - q1Res) / (q3Res + q1Res);
   }
 
   @Override
@@ -96,4 +128,5 @@ public class StandardDeviationLongFunction implements AggregationFunction<Long, 
   public boolean needsActualValues() {
     return true;
   }
+
 }

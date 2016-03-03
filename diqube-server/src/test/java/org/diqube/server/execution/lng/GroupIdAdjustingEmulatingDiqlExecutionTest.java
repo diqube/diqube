@@ -130,6 +130,11 @@ public class GroupIdAdjustingEmulatingDiqlExecutionTest extends AbstractRemoteEm
       public long size() {
         return count;
       }
+
+      @Override
+      public boolean isFinalSetOfValues() {
+        return true;
+      }
     });
 
     IntermediaryResult res = new IntermediaryResult(outputColName, null);

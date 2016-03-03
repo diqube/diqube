@@ -89,10 +89,14 @@ public class AnyDoubleFunction implements AggregationFunction<Double, Long> {
   }
 
   @Override
-  public void provideConstantParameter(int idx, Double value) {
+  public void provideConstantParameter(int idx, Object value) throws FunctionException {
+    if (!(value instanceof Double))
+      throw new FunctionException(
+          "Parameter to " + NAME + " function can be a DOUBLE only, because the column is a DOUBLE column.");
+
     while (constantParameters.size() <= idx)
       constantParameters.add(null);
-    constantParameters.set(idx, value);
+    constantParameters.set(idx, (Double) value);
   }
 
   @Override

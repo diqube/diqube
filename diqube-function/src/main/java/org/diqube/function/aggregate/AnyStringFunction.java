@@ -88,10 +88,13 @@ public class AnyStringFunction implements AggregationFunction<String, Long> {
   }
 
   @Override
-  public void provideConstantParameter(int idx, String value) {
+  public void provideConstantParameter(int idx, Object value) throws FunctionException {
+    if (!(value instanceof String))
+      throw new FunctionException(
+          "Parameter to " + NAME + " function can be a STRING only, because the column is a STRING column.");
     while (constantParameters.size() <= idx)
       constantParameters.add(null);
-    constantParameters.set(idx, value);
+    constantParameters.set(idx, (String) value);
   }
 
   @Override

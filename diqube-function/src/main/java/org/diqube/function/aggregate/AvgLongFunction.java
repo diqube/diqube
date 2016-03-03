@@ -116,7 +116,7 @@ public class AvgLongFunction implements AggregationFunction<Long, Double> {
   }
 
   @Override
-  public void provideConstantParameter(int idx, Long value) {
+  public void provideConstantParameter(int idx, Object value) throws FunctionException {
     // noop.
   }
 

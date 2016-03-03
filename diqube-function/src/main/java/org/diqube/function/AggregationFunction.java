@@ -72,9 +72,12 @@ public interface AggregationFunction<I, O> {
    * @param idx
    *          Index of the parameter.
    * @param value
-   *          The parameter value.
+   *          The parameter value. The value can be of the following types: {@link Long}, {@link Double}, {@link String}
+   *          .
+   * @throws FunctionException
+   *           if the value is not supported.
    */
-  public void provideConstantParameter(int idx, I value);
+  public void provideConstantParameter(int idx, Object value) throws FunctionException;
 
   /**
    * Add actual values to the internal state of this function.
@@ -82,6 +85,14 @@ public interface AggregationFunction<I, O> {
    * <p>
    * The values are not provided directly, but by an instance of a {@link ValueProvider}. The implementing class should
    * call only that method of the ValueProvider which returns the minimum information needed by the function to proceed.
+   * 
+   * <p>
+   * The provided valueProvider carries a flag if the set of values is the "last" set. If that flag is true, the
+   * {@link AggregationFunction} has to be able to provide its (final) result in both, the {@link #calculate()} and the
+   * {@link #populateIntermediary(IntermediaryResultValueSink)} functions. This is important for
+   * {@link AggregationFunction}s that cannot internally handle
+   * {@link #removeIntermediary(IntermediaryResultValueIterator)} calls nicely - be sure to populate the result data
+   * when all input data is consumed!
    * 
    * @see #needsActualValues()
    */
@@ -98,6 +109,11 @@ public interface AggregationFunction<I, O> {
 
   /**
    * Remove intermediary values to the internal state of this instance.
+   * 
+   * <p>
+   * Note that this function does not have to be supported in an internally meaningful way. If the implementation is not
+   * capable of removing internal state, it can choose to send updates only after a single instance of the class has
+   * received all its input data (flag in {@link ValueProvider} at a call to {@link #addValues(ValueProvider)}).
    * 
    * The values provided by the passed iterator have been created by
    * {@link #populateIntermediary(IntermediaryResultValueSink)} of a potentially different instance of this
@@ -164,5 +180,12 @@ public interface AggregationFunction<I, O> {
      * Returns the number of values without resovling the values themselves.
      */
     public long size();
+
+    /**
+     * @return <code>true</code> if the provided values are the last ones for this {@link AggregationFunction}, because
+     *         after this set, all data has been processed. {@link AggregationFunction#addValues(ValueProvider)} will
+     *         not be called again.
+     */
+    public boolean isFinalSetOfValues();
   }
 }

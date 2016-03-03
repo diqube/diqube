@@ -104,7 +104,7 @@ public class MinLongFunction implements AggregationFunction<Long, Long> {
   }
 
   @Override
-  public void provideConstantParameter(int idx, Long value) {
+  public void provideConstantParameter(int idx, Object value) throws FunctionException {
     // noop.
   }
 

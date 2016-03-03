@@ -56,7 +56,7 @@ public class VarDoubleFunction implements AggregationFunction<Double, Double> {
   }
 
   @Override
-  public void provideConstantParameter(int idx, Double value) {
+  public void provideConstantParameter(int idx, Object value) throws FunctionException {
     // noop
   }
 
@@ -78,6 +78,11 @@ public class VarDoubleFunction implements AggregationFunction<Double, Double> {
       @Override
       public Double[] getValues() {
         return values;
+      }
+
+      @Override
+      public boolean isFinalSetOfValues() {
+        return valueProvider.isFinalSetOfValues();
       }
     });
   }

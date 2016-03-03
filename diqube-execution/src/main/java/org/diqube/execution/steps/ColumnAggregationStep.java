@@ -255,6 +255,11 @@ public class ColumnAggregationStep extends AbstractThreadedExecutablePlanStep {
                   public long size() {
                     return colNamesForCurRow.size();
                   }
+
+                  @Override
+                  public boolean isFinalSetOfValues() {
+                    return true; // we will not use this AggregationFunction object again.
+                  }
                 });
 
                 Object resValue = aggFunction.calculate();

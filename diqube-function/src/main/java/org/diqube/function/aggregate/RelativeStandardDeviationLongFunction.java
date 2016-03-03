@@ -53,7 +53,7 @@ public class RelativeStandardDeviationLongFunction implements AggregationFunctio
   }
 
   @Override
-  public void provideConstantParameter(int idx, Long value) {
+  public void provideConstantParameter(int idx, Object value) throws FunctionException {
     // noop
   }
 
@@ -70,6 +70,11 @@ public class RelativeStandardDeviationLongFunction implements AggregationFunctio
       @Override
       public Long[] getValues() {
         return values;
+      }
+
+      @Override
+      public boolean isFinalSetOfValues() {
+        return valueProvider.isFinalSetOfValues();
       }
     };
 

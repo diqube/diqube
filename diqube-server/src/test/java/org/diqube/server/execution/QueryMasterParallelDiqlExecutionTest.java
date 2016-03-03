@@ -317,6 +317,11 @@ public abstract class QueryMasterParallelDiqlExecutionTest<T> extends AbstractRe
       public long size() {
         return count;
       }
+
+      @Override
+      public boolean isFinalSetOfValues() {
+        return true;
+      }
     });
 
     IntermediaryResult res = new IntermediaryResult(outputColName, null);

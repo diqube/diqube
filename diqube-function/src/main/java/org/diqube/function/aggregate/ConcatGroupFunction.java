@@ -88,9 +88,11 @@ public class ConcatGroupFunction implements AggregationFunction<String, String> 
   }
 
   @Override
-  public void provideConstantParameter(int idx, String value) {
+  public void provideConstantParameter(int idx, Object value) throws FunctionException {
+    if (!(value instanceof String))
+      throw new FunctionException("Parameter to " + NAME + " function can be a STRING only.");
     if (idx == 0)
-      delim = value;
+      delim = (String) value;
   }
 
   @Override

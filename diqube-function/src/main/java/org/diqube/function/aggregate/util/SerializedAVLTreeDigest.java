@@ -18,29 +18,26 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.function.aggregate.result.serialization;
+package org.diqube.function.aggregate.util;
 
 import java.io.Serializable;
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.function.Consumer;
 
-import org.diqube.function.aggregate.util.SerializedAVLTreeDigest;
+import com.tdunning.math.stats.AVLTreeDigest;
 
 /**
- * Default {@link IntermediateResultSerializationResolver}.
+ * Serialized form of a {@link AVLTreeDigest}.
  *
  * @author Bastian Gloeckle
  */
-@IntermediateResultSerialization
-public class DefaultIntermediateResultSerializationResolver implements IntermediateResultSerializationResolver {
+public class SerializedAVLTreeDigest implements Serializable {
+  private static final long serialVersionUID = 1L;
+  private byte[] serialized;
 
-  @Override
-  public void resolve(Consumer<Class<? extends Serializable>> enableConsumer) {
-    // allow followign classes to be used as values in IntermediateResult
-    enableConsumer.accept(BigInteger.class);
-    enableConsumer.accept(BigDecimal.class);
-    enableConsumer.accept(SerializedAVLTreeDigest.class);
+  public SerializedAVLTreeDigest(byte[] serialized) {
+    this.serialized = serialized;
   }
 
+  public byte[] getSerialized() {
+    return serialized;
+  }
 }
