@@ -41,6 +41,7 @@ public class DefaultIntermediateResultSerializationResolver implements Intermedi
     enableConsumer.accept(BigInteger.class);
     enableConsumer.accept(BigDecimal.class);
     enableConsumer.accept(SerializedAVLTreeDigest.class);
+    enableConsumer.accept(Number.class);
   }
 
 }
