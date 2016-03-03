@@ -35,7 +35,7 @@
   
   <p></p>
   
-  <paper-material elevation="1" class="single-query-material-results" *ngIf="results || stats">
+  <paper-material elevation="1" class="single-query-material-results" *ngIf="result || stats">
     <paper-progress *ngIf="result && result.percentComplete < 100" class="single-query-material-results-progress" 
                     [attr.value]="result?.percentComplete"></paper-progress>
     
