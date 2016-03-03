@@ -20,7 +20,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -->
-<diqube-table [columns]="queryResults?.columnNames" 
-              [rows]="queryResults?.rows" [draggableRows]="allRowIndices()" [orderableCols]="allColIndices()" 
-              [orderedCol]="orderedCol()" (orderedColChangeRequest)="orderedColChangeRequest($event)" 
-              (dragStart)="onDragStart($event)"></diqube-table>
+<div class="layout vertical">
+  <iron-icon [class.active]="state === 'asc'" [class.hovered]="isHovered" icon="icons:expand-less" 
+            (click)="onClick($event, 'asc')">
+  </iron-icon>
+  <iron-icon [class.active]="state === 'desc'" [class.hovered]="isHovered" icon="icons:expand-more" 
+             (click)="onClick($event, 'desc')">
+  </iron-icon>
+</div>

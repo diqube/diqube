@@ -24,8 +24,6 @@ import javax.inject.Inject;
 
 import org.diqube.build.mojo.TypeScriptProperty;
 import org.diqube.thrift.base.thrift.Ticket;
-import org.diqube.ui.analysis.QueryBuilder;
-import org.diqube.ui.analysis.QueryBuilder.QueryBuilderException;
 import org.diqube.ui.analysis.UiAnalysis;
 import org.diqube.ui.analysis.UiQube;
 import org.diqube.ui.analysis.UiQuery;
@@ -36,8 +34,10 @@ import org.diqube.ui.websocket.request.CommandResultHandler;
 import org.diqube.ui.websocket.request.commands.AsyncJsonCommand;
 import org.diqube.ui.websocket.request.commands.CommandInformation;
 import org.diqube.ui.websocket.request.commands.PlainQueryJsonCommand;
+import org.diqube.ui.websocket.request.commands.analysis.util.QueryInfoJsonResultBuilderFactory;
 import org.diqube.ui.websocket.result.StatsJsonResult;
 import org.diqube.ui.websocket.result.TableJsonResult;
+import org.diqube.ui.websocket.result.analysis.QueryInfoJsonResult;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -48,6 +48,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * <p>
  * Sends following results:
  * <ul>
+ * <li>{@link QueryInfoJsonResult}
  * <li>{@link TableJsonResult} (multiple)
  * <li>{@link StatsJsonResult}
  * </ul>
@@ -80,6 +81,11 @@ public class AnalysisQueryJsonCommand implements AsyncJsonCommand {
   @Inject
   private UiDbProvider uiDbProvider;
 
+  @JsonIgnore
+  @Inject
+  private QueryInfoJsonResultBuilderFactory queryInfoJsonResultBuilderFactory;
+
+  @JsonIgnore
   private PlainQueryJsonCommand plainQueryJsonCommand;
 
   @Override
@@ -105,15 +111,12 @@ public class AnalysisQueryJsonCommand implements AsyncJsonCommand {
     if (query == null)
       throw new RuntimeException("Query unknwon: " + queryId);
 
-    QueryBuilder queryBuilder = new QueryBuilder().withAnalysis(analysis).withSlice(slice).withQuery(query);
-    String finalDiql;
-    try {
-      finalDiql = queryBuilder.build();
-    } catch (QueryBuilderException e) {
-      throw new RuntimeException(e.getMessage(), e);
-    }
+    QueryInfoJsonResult queryInfoJsonResult = queryInfoJsonResultBuilderFactory.createBuilder().withQueryId(queryId)
+        .withAnalysis(analysis).withQuery(query).withSlice(slice).build();
 
-    plainQueryJsonCommand = new PlainQueryJsonCommand(finalDiql);
+    resultHandler.sendData(queryInfoJsonResult);
+
+    plainQueryJsonCommand = new PlainQueryJsonCommand(queryInfoJsonResult.getFinalQueryString());
     plainQueryJsonCommand.execute(ticket, resultHandler, clusterInteraction);
   }
 

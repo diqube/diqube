@@ -19,14 +19,18 @@
 /// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ///
 
-import {UiQuery, TableJsonResult} from "../remote/remote";
+import {UiQuery, TableJsonResult, StatsJsonResult, QueryInfoJsonResult} from "../remote/remote";
 
 /**
  * A normal TableJsonResult which is enhanced by additional fields needed for keeping state in the UI.
  */
 export type EnhancedTableJsonResult = TableJsonResult & {
   /** An exception that occurred while calculating the result. If this field is set, no other of the EnhancedTableJsonResult should be used. */ 
-  exception: string 
+  exception: string;
+  /** Available if any stats were received */
+  stats: StatsJsonResult;
+  /** Additional info about the query, if available */
+  queryInfo: QueryInfoJsonResult;
 };
 
 export interface UiQueryWithResults extends UiQuery {

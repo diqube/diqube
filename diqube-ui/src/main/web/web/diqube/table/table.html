@@ -23,11 +23,18 @@
 <table id="{{elementId}}" class="mdl-data-table mdl-js-data-table diqube-table">
   <thead>
     <tr>
-      <th *ngFor="#col of columns, #i=index" [class.mdl-data-table__cell--non-numeric]="columnIndexIsStringColumn(i)">{{ col }}</th>
+      <th *ngFor="#col of columns, #i=index" [class.mdl-data-table__cell--non-numeric]="columnIndexIsStringColumn(i)">
+        <div class="layout horizontal" (mouseenter)="mouseEnterHeaderCol(i)" (mouseleave)="mouseLeaveHeaderCol(i)">
+          {{ col }}
+          <diqube-table-order *ngIf="isColOrderable(i)" [state]="orderState(i)" (onChange)="orderStateChange(i, $event)" 
+                              [isHovered]="hoveredHeaderCol === i">
+          </diqube-table-order>
+        </div>
+      </th>
     </tr>
   </thead>
   <tbody>
-    <tr *ngFor="#row of finalRows(), #rowIdx=index" (mouseenter)="mouseEnter(rowIdx)" (mouseleave)="mouseLeave(rowIdx)">
+    <tr *ngFor="#row of finalRows(), #rowIdx=index" (mouseenter)="mouseEnterRow(rowIdx)" (mouseleave)="mouseLeaveRow(rowIdx)">
       <td *ngFor="#cell of row, #i=index, #l=last" [class.mdl-data-table__cell--non-numeric]="columnIndexIsStringColumn(i)" 
           [attr.colspan]="cell.colspan" [attr.rowspan]="cell.rowspan">
           <div class="layout horizontal justified">

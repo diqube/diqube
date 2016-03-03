@@ -89,6 +89,14 @@ export class AnalysisExecutionService {
             }
             if (intermediateResultsFn)
               intermediateResultsFn(query.$results);
+          } else if (dataType === remoteData.StatsJsonResultConstants.TYPE) {
+            var stats: remoteData.StatsJsonResult = <remoteData.StatsJsonResult>data;
+            
+            query.$results.stats = stats;
+          } else if (dataType === remoteData.QueryInfoJsonResultConstants.TYPE) {
+            var queryInfo: remoteData.QueryInfoJsonResult = <remoteData.QueryInfoJsonResult>data;
+            
+            query.$results.queryInfo = queryInfo;
           }
           return false;
         },

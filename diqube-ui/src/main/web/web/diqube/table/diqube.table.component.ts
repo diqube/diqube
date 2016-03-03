@@ -21,6 +21,7 @@
 
 import {Component, Input, OnInit, Output, EventEmitter} from "angular2/core";
 import {DiqubeUtil} from "../util/diqube.util";
+import {DiqubeTableOrderComponent} from "./diqube.table.order.component";
 
 
 export class DiqubeTableDragStartEvent {
@@ -28,9 +29,15 @@ export class DiqubeTableDragStartEvent {
   public rowIdx: number;
 }
 
+export class DiqubeTableOrderedCol {
+  public colIdx: number;
+  public asc: boolean;
+}
+
 @Component({
   selector: "diqube-table",
-  templateUrl: "diqube/table/table.html"
+  templateUrl: "diqube/table/table.html",
+  directives: [ DiqubeTableOrderComponent ]
 })
 export class DiqubeTableComponent implements OnInit {
   /** Names of the columns to be displayed */
@@ -66,8 +73,25 @@ export class DiqubeTableComponent implements OnInit {
    */
   @Output("dragStart") public dragStart: EventEmitter<DiqubeTableDragStartEvent> = new EventEmitter<DiqubeTableDragStartEvent>();
   
+  /**
+   * Indices of those columns that should be orderable (= have an ordering state and user can click).
+   */
+  @Input("orderableCols") public orderableCols: Array<number>;
+  
+  /**
+   * Details about the currently ordered column.
+   */
+  @Input("orderedCol") public orderedCol: DiqubeTableOrderedCol;
+
+  /**
+   * Called when the user clicked on a header to re-order somehow. Callee has to changed orderedCol himself!
+   */
+  @Output("orderedColChangeRequest") public orderedColChangeRequest: EventEmitter<DiqubeTableOrderedCol> = new EventEmitter<DiqubeTableOrderedCol>();
+  
   public elementId: string;
   public hoveredRow: number = undefined;
+  public hoveredHeaderCol: number = undefined;
+  private internalOrderedCol: DiqubeTableOrderedCol = undefined;
   
   private cachedFinalRes: Array<Array<{rowspan: number, colspan: number, value: any}>> = undefined;
   
@@ -150,11 +174,11 @@ export class DiqubeTableComponent implements OnInit {
     return this.cachedFinalRes;
   }
   
-  public mouseEnter(row: number): void {
+  public mouseEnterRow(row: number): void {
     this.hoveredRow = row;
   }
   
-  public mouseLeave(row: number): void {
+  public mouseLeaveRow(row: number): void {
     this.hoveredRow = undefined;
   }
 
@@ -170,5 +194,45 @@ export class DiqubeTableComponent implements OnInit {
   
   public isRowDraggable(rowIdx: number): boolean {
     return this.draggableRows && this.draggableRows.indexOf(rowIdx) >= 0;
+  }
+  
+  public isColOrderable(colIdx: number): boolean {
+    return this.orderableCols && this.orderableCols.indexOf(colIdx) >= 0;
+  }
+  
+  /**
+   * The order state of the requested column.
+   */
+  public orderState(colIdx: number): string {
+    if (this.orderedCol === undefined)
+      return DiqubeTableOrderComponent.STATE_NONE;
+    
+    if (this.orderedCol.colIdx === colIdx) {
+      if (this.orderedCol.asc)
+        return DiqubeTableOrderComponent.STATE_ASC;
+      return DiqubeTableOrderComponent.STATE_DESC;
+    }
+    
+    return DiqubeTableOrderComponent.STATE_NONE;
+  }
+
+  /**
+   * User clicked on a header order component.
+   */
+  public orderStateChange(colIdx: number, newState: string): void {
+    var asc: boolean = newState === DiqubeTableOrderComponent.STATE_ASC;
+    
+    this.orderedColChangeRequest.emit({
+      colIdx: colIdx,
+      asc: asc
+    });
+  }
+  
+  public mouseEnterHeaderCol(colIdx: number): void {
+    this.hoveredHeaderCol = colIdx;
+  }
+  
+  public mouseLeaveHeaderCol(colIdx: number): void {
+    this.hoveredHeaderCol = undefined;
   }
 }

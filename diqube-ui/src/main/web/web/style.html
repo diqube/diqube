@@ -218,37 +218,6 @@ body /deep/ paper-button[raised] {
   background-color: var(--diqube-background-color-grey2);
 } 
 
-diqube-table {
-  @apply(--diqube-font-lightbg-body1-primary);
-}
-
-diqube-table table.mdl-data-table {
-  width: 100%;
-  border: 0px;
-}
-
-diqube-table table.mdl-data-table thead th {
-  height: auto;
-  @apply(--diqube-font-lightbg-body2-primary);
-}
-
-diqube-table table.mdl-data-table tbody tr {
-  height: 25px;
-}
-
-diqube-table table.mdl-data-table tbody td {
-  border-bottom: 0px;
-  padding-top: 5px;
-  padding-bottom: 5px;
-  height: auto;
-}
-
-diqube-table table tbody td .drag-handle {
-  height: 20px;
-  width: 20px;
-  color: var(--diqube-text-lightbg-secondary);
-}
-
 #dragControlElement {
   background-color: var(--diqube-secondary-color);
   opacity: .5;
@@ -285,6 +254,79 @@ body /deep/ diqube-error {
 body /deep/ diqube-warning {
   @apply(--layout-horizontal);
 }
+
+
+
+
+/* Diqube table */
+
+diqube-table {
+  @apply(--diqube-font-lightbg-body1-primary);
+}
+
+diqube-table table.mdl-data-table {
+  width: 100%;
+  border: 0px;
+}
+
+diqube-table table.mdl-data-table thead th {
+  height: auto;
+  @apply(--diqube-font-lightbg-body2-primary);
+}
+
+diqube-table table.mdl-data-table tbody tr {
+  height: 25px;
+}
+
+diqube-table table.mdl-data-table tbody td {
+  border-bottom: 0px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  height: auto;
+}
+
+diqube-table table tbody td .drag-handle {
+  height: 20px;
+  width: 20px;
+  color: var(--diqube-text-lightbg-secondary);
+}
+
+diqube-table-order {
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+}
+
+diqube-table-order div {
+  width: 16px;
+  height: 16px;
+}
+
+diqube-table-order iron-icon {
+  cursor: pointer;
+}
+
+diqube-table-order iron-icon:first-child {
+  margin-bottom: 2px;
+}
+
+diqube-table-order iron-icon:not(:first-child) {
+  margin-top: 2px;
+}
+
+diqube-table-order iron-icon.active {
+  color: var(--diqube-text-lightbg-primary)
+}
+
+diqube-table-order iron-icon:not(.active) {
+  visibility: hidden;
+}
+
+diqube-table-order iron-icon:not(.active).hovered {
+  visibility: visible;
+  color: var(--diqube-text-lightbg-third)
+}
+
 
 
 /* About */
