@@ -239,15 +239,19 @@ public class GroupIntermediaryAggregationStep extends AbstractThreadedExecutable
       long groupId = e.getKey();
 
       Object[] resValues;
-      switch (aggFn.getInputType()) {
-      case STRING:
-        resValues = new String[0];
-        break;
-      case LONG:
-        resValues = new Long[0];
-        break;
-      default:
-        resValues = new Double[0];
+      if (aggFn.getInputType() == null)
+        resValues = null;
+      else {
+        switch (aggFn.getInputType()) {
+        case STRING:
+          resValues = new String[0];
+          break;
+        case LONG:
+          resValues = new Long[0];
+          break;
+        default:
+          resValues = new Double[0];
+        }
       }
 
       calculateAndSendUpdates(groupId, aggFn, new ValueProvider<Object>() {
