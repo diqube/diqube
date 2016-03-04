@@ -80,7 +80,9 @@ public class UpdateSliceJsonCommand extends AbstractAnalysisAdjustingJsonCommand
     List<UiSliceDisjunction> newDisjunctions = new ArrayList<>(slice.getSliceDisjunctions());
     origSlice.setSliceDisjunctions(newDisjunctions);
 
-    return () -> resultHandler.sendData(new SliceJsonResult(origSlice, analysis.getVersion()));
+    return () -> resultHandler.sendData(new SliceJsonResult(origSlice,
+        // Analysis version is updated by the time this Runnable is called.
+        analysis.getVersion()));
   }
 
 }

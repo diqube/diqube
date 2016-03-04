@@ -40,8 +40,6 @@ export class DiqubeTableOrderComponent {
   public onClick(event: MouseEvent, clickTargetState: string): void {
     if (this.state === clickTargetState)
       return;
-   
-    console.log("onclick!");
     
     this.onChange.emit(clickTargetState);
   }

@@ -76,7 +76,9 @@ public class UpdateQubeJsonCommand extends AbstractAnalysisAdjustingJsonCommand 
     qube.setName(qubeName);
     qube.setSliceId(sliceId);
 
-    return () -> resultHandler.sendData(new QubeJsonResult(qube, analysis.getVersion()));
+    return () -> resultHandler.sendData(new QubeJsonResult(qube,
+        // Analysis version is updated by the time this Runnable is called.
+        analysis.getVersion()));
   }
 
 }

@@ -79,7 +79,9 @@ public class CreateQueryJsonCommand extends AbstractAnalysisAdjustingJsonCommand
 
     qube.getQueries().add(query);
 
-    return () -> resultHandler.sendData(new QueryJsonResult(query, analysis.getVersion()));
+    return () -> resultHandler.sendData(new QueryJsonResult(query,
+        // Analysis version is updated by the time this Runnable is called.
+        analysis.getVersion()));
   }
 
 }

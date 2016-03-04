@@ -28,6 +28,7 @@ import org.antlr.v4.runtime.Recognizer;
 import org.diqube.diql.antlr.DiqlLexer;
 import org.diqube.diql.antlr.DiqlParser;
 import org.diqube.diql.antlr.DiqlParser.DiqlStmtContext;
+import org.diqube.diql.antlr.DiqlParser.OrderClauseContext;
 
 /**
  * Utility that can parse a diql string into ANTLR objects.
@@ -37,6 +38,28 @@ import org.diqube.diql.antlr.DiqlParser.DiqlStmtContext;
 public class DiqlParseUtil {
 
   public static DiqlStmtContext parseWithAntlr(String diql) throws ParseException {
+    DiqlParser parser = createParser(diql);
+
+    try {
+      DiqlStmtContext sqlStmt = parser.diqlStmt();
+      return sqlStmt;
+    } catch (RecognitionException e) {
+      throw new ParseException("Exception while parsing: " + e.getMessage(), e);
+    }
+  }
+
+  public static OrderClauseContext parseOrderClauseWithAntlr(String diql) throws ParseException {
+    DiqlParser parser = createParser(diql);
+
+    try {
+      OrderClauseContext res = parser.orderClause();
+      return res;
+    } catch (RecognitionException e) {
+      throw new ParseException("Exception while parsing: " + e.getMessage(), e);
+    }
+  }
+
+  private static DiqlParser createParser(String diql) {
     // TODO #20 make ANTLR provide better error messages, show error if not the while diql was parsed (e.g. WHERE after
     // ORDER).
     ANTLRInputStream input = new ANTLRInputStream(diql.toCharArray(), diql.length());
@@ -62,12 +85,6 @@ public class DiqlParseUtil {
       }
 
     });
-
-    try {
-      DiqlStmtContext sqlStmt = parser.diqlStmt();
-      return sqlStmt;
-    } catch (RecognitionException e) {
-      throw new ParseException("Exception while parsing: " + e.getMessage(), e);
-    }
+    return parser;
   }
 }

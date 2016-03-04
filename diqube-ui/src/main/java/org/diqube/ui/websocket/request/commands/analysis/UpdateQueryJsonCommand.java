@@ -88,7 +88,9 @@ public class UpdateQueryJsonCommand extends AbstractAnalysisAdjustingJsonCommand
     query.setName(newQuery.getName());
     query.setDisplayType(newQuery.getDisplayType());
 
-    return () -> resultHandler.sendData(new QueryJsonResult(query, analysis.getVersion()));
+    return () -> resultHandler.sendData(new QueryJsonResult(query,
+        // Analysis version is updated by the time this Runnable is called.
+        analysis.getVersion()));
   }
 
 }

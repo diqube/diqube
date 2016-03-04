@@ -25,6 +25,7 @@ import * as analysisData from "../analysis";
 import {DragDropService} from "../drag-drop/drag-drop.service";
 import {DiqubeTableComponent, DiqubeTableDragStartEvent, DiqubeTableOrderedCol} from "../../table/diqube.table.component";
 import {DiqubeUtil} from "../../util/diqube.util";
+import {AnalysisService} from "../analysis.service";
 
 @Component({
   selector: "diqube-analysis-query-table",
@@ -37,11 +38,13 @@ export class AnalysisQueryTableComponent {
   
   @Input("queryResults") public queryResults: analysisData.EnhancedTableJsonResult = undefined;
   
+  @Input("qubeId") public qubeId: string;
+  
   private allRowIndicesCache: Array<number> = [];
   private allColIndicesCache: Array<number> = [];
   private orderedColCache: DiqubeTableOrderedCol = undefined;
   
-  constructor(private dragDropService: DragDropService) {}
+  constructor(private dragDropService: DragDropService, private analysisService: AnalysisService) {}
   
   public allRowIndices(): Array<number> {
     var res: Array<number> = undefined;
@@ -110,6 +113,14 @@ export class AnalysisQueryTableComponent {
   }
   
   public orderedColChangeRequest(requested: DiqubeTableOrderedCol): void {
-    console.log("Requested to order by", requested);
+    if (!this.queryResults || this.queryResults.columnRequests.length <= requested.colIdx) {
+      console.warn("Requested to order by index", requested.colIdx, "but cannot.");
+      return;
+    }
+    
+    var orderByRequest: string = this.queryResults.columnRequests[requested.colIdx];
+    
+    // this will automatically remove the results and trigger a re-execution.
+    this.analysisService.adjustQueryOrdering(this.qubeId, this.query.id, orderByRequest, requested.asc);
   }
 }

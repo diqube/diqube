@@ -21,7 +21,7 @@
 
 import {Injectable} from "angular2/core";
 import * as remoteData from "../remote/remote";
-import {RemoteService} from "../remote/remote.service";
+import {RemoteService, RemoteServiceExecutionCallback} from "../remote/remote.service";
 import * as analysisData from "./analysis";
 import {DiqubeUtil} from "../util/diqube.util";
 import {AnalysisExecutionService} from "./execution/analysis.execution.service";
@@ -350,6 +350,70 @@ export class AnalysisService {
   }
 
   /**
+   * Helper method that provides a RemoteServiceExecutionCallback that can handle a QueryJsonResultConstants.TYPE.
+   * 
+   * The returned callback will try to preserve any $results of the query, if meaningful.
+   * 
+   * @param qubeId: The ID of the qube that the received query belongs to - that qube will be searched for incorporating the query!
+   * @param resolve: The resolve method of e.g. a Promise that will be called as soon as the data has been received.
+   * @param reject: The reject method of e.g. a Promise that will be called if anything went wrong.
+   */
+  private createQueryRemoteServiceExecutionCallback(qubeId: string, resolve: (a: remoteData.UiQuery)=>void, 
+                                                    reject: (reason: string)=>void): RemoteServiceExecutionCallback {
+    var me = this;
+    return {
+      data: (dataType: string, data: any) => {
+        if (dataType === remoteData.QueryJsonResultConstants.TYPE) {
+          var res: remoteData.QueryJsonResult = <remoteData.QueryJsonResult>data;
+
+          var oldQuery: remoteData.UiQuery = undefined;
+          
+          for (var qubeIdx in me.loadedAnalysis.qubes) {
+            if (me.loadedAnalysis.qubes[qubeIdx].id === qubeId) {
+              var qube: remoteData.UiQube = me.loadedAnalysis.qubes[qubeIdx];
+              for (var queryIdx in qube.queries) {
+                if (qube.queries[queryIdx].id === res.query.id) {
+                  oldQuery = qube.queries[queryIdx];
+                  break; 
+                }
+              }
+            }
+            if (oldQuery)
+              break;
+          }
+          
+          if (!oldQuery) {
+            console.warn("Could not find the query that should be replaced by the updated query. " + 
+                         "Did the server change the query ID?");
+            reject("Internal error. Please refresh the page.");
+            return;
+          }
+                  
+          if (oldQuery.diql !== res.query.diql) {
+            // be sure to cancel execution if the query executes based on old properties
+            this.analysisExecutionService.cancelQueryIfRunning(oldQuery);
+            // remove any results we might have already
+            if (analysisData.isUiQueryWithResults(oldQuery))
+              analysisData.removeResultsFromUiQueryWithResults((<analysisData.UiQueryWithResults>oldQuery));
+          }
+          
+          // overwrite everything of oldQuery with value of the received query. Do not replace object, since then
+          // angular would replace the UI elements with new ones and we would e.g. lose edit-mode state
+          DiqubeUtil.copyTo(res.query, oldQuery);
+
+          me.setCurrentAnalysisVersion(res.analysisVersion);
+          resolve(oldQuery);
+        }
+        return false;
+      },
+      exception: (msg: string) => {
+        reject(msg);
+      },
+      done: () => {}
+    };
+  }
+  
+  /**
    * Sends an updated version of a query to the server. Note that the passed query object should not yet be the 
    * one that is reachable from me.loadedAnalysis, as the changes will be incorporated into that object when the
    * resulting query is received from the server after updating.
@@ -381,56 +445,37 @@ export class AnalysisService {
         newQuery: queryToSend
       };
       
-      me.remoteService.execute(remoteData.UpdateQueryJsonCommandConstants.NAME, data, {
-        data: (dataType: string, data: any) => {
-          if (dataType === remoteData.QueryJsonResultConstants.TYPE) {
-            var res: remoteData.QueryJsonResult = <remoteData.QueryJsonResult>data;
-
-            var oldQuery: remoteData.UiQuery = undefined;
-            
-            for (var qubeIdx in me.loadedAnalysis.qubes) {
-              if (me.loadedAnalysis.qubes[qubeIdx].id === qubeId) {
-                var qube: remoteData.UiQube = me.loadedAnalysis.qubes[qubeIdx];
-                for (var queryIdx in qube.queries) {
-                  if (qube.queries[queryIdx].id === res.query.id) {
-                    oldQuery = qube.queries[queryIdx];
-                    break; 
-                  }
-                }
-              }
-              if (oldQuery)
-                break;
-            }
-            
-            if (!oldQuery) {
-              console.warn("Could not find the query that should be replaced by the updated query. " + 
-                           "Did the server change the query ID?");
-              reject("Internal error. Please refresh the page.");
-              return;
-            }
-                    
-            if (oldQuery.diql !== res.query.diql) {
-              // be sure to cancel execution if the query executes based on old properties
-              this.analysisExecutionService.cancelQueryIfRunning(oldQuery);
-              // remove any results we might have already
-              if (analysisData.isUiQueryWithResults(oldQuery))
-                analysisData.removeResultsFromUiQueryWithResults((<analysisData.UiQueryWithResults>oldQuery));
-            }
-            
-            // overwrite everything of oldQuery with value of the received query. Do not replace object, since then
-            // angular would replace the UI elements with new ones and we would e.g. lose edit-mode state
-            DiqubeUtil.copyTo(res.query, oldQuery);
-
-            me.setCurrentAnalysisVersion(res.analysisVersion);
-            resolve(oldQuery);
-          }
-          return false;
-        },
-        exception: (msg: string) => {
-          reject(msg);
-        },
-        done: () => {}
-      });
+      me.remoteService.execute(remoteData.UpdateQueryJsonCommandConstants.NAME, data, 
+                               me.createQueryRemoteServiceExecutionCallback(qubeId, resolve, reject));
+    });
+  }
+  
+  /**
+   * Requests the server to change the "ORDER BY" clause of a query.
+   * 
+   * If possible, the query.$results will be preserved in the new query object, but it could be that they are
+   * removed and need to be re-queried using #provideQueryResults.
+   * 
+   * @param orderByRequest: the "request string" that can be used in the ORDER BY directly (not a column name, but the 
+   *                        request used to request a column/projected column/aggregated column etc).
+   */
+  public adjustQueryOrdering(qubeId: string, queryId: string, orderByRequest: string, orderAsc: boolean): Promise<remoteData.UiQuery> {
+    if (!this.loadedAnalysis)
+      return Promise.reject<remoteData.UiQuery>("No analysis loaded");
+    
+    var me: AnalysisService = this;
+    return new Promise((resolve: (a: remoteData.UiQuery)=>void, reject: (reason: string)=>void) => {
+      var data: remoteData.AdjustQueryOrderingJsonCommand = {
+        analysisId : me.loadedAnalysis.id, 
+        analysisVersion: me.loadedAnalysis.version,
+        qubeId: qubeId,
+        queryId: queryId,
+        orderByRequest: orderByRequest,
+        orderAsc: orderAsc
+      };
+      
+      me.remoteService.execute(remoteData.AdjustQueryOrderingJsonCommandConstants.NAME, data, 
+                               me.createQueryRemoteServiceExecutionCallback(qubeId, resolve, reject));
     });
   }
   

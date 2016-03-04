@@ -43,7 +43,8 @@
   <diqube-error *ngIf="exception()">{{ exception() }}</diqube-error>
   
   <div *ngIf="!exception() && queryResults().rows">
-    <diqube-analysis-query-table *ngIf="query.displayType === 'table'" [query]="query" [queryResults]="queryResults()"> 
+    <diqube-analysis-query-table *ngIf="query.displayType === 'table'" [query]="query" [queryResults]="queryResults()"
+                                 [qubeId]="qube.id"> 
     </diqube-analysis-query-table>
     
     <diqube-analysis-query-barchart *ngIf="query.displayType === 'barchart'" [query]="query">

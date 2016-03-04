@@ -77,7 +77,9 @@ public class CreateQubeJsonCommand extends AbstractAnalysisAdjustingJsonCommand 
     UiQube qube = factory.createQube(UUID.randomUUID().toString(), name, sliceId);
     analysis.getQubes().add(qube);
 
-    return () -> resultHandler.sendData(new QubeJsonResult(qube, analysis.getVersion()));
+    return () -> resultHandler.sendData(new QubeJsonResult(qube,
+        // Analysis version is updated by the time this Runnable is called.
+        analysis.getVersion()));
   }
 
 }

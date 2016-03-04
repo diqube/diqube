@@ -78,7 +78,9 @@ public class CreateSliceJsonCommand extends AbstractAnalysisAdjustingJsonCommand
 
     analysis.getSlices().add(slice);
 
-    return () -> resultHandler.sendData(new SliceJsonResult(slice, analysis.getVersion()));
+    return () -> resultHandler.sendData(new SliceJsonResult(slice,
+        // Analysis version is updated by the time this Runnable is called.
+        analysis.getVersion()));
   }
 
 }

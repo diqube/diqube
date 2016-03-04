@@ -57,7 +57,9 @@ public class RemoveQubeJsonCommand extends AbstractAnalysisAdjustingJsonCommand 
 
     analysis.getQubes().remove(qube);
 
-    return () -> resultHandler.sendData(new AnalysisVersionJsonResult(analysis.getVersion()));
+    return () -> resultHandler.sendData(new AnalysisVersionJsonResult(
+        // Analysis version is updated by the time this Runnable is called.
+        analysis.getVersion()));
   }
 
 }
