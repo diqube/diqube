@@ -133,7 +133,7 @@ public class AdjustQueryOrderingJsonCommand extends AbstractAnalysisAdjustingJso
     String newQueryDiql;
 
     if (!hasOrderByClause)
-      newQueryDiql = diql;
+      newQueryDiql = diql + "\n";
     else
       newQueryDiql = diql.substring(0, curIdx); // ORDER BY clause is at the end
 
