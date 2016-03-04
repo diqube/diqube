@@ -44,7 +44,7 @@ import org.diqube.executionenv.VersionedExecutionEnvironment;
  * @author Bastian Gloeckle
  */
 @IdentifyingConsumerClass(ColumnVersionBuiltConsumer.class)
-public interface ColumnVersionBuiltConsumer extends OverwritingConsumer {
+public interface ColumnVersionBuiltConsumer extends ContinuousConsumer {
   /**
    * A new version of a column was built and is available in the provided {@link ExecutionEnvironment}.
    * 

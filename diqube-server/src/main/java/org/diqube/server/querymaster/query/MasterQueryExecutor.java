@@ -63,6 +63,8 @@ import org.diqube.util.Triple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Iterables;
+
 /**
  * Fully executes a diql query and provides a callback that has a {@link RResultTable} on a query master.
  * 
@@ -368,11 +370,14 @@ class MasterQueryExecutor {
       synchronized (havingRowIdsSync) {
         activeHavingRowIds = havingRowIds;
       }
+      logger.trace("Current HAVING result: {} rows", (activeHavingRowIds != null) ? activeHavingRowIds.length : 0);
       if (activeHavingRowIds == null || activeHavingRowIds.length == 0)
         // return empty table. This could be the case if the result table is actually empty.
         return res;
 
       Set<Long> havingRowIds = new HashSet<>(Arrays.asList(activeHavingRowIds));
+
+      logger.trace("Current HAVING rows (limit): {}", Iterables.limit(havingRowIds, 100));
 
       for (Iterator<Long> rowIdIt = rowIds.iterator(); rowIdIt.hasNext();) {
         Long rowId = rowIdIt.next();

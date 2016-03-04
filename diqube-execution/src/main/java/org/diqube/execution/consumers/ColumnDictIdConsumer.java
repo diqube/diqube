@@ -26,8 +26,8 @@ import org.diqube.execution.consumers.GenericConsumer.IdentifyingConsumerClass;
 import org.diqube.executionenv.ExecutionEnvironment;
 
 /**
- * A {@link OverwritingConsumer} that consumes the values of rows of a specific column, whereas the values are encoded
- * in the IDs of the values in the column dict.
+ * A {@link ContinuousConsumer} that consumes the values of rows of a specific column, whereas the values are encoded in
+ * the IDs of the values in the column dict.
  * 
  * <p>
  * Please note that there might be multiple calls for the same colName/rowId combination. In that case, the last value
@@ -38,7 +38,7 @@ import org.diqube.executionenv.ExecutionEnvironment;
  * @author Bastian Gloeckle
  */
 @IdentifyingConsumerClass(ColumnDictIdConsumer.class)
-public interface ColumnDictIdConsumer extends OverwritingConsumer {
+public interface ColumnDictIdConsumer extends ContinuousConsumer {
   /**
    * Called when there are new dict IDs of a specific column available
    * 

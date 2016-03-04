@@ -36,7 +36,7 @@ import org.diqube.execution.consumers.GenericConsumer.IdentifyingConsumerClass;
  * @author Bastian Gloeckle
  */
 @IdentifyingConsumerClass(ColumnValueConsumer.class)
-public interface ColumnValueConsumer extends OverwritingConsumer {
+public interface ColumnValueConsumer extends ContinuousConsumer {
   /**
    * Called when there are new values of a specific column available
    * 

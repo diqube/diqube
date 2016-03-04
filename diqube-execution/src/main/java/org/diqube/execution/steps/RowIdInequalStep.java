@@ -75,26 +75,32 @@ import org.slf4j.LoggerFactory;
  * <p>
  * This includes the inequality operators >, >=, <, <=.
  * 
- * <p> This step can optionally be executed on a column that still needs to be constructed. In that case, a
- * {@link ColumnBuiltConsumer} input needs to be specified which keeps this step up to date with the construction of that
- * column. If no {@link ColumnBuiltConsumer} is specified, then simply the full column is searched in defaulEnv.
+ * <p>
+ * This step can optionally be executed on a column that still needs to be constructed. In that case, a
+ * {@link ColumnBuiltConsumer} input needs to be specified which keeps this step up to date with the construction of
+ * that column. If no {@link ColumnBuiltConsumer} is specified, then simply the full column is searched in defaulEnv.
  * 
- * <p> Additionally, this step can be wired to the output of another {@link RowIdConsumer} which will force this
- * instance to only take those RowIds into account that are provided by the input {@link RowIdConsumer} - effectively
- * building a AND concatenation. In contrast to a {@link RowIdAndStep} though, the two {@link RowIdInequalStep}s that
- * are connected that way would be executed after each other, not parallel to each other. Therefore, usually a
- * {@link RowIdAndStep} is used.
+ * <p>
+ * Additionally, this step can be wired to the output of another {@link RowIdConsumer} which will force this instance to
+ * only take those RowIds into account that are provided by the input {@link RowIdConsumer} - effectively building a AND
+ * concatenation. In contrast to a {@link RowIdAndStep} though, the two {@link RowIdInequalStep}s that are connected
+ * that way would be executed after each other, not parallel to each other. Therefore, usually a {@link RowIdAndStep} is
+ * used.
  * 
- * <p> This step can be used in the non-default execution by wiring an input {@link ColumnVersionBuiltConsumer}. It will
+ * <p>
+ * This step can be used in the non-default execution by wiring an input {@link ColumnVersionBuiltConsumer}. It will
  * then not run once-off, but continuously will run completely again based on a new
  * {@link VersionedExecutionEnvironment}. The output in that case will not be the default {@link RowIdConsumer}, but an
  * {@link OverwritingRowIdConsumer}. If no {@link ColumnVersionBuiltConsumer} is wired as input, the result will be a
  * {@link RowIdConsumer}.
  * 
- * <p> Only {@link StandardColumnShard}s supported.
+ * <p>
+ * Only {@link StandardColumnShard}s supported.
  * 
- * <p> Input: 1 optional {@link ColumnBuiltConsumer}, 1 optional {@link ColumnVersionBuiltConsumer}, 1 optional
- * {@link RowIdConsumer} <br> Output: {@link RowIdConsumer}s or {@link OverwritingRowIdConsumer}s (see above).
+ * <p>
+ * Input: 1 optional {@link ColumnBuiltConsumer}, 1 optional {@link ColumnVersionBuiltConsumer}, 1 optional
+ * {@link RowIdConsumer} <br>
+ * Output: {@link RowIdConsumer}s or {@link OverwritingRowIdConsumer}s (see above).
  *
  * @author Bastian Gloeckle
  */
@@ -329,27 +335,33 @@ public class RowIdInequalStep extends AbstractThreadedExecutablePlanStep {
     Stream<Long> rowIdStream = rowIdStreamPair.getLeft();
     QueryUuidThreadState uuidState = rowIdStreamPair.getRight();
     AtomicLong numberOfRows = new AtomicLong(0);
-    rowIdStream. //
-        collect(new HashingBatchCollector<Long>( // RowIds are unique, so using BatchCollector is ok.
-            100, // Batch size
-            len -> new Long[len], // new result array
-            new Consumer<Long[]>() { // Batch-collect the row IDs
-              @Override
-              public void accept(Long[] t) {
-                numberOfRows.addAndGet(t.length);
-                QueryUuid.setCurrentThreadState(uuidState);
-                try {
-                  if (columnVersionBuiltConsumer.getNumberOfTimesWired() == 0)
+    if (columnVersionBuiltConsumer.getNumberOfTimesWired() == 0) {
+      // RowIdConsumer is wired, we therefore split the resulting IDs in nice 100-piece packets.
+      rowIdStream. //
+          collect(new HashingBatchCollector<Long>( // RowIds are unique, so using BatchCollector is ok.
+              100, // Batch size
+              len -> new Long[len], // new result array
+              new Consumer<Long[]>() { // Batch-collect the row IDs
+                @Override
+                public void accept(Long[] t) {
+                  numberOfRows.addAndGet(t.length);
+                  QueryUuid.setCurrentThreadState(uuidState);
+                  try {
                     forEachOutputConsumerOfType(RowIdConsumer.class, c -> c.consume(t));
-                  else
-                    forEachOutputConsumerOfType(OverwritingRowIdConsumer.class, c -> c.consume(curEnv, t));
-                } finally {
-                  QueryUuid.clearCurrent();
+                  } finally {
+                    QueryUuid.clearCurrent();
+                  }
                 }
-              }
-            }));
-    QueryUuid.setCurrentThreadState(uuidState);
-    logger.trace("Reported {} matching rows.", numberOfRows.get());
+              }));
+      QueryUuid.setCurrentThreadState(uuidState);
+    } else {
+      // OverwritingRowIdConsumer is wired - we cannot split the result, otherwise we "overwrite" our own ones!
+      Long[] resultRowIds = rowIdStream.toArray(l -> new Long[l]);
+      QueryUuid.setCurrentThreadState(uuidState);
+      numberOfRows.set(resultRowIds.length);
+      forEachOutputConsumerOfType(OverwritingRowIdConsumer.class, c -> c.consume(curEnv, resultRowIds));
+    }
+    logger.trace("Reported {} matching rows on {}.", numberOfRows.get(), curEnv);
   }
 
   /**
@@ -472,70 +484,70 @@ public class RowIdInequalStep extends AbstractThreadedExecutablePlanStep {
     Stream<Long> resultRowIdStream;
 
     resultRowIdStream = leftColumn.getPages().values().stream().parallel().
-        // filter out pairs that either do not match the rowID range or where the left page does not contain any
-        // interesting value
-    filter(new Predicate<ColumnPage>() {
-      @Override
-      public boolean test(ColumnPage leftColPage) {
-        QueryUuid.setCurrentThreadState(uuidState);
-        try {
-          if (activeRowIds != null) {
-            // If we're restricting the row IDs, we check if the page contains any row that we are interested in.
-            Long interestedRowId = activeRowIds.ceiling(leftColPage.getFirstRowId());
-            if (interestedRowId == null || interestedRowId > leftColPage.getFirstRowId() + leftColPage.size())
-              return false;
-          }
-
-          if (!leftColPage.getColumnPageDict().containsAnyValue(colValueIds1))
-            return false;
-
-          return true;
-        } finally {
-          QueryUuid.clearCurrent();
-        }
-      }
-    }).flatMap(new Function<ColumnPage, Stream<Long>>() {
-
-      @Override
-      public Stream<Long> apply(ColumnPage leftColPage) {
-        QueryUuid.setCurrentThreadState(uuidState);
-
-        try {
-          // resolve ColumnPage value IDs from column value IDs for left page for all column value IDs we're
-          // interested in.
-          queryRegistry.getOrCreateCurrentStatsManager().registerPageAccess(leftColPage,
-              curEnv.isTemporaryColumn(leftColumn.getName()));
-
-          NavigableMap<Long, Long> leftPageIdsToColumnIds = new TreeMap<>();
-          Long[] leftPageValueIds = leftColPage.getColumnPageDict().findIdsOfValues(colValueIds1);
-          for (int i = 0; i < leftPageValueIds.length; i++)
-            leftPageIdsToColumnIds.put(leftPageValueIds[i], colValueIds1[i]);
-
-          List<Long> res = new ArrayList<>();
-
-          // decompress value arrays and traverse them
-          // TODO #2 STAT decide if full value array should be decompressed when there are activeRowIds.
-          long[] leftValues = leftColPage.getValues().decompressedArray();
-
-          for (int i = 0; i < leftValues.length; i++) {
-            long rowId = leftColPage.getFirstRowId() + i;
-            if (activeRowIds == null || activeRowIds.contains(rowId)) {
-              long leftPageValueId = leftValues[i];
-              Long leftColumnValueId = leftPageIdsToColumnIds.get(leftPageValueId);
-              // check if we're interested in that column value ID.
-              if (leftColumnValueId != null) {
-                // TODO #2 STAT decide if we should decompress the whole array for the right side, too.
-                if (comparator.rowMatches(leftColumnValueId, rowId, rightColumn, comparisonMap))
-                  res.add(rowId);
+    // filter out pairs that either do not match the rowID range or where the left page does not contain any
+    // interesting value
+        filter(new Predicate<ColumnPage>() {
+          @Override
+          public boolean test(ColumnPage leftColPage) {
+            QueryUuid.setCurrentThreadState(uuidState);
+            try {
+              if (activeRowIds != null) {
+                // If we're restricting the row IDs, we check if the page contains any row that we are interested in.
+                Long interestedRowId = activeRowIds.ceiling(leftColPage.getFirstRowId());
+                if (interestedRowId == null || interestedRowId > leftColPage.getFirstRowId() + leftColPage.size())
+                  return false;
               }
+
+              if (!leftColPage.getColumnPageDict().containsAnyValue(colValueIds1))
+                return false;
+
+              return true;
+            } finally {
+              QueryUuid.clearCurrent();
             }
           }
-          return res.stream();
-        } finally {
-          QueryUuid.clearCurrent();
-        }
-      }
-    });
+        }).flatMap(new Function<ColumnPage, Stream<Long>>() {
+
+          @Override
+          public Stream<Long> apply(ColumnPage leftColPage) {
+            QueryUuid.setCurrentThreadState(uuidState);
+
+            try {
+              // resolve ColumnPage value IDs from column value IDs for left page for all column value IDs we're
+              // interested in.
+              queryRegistry.getOrCreateCurrentStatsManager().registerPageAccess(leftColPage,
+                  curEnv.isTemporaryColumn(leftColumn.getName()));
+
+              NavigableMap<Long, Long> leftPageIdsToColumnIds = new TreeMap<>();
+              Long[] leftPageValueIds = leftColPage.getColumnPageDict().findIdsOfValues(colValueIds1);
+              for (int i = 0; i < leftPageValueIds.length; i++)
+                leftPageIdsToColumnIds.put(leftPageValueIds[i], colValueIds1[i]);
+
+              List<Long> res = new ArrayList<>();
+
+              // decompress value arrays and traverse them
+              // TODO #2 STAT decide if full value array should be decompressed when there are activeRowIds.
+              long[] leftValues = leftColPage.getValues().decompressedArray();
+
+              for (int i = 0; i < leftValues.length; i++) {
+                long rowId = leftColPage.getFirstRowId() + i;
+                if (activeRowIds == null || activeRowIds.contains(rowId)) {
+                  long leftPageValueId = leftValues[i];
+                  Long leftColumnValueId = leftPageIdsToColumnIds.get(leftPageValueId);
+                  // check if we're interested in that column value ID.
+                  if (leftColumnValueId != null) {
+                    // TODO #2 STAT decide if we should decompress the whole array for the right side, too.
+                    if (comparator.rowMatches(leftColumnValueId, rowId, rightColumn, comparisonMap))
+                      res.add(rowId);
+                  }
+                }
+              }
+              return res.stream();
+            } finally {
+              QueryUuid.clearCurrent();
+            }
+          }
+        });
 
     sendRowIds(curEnv, new Pair<>(resultRowIdStream, uuidState));
 

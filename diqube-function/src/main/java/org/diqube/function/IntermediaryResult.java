@@ -76,9 +76,9 @@ public class IntermediaryResult implements IntermediaryResultValueSink {
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append("[");
-    sb.append(super.toString());
-    sb.append(",outputCol=");
+    sb.append("[[");
+    sb.append(values.toString());
+    sb.append("],outputCol=");
     sb.append(outputColName);
     sb.append(",inputColType=");
     sb.append(inputColumnType);

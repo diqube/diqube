@@ -23,11 +23,11 @@ package org.diqube.execution.consumers;
 import org.diqube.execution.consumers.GenericConsumer.IdentifyingConsumerClass;
 
 /**
- * This {@link OverwritingConsumer} consumes the final result of applying a group aggregation function.
+ * This {@link ContinuousConsumer} consumes the final result of applying a group aggregation function.
  *
  * @author Bastian Gloeckle
  */
 @IdentifyingConsumerClass(GroupFinalAggregationConsumer.class)
-public interface GroupFinalAggregationConsumer extends OverwritingConsumer {
+public interface GroupFinalAggregationConsumer extends ContinuousConsumer {
   public void consumeAggregationResult(long groupId, String colName, Object result);
 }

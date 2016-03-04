@@ -338,26 +338,32 @@ public class RowIdEqualsStep extends AbstractThreadedExecutablePlanStep {
     Stream<Long> stream = rowIdStreamPair.getLeft();
     QueryUuidThreadState uuidState = rowIdStreamPair.getRight();
     AtomicLong numberOfRows = new AtomicLong(0);
-    stream. //
-        collect(new HashingBatchCollector<Long>( // RowIds are unique, so using BatchCollector is ok.
-            100, // Batch size
-            len -> new Long[len], // new result array
-            new Consumer<Long[]>() { // Batch-collect the row IDs
-              @Override
-              public void accept(Long[] t) {
-                numberOfRows.addAndGet(t.length);
-                QueryUuid.setCurrentThreadState(uuidState);
-                try {
-                  if (columnVersionBuiltConsumer.getNumberOfTimesWired() == 0)
+    if (columnVersionBuiltConsumer.getNumberOfTimesWired() == 0) {
+      // RowIdConsumer is wired, we therefore split the resulting IDs in nice 100-piece packets.
+      stream. //
+          collect(new HashingBatchCollector<Long>( // RowIds are unique, so using BatchCollector is ok.
+              100, // Batch size
+              len -> new Long[len], // new result array
+              new Consumer<Long[]>() { // Batch-collect the row IDs
+                @Override
+                public void accept(Long[] t) {
+                  numberOfRows.addAndGet(t.length);
+                  QueryUuid.setCurrentThreadState(uuidState);
+                  try {
                     forEachOutputConsumerOfType(RowIdConsumer.class, c -> c.consume(t));
-                  else
-                    forEachOutputConsumerOfType(OverwritingRowIdConsumer.class, c -> c.consume(curEnv, t));
-                } finally {
-                  QueryUuid.clearCurrent();
+                  } finally {
+                    QueryUuid.clearCurrent();
+                  }
                 }
-              }
-            }));
-    QueryUuid.setCurrentThreadState(uuidState);
+              }));
+      QueryUuid.setCurrentThreadState(uuidState);
+    } else {
+      // OverwritingRowIdConsumer is wired - we cannot split the result, otherwise we "overwrite" our own ones!
+      Long[] resultRowIds = stream.toArray(l -> new Long[l]);
+      QueryUuid.setCurrentThreadState(uuidState);
+      numberOfRows.set(resultRowIds.length);
+      forEachOutputConsumerOfType(OverwritingRowIdConsumer.class, c -> c.consume(curEnv, resultRowIds));
+    }
     logger.trace("Reported {} matching rows.", numberOfRows.get());
   }
 

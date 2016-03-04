@@ -32,6 +32,8 @@ import org.diqube.executionenv.ExecutionEnvironment;
 import org.diqube.executionenv.VersionedExecutionEnvironment;
 import org.diqube.queries.QueryRegistry;
 import org.diqube.util.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A noop step which provides the results of a HAVING clause on the query master, if available.
@@ -43,6 +45,7 @@ import org.diqube.util.Pair;
  * @author Bastian Gloeckle
  */
 public class HavingResultStep extends AbstractThreadedExecutablePlanStep {
+  private static final Logger logger = LoggerFactory.getLogger(HavingResultStep.class);
 
   private AtomicBoolean sourceIsDone = new AtomicBoolean(false);
 
@@ -63,6 +66,8 @@ public class HavingResultStep extends AbstractThreadedExecutablePlanStep {
             || ((curPair.getLeft() instanceof VersionedExecutionEnvironment) && ((VersionedExecutionEnvironment) env)
                 .getVersion() > ((VersionedExecutionEnvironment) curPair.getLeft()).getVersion()))
           curPair = p;
+        else
+          logger.debug("Ignoring consume pair of {} since we have one of {}", env, curPair.getLeft());
       }
     }
   };
@@ -78,9 +83,11 @@ public class HavingResultStep extends AbstractThreadedExecutablePlanStep {
       activePair = curPair;
     }
 
-    if (activePair != null)
+    if (activePair != null) {
+      logger.trace("Reporting {} rowIds.", activePair.getRight().length);
       forEachOutputConsumerOfType(OverwritingRowIdConsumer.class,
           c -> c.consume(activePair.getLeft(), activePair.getRight()));
+    }
 
     if (sourceIsDone.get() && curPair == activePair) {
       forEachOutputConsumerOfType(GenericConsumer.class, c -> c.sourceIsDone());

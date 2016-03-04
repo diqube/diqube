@@ -31,7 +31,6 @@ import java.util.function.Consumer;
 
 import org.diqube.execution.ExecutablePlanStep;
 import org.diqube.execution.consumers.AbstractPlanStepBasedGenericConsumer;
-import org.diqube.execution.consumers.ContinuousConsumer;
 import org.diqube.execution.consumers.DoneConsumer;
 import org.diqube.execution.consumers.GenericConsumer;
 import org.diqube.execution.exception.ExecutablePlanBuildException;
@@ -219,7 +218,7 @@ public abstract class AbstractThreadedExecutablePlanStep implements ExecutablePl
    * other threads. As the class comment of {@link AbstractThreadedExecutablePlanStep} describes, the {@link #execute()}
    * method should process data that was added by the input consumers to a thread-safe field in this object. The
    * {@link #execute()} method should then process that chunk of data, and, if the input consumers were reported that
-   * their {@link ContinuousConsumer#sourceIsDone()} and there is no data left then call {@link #doneProcessing()} (and
+   * their {@link GenericConsumer#sourceIsDone()} and there is no data left then call {@link #doneProcessing()} (and
    * inform possible output consumers).
    */
   abstract protected void execute();

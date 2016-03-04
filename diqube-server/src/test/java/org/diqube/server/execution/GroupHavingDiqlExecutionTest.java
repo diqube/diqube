@@ -164,4 +164,78 @@ public abstract class GroupHavingDiqlExecutionTest<T> extends AbstractCacheDoubl
       executor.shutdownNow();
     }
   }
+
+  @Test
+  public void inequalGroupHavingLotOfDataTest() throws InterruptedException, ExecutionException {
+    int noRows = 1001;
+    long[] initA = new long[noRows];
+    for (int i = 0; i < initA.length; i++)
+      initA[i] = i;
+
+    Object[] colAValues = dp.a(initA);
+    Object[] colBValues = dp.a(initA);
+    initializeSimpleTable(colAValues, colBValues);
+    // GIVEN
+    ExecutablePlan executablePlan =
+        buildExecutablePlan("Select " + COL_A + " from " + TABLE + " group by " + COL_A + " having count() > 0");
+    ExecutorService executor = executors.newTestExecutor(executablePlan.preferredExecutorServiceSize());
+    try {
+      // WHEN
+      // executing it on the sample table
+      Future<Void> future = executablePlan.executeAsynchronously(executor);
+      future.get(); // wait until done.
+
+      // THEN
+      Assert.assertTrue(columnValueConsumerIsDone, "Source should have reported 'done'");
+      Assert.assertTrue(future.isDone(), "Future should report done");
+      Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
+
+      Assert.assertTrue(resultValues.containsKey(COL_A), "Result values should be available for result column a");
+
+      Assert.assertTrue(resultValues.containsKey(COL_A), "Result values should be available for result column a");
+      Assert.assertEquals(resultValues.size(), 1, "Result values should be available for one columns only");
+
+      Assert.assertNotNull(resultHavingRowIds, "Expected to have rowIds calculated from the HAVING clause");
+      Assert.assertEquals(resultHavingRowIds.length, noRows, "Expected specific rows to match HAVING clause");
+    } finally {
+      executor.shutdownNow();
+    }
+  }
+
+  @Test
+  public void equalGroupHavingLotOfDataTest() throws InterruptedException, ExecutionException {
+    int noRows = 1001;
+    long[] initA = new long[noRows];
+    for (int i = 0; i < initA.length; i++)
+      initA[i] = i;
+
+    Object[] colAValues = dp.a(initA);
+    Object[] colBValues = dp.a(initA);
+    initializeSimpleTable(colAValues, colBValues);
+    // GIVEN
+    ExecutablePlan executablePlan =
+        buildExecutablePlan("Select " + COL_A + " from " + TABLE + " group by " + COL_A + " having count() = 1");
+    ExecutorService executor = executors.newTestExecutor(executablePlan.preferredExecutorServiceSize());
+    try {
+      // WHEN
+      // executing it on the sample table
+      Future<Void> future = executablePlan.executeAsynchronously(executor);
+      future.get(); // wait until done.
+
+      // THEN
+      Assert.assertTrue(columnValueConsumerIsDone, "Source should have reported 'done'");
+      Assert.assertTrue(future.isDone(), "Future should report done");
+      Assert.assertFalse(future.isCancelled(), "Future should not report cancelled");
+
+      Assert.assertTrue(resultValues.containsKey(COL_A), "Result values should be available for result column a");
+
+      Assert.assertTrue(resultValues.containsKey(COL_A), "Result values should be available for result column a");
+      Assert.assertEquals(resultValues.size(), 1, "Result values should be available for one columns only");
+
+      Assert.assertNotNull(resultHavingRowIds, "Expected to have rowIds calculated from the HAVING clause");
+      Assert.assertEquals(resultHavingRowIds.length, noRows, "Expected specific rows to match HAVING clause");
+    } finally {
+      executor.shutdownNow();
+    }
+  }
 }

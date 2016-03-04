@@ -25,13 +25,13 @@ import org.diqube.function.AggregationFunction;
 import org.diqube.function.IntermediaryResult;
 
 /**
- * This {@link OverwritingConsumer} provides intermediary delta updates on calculating the result of a group aggregation
+ * This {@link ContinuousConsumer} provides intermediary delta updates on calculating the result of a group aggregation
  * function.
  *
  * @author Bastian Gloeckle
  */
 @IdentifyingConsumerClass(GroupIntermediaryAggregationConsumer.class)
-public interface GroupIntermediaryAggregationConsumer extends OverwritingConsumer {
+public interface GroupIntermediaryAggregationConsumer extends ContinuousConsumer {
   /**
    * Provide an update.
    * 
