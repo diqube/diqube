@@ -28,7 +28,7 @@
         <diqube-error *ngIf="error">{{ error }}</diqube-error>
         <paper-input label="Name" [(ngModel)]="newAnalysis.name" ngControl="nameControl"></paper-input>
         
-        <paper-input label="Table" [(ngModel)]="newAnalysis.table" ngControl="tableControl" [errorMessages]="errorMessages()"></paper-input>
+        <paper-input label="Table" [(ngModel)]="newAnalysis.table" ngControl="tableControl" [errorMessages]="errorMessages"></paper-input>
       </div>
       <div class="card-actions vertical layout end">
         <div class="horizontal layout">

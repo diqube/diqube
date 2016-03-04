@@ -20,13 +20,13 @@
 ///
 
 
-import {Component} from "angular2/core";
+import {Component,  OnInit, OnDestroy} from "angular2/core";
 import {Router} from "angular2/router";
 import {Control, ControlGroup, FormBuilder, FORM_DIRECTIVES} from "angular2/common";
 import * as remoteData from "../../remote/remote";
 import {RemoteService} from "../../remote/remote.service";
 import {LoginStateService} from "../../login-state/login-state.service";
-import {AnalysisService} from "../../analysis/analysis.service";
+import {AnalysisService, AnalysisServiceRenavigator} from "../../analysis/analysis.service";
 import {AnalysisMainComponent} from "../analysis.main.component";
 import {NavigationStateService} from "../../navigation-state/navigation-state.service";
 import {DiqubeBaseNavigatableComponent} from "../../diqube.base.component";
@@ -37,7 +37,7 @@ import {POLYMER_BINDINGS} from "../../polymer/polymer.bindings";
   templateUrl: "diqube/analysis/create/analysis.create.html",
   directives: [ FORM_DIRECTIVES, POLYMER_BINDINGS ]
 })
-export class AnalysisCreateComponent extends DiqubeBaseNavigatableComponent {
+export class AnalysisCreateComponent extends DiqubeBaseNavigatableComponent implements AnalysisServiceRenavigator, OnInit, OnDestroy {
   public newAnalysis: { name: string; table: string } = { name: "", table: undefined };
   public nameControl: Control;
   public tableControl: Control;
@@ -47,6 +47,8 @@ export class AnalysisCreateComponent extends DiqubeBaseNavigatableComponent {
   public creating: boolean = false;
   
   private validTables:Array<string> = undefined;
+  
+  public errorMessages: {[key: string]:string} = { "tableDoesNotExist": "Warning: Table might not exist" };
   
   constructor(private remoteService: RemoteService, private loginStateService: LoginStateService, formBuilder: FormBuilder, 
               private analysisService: AnalysisService, private router: Router, navigationStateService: NavigationStateService) {
@@ -65,6 +67,26 @@ export class AnalysisCreateComponent extends DiqubeBaseNavigatableComponent {
   
   public static navigate(router: Router) {
     router.navigate([ "/Analysis/Create" ]);
+  }
+  
+  public analysisServiceReloadNeeded(analysisId: string, analysisVersion: number): boolean {
+    this.analysisService.unregisterRenavigator(this); // renavigate only once - then our component will be destroyed anyway!
+    
+    // renavigate to analysis.
+    AnalysisMainComponent.navigate(this.router, analysisId, analysisVersion);
+    return false; // navigation successful, do not propagate further
+  }
+  
+  public ngOnInit(): any {
+    super.ngOnInit();
+    
+    // register as renavigator, since analysis.main.component is not in place yet, but after creating the analysis, the
+    // service wants to renavigate!
+    this.analysisService.registerRenvaigator(this);
+  }
+  
+  public ngOnDestroy(): any {
+    this.analysisService.unregisterRenavigator(this);
   }
   
   public createAnalysis(): void {
@@ -93,7 +115,6 @@ export class AnalysisCreateComponent extends DiqubeBaseNavigatableComponent {
         console.log("Created new analysis");
         me.creating = false;
         this.analysisService.setLoadedAnalysis(newAnalysis);
-        AnalysisMainComponent.navigate(this.router, newAnalysis.id, newAnalysis.version);
       }
     });
   }
@@ -133,11 +154,6 @@ export class AnalysisCreateComponent extends DiqubeBaseNavigatableComponent {
      if (me.getValidTables().indexOf(control.value) == -1) 
        return { "tableDoesNotExist": true };
      return null;
-   }
-  
-  public errorMessages(): {[key: string]:string} {
-    return {
-      "tableDoesNotExist": "Warning: Table might not exist"
-    };
   }
+    
 }

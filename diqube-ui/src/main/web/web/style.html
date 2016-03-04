@@ -255,7 +255,10 @@ body /deep/ diqube-warning {
   @apply(--layout-horizontal);
 }
 
-
+body /deep/ canvas {
+  /* do no anti-aliasing when browser is scaled - images get blurry. */
+  image-rendering: pixelated;
+}
 
 
 /* Diqube table */
