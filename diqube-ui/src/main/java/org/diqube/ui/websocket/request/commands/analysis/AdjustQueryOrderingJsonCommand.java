@@ -25,6 +25,8 @@ import javax.inject.Inject;
 import org.diqube.build.mojo.TypeScriptProperty;
 import org.diqube.diql.DiqlParseUtil;
 import org.diqube.diql.ParseException;
+import org.diqube.diql.antlr.DiqlParser.LimitClauseContext;
+import org.diqube.diql.antlr.DiqlParser.OrderClauseContext;
 import org.diqube.ui.analysis.AnalysisFactory;
 import org.diqube.ui.analysis.QueryBuilder;
 import org.diqube.ui.analysis.QueryBuilder.QueryBuilderException;
@@ -110,10 +112,15 @@ public class AdjustQueryOrderingJsonCommand extends AbstractAnalysisAdjustingJso
 
     boolean hasOrderByClause = false;
     int curIdx = diqlLower.lastIndexOf("order by");
+    Integer limitClauseStartIdx = null;
     while (curIdx != -1) {
       // try to parse order clause here.
       try {
-        DiqlParseUtil.parseOrderClauseWithAntlr(diql.substring(curIdx));
+        OrderClauseContext orderClauseCtx = DiqlParseUtil.parseOrderClauseWithAntlr(diql.substring(curIdx));
+        LimitClauseContext limitCtx = orderClauseCtx.getChild(LimitClauseContext.class, 0);
+        if (limitCtx != null)
+          limitClauseStartIdx = curIdx + limitCtx.getStart().getStartIndex();
+
         hasOrderByClause = true;
         break;
       } catch (ParseException e) {
@@ -131,6 +138,10 @@ public class AdjustQueryOrderingJsonCommand extends AbstractAnalysisAdjustingJso
       newQueryDiql = diql.substring(0, curIdx); // ORDER BY clause is at the end
 
     newQueryDiql += "ORDER BY " + orderByRequest + ((orderAsc) ? " ASC" : " DESC");
+
+    if (limitClauseStartIdx != null)
+      // preserve LIMIT clause if one was available before.
+      newQueryDiql += diql.substring(limitClauseStartIdx - 1);
 
     // validate that we have a valid query!
     try {
