@@ -6,7 +6,7 @@
 diqube is a fast, distributed, in-memory column-store which enables you to analyze large amounts of read-only data
 easily. 
 
-[![UI YouTube video](http://img.youtube.com/vi/WsWxhthv8ik/0.jpg)](http://www.youtube.com/watch?v=WsWxhthv8ik)
+[![UI YouTube video](http://img.youtube.com/vi/_lddCDuHnMA/0.jpg)](http://www.youtube.com/watch?v=_lddCDuHnMA)
 
 ##Getting started##
 
