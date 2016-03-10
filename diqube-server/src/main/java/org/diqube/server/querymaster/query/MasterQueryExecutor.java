@@ -95,7 +95,6 @@ class MasterQueryExecutor {
   private AtomicBoolean orderedDone = new AtomicBoolean(false);
   private AtomicBoolean havingDone = new AtomicBoolean(false);
   private AtomicInteger updatesWaiting = new AtomicInteger(0);
-  private Set<String> selectedColumnsSet;
   private boolean isOrdered;
   private List<String> selectedColumns;
   private boolean createIntermediaryUpdates;
@@ -122,12 +121,15 @@ class MasterQueryExecutor {
 
   private List<String> selectionRequests;
 
+  private MasterExecutionRequestValidator masterExecutionRequestValidator;
+
   public MasterQueryExecutor(ExecutorManager executorManager, ExecutionPlanBuilderFactory executionPlanBuildeFactory,
-      QueryRegistry queryRegistry, MasterQueryExecutor.QueryExecutorCallback callback,
-      boolean createIntermediaryUpdates) {
+      QueryRegistry queryRegistry, MasterExecutionRequestValidator masterExecutionRequestValidator,
+      MasterQueryExecutor.QueryExecutorCallback callback, boolean createIntermediaryUpdates) {
     this.executorManager = executorManager;
     this.executionPlanBuildeFactory = executionPlanBuildeFactory;
     this.queryRegistry = queryRegistry;
+    this.masterExecutionRequestValidator = masterExecutionRequestValidator;
     this.callback = callback;
     this.createIntermediaryUpdates = createIntermediaryUpdates;
   }
@@ -217,8 +219,10 @@ class MasterQueryExecutor {
       }
     });
 
+    // additionally validate query according to our validator in diqube-server.
+    planBuilder.withAdditionalRequestValidator(masterExecutionRequestValidator);
+
     ExecutablePlan plan = planBuilder.build();
-    selectedColumnsSet = new HashSet<>(plan.getInfo().getSelectedColumnNames());
     selectedColumns = plan.getInfo().getSelectedColumnNames();
     selectionRequests = plan.getInfo().getSelectionRequests();
     isOrdered = plan.getInfo().isOrdered();

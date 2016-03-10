@@ -18,16 +18,17 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.plan;
+package org.diqube.plan.validate;
 
 import java.util.Collection;
 import java.util.Map;
 import java.util.function.Consumer;
 
+import org.diqube.diql.request.ComparisonRequest.Leaf;
 import org.diqube.diql.request.ExecutionRequest;
 import org.diqube.diql.request.FunctionRequest;
 import org.diqube.diql.request.ResolveValueRequest;
-import org.diqube.diql.request.ComparisonRequest.Leaf;
+import org.diqube.plan.PlannerColumnInfo;
 import org.diqube.plan.exception.ValidationException;
 import org.diqube.util.ColumnOrValue.Type;
 import org.diqube.util.Pair;
@@ -37,7 +38,8 @@ import org.diqube.util.Pair;
  *
  * @author Bastian Gloeckle
  */
-public class ExecutionRequestValidator {
+public class DefaultExecutionRequestValidator implements ExecutionRequestValidator {
+  @Override
   public void validate(ExecutionRequest executionRequest, Map<String, PlannerColumnInfo> colInfos)
       throws ValidationException {
 

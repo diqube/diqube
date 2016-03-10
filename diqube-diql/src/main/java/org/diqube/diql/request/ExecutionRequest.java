@@ -49,6 +49,8 @@ public class ExecutionRequest {
 
   private OrderRequest order;
 
+  private ExecutionRequestInfo additionalInfo = new ExecutionRequestInfo();
+
   public ExecutionRequest() {
 
   }
@@ -115,10 +117,6 @@ public class ExecutionRequest {
     return projectAndAggregate;
   }
 
-  public void setProjectAndAggregate(List<FunctionRequest> project) {
-    this.projectAndAggregate = project;
-  }
-
   /**
    * @return <code>null</code> or an {@link OrderRequest} representing the ORDER BY of the select stmt.
    */
@@ -130,10 +128,15 @@ public class ExecutionRequest {
     this.order = order;
   }
 
+  public ExecutionRequestInfo getAdditionalInfo() {
+    return additionalInfo;
+  }
+
   @Override
   public int hashCode() {
     final int prime = 31;
     int result = 1;
+    result = prime * result + ((additionalInfo == null) ? 0 : additionalInfo.hashCode());
     result = prime * result + ((fromRequest == null) ? 0 : fromRequest.hashCode());
     result = prime * result + ((group == null) ? 0 : group.hashCode());
     result = prime * result + ((having == null) ? 0 : having.hashCode());
@@ -153,6 +156,11 @@ public class ExecutionRequest {
     if (!(obj instanceof ExecutionRequest))
       return false;
     ExecutionRequest other = (ExecutionRequest) obj;
+    if (additionalInfo == null) {
+      if (other.additionalInfo != null)
+        return false;
+    } else if (!additionalInfo.equals(other.additionalInfo))
+      return false;
     if (fromRequest == null) {
       if (other.fromRequest != null)
         return false;
@@ -190,4 +198,5 @@ public class ExecutionRequest {
       return false;
     return true;
   }
+
 }

@@ -28,17 +28,17 @@ import java.util.regex.Pattern;
  */
 public class FieldNameUtil {
   /**
-   * Regex pattern that matches all indices between square brackets []. That content needs to be replaced with an empty
-   * string to receive the field name. If changed, check also RepeatedColumnNameGenerator.
+   * Regex pattern that matches all indices between square brackets [], including *. That content needs to be replaced
+   * with an empty string to receive the field name. If changed, check also RepeatedColumnNameGenerator.
    * 
-   * Does not math "[length]".
+   * Does not match "[length]".
    */
-  private static final Pattern FULL_COL_NAME_TO_FIELD_NAME_PATTERN = Pattern.compile("\\[[0-9]*\\]");
+  private static final Pattern FULL_COL_NAME_TO_FIELD_NAME_PATTERN = Pattern.compile("\\[[0-9\\*]*\\]");
 
   /**
    * Keep in sync with RepeatedColumnNameGenerator.
    */
-  private static final String LENGTH = "[length]";
+  public static final String LENGTH = "[length]";
 
   /**
    * Transforms a full column name to the name of the corresponding field name.
@@ -54,6 +54,13 @@ public class FieldNameUtil {
    *         this length column does not necessarily match the type of the actual column (length cols are always LONG).
    */
   public static boolean columnTypeMightDifferFromFieldType(String fullColumnName) {
-    return fullColumnName.contains(LENGTH);
+    return isLengthColumn(fullColumnName);
+  }
+
+  /**
+   * @return <code>true</code> if the column is a "length" column of a repeated field.
+   */
+  public static boolean isLengthColumn(String fullColumnName) {
+    return fullColumnName.endsWith(LENGTH);
   }
 }

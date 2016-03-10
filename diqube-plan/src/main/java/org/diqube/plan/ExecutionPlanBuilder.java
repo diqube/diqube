@@ -43,6 +43,8 @@ import org.diqube.name.FunctionBasedColumnNameBuilderFactory;
 import org.diqube.name.RepeatedColumnNameGenerator;
 import org.diqube.optimize.ExecutionRequestOptimizer;
 import org.diqube.plan.exception.ValidationException;
+import org.diqube.plan.validate.DefaultExecutionRequestValidator;
+import org.diqube.plan.validate.ExecutionRequestValidator;
 
 /**
  * Build an {@link ExecutablePlan} from diql.
@@ -67,6 +69,8 @@ public class ExecutionPlanBuilder {
   private FunctionBasedColumnNameBuilderFactory functionBasedColumnNameBuilderFactory;
 
   private RemotesTriggeredListener remotesTriggeredListener;
+
+  private ExecutionRequestValidator additionalValidator;
 
   public ExecutionPlanBuilder(ExecutionPlannerFactory executionPlannerFactory,
       ExecutionEnvironmentFactory executionEnvironmentFactory, RepeatedColumnNameGenerator repeatedColNames,
@@ -102,6 +106,11 @@ public class ExecutionPlanBuilder {
     return this;
   }
 
+  public ExecutionPlanBuilder withAdditionalRequestValidator(ExecutionRequestValidator additionalValidator) {
+    this.additionalValidator = additionalValidator;
+    return this;
+  }
+
   /**
    * @return An {@link ExecutablePlan} that is executable on the query master right away.
    */
@@ -115,7 +124,10 @@ public class ExecutionPlanBuilder {
     Map<String, PlannerColumnInfo> colInfo =
         new PlannerColumnInfoBuilder().withExecutionRequest(executionRequest).build();
 
-    new ExecutionRequestValidator().validate(executionRequest, colInfo);
+    new DefaultExecutionRequestValidator().validate(executionRequest, colInfo);
+
+    if (additionalValidator != null)
+      additionalValidator.validate(executionRequest, colInfo);
 
     ExecutionEnvironment queryMasterDefaultExecutionEnvironment =
         executionEnvironmentFactory.createQueryMasterExecutionEnvironment();

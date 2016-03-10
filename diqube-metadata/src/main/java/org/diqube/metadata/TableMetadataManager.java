@@ -39,9 +39,13 @@ import org.diqube.metadata.consensus.TableMetadataStateMachine;
 import org.diqube.metadata.consensus.TableMetadataStateMachine.CompareAndSetTableMetadata;
 import org.diqube.metadata.consensus.TableMetadataStateMachine.GetTableMetadata;
 import org.diqube.metadata.consensus.TableMetadataStateMachine.RecomputeTableMetadata;
-import org.diqube.metadata.create.TableMetadataRecomputeRequestListener;
 import org.diqube.metadata.consensus.TableMetadataStateMachineImplementation;
+import org.diqube.metadata.create.TableMetadataRecomputeRequestListener;
+import org.diqube.metadata.util.CurrentFlattenedTableNameUtil;
+import org.diqube.metadata.util.CurrentFlattenedTableNameUtil.FlattenIdentificationImpossibleException;
+import org.diqube.name.FlattenedTableNameUtil;
 import org.diqube.threads.ExecutorManager;
+import org.diqube.thrift.base.thrift.AuthorizationException;
 import org.diqube.thrift.base.thrift.TableMetadata;
 import org.diqube.util.Pair;
 import org.slf4j.Logger;
@@ -74,6 +78,12 @@ public class TableMetadataManager {
   @Inject
   private DiqubeCatalystSerializer diqubeCatalystSerializer;
 
+  @Inject
+  private CurrentFlattenedTableNameUtil currentFlattenedTableNameUtil;
+
+  @Inject
+  private FlattenedTableNameUtil flattenedTableNameUtil;
+
   private ExecutorService recomputeExecutor;
 
   @PostConstruct
@@ -96,9 +106,32 @@ public class TableMetadataManager {
   }
 
   /**
+   * Get current metadata of a specific table.
+   * 
+   * @param tableName
+   *          Name of the table to get the metadata of. Can either be a normal tablename, or the name of a flattened
+   *          table. The latter can either be a full one (with the flatten ID = one created by
+   *          {@link FlattenedTableNameUtil#createFlattenedTableName(String, String, java.util.UUID)}) or one without
+   *          the ID (such as the ones used in diql queries; in this case, the newest locally available flattening will
+   *          be used; such a name can be created using
+   *          {@link FlattenedTableNameUtil#createIncompleteFlattenedTableName(String, String)}).
    * @return Current global {@link TableMetadata} for the table or <code>null</code> if no metadata is available.
+   * @throws AuthorizationException
+   *           In case an incomplete flatten table name was provided and there are no nodes serving the original table.
    */
-  public TableMetadata getCurrentTableMetadata(String tableName) {
+  public TableMetadata getCurrentTableMetadata(String tableName) throws AuthorizationException {
+    if (flattenedTableNameUtil.isFlattenedTableName(tableName)
+        && !flattenedTableNameUtil.isFullFlattenedTableName(tableName)) {
+      try {
+        tableName = currentFlattenedTableNameUtil.enhanceIncompleteFlattenedTableNameWithNewestFlattenId(tableName);
+      } catch (FlattenIdentificationImpossibleException e) {
+        logger.warn("Cannot get newest flatten ID for table '{}' of which metadata should've been loaded", tableName,
+            e);
+        // cannot identify any metadata.
+        return null;
+      }
+    }
+
     Pair<TableMetadata, Long> current = null;
     try (ClosableProvider<TableMetadataStateMachine> p =
         consensusClient.getStateMachineClient(TableMetadataStateMachine.class)) {
@@ -197,4 +230,5 @@ public class TableMetadataManager {
       }
     }
   }
+
 }

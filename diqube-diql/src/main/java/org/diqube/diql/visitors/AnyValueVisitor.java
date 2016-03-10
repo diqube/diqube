@@ -174,6 +174,8 @@ public class AnyValueVisitor extends DiqlBaseVisitor<Pair<ColumnOrValue, Boolean
 
       boolean isArray = colName.contains(repeatedColName.allEntriesIdentifyingSubstr());
 
+      env.getExecutionRequest().getAdditionalInfo().getColumnNamesRequired().add(colName);
+
       return new Pair<>(new ColumnOrValue(ColumnOrValue.Type.COLUMN, colName), isArray);
     } else if (anyValueCtx.getChild(0) instanceof FunctionContext) {
       return visitFunction(anyValueCtx.getChild(FunctionContext.class, 0));

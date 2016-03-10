@@ -33,8 +33,21 @@ import org.diqube.context.AutoInstatiate;
 public class FlattenedTableNameUtil {
   private static final String FLATTEN_FN = "flatten";
 
+  /**
+   * @return Name of the table that has already been flattened by the given field and the flattening is available under
+   *         the given flattenId.
+   */
   public String createFlattenedTableName(String inputTableName, String flattenByField, UUID flattenId) {
     return FLATTEN_FN + "(" + inputTableName + "," + flattenByField + "," + flattenId + ")";
+  }
+
+  /**
+   * @return Name of a flattened table in the form that is used in Diql queries - it misses a flattenId. Ensure that the
+   *         target method can handle a table name created by this method, usually
+   *         {@link #createFlattenedTableName(String, String, UUID)} has to be used!
+   */
+  public String createIncompleteFlattenedTableName(String inputTableName, String flattenByField) {
+    return FLATTEN_FN + "(" + inputTableName + "," + flattenByField + ")";
   }
 
   public boolean isFlattenedTableName(String inputTableName) {

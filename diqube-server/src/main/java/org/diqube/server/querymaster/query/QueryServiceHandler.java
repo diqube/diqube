@@ -56,7 +56,6 @@ import org.diqube.im.SuperuserCheckUtil;
 import org.diqube.name.FunctionBasedColumnNameBuilderFactory;
 import org.diqube.name.RepeatedColumnNameGenerator;
 import org.diqube.permission.TableAccessPermissionUtil;
-import org.diqube.plan.ExecutionPlanBuilderFactory;
 import org.diqube.plan.exception.ValidationException;
 import org.diqube.queries.QueryRegistry;
 import org.diqube.queries.QueryRegistry.QueryExceptionHandler;
@@ -97,9 +96,6 @@ public class QueryServiceHandler implements Iface {
   private static final Logger logger = LoggerFactory.getLogger(QueryServiceHandler.class);
 
   @Inject
-  private ExecutionPlanBuilderFactory executionPlanBuilderFactory;
-
-  @Inject
   private ExecutorManager executorManager;
 
   @Inject
@@ -125,6 +121,9 @@ public class QueryServiceHandler implements Iface {
 
   @Inject
   private SuperuserCheckUtil superuserCheckUtil;
+
+  @Inject
+  private MasterQueryExecutorFactory masterQueryExecutorFactory;
 
   private ExecutorService cancelExecutors;
 
@@ -308,8 +307,8 @@ public class QueryServiceHandler implements Iface {
       }
     });
 
-    MasterQueryExecutor queryExecutor = new MasterQueryExecutor(executorManager, executionPlanBuilderFactory,
-        queryRegistry, new MasterQueryExecutor.QueryExecutorCallback() {
+    MasterQueryExecutor queryExecutor =
+        masterQueryExecutorFactory.createExecutor(new MasterQueryExecutor.QueryExecutorCallback() {
           @Override
           public void intermediaryResultTableAvailable(RResultTable resultTable, short percentDone) {
             logger.trace("New intermediary result for {}: {}", queryUuid, resultTable);
