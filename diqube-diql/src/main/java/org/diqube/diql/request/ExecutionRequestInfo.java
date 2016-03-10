@@ -42,4 +42,29 @@ public class ExecutionRequestInfo {
     return columnNamesRequired;
   }
 
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((columnNamesRequired == null) ? 0 : columnNamesRequired.hashCode());
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (obj == null)
+      return false;
+    if (!(obj instanceof ExecutionRequestInfo))
+      return false;
+    ExecutionRequestInfo other = (ExecutionRequestInfo) obj;
+    if (columnNamesRequired == null) {
+      if (other.columnNamesRequired != null)
+        return false;
+    } else if (!columnNamesRequired.equals(other.columnNamesRequired))
+      return false;
+    return true;
+  }
+
 }
