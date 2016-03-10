@@ -18,7 +18,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.server.querymaster.query;
+package org.diqube.server.querymaster.query.validate;
 
 import java.util.HashMap;
 import java.util.List;
@@ -36,6 +36,9 @@ import org.diqube.name.FlattenedTableNameUtil;
 import org.diqube.plan.PlannerColumnInfo;
 import org.diqube.plan.exception.ValidationException;
 import org.diqube.plan.validate.ExecutionRequestValidator;
+import org.diqube.server.querymaster.query.datatype.DataTypeInvalidException;
+import org.diqube.server.querymaster.query.datatype.QueryDataTypeResolver;
+import org.diqube.server.querymaster.query.datatype.QueryDataTypeResolverFactory;
 import org.diqube.thrift.base.thrift.AuthorizationException;
 import org.diqube.thrift.base.thrift.FieldMetadata;
 import org.diqube.thrift.base.thrift.TableMetadata;
@@ -59,6 +62,9 @@ public class MasterExecutionRequestValidator implements ExecutionRequestValidato
 
   @Inject
   private TableMetadataInspectorFactory tableMetadataInspectorFactory;
+
+  @Inject
+  private QueryDataTypeResolverFactory queryDataTypeResolverFactory;
 
   @Override
   public void validate(ExecutionRequest executionRequest, Map<String, PlannerColumnInfo> colInfos)
@@ -126,11 +132,33 @@ public class MasterExecutionRequestValidator implements ExecutionRequestValidato
     for (String rootColName : executionRequest.getAdditionalInfo().getColumnNamesRequired()) {
       try {
         List<FieldMetadata> m = inspector.findAllFieldMetadata(rootColName);
-        rootColMetadata.put(rootColName, Iterables.getLast(m));
+        if (!m.isEmpty())
+          rootColMetadata.put(rootColName, Iterables.getLast(m));
       } catch (ColumnNameInvalidException e) {
         // column name is invalid/does not exist.
         throw new ValidationException(e.getMessage(), e);
       }
+    }
+
+    // validate the data types: Check if there are actually valid projection/aggregation functions available for these
+    // data types.
+    QueryDataTypeResolver dataTypeResolver = queryDataTypeResolverFactory.create(colName -> {
+      try {
+        List<FieldMetadata> m = inspector.findAllFieldMetadata(colName);
+        if (!m.isEmpty())
+          return Iterables.getLast(m);
+        return null;
+      } catch (ColumnNameInvalidException e) {
+        // swallow as this should actually never happen - we checked the cols before!
+        return null;
+      }
+    });
+
+    try {
+      dataTypeResolver.calculateDataTypes(executionRequest.getProjectAndAggregate());
+    } catch (DataTypeInvalidException e) {
+      // invalid data types/functions not available.
+      throw new ValidationException(e.getMessage(), e);
     }
   }
 

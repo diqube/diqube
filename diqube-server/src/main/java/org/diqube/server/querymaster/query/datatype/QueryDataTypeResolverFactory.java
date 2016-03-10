@@ -18,38 +18,31 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.diqube.server.querymaster.query;
+package org.diqube.server.querymaster.query.datatype;
+
+import java.util.function.Function;
 
 import javax.inject.Inject;
 
 import org.diqube.context.AutoInstatiate;
-import org.diqube.plan.ExecutionPlanBuilderFactory;
-import org.diqube.queries.QueryRegistry;
-import org.diqube.server.querymaster.query.validate.MasterExecutionRequestValidator;
-import org.diqube.threads.ExecutorManager;
+import org.diqube.function.FunctionFactory;
+import org.diqube.name.RepeatedColumnNameGenerator;
+import org.diqube.thrift.base.thrift.FieldMetadata;
 
 /**
- * Factory for {@link MasterQueryExecutor}.
+ * Factory for {@link QueryDataTypeResolver}.
  *
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
-public class MasterQueryExecutorFactory {
+public class QueryDataTypeResolverFactory {
   @Inject
-  private ExecutorManager executorManager;
+  private FunctionFactory functionFactory;
 
   @Inject
-  private ExecutionPlanBuilderFactory executionPlanBuildeFactory;
+  private RepeatedColumnNameGenerator repeatedColumnNameGenerator;
 
-  @Inject
-  private QueryRegistry queryRegistry;
-
-  @Inject
-  private MasterExecutionRequestValidator masterExecutionRequestValidator;
-
-  public MasterQueryExecutor createExecutor(MasterQueryExecutor.QueryExecutorCallback callback,
-      boolean createIntermediaryUpdates) {
-    return new MasterQueryExecutor(executorManager, executionPlanBuildeFactory, queryRegistry,
-        masterExecutionRequestValidator, callback, createIntermediaryUpdates);
+  public QueryDataTypeResolver create(Function<String, FieldMetadata> columnMetadataResolve) {
+    return new QueryDataTypeResolver(columnMetadataResolve, functionFactory, repeatedColumnNameGenerator);
   }
 }

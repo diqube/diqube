@@ -56,6 +56,7 @@ import org.diqube.queries.QueryRegistry;
 import org.diqube.queries.QueryRegistry.QueryPercentHandler;
 import org.diqube.queries.QueryUuid.QueryUuidThreadState;
 import org.diqube.remote.query.thrift.RResultTable;
+import org.diqube.server.querymaster.query.validate.MasterExecutionRequestValidator;
 import org.diqube.threads.ExecutorManager;
 import org.diqube.thrift.base.thrift.RValue;
 import org.diqube.thrift.base.util.RValueUtil;

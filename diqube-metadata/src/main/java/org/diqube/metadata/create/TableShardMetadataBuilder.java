@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.diqube.data.column.ColumnShard;
-import org.diqube.data.column.ColumnType;
 import org.diqube.data.table.TableShard;
 import org.diqube.name.RepeatedColumnNameGenerator;
 import org.diqube.thrift.base.thrift.FieldMetadata;
@@ -58,12 +57,12 @@ public class TableShardMetadataBuilder {
     Map<String, Pair<FieldType, Boolean>> fields = new HashMap<>();
 
     for (ColumnShard colShard : tableShard.getColumns().values()) {
-      if (FieldNameUtil.columnTypeMightDifferFromFieldType(colShard.getName()))
+      if (FieldUtil.columnTypeMightDifferFromFieldType(colShard.getName()))
         // ignore type of length columns - we're only interested in the type of the columns that contain actual data.
         continue;
 
-      String fieldName = FieldNameUtil.toFieldName(colShard.getName());
-      FieldType fieldType = toFieldType(colShard.getColumnType());
+      String fieldName = FieldUtil.toFieldName(colShard.getName());
+      FieldType fieldType = FieldUtil.toFieldType(colShard.getColumnType());
       boolean repeated = colShard.getName().endsWith(repeatedColumnNameGenerator.repeatedColumnNameEndsWith());
 
       Pair<FieldType, Boolean> newFieldInfo = new Pair<>(fieldType, repeated);
@@ -99,24 +98,12 @@ public class TableShardMetadataBuilder {
       else
         cur = last + "." + allParts[i];
       boolean repeated = cur.endsWith(repeatedColumnNameGenerator.repeatedColumnNameEndsWith());
-      cur = FieldNameUtil.toFieldName(cur);
+      cur = FieldUtil.toFieldName(cur);
       res.add(new Pair<>(cur, repeated));
       last = cur;
     }
 
     return res;
-  }
-
-  private FieldType toFieldType(ColumnType colType) {
-    switch (colType) {
-    case STRING:
-      return FieldType.STRING;
-    case LONG:
-      return FieldType.LONG;
-    case DOUBLE:
-      return FieldType.DOUBLE;
-    }
-    return null;
   }
 
   /**

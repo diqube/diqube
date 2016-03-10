@@ -25,7 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.diqube.metadata.create.FieldNameUtil;
+import org.diqube.metadata.create.FieldUtil;
 import org.diqube.metadata.inspect.exception.ColumnNameInvalidException;
 import org.diqube.name.RepeatedColumnNameGenerator;
 import org.diqube.thrift.base.thrift.FieldMetadata;
@@ -68,15 +68,15 @@ public class TableMetadataInspector {
    */
   public List<FieldMetadata> findAllFieldMetadata(String columnName) throws ColumnNameInvalidException {
     List<FieldMetadata> m = new ArrayList<>();
-    String fieldName = FieldNameUtil.toFieldName(columnName);
+    String fieldName = FieldUtil.toFieldName(columnName);
     if (columnName.indexOf("..") > -1 || columnName.startsWith(".") || columnName.endsWith("."))
       throw new ColumnNameInvalidException("Column name contains dots at at least one invalid position: " + columnName);
 
     String firstColName = columnName;
     boolean shouldBeLengthColumn = false;
-    if (FieldNameUtil.isLengthColumn(fieldName)) {
-      firstColName = columnName.substring(0, columnName.length() - FieldNameUtil.LENGTH.length());
-      fieldName = fieldName.substring(0, fieldName.length() - FieldNameUtil.LENGTH.length());
+    if (FieldUtil.isLengthColumn(fieldName)) {
+      firstColName = columnName.substring(0, columnName.length() - FieldUtil.LENGTH.length());
+      fieldName = fieldName.substring(0, fieldName.length() - FieldUtil.LENGTH.length());
       shouldBeLengthColumn = true;
     }
 
@@ -92,7 +92,7 @@ public class TableMetadataInspector {
    * @param columnName
    *          The current column Name. This method "walks up" the hierarchy of fields.
    * @param fieldName
-   *          The current field name as processed by {@link FieldNameUtil#toFieldName(String)} of the column.
+   *          The current field name as processed by {@link FieldUtil#toFieldName(String)} of the column.
    * @param shouldBeLengthColumn
    *          <code>true</code> if the current field is expected to be a [length] column, <code>false</code> if this
    *          would be an error. This is typically true for the full column = the [length] must only appear at the very
@@ -106,9 +106,9 @@ public class TableMetadataInspector {
   private void findCurrentFieldMetadataAndParents(String fullColumnName, String columnName, String fieldName,
       boolean shouldBeLengthColumn, List<FieldMetadata> res) throws ColumnNameInvalidException {
 
-    if (!shouldBeLengthColumn && FieldNameUtil.isLengthColumn(columnName))
+    if (!shouldBeLengthColumn && FieldUtil.isLengthColumn(columnName))
       throw new ColumnNameInvalidException(
-          "Usage of " + FieldNameUtil.LENGTH + " at an illegal position in '" + fullColumnName + "'.");
+          "Usage of " + FieldUtil.LENGTH + " at an illegal position in '" + fullColumnName + "'.");
 
     if (!fieldMetadata.containsKey(fieldName))
       throw new ColumnNameInvalidException(

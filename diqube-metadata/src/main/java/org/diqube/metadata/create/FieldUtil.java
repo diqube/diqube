@@ -22,11 +22,14 @@ package org.diqube.metadata.create;
 
 import java.util.regex.Pattern;
 
+import org.diqube.data.column.ColumnType;
+import org.diqube.thrift.base.thrift.FieldType;
+
 /**
  *
  * @author Bastian Gloeckle
  */
-public class FieldNameUtil {
+public class FieldUtil {
   /**
    * Regex pattern that matches all indices between square brackets [], including *. That content needs to be replaced
    * with an empty string to receive the field name. If changed, check also RepeatedColumnNameGenerator.
@@ -62,5 +65,17 @@ public class FieldNameUtil {
    */
   public static boolean isLengthColumn(String fullColumnName) {
     return fullColumnName.endsWith(LENGTH);
+  }
+
+  public static FieldType toFieldType(ColumnType colType) {
+    switch (colType) {
+    case STRING:
+      return FieldType.STRING;
+    case LONG:
+      return FieldType.LONG;
+    case DOUBLE:
+      return FieldType.DOUBLE;
+    }
+    return null;
   }
 }
