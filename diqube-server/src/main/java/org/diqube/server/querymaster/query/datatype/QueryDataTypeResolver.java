@@ -87,14 +87,20 @@ public class QueryDataTypeResolver {
       for (ColumnOrValue cov : req.getInputParameters()) {
         if (cov.getType().equals(ColumnOrValue.Type.COLUMN)) {
           ColumnType paramColType;
-          if (res.containsKey(cov.getColumnName()))
-            paramColType = toColumnType(res.get(cov.getColumnName()));
+          String inputField = FieldUtil.toFieldName(cov.getColumnName());
+          if (res.containsKey(inputField))
+            paramColType = toColumnType(res.get(inputField));
           else {
             if (cov.getColumnName().endsWith(repeatedColumnNameGenerator.lengthIdentifyingSuffix()))
               // [length] cols are always LONG.
               paramColType = ColumnType.LONG;
-            else
-              paramColType = toColumnType(columnMetadataResolve.apply(cov.getColumnName()));
+            else {
+              FieldMetadata m = columnMetadataResolve.apply(cov.getColumnName());
+              if (m != null)
+                paramColType = toColumnType(m);
+              else
+                paramColType = null;
+            }
           }
 
           if (inputType != null && !inputType.equals(paramColType))
