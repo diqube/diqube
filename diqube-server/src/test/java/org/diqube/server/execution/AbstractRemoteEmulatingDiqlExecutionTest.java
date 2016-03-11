@@ -37,14 +37,12 @@ import org.diqube.queries.QueryRegistry;
 import org.diqube.remote.cluster.thrift.ClusterQueryService;
 import org.diqube.server.execution.util.NoopClusterQueryService;
 import org.diqube.server.queryremote.query.ClusterQueryServiceHandler;
+import org.diqube.testutil.TestContextOverrideBean;
 import org.diqube.thrift.base.services.DiqubeThriftServiceInfoManager;
 import org.diqube.thrift.base.services.DiqubeThriftServiceInfoManager.DiqubeThriftServiceInfo;
 import org.diqube.thrift.base.thrift.RNodeAddress;
 import org.diqube.util.Pair;
-import org.springframework.beans.factory.config.BeanDefinition;
-import org.springframework.beans.factory.support.GenericBeanDefinition;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
-import org.springframework.context.support.GenericApplicationContext;
 import org.testng.annotations.BeforeMethod;
 
 /**
@@ -65,36 +63,7 @@ public abstract class AbstractRemoteEmulatingDiqlExecutionTest<T> extends Abstra
     // replace the default ClusterQueryServiceHandler with a Noop handler, as otherwise the ExecuteRemote step would
     // access the only "remote" (= local process) through the bean in the context directly, without accessing any
     // connections - we would then not be able to fully emulate the remotes.
-    overrideBean(ctx, ClusterQueryServiceHandler.class, NoopClusterQueryService.class);
-  }
-
-  /**
-   * Override a {@link BeanDefinition} in the given context, effectively replacing the bean that will be created.
-   * 
-   * This has to be called before the context is {@link GenericApplicationContext#refresh()}ed.
-   * 
-   * @param ctx
-   *          The context to work on.
-   * @param overriddenBeanClass
-   *          Class of the bean that should be overridden.
-   * @param newBeanClass
-   *          Class of bean that should be used instead.
-   */
-  private void overrideBean(GenericApplicationContext ctx, Class<?> overriddenBeanClass, Class<?> newBeanClass) {
-    String overrideBeanDefName = null;
-    for (String beanDefinitionName : ctx.getBeanFactory().getBeanDefinitionNames()) {
-      if (ctx.getBeanFactory().getBeanDefinition(beanDefinitionName).getBeanClassName()
-          .equals(overriddenBeanClass.getName())) {
-        overrideBeanDefName = beanDefinitionName;
-        break;
-      }
-    }
-
-    GenericBeanDefinition overridingBeanDef =
-        (GenericBeanDefinition) ((GenericBeanDefinition) ctx.getBeanFactory().getBeanDefinition(overrideBeanDefName))
-            .cloneBeanDefinition();
-    overridingBeanDef.setBeanClass(newBeanClass);
-    ctx.registerBeanDefinition(overrideBeanDefName, overridingBeanDef);
+    TestContextOverrideBean.overrideBeanClass(ctx, ClusterQueryServiceHandler.class, NoopClusterQueryService.class);
   }
 
   @Override
