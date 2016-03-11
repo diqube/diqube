@@ -199,6 +199,122 @@ public class MasterExecutionRequestValidatorTest {
     Assert.fail("Expected a ValidationException to be thrown because concat is called with a projected DOUBLE col");
   }
 
+  @Test(expectedExceptions = ValidationException.class)
+  public void rootColUnvailableTest() throws AuthorizationException {
+    // GIVEN
+    prepareMetadata(new FieldMetadata("a", FieldType.DOUBLE, false));
+
+    // WHEN
+    executionPlanBuilder.fromDiql("select b from " + TABLE).build();
+
+    // THEN
+    Assert.fail("Expected a ValidationException to be thrown because col b does not exist");
+  }
+
+  @Test(expectedExceptions = ValidationException.class)
+  public void rootColUnvailable2Test() throws AuthorizationException {
+    // GIVEN
+    prepareMetadata(new FieldMetadata("a", FieldType.DOUBLE, false));
+
+    // WHEN
+    executionPlanBuilder.fromDiql("select log(b) from " + TABLE).build();
+
+    // THEN
+    Assert.fail("Expected a ValidationException to be thrown because col b does not exist");
+  }
+
+  @Test(expectedExceptions = ValidationException.class)
+  public void flattenedFieldUnavailableTest() throws AuthorizationException {
+    // GIVEN
+    Mockito.when(metadataManagerMock.getCurrentTableMetadata(TABLE)).then(invocation -> {
+      return new TableMetadata(TABLE, Arrays.asList(new FieldMetadata("a", FieldType.DOUBLE, false)));
+    });
+
+    // WHEN
+    executionPlanBuilder.fromDiql("select b from flatten(" + TABLE + ", c[*])").build();
+
+    // THEN
+    Assert.fail("Expected a ValidationException to be thrown because col c[*] does not exist");
+  }
+
+  @Test
+  public void flattenedFieldAvailableTest() throws AuthorizationException {
+    // GIVEN
+    Mockito.when(metadataManagerMock.getCurrentTableMetadata(TABLE)).then(invocation -> {
+      return new TableMetadata(TABLE, Arrays.asList(new FieldMetadata("a", FieldType.DOUBLE, true)));
+    });
+
+    // WHEN
+    executionPlanBuilder.fromDiql("select b from flatten(" + TABLE + ", a[*])").build();
+
+    // THEN
+    // no exception
+  }
+
+  @Test(expectedExceptions = ValidationException.class)
+  public void flattenedFieldNotRepeatedAvailableTest() throws AuthorizationException {
+    // GIVEN
+    Mockito.when(metadataManagerMock.getCurrentTableMetadata(TABLE)).then(invocation -> {
+      return new TableMetadata(TABLE, Arrays.asList(new FieldMetadata("a", FieldType.DOUBLE, false)));
+    });
+
+    // WHEN
+    executionPlanBuilder.fromDiql("select b from flatten(" + TABLE + ", a)").build();
+
+    // THEN
+    Assert.fail("Expected a ValidationException to be thrown because col a is not repeated");
+  }
+
+  @Test(expectedExceptions = ValidationException.class)
+  public void flattenedFieldNotRepeatedButReferencedRepeatedAvailableTest() throws AuthorizationException {
+    // GIVEN
+    Mockito.when(metadataManagerMock.getCurrentTableMetadata(TABLE)).then(invocation -> {
+      return new TableMetadata(TABLE, Arrays.asList(new FieldMetadata("a", FieldType.DOUBLE, false)));
+    });
+
+    // WHEN
+    executionPlanBuilder.fromDiql("select b from flatten(" + TABLE + ", a[*])").build();
+
+    // THEN
+    Assert.fail("Expected a ValidationException to be thrown because col a is not repeated");
+  }
+
+  @Test(expectedExceptions = ValidationException.class)
+  public void repeatedFieldReferencedUnrepeatedTest() throws AuthorizationException {
+    // GIVEN
+    prepareMetadata(new FieldMetadata("a", FieldType.DOUBLE, true));
+
+    // WHEN
+    executionPlanBuilder.fromDiql("select a from " + TABLE).build();
+
+    // THEN
+    Assert.fail("Expected a ValidationException to be thrown because col a is repeated");
+  }
+
+  @Test(expectedExceptions = ValidationException.class)
+  public void unrepeatedFieldReferencedRepeatedTest() throws AuthorizationException {
+    // GIVEN
+    prepareMetadata(new FieldMetadata("a", FieldType.DOUBLE, false));
+
+    // WHEN
+    executionPlanBuilder.fromDiql("select avg(a[*]) from " + TABLE).build();
+
+    // THEN
+    Assert.fail("Expected a ValidationException to be thrown because col a is not repeated");
+  }
+
+  @Test
+  public void validColAggregationTest() throws AuthorizationException {
+    // GIVEN
+    prepareMetadata(new FieldMetadata("a", FieldType.DOUBLE, true));
+
+    // WHEN
+    executionPlanBuilder.fromDiql("select avg(a[*]) from " + TABLE).build();
+
+    // THEN
+    // no excpetion
+  }
+
   private void prepareMetadata(FieldMetadata... fields) throws AuthorizationException {
     Mockito.when(metadataManagerMock.getCurrentTableMetadata(Mockito.anyString())).then(invocation -> {
       return new TableMetadata(TABLE, Arrays.asList(fields));

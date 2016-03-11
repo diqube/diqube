@@ -84,7 +84,12 @@ public class MasterExecutionRequestValidator implements ExecutionRequestValidato
         if (originalMetadata != null) {
           TableMetadataInspector originalInspector = tableMetadataInspectorFactory.createInspector(originalMetadata);
           try {
-            originalInspector.findFieldMetadata(executionRequest.getFromRequest().getFlattenByField());
+            FieldMetadata m =
+                originalInspector.findFieldMetadata(executionRequest.getFromRequest().getFlattenByField());
+
+            if (m != null && !m.isRepeated())
+              throw new ValidationException("Cannot flatten by '"
+                  + executionRequest.getFromRequest().getFlattenByField() + "' since that field is not repeated.");
           } catch (ColumnNameInvalidException e) {
             // flattenBy field invalid on original table!
             throw new ValidationException(e.getMessage(), e);
