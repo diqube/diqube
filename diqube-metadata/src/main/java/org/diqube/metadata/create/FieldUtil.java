@@ -23,6 +23,7 @@ package org.diqube.metadata.create;
 import java.util.regex.Pattern;
 
 import org.diqube.data.column.ColumnType;
+import org.diqube.thrift.base.thrift.FieldMetadata;
 import org.diqube.thrift.base.thrift.FieldType;
 
 /**
@@ -77,5 +78,18 @@ public class FieldUtil {
       return FieldType.DOUBLE;
     }
     return null;
+  }
+
+  public static ColumnType toColumnType(FieldMetadata m) {
+    switch (m.getFieldType()) {
+    case STRING:
+      return ColumnType.STRING;
+    case LONG:
+      return ColumnType.LONG;
+    case DOUBLE:
+      return ColumnType.DOUBLE;
+    default:
+      return null;
+    }
   }
 }

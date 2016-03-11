@@ -31,6 +31,7 @@ import org.diqube.name.RepeatedColumnNameGenerator;
 import org.diqube.thrift.base.thrift.FieldMetadata;
 import org.diqube.thrift.base.thrift.TableMetadata;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 /**
@@ -82,6 +83,19 @@ public class TableMetadataInspector {
 
     findCurrentFieldMetadataAndParents(columnName, firstColName, fieldName, shouldBeLengthColumn, m);
     return Lists.reverse(m);
+  }
+
+  /**
+   * Identifies the most specific interesting {@link FieldMetadata} for a given columnName, as it might be used in a
+   * diql query.
+   * 
+   * @return {@link FieldMetadata} or <code>null</code>.
+   */
+  public FieldMetadata findFieldMetadata(String columnName) throws ColumnNameInvalidException {
+    List<FieldMetadata> allMetadata = findAllFieldMetadata(columnName);
+    if (allMetadata.isEmpty())
+      return null;
+    return Iterables.getLast(allMetadata);
   }
 
   /**

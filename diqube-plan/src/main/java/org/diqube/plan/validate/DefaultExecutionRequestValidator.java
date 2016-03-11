@@ -47,13 +47,13 @@ public class DefaultExecutionRequestValidator implements ExecutionRequestValidat
 
     validateWhere(executionRequest, colInfos);
 
+    havingNeedsGroupBy(executionRequest);
+
     validateHaving(executionRequest, colInfos);
 
     noAggregationOnAggregation(colInfos);
 
     rowAggregationNeedsGroup(executionRequest, colInfos);
-
-    havingNeedsGroupBy(executionRequest);
 
     validateLimit(executionRequest);
 
@@ -261,10 +261,12 @@ public class DefaultExecutionRequestValidator implements ExecutionRequestValidat
     if (executionRequest.getHaving() != null) {
       Collection<Leaf> leafs = executionRequest.getHaving().findRecursivelyAllOfType(Leaf.class);
       Consumer<String> validateCol = colName -> {
-        if (!colInfos.containsKey(colName) // could be that there is no colInfo if it's no generated
-                                           // column.
-            || (!colInfos.get(colName).isTransitivelyDependsOnRowAggregation()
-                && !colInfos.get(colName).getType().equals(FunctionRequest.Type.AGGREGATION_ROW)))
+        if (!colInfos.containsKey(colName)) {
+          // Not a generated column, therefore no function, therefore not aggregated!
+          // TODO #112
+          throw new ValidationException("Cannot use column '" + colName + "' in HAVING, since it is not aggregated.");
+        } else if ((!colInfos.get(colName).isTransitivelyDependsOnRowAggregation()
+            && !colInfos.get(colName).getType().equals(FunctionRequest.Type.AGGREGATION_ROW)))
           // note: col aggregations are executed on the query remotes, therefore they need to be in WHERE.
           throw new ValidationException(
               "Function '" + colInfos.get(colName).getProvidedByFunctionRequest().getFunctionName()

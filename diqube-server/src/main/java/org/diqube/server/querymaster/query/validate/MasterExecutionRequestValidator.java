@@ -20,15 +20,22 @@
  */
 package org.diqube.server.querymaster.query.validate;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import javax.inject.Inject;
 
 import org.diqube.context.AutoInstatiate;
+import org.diqube.data.column.ColumnType;
+import org.diqube.diql.request.ComparisonRequest;
 import org.diqube.diql.request.ExecutionRequest;
+import org.diqube.diql.request.FunctionRequest;
 import org.diqube.metadata.TableMetadataManager;
+import org.diqube.metadata.create.FieldUtil;
 import org.diqube.metadata.inspect.TableMetadataInspector;
 import org.diqube.metadata.inspect.TableMetadataInspectorFactory;
 import org.diqube.metadata.inspect.exception.ColumnNameInvalidException;
@@ -42,8 +49,7 @@ import org.diqube.server.querymaster.query.datatype.QueryDataTypeResolverFactory
 import org.diqube.thrift.base.thrift.AuthorizationException;
 import org.diqube.thrift.base.thrift.FieldMetadata;
 import org.diqube.thrift.base.thrift.TableMetadata;
-
-import com.google.common.collect.Iterables;
+import org.diqube.util.ColumnOrValue;
 
 /**
  * Additional validation in diqube-server of queries being built, which takes into account potentially available
@@ -78,7 +84,7 @@ public class MasterExecutionRequestValidator implements ExecutionRequestValidato
         if (originalMetadata != null) {
           TableMetadataInspector originalInspector = tableMetadataInspectorFactory.createInspector(originalMetadata);
           try {
-            originalInspector.findAllFieldMetadata(executionRequest.getFromRequest().getFlattenByField());
+            originalInspector.findFieldMetadata(executionRequest.getFromRequest().getFlattenByField());
           } catch (ColumnNameInvalidException e) {
             // flattenBy field invalid on original table!
             throw new ValidationException(e.getMessage(), e);
@@ -126,28 +132,51 @@ public class MasterExecutionRequestValidator implements ExecutionRequestValidato
       TableMetadata metadata) throws ValidationException {
     TableMetadataInspector inspector = tableMetadataInspectorFactory.createInspector(metadata);
 
-    // validate information on all the "root columns", i.e. those columns of the table that are actually accessed by the
-    // query.
+    Map<String, FieldMetadata> rootColMetadata = validateRootColumnsAvailable(executionRequest, inspector);
+
+    Map<String, FieldMetadata> tempMetadata = validateFunctionRequestDataTypes(executionRequest, inspector);
+
+    // all interesting metadata by field name.
+    Map<String, FieldMetadata> allMetadata = new HashMap<>(rootColMetadata);
+    allMetadata.putAll(tempMetadata);
+
+    validateComparisonDataTypes(executionRequest, allMetadata);
+  }
+
+  /**
+   * validate information on all the "root columns", i.e. those columns of the table that are actually accessed by the
+   * query.
+   * 
+   * @return Map from field name to {@link FieldMetadata} of the root columns.
+   */
+  private Map<String, FieldMetadata> validateRootColumnsAvailable(ExecutionRequest executionRequest,
+      TableMetadataInspector inspector) {
     Map<String, FieldMetadata> rootColMetadata = new HashMap<>();
     for (String rootColName : executionRequest.getAdditionalInfo().getColumnNamesRequired()) {
       try {
-        List<FieldMetadata> m = inspector.findAllFieldMetadata(rootColName);
-        if (!m.isEmpty())
-          rootColMetadata.put(rootColName, Iterables.getLast(m));
+        FieldMetadata m = inspector.findFieldMetadata(rootColName);
+        if (m != null)
+          rootColMetadata.put(rootColName, m);
       } catch (ColumnNameInvalidException e) {
         // column name is invalid/does not exist.
         throw new ValidationException(e.getMessage(), e);
       }
     }
+    return rootColMetadata;
+  }
 
-    // validate the data types: Check if there are actually valid projection/aggregation functions available for these
-    // data types.
+  /**
+   * validate the data types of {@link FunctionRequest}s: Check if there are actually valid projection/aggregation
+   * functions available for these data types.
+   * 
+   * @return Map from Field Name to {@link FieldMetadata} of those temporary columns/fields produced by the
+   *         {@link FunctionRequest}s.
+   */
+  private Map<String, FieldMetadata> validateFunctionRequestDataTypes(ExecutionRequest executionRequest,
+      TableMetadataInspector inspector) {
     QueryDataTypeResolver dataTypeResolver = queryDataTypeResolverFactory.create(colName -> {
       try {
-        List<FieldMetadata> m = inspector.findAllFieldMetadata(colName);
-        if (!m.isEmpty())
-          return Iterables.getLast(m);
-        return null;
+        return inspector.findFieldMetadata(colName);
       } catch (ColumnNameInvalidException e) {
         // swallow as this should actually never happen - we checked the cols before!
         return null;
@@ -155,11 +184,68 @@ public class MasterExecutionRequestValidator implements ExecutionRequestValidato
     });
 
     try {
-      dataTypeResolver.calculateDataTypes(executionRequest.getProjectAndAggregate());
+      return dataTypeResolver.calculateDataTypes(executionRequest.getProjectAndAggregate());
     } catch (DataTypeInvalidException e) {
       // invalid data types/functions not available.
       throw new ValidationException(e.getMessage(), e);
     }
   }
 
+  /**
+   * Validate all comparisons in request (WHERE and HAVING) that left and right side of comparison is of the same data
+   * type.
+   */
+  private void validateComparisonDataTypes(ExecutionRequest executionRequest, Map<String, FieldMetadata> allMetadata) {
+    Collection<ComparisonRequest.Leaf> whereLeafs;
+    if (executionRequest.getWhere() != null)
+      whereLeafs = executionRequest.getWhere().findRecursivelyAllOfType(ComparisonRequest.Leaf.class);
+    else
+      whereLeafs = new ArrayList<>();
+    Collection<ComparisonRequest.Leaf> havingLeafs;
+    if (executionRequest.getHaving() != null)
+      havingLeafs = executionRequest.getHaving().findRecursivelyAllOfType(ComparisonRequest.Leaf.class);
+    else
+      havingLeafs = new ArrayList<>();
+
+    Set<ComparisonRequest.Leaf> comparisonLeafs = new HashSet<>(whereLeafs);
+    comparisonLeafs.addAll(havingLeafs);
+
+    for (ComparisonRequest.Leaf l : comparisonLeafs) {
+      ColumnType leftType = findColumnType(allMetadata, l.getLeftColumnName());
+
+      ColumnType rightType;
+      if (l.getRight().getType().equals(ColumnOrValue.Type.COLUMN))
+        rightType = findColumnType(allMetadata, l.getRight().getColumnName());
+      else
+        rightType = toColumnType(l.getRight().getValue());
+
+      if (leftType != null && rightType != null) {
+        // only check if we're sure about both data types
+
+        if (!leftType.equals(rightType))
+          throw new ValidationException(
+              "Datatypes incompatible (" + leftType + "<->" + rightType + ") on comparison: " + l.toString());
+      }
+    }
+  }
+
+  private ColumnType findColumnType(Map<String, FieldMetadata> metadata, String columnName) {
+    FieldMetadata m = metadata.get(FieldUtil.toFieldName(columnName));
+    if (m == null && FieldUtil.isLengthColumn(columnName))
+      return ColumnType.LONG;
+
+    if (m != null)
+      return FieldUtil.toColumnType(m);
+    return null;
+  }
+
+  private ColumnType toColumnType(Object val) {
+    if (val instanceof Double)
+      return ColumnType.DOUBLE;
+    if (val instanceof Long)
+      return ColumnType.LONG;
+    if (val instanceof String)
+      return ColumnType.STRING;
+    return null;
+  }
 }

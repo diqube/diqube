@@ -575,6 +575,7 @@ public class RowIdInequalStep extends AbstractThreadedExecutablePlanStep {
           "Only either a RowIdConsumer or a OverwritingRowIdConsumer can be wired " + "as output!");
     if (columnVersionBuiltConsumer.getNumberOfTimesWired() > 0 && !outputContainsOverwriting
         || columnVersionBuiltConsumer.getNumberOfTimesWired() == 0 && !outputContainsDefault)
+      // TODO #112
       throw new ExecutablePlanBuildException("If ColumnVersionBuiltConsumer is wired, the overwriting output "
           + "consumer needs to be wired, if no ColumnVersionBuiltConsumer is wired then the RowIdConsumer output "
           + "needs to be wired.");

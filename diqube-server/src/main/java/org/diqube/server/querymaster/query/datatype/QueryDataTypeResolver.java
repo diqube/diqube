@@ -89,7 +89,7 @@ public class QueryDataTypeResolver {
           ColumnType paramColType;
           String inputField = FieldUtil.toFieldName(cov.getColumnName());
           if (res.containsKey(inputField))
-            paramColType = toColumnType(res.get(inputField));
+            paramColType = FieldUtil.toColumnType(res.get(inputField));
           else {
             if (cov.getColumnName().endsWith(repeatedColumnNameGenerator.lengthIdentifyingSuffix()))
               // [length] cols are always LONG.
@@ -97,7 +97,7 @@ public class QueryDataTypeResolver {
             else {
               FieldMetadata m = columnMetadataResolve.apply(cov.getColumnName());
               if (m != null)
-                paramColType = toColumnType(m);
+                paramColType = FieldUtil.toColumnType(m);
               else
                 paramColType = null;
             }
@@ -111,7 +111,7 @@ public class QueryDataTypeResolver {
             inputType = paramColType;
         } else {
           if (firstLiteralType == null)
-            firstLiteralType = toColumnType(cov.getValue());
+            firstLiteralType = valueToColumnType(cov.getValue());
         }
       }
 
@@ -179,20 +179,7 @@ public class QueryDataTypeResolver {
     return sortedFunctionRequests;
   }
 
-  private ColumnType toColumnType(FieldMetadata m) {
-    switch (m.getFieldType()) {
-    case STRING:
-      return ColumnType.STRING;
-    case LONG:
-      return ColumnType.LONG;
-    case DOUBLE:
-      return ColumnType.DOUBLE;
-    default:
-      return null;
-    }
-  }
-
-  private ColumnType toColumnType(Object val) {
+  private ColumnType valueToColumnType(Object val) {
     if (val instanceof Double)
       return ColumnType.DOUBLE;
     if (val instanceof Long)
