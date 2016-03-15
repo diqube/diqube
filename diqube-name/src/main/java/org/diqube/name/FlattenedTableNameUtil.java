@@ -27,6 +27,9 @@ import org.diqube.context.AutoInstatiate;
 /**
  * Utility for handling table names of flattened tables.
  *
+ * <p>
+ * Keep in sync with Diql.g4!
+ *
  * @author Bastian Gloeckle
  */
 @AutoInstatiate
@@ -47,6 +50,7 @@ public class FlattenedTableNameUtil {
    *         {@link #createFlattenedTableName(String, String, UUID)} has to be used!
    */
   public String createIncompleteFlattenedTableName(String inputTableName, String flattenByField) {
+    // Keep in sync with Diql.g4!
     return FLATTEN_FN + "(" + inputTableName + "," + flattenByField + ")";
   }
 
@@ -55,6 +59,7 @@ public class FlattenedTableNameUtil {
   }
 
   public String getOriginalTableNameFromFlatten(String flattenedTableName) {
+    // Keep in sync with Diql.g4!
     return flattenedTableName.substring(FLATTEN_FN.length() + 1, flattenedTableName.indexOf(','));
   }
 

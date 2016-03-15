@@ -183,6 +183,7 @@ tableName
  | anyName                                         
  ;
 
+// Keep in sync with FlattenedTableNameUtil!
 flattenedTableName
  : F_FLATTEN anyName ',' columnName ')'
  ;
