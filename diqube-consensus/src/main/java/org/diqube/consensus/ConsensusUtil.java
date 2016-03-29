@@ -75,5 +75,20 @@ public class ConsensusUtil {
     public void close() {
     }
 
+    @Override
+    public Commit<T> acquire() {
+      return this;
+    }
+
+    @Override
+    public boolean release() {
+      return true;
+    }
+
+    @Override
+    public int references() {
+      return 0;
+    }
+
   }
 }

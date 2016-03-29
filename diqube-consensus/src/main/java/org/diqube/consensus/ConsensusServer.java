@@ -168,7 +168,7 @@ public class ConsensusServer implements ClusterManagerListener, ConsensusIsLeade
         withHeartbeatInterval(Duration.ofMillis(keepAliveMs)). //
         withStateMachine(() -> new DiqubeStateMachine()).build();
 
-    CompletableFuture<?> serverOpenFuture = copycatServer.open().handle((result, error) -> {
+    CompletableFuture<?> serverOpenFuture = copycatServer.start().handle((result, error) -> {
       if (error != null)
         throw new RuntimeException("Could not start Consensus node. Restart diqube-server!", error);
 
@@ -205,7 +205,7 @@ public class ConsensusServer implements ClusterManagerListener, ConsensusIsLeade
   public void stop() {
     if (copycatServer != null) {
       logger.debug("Closing consensus server...");
-      Thread closeThread = new Thread(() -> copycatServer.close().join(), "consensus-shutdown");
+      Thread closeThread = new Thread(() -> copycatServer.stop().join(), "consensus-shutdown");
       closeThread.start();
       // copycat will retry after election timeout, give it some possibility to retry.
       long copycatShutdownTimeoutMs = electionTimeoutMs * 2 + 2;

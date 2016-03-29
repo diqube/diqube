@@ -123,7 +123,7 @@ public class DefaultConsensusClient implements ConsensusListener, ConsensusClien
           if (currentCopycatClientHolder.getValue() == null) {
             CopycatClient newClient = copycatClientFactory.get();
             logger.trace("Opening new copycat client...");
-            newClient.open().join();
+            newClient.connect().join();
             currentCopycatClientHolder.setValue(newClient);
           }
 
