@@ -87,6 +87,9 @@ public class ConsensusServer implements ClusterManagerListener, ConsensusIsLeade
 
   private static final String COPYCAT_SERVER_NAME = "copycat";
 
+  /** Value for {@link CopycatServer.Builder#withGlobalSuspendTimeout(Duration)} in minutes. */
+  private static final int GLOBAL_SUSPEND_TIMEOUT_MIN = 30;
+
   @Inject
   private OurNodeAddressProvider ourNodeAddressProvider;
 
@@ -166,6 +169,8 @@ public class ConsensusServer implements ClusterManagerListener, ConsensusIsLeade
         withSessionTimeout(Duration.ofMillis(sessionTimeoutMs)). //
         withElectionTimeout(Duration.ofMillis(electionTimeoutMs)). //
         withHeartbeatInterval(Duration.ofMillis(keepAliveMs)). //
+        // seems to not be used in rc5, nevertheless set to a meaningful value:
+        withGlobalSuspendTimeout(Duration.ofMinutes(GLOBAL_SUSPEND_TIMEOUT_MIN)). //
         withStateMachine(() -> new DiqubeStateMachine()).build();
 
     CompletableFuture<?> serverOpenFuture = copycatServer.start().handle((result, error) -> {
