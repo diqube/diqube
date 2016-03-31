@@ -154,7 +154,7 @@ public class ConnectionPool implements ClusterNodeStatusDetailListener {
    * 
    * timestamps are values from {@link System#nanoTime()}.
    * 
-   * Be aware that the connections contained here may have {@link Connection#wasReplaced()} == false! Then, of course,
+   * Be aware that the connections contained here may have {@link Connection#wasReplaced()} == true! Then, of course,
    * they should be ignored.
    * 
    * The values of this map are no collections, but single connections. If there are two connections that time out at
@@ -604,7 +604,8 @@ public class ConnectionPool implements ClusterNodeStatusDetailListener {
    * @param connectionSupplier
    *          Fetches an entry from {@link #connectionTimeouts} that should be checked for a timeout. Note that this
    *          entry must be <b>removed</b> from {@link #connectionTimeouts} in the supplier! This supplier will be
-   *          called with {@link #connectionTimeoutLock}s writeLock being acquired.
+   *          called with {@link #connectionTimeoutLock}s writeLock being acquired. The supplier might return
+   *          <code>null</code> in case no other connections is potentially available for being closed.
    * @return true in case the connection was closed, false if it was not.
    */
   private boolean timeoutCloseConnectionIfViable(Supplier<Entry<Long, Connection<?>>> connectionSupplier) {
@@ -615,6 +616,8 @@ public class ConnectionPool implements ClusterNodeStatusDetailListener {
     connectionTimeoutLock.writeLock().lock();
     try {
       Entry<Long, Connection<?>> e = connectionSupplier.get();
+      if (e == null)
+        return false;
       proposedTimeoutTime = e.getKey();
       timedOutConn = e.getValue();
     } finally {
