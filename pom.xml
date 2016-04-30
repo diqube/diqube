@@ -150,7 +150,7 @@
               <include>**/*Test.java</include>
               <include>**/*TestFactory.java</include>
             </includes>
-            <argLine>-Xmx4G</argLine>
+            <argLine>-Xmx8G</argLine>
           </configuration>
         </plugin>
         <plugin>
@@ -164,7 +164,7 @@
                 <value>org.diqube.testutil.LoggingTestNgListener</value>
               </property>
             </properties>
-            <argLine>-Xmx4G</argLine>
+            <argLine>-Xmx8G</argLine>
           </configuration>
         </plugin>
         <plugin>
