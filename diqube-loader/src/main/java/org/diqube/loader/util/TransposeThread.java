@@ -157,6 +157,7 @@ public class TransposeThread extends Thread {
 
   @Override
   public void run() {
+    logger.trace("New TransposeThread starts working...");
     try {
       while (!dequeFilled || !deque.isEmpty()) {
         if (deque.peek() != null) {
@@ -229,6 +230,7 @@ public class TransposeThread extends Thread {
         }
       }
     } finally {
+      logger.trace("TransposeThread starting shutdown, wasGoodShutdown={}", wasGoodShutdown);
       executorService.shutdown();
 
       // wait until we processed all of our batches, at max GRACEFUL_SHUTDOWN_PERIOD_SECONDS seconds.
@@ -246,6 +248,8 @@ public class TransposeThread extends Thread {
 
       // All executor threads /should/ be stopped by now, but let's make absolutely sure....
       executorService.shutdownNow();
+
+      logger.trace("TransposeThread shutdown completed, wasGoodShutdown={}", wasGoodShutdown);
 
       transposeDone = true;
       synchronized (resultNotifyObject) {

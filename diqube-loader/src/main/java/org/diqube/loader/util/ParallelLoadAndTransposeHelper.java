@@ -115,6 +115,7 @@ public class ParallelLoadAndTransposeHelper {
 
       synchronized (notifyObject) {
         while (!transposeThread.isTransposeDone()) {
+          logger.trace("Still waiting for transpose to be done..");
           try {
             notifyObject.wait(1000);
           } catch (InterruptedException e) {
