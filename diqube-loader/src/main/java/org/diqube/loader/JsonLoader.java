@@ -185,7 +185,10 @@ public class JsonLoader implements Loader {
             }
           }).collect(new HashingBatchCollector<String[]>(BUCKET_SIZE, //
               (len) -> new String[len][], //
-              a -> rowWiseTarget.add(a)) //
+              a -> {
+                rowWiseTarget.add(a);
+                logger.trace("Providing new batch with {} rows", a.length);
+              })
           );
         }
       });

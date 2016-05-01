@@ -163,6 +163,7 @@ public class TransposeThread extends Thread {
         if (deque.peek() != null) {
           for (Iterator<String[][]> it = deque.iterator(); it.hasNext();) {
             String[][] batch = it.next();
+            logger.trace("Triggering batch with {} rows", batch.length);
             batchesReceived++;
             // Start processing in executorService. As we might call the execute method and the shutdown method (see
             // below) quickly after each other (e.g. if there is a fast call to #initiateGracefulShutdown()), we need
