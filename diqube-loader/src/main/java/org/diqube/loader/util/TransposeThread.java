@@ -72,6 +72,8 @@ public class TransposeThread extends Thread {
 
   private boolean transposeDone = false;
 
+  private String tableName;
+
   /**
    * Create new thread.
    * 
@@ -97,6 +99,7 @@ public class TransposeThread extends Thread {
     this.provideRowIdsFn = provideRowIdsFn;
     this.columnValuesReadyCallbacks = columnValuesReadyCallbacks;
     this.columnNames = columnNames;
+    this.tableName = tableName;
 
     executorService = executorManager.newCachedThreadPoolWithMax("transpose-worker-" + tableName + "-%d",
         new Thread.UncaughtExceptionHandler() {
@@ -217,15 +220,24 @@ public class TransposeThread extends Thread {
               logger.trace("Executor rejected to execute something. Will try again later...");
               batchesReceived--; // we will retry this batch!
               break;
+            } catch (RuntimeException e) {
+              wasGoodShutdown = false;
+              shutdownExceptionMessage = e.getClass().getSimpleName() + ": " + e.getMessage();
+              logger.error("Exception while transposing data of table " + tableName, e);
+              executorService.shutdownNow();
+              return;
             }
           }
         }
 
         try {
-          Thread.sleep(100);
+          if (wasGoodShutdown) // If we had an exception already, don't sleep.
+            Thread.sleep(100);
         } catch (InterruptedException e) {
           if (!dequeFilled) {
+            logger.trace("TransposeThread interrupted, with deque not being filled completely. Shutting down.");
             wasGoodShutdown = false;
+            executorService.shutdownNow();
             return;
           }
         }
