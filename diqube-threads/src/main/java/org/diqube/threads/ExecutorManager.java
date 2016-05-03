@@ -364,14 +364,14 @@ public class ExecutorManager {
 
     @Override
     public void run() {
-      while (true) {
+      boolean interrupted = false;
+      while (!interrupted) {
         synchronized (sync) {
           try {
             sync.wait(1000);
           } catch (InterruptedException e) {
-            // we were interrupted, lets quietly stop.
-            logger.trace("Thread exiting.");
-            return;
+            // we were interrupted, work on remaining threads, then exit!
+            interrupted = true;
           }
         }
 
@@ -382,28 +382,30 @@ public class ExecutorManager {
             // perhaps lead to exceptions in the logs, although they should not be serious, because the threads should
             // have completed their work already)
             try {
-              Thread.sleep(100);
+              if (!interrupted)
+                Thread.sleep(100);
             } catch (InterruptedException e) {
-              logger.trace("Thread exiting.");
-              return;
+              // we were interrupted, work on remaining threads, then exit!
+              interrupted = true;
             }
-            logger.trace("About to shut down {} executors.", numberOfServicesToShutdown);
+            logger.trace("About to shutdown {} executors.", numberOfServicesToShutdown);
             while (numberOfServicesToShutdown.get() > 0) {
               ExecutorService executor = shutdownExecutors.poll();
               String executorString = executor.toString();
               executor.shutdownNow();
               try {
-                if (!executor.awaitTermination(100, TimeUnit.MILLISECONDS))
+                if (!interrupted && !executor.awaitTermination(100, TimeUnit.MILLISECONDS))
                   logger.warn("Could not shutdown all threads of executor within 100ms: {}", executorString);
               } catch (InterruptedException e) {
-                logger.trace("Thread exiting.");
-                return;
+                // we were interrupted, work on remaining threads, then exit!
+                interrupted = true;
               }
               numberOfServicesToShutdown.decrementAndGet();
             }
           }
         }
       }
+      logger.trace("Thread exiting.");
     }
   }
 
