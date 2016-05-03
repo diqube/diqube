@@ -370,6 +370,7 @@ public class ExecutorManager {
             sync.wait(1000);
           } catch (InterruptedException e) {
             // we were interrupted, lets quietly stop.
+            logger.trace("Thread exiting.");
             return;
           }
         }
@@ -383,11 +384,21 @@ public class ExecutorManager {
             try {
               Thread.sleep(100);
             } catch (InterruptedException e) {
+              logger.trace("Thread exiting.");
               return;
             }
+            logger.trace("About to shut down {} executors.", numberOfServicesToShutdown);
             while (numberOfServicesToShutdown.get() > 0) {
               ExecutorService executor = shutdownExecutors.poll();
+              String executorString = executor.toString();
               executor.shutdownNow();
+              try {
+                if (!executor.awaitTermination(100, TimeUnit.MILLISECONDS))
+                  logger.warn("Could not shutdown all threads of executor within 100ms: {}", executorString);
+              } catch (InterruptedException e) {
+                logger.trace("Thread exiting.");
+                return;
+              }
               numberOfServicesToShutdown.decrementAndGet();
             }
           }
