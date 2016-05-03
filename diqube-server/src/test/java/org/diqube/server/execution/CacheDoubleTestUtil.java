@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.diqube.executionenv.cache.ColumnShardCache;
+import org.diqube.threads.ExecutorManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.annotations.Factory;
@@ -157,6 +158,15 @@ public class CacheDoubleTestUtil {
           logger.info("Executing test method first time: {} (see {} for details)", testMethod,
               CacheDoubleTestUtil.class.getName());
           testMethod.invoke(baseTest);
+
+          ExecutorManager executorManager = baseTest.getDataContext().getBean(ExecutorManager.class);
+          if (executorManager != null) {
+            logger.info("Shutting down the execution of all queries of the first run of the test method {}",
+                testMethod);
+            // as second execution of test method will effectively use the very same queryUuid, we need to enforce the
+            // cleanup here.
+            executorManager.shutdownEverythingOfAllQueries();
+          }
 
           logger.info(
               "Executing test method second time (this time there should be something in the cache): {} (see {} for details)",
