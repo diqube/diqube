@@ -95,8 +95,6 @@ public interface ProjectionFunction<I, O> {
   public int numberOfParameters();
 
   /**
-   * TODO #43 use this.
-   * 
    * @return Sets of parameter indices whose value could be exchanged but the result of the function would still be the
    *         same.
    */
