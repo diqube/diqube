@@ -93,6 +93,9 @@ public class ExecutorManager {
 
   @PreDestroy
   public void cleanup() {
+    // in a production environment it would actually not matter if we really shutdown everything (because the JVM is
+    // exiting anyway). In tests though, it is meaningful to shutdown explicitly!
+    shutdownEverythingOfAllQueries();
     shutdownThread.interrupt();
     timeoutThread.interrupt();
   }
@@ -388,10 +391,10 @@ public class ExecutorManager {
               // we were interrupted, work on remaining threads, then exit!
               interrupted = true;
             }
-            logger.trace("About to shutdown {} executors.", numberOfServicesToShutdown);
             while (numberOfServicesToShutdown.get() > 0) {
               ExecutorService executor = shutdownExecutors.poll();
               String executorString = executor.toString();
+              logger.trace("Shutting down {}", executorString);
               executor.shutdownNow();
               try {
                 if (!interrupted && !executor.awaitTermination(100, TimeUnit.MILLISECONDS))
