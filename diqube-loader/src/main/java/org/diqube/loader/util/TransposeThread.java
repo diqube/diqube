@@ -187,6 +187,7 @@ public class TransposeThread extends Thread {
               executorService.execute(new Runnable() {
                 @Override
                 public void run() {
+                  logger.trace("Starting to transpose some values");
                   long baseRowId = provideRowIdsFn.apply(batch.length);
 
                   String[][] columns = new String[columnNames.length][];
@@ -231,8 +232,7 @@ public class TransposeThread extends Thread {
         }
 
         try {
-          if (wasGoodShutdown) // If we had an exception already, don't sleep.
-            Thread.sleep(100);
+          Thread.sleep(100);
         } catch (InterruptedException e) {
           if (!dequeFilled) {
             logger.trace("TransposeThread interrupted, with deque not being filled completely. Shutting down.");
