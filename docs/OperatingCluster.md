@@ -1,8 +1,8 @@
-#diqube - Operating a cluster#
+# diqube - Operating a cluster
 
 diqube servers are meant to be executed in a cluster. This document gives some hints on running diqube in a cluster.
 
-##The server executable##
+## The server executable
 
 After building from source (see the README.md in the source root), there is an executable uber jar built in `diqube-server/target/diqube-server-1-SNAPSHOT.jar`. You can easily start this after building via
 
@@ -13,7 +13,7 @@ java -jar target/diqube-server-1-SNAPSHOT.jar
 
 This will use the default server configuration and logging configuration. Some sample data will be loaded right away, too. 
 
-##Customizing the server configuration##
+## Customizing the server configuration
 
 The server configuration is loaded from a simple properties file, whose location can be specified using the `diqube.properties` system property when starting the server. The set of properties that are available can be seen in the default configuration at [`server.properties`](/diqube-server/src/main/resources/server.properties) - if you specifiy your own configuration and you do not set a specific configuration value, the default will be used as fallback. A description of what these properties mean is available in the [`ConfigKey` class](/diqube-config/src/main/java/org/diqube/config/ConfigKey.java).
 
@@ -59,11 +59,11 @@ When then starting the server using `java -Ddiqube.properties=/home/diqube/serve
 
 When executing queries now, the sample data won't suffice, but we have to slightly adjust the `firstRowId`. See below.
 
-##Loading data##
+## Loading data
 
 Of course you want to be able to load some data into each diqube server. First of all, some general information about how to do this.
 
-###Data distribution###
+### Data distribution
 
 When a query reaches one of the diqube servers in a cluster, it will in the end distribute the query to all cluster nodes that hold some part of the data of the table that is being queried. This means that first of all the data needs to be distributed in the cluster. 
 
@@ -88,13 +88,13 @@ The last property is probably the most interesting for now: `firstRowId`. As sta
 
 When looking at the row ids of the whole table (=across all cluster nodes), the first row id of the table needs to be **0** and then for each row id there needs to be data available somewhere in the cluster, up to the biggest row id (= the last row id of the table). If you operate a cluster with just one server (e.g. for testing purposes), the setting is trivial therefore: It's always "0" unless you load multiple files of a single table on that single diqube server.
 
-###JSON format###
+### JSON format
 
 When loading data from a JSON file, that file needs to have a specific layout: It needs to define an *array* object as top level object. This array then contains a list of objects, where each of those objects defines the data for one **row** of the table (shard). The row-objects in turn can be complex objects (=contain other complex objects) and contain arrays.
 
 Each JSON file that is loaded directly by a diqube server will result in one *table shard* being built, which will serve the rowId range starting from *firstRowId* (see control file).
 
-###diqube format###
+### diqube format
 
 When importing either JSON or CSV, the import data is always stored row-wise in that file. As diqube is a column-store, it will internally store the values of one column of all rows together, which means it needs to transpose the JSON/CSV input data (= read all rows, then cut the data into single columns and then start to compress single columns etc.).
 This transposing and compressing (1) takes some amount of time and (2) might take up a pretty notable amount of main memory. Usually when operating a cluster, you do not want the server process itself take up that much amount of memory for importing new data while it is serving requests at the same time - you do not want to risk that the process is killed because an out-of-memory error and you do not want to slow down any query executions.
@@ -105,7 +105,7 @@ Files of the .diqube data format can also be created as output of a Apache Hadoo
 
 In contrast to JSON or CSV files, diqube files can contain **multiple table shards** at once. That means that internally the diqube server will maintain multiple shards (which might influence query execution speed/responsiveness). Anyway, when specifying the *firstRowIds* in the corresponding control files, you can simply ignore that fact.
 
-####Example####
+#### Example
 
 Assume you have created two diqube files using diqube-hadoop. diqube-hadoop will automatically create diqube files which have multiple table shards in it: When the main memory taken by the reducers exceeds a specific amount, diqube-hadoop will start creating a table shard, flush that to the output file and therefore free up some main memory before accepting any more input data.
 
@@ -138,31 +138,31 @@ type=diqube
 firstRowId=500000
 ```
 
-###Finally loading the data###
+### Finally loading the data
 
 After both the data file and the control file are prepared and available, the loading of the shard can be triggered by copying the control file into the directory that is specified by the property `dataDir` in the server configuration (default is simply a relative `data` directory). diqube server monitors this directory for new control files being created and removed and triggers un-/loading accordingly. Please note that control files need to have the file extension `.control`. 
 After doing this, there should be some information in the server log that new data has been loaded. 
 
-###Sample data###
+### Sample data
 
 To load the sample data in a cluster environment, you need to specify a different `firstRowId` on each diqube server. The sample data currently contains 100 rows - that means that one server should specify `firstRowId=0`, the next should specify `firstRowId=100` etc. in their respective .control files: Row id 0 and 100 will then contain the same data etc. (because both .control files point to the same JSON file).
 
-##Advanced configuration properties##
+## Advanced configuration properties
 
-###Flatten###
+### Flatten
 diql supports selections on flattened tables, as can be read in the Query Guide. The flattened versions of tables will be created on demand and will be cached in both main memory and on disk. Using the server.properties key `flattenMemoryCacheSizeMb` you can specify how much main memory should be used by that cache maximum and using the key `flattenDiskCacheLocation` you can specify where to put the cached data on disk. 
 
 As the flatten process might take a while, one can ask diqube to flatten the data of a new table directly after loading that data. Use the property `autoFlatten` in the tables control files for this. The value is a comma-separated list of fields to automatically flatten by. Using this will make executing queries on the flattened table faster for the first time.
 
-##Overriding loglevels##
+## Overriding loglevels
 
 This can be done by providing a different logging configuration. diqube uses [logback](http://logback.qos.ch/manual/configuration.html), therefore the system property `logback.configurationFile` can be used to point to an alternative logging configuration.
 
-##The User Interface##
+## The User Interface
 
 TODO
 
-###Deployment###
+### Deployment
 
 diqube-ui can be configured using [context init parameters][1]. The configuration keys can currently be found in 
 [DiqubeServletConfig](https://github.com/diqube/diqube/tree/master/diqube-ui/src/main/java/org/diqube/ui/DiqubeServletConfig.java). 

@@ -1,14 +1,14 @@
-#diqube - Query Guide#
+# diqube - Query Guide
 
 This document gives an overview over what type of queries diqube supports.
 
-##diql##
+## diql
 
 diqube can execute queries that are written in diql - **di**qube **q**uery **l**anguage.
 
 diql supports `select` statements which are similar to those of SQL. These statements can *resolve*, *project*, *aggregate*, *filter* and *order* data. As each row in diqube can contain a complex object which also may contain repeated data, both *projections* and *aggregations* can be executed on those repeated columns, too.
 
-##Examples##
+## Examples
 
 Simple selection:
 ```
@@ -55,7 +55,7 @@ First aggregating a repeated column and then aggregating these values row-wise:
 select columnA, min(avg(columnB[*])) from tableA group by columnA
 ```
 
-##Row-wise aggregation vs. column-wise aggregation##
+## Row-wise aggregation vs. column-wise aggregation
 
 Each "row" in a diqube table can store a complex object which may contain repeated fields or "arrays". Assume the two following JSON objects are stored in an example table, each JSON object representing one *row* in diqube:
 
@@ -138,7 +138,7 @@ columnA | min(avg(columB[*])) | max(avg(columB[*]))
 
 For a column-wise aggregation you can use the same aggregation functions as for the row-wise aggregation, but only not use those aggregation function which doe not have a column-parameter (e.g. you can't use `count()` for a column-wise aggregation).
 
-##Repeated projection##
+## Repeated projection
 
 Similar to the above differentiation of row-wise and column-wise aggregation, a projection can also be executed on all values of a repeated column, using the same syntax:
 
@@ -177,7 +177,7 @@ columnA | sum(add(columB[*], 1))
 --------|-----------------------
 1       | 18
 
-##Nested objects##
+## Nested objects
 
 Of course diqube also supports selecting from nested objects:
 
@@ -228,9 +228,9 @@ columnA | avg(columnB[*].y)
 --------|-----------------------
 1       | 7.5
 
-##Special columns##
+## Special columns
 
-###Repeated columns###
+### Repeated columns
 
 Repeated columns are flattened on import, which means that each entry in the input "array" gets a custom column:
 ```
@@ -263,7 +263,7 @@ columnA | columB[length]
 --------|---------------
 1       | 2
 
-##Flatten##
+## Flatten
 
 When loading a table into diqube, each row contains a complex object, with potentially repeated fields. If you now want to select not that whole complex object in a single row, but one of the repeated elements, you can **flatten** the table by the corresponding field. An example illustrates this, imagine you have a table **TAB** with the following two rows:
 
@@ -342,7 +342,7 @@ What happens internally, is that the source table **TAB** is flattened by `colum
 
 Note that `columnB` is no repeated field any more, but alls its repetitions have been extracted in its own row.
 
-##Data types##
+## Data types
 
 diqube internally supports 3 data types: `STRING`, `LONG`, `DOUBLE`. Each column in the table has a data type and each function (both projection/aggregation) executed on it has an input data type and an output data type. 
 

@@ -1,8 +1,8 @@
-#diqube query execution#
+# diqube query execution
 
 This document gives an overview of how queries are executed in diqube.
 
-##General process overview##
+## General process overview
 
 1. A random diqube cluster node receives the request to execute a diql query. This node is known as **query master** in the scope of the execution of that query. Each query might have a different *query master*.
 2. The query master parses the query into so-called *request* objects.
@@ -18,7 +18,7 @@ This document gives an overview of how queries are executed in diqube.
 
 diqube tries to not only execute the query and provide the final result after the query has been executed fully, but it also tries to provide **intermediary results** to the user before the final one is available. Therefore the query remotes do not wait until they have fully processed the query, but send updates on the data as soon as they have some available. The query master in turn does the same thing - it tries to send out intermediary results as soon as some are available.
 
-##How an ExecutablePlan works##
+## How an ExecutablePlan works
 
 As stated before, an *ExecutablePlan* is made up of multiple *ExecutablePlanStep*s. Each step is executed in its own thread, each step waiting for new input data to become available. This input data is provided by previous steps: The data flow between the steps is wired when planning the execution. There are various types of data that can flow from a step to another, one example being active RowIds. Each row in a diqube table has a unique RowId, which is used to build e.g. result rows out of the columnar results of a query, as users typically expect to get a row-wise result provided. Types of steps that are available:
 
@@ -54,7 +54,7 @@ Some of these steps need a *column* as input, which means that other steps need 
 
 The temporary columns are held in an **ExecutionEnvironment**. On the *query remotes* that ExecutionEnvironment is based on actual data of the table (which is available in a local `TableShard`), but on the *query master*, it is not. This is the case, because the query master does not need to contain any part of the data of the queried table itself - it is just used to distribute the execution to other nodes and collect and merge the results of those. On the query master, though, there are typically *VersionedExecutionEnvironment*s in place to faciliate better simultaneous execution (and therefore intermediary results can be provided to the user faster). 
 
-##Detailed overview of execution on query master##
+## Detailed overview of execution on query master
 
 The following list gives an impression of what step is executed "after" another, but keep in mind that all steps are being executed simultaneously and start working as soon as more input data is available. 
 
@@ -117,6 +117,6 @@ The following list gives an impression of what step is executed "after" another,
   * output `ColumnValueConsumer`
     * Read by no step directly, but by the executor, using these values to create the final result
 
-##Detailed overview of execution on query remotes##
+## Detailed overview of execution on query remotes
 
 TODO

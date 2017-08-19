@@ -1,4 +1,4 @@
-#diqube - Distributed Query Base#
+# diqube - Distributed Query Base
 
 [![Build Status](http://build.diqube.org/buildStatus/icon?job=diqube)](http://build.diqube.org)
 [![Project Statistics](https://www.openhub.net/p/diqube/widgets/project_thin_badge?format=gif)](https://www.openhub.net/p/diqube)
@@ -8,7 +8,7 @@ easily.
 
 [![UI YouTube video](http://img.youtube.com/vi/_lddCDuHnMA/0.jpg)](http://www.youtube.com/watch?v=_lddCDuHnMA)
 
-##Getting started##
+## Getting started
 
 To get started with diqube, you either need to 
 * prepare a [Docker](https://www.docker.com) image which will build & start a specific version of diqube for you or
@@ -17,12 +17,12 @@ To get started with diqube, you either need to
 In order to prepare some data to be loaded into diqube server, you might want to read the chapter "Loading data" of the 
 [Operating a cluster guide](docs/OperatingCluster.md).
 
-###Using Docker to get started###
+### Using Docker to get started
 
 To create a Docker image, follow the instructions at
 [diqube-docker/build-and-run](https://github.com/diqube/diqube-docker/tree/master/build-and-run).
 
-###Building manually from source###
+### Building manually from source
 
 Make sure you have the prerequisites installed:
 
@@ -53,7 +53,7 @@ After everything is prepared, execute the build using
 
     $ mvn clean install -DskipTests
 
-####Starting diqube####
+#### Starting diqube
 
 Execute the following after building, note that the passwords and secrets **need to be changed for production use**, obviously:
 
@@ -81,11 +81,11 @@ configuration keys see [DiqubeServletConfig](diqube-ui/src/main/java/org/diqube/
 that only Apache Tomcat 8.0.26+ is supported, as it relies on [Tomcat Bug 58232][6] being fixed which is the case 
 starting with 8.0.26. The UI only supports current versions of Chrome.
 
-##Documentation##
+## Documentation
 
 See the  [`docs`](/docs) directory for some documentation.
 
-##License##
+## License
 
 diqube is distributed under the terms of the [GNU Affero General Public License 3][4].
 
