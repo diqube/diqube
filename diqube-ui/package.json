@@ -404,7 +404,7 @@
     "win-release": "1.1.1",
     "wordwrap": "0.0.3",
     "wrappy": "1.0.1",
-    "ws": "1.0.1",
+    "ws": "7.2.0",
     "xdg-basedir": "1.0.1",
     "xmlbuilder": "3.1.0",
     "xmlhttprequest-ssl": "1.5.1",
