@@ -169,7 +169,7 @@
     "grunt-legacy-util": "0.2.0",
     "grunt-run": "0.5.2",
     "gzip-size": "1.0.0",
-    "handlebars": "2.0.0",
+    "handlebars": "4.5.3",
     "has-ansi": "2.0.0",
     "has-binary": "0.1.7",
     "has-cors": "1.1.0",
