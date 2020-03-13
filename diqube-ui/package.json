@@ -252,7 +252,7 @@
     "mime-db": "1.23.0",
     "mime-types": "2.1.11",
     "minimatch": "3.0.0",
-    "minimist": "1.2.0",
+    "minimist": "1.2.5",
     "mkdirp": "0.5.0",
     "mkpath": "0.1.0",
     "mout": "0.9.1",
