@@ -227,7 +227,7 @@
     "karma-junit-reporter": "0.3.8",
     "karma-phantomjs-launcher": "0.2.2",
     "kew": "0.4.0",
-    "kind-of": "3.0.3",
+    "kind-of": "6.0.3",
     "latest-version": "1.0.1",
     "lazy-cache": "1.0.4",
     "load-json-file": "1.1.0",
