@@ -232,7 +232,7 @@
     "lazy-cache": "1.0.4",
     "load-json-file": "1.1.0",
     "lockfile": "1.0.1",
-    "lodash": "3.10.1",
+    "lodash": "4.17.19",
     "lodash.debounce": "3.1.1",
     "lodash._getnative": "3.9.1",
     "log4js": "0.6.35",
