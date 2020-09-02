@@ -101,7 +101,7 @@
     "dateformat": "1.0.2-1.2.3",
     "debug": "2.2.0",
     "decamelize": "1.2.0",
-    "decompress-zip": "0.1.0",
+    "decompress-zip": "0.2.2",
     "deep-extend": "0.4.1",
     "delayed-stream": "0.0.5",
     "depd": "1.1.0",
