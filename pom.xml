@@ -95,7 +95,7 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-    <spring.version>4.1.6.RELEASE</spring.version>
+    <spring.version>5.2.22.RELEASE</spring.version>
     <slf4j.version>1.7.12</slf4j.version>
     <thrift.version>0.9.3</thrift.version>
     <!-- string the thrift compiler (executable) outputs when called with param "- -version" -->
